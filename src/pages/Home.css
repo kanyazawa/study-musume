@@ -1,0 +1,1005 @@
+.home-screen {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: #fce4ec;
+    /* Light pinkish bg fallback */
+}
+
+/* Header Layout Redesign */
+.home-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    z-index: 10;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, transparent 100%);
+    pointer-events: none;
+    /* Allow clicking through header gaps */
+}
+
+.home-header>* {
+    pointer-events: auto;
+}
+
+.header-left-group {
+    display: flex;
+    align-items: center;
+    /* Align Rank and TP block vertically */
+    gap: 8px;
+}
+
+.header-right-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    /* Space between Currencies, Settings */
+}
+
+.header-block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* Specific Block for User/TP to ensure they stack */
+.user-tp-block {
+    justify-content: center;
+}
+
+/* Study Rank Styles */
+.study-rank-block {
+    justify-content: center;
+    height: auto;
+}
+
+.study-rank-row {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    padding: 4px 8px;
+    border: 3px solid var(--uma-green, #66bb6a);
+    /* Badge-like border */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 54px;
+    height: 54px;
+    /* Square-ish badge */
+}
+
+.study-rank-label {
+    font-size: 9px;
+    color: #555;
+    font-weight: bold;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+.study-rank-value {
+    font-size: 18px;
+    color: var(--uma-blue, #42a5f5);
+    font-weight: 900;
+    line-height: 1;
+}
+
+/* Common Info Row Style */
+.info-row {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 2px 10px;
+    display: flex;
+    align-items: center;
+    border: 2px solid #ccc;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    min-height: 28px;
+    white-space: nowrap;
+    /* Prevent breaking */
+}
+
+/* User Row */
+.user-row {
+    margin-bottom: 2px;
+}
+
+.rank-badge-small {
+    background: var(--uma-green, #66bb6a);
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 0 4px;
+    border-radius: 4px;
+    margin-right: 6px;
+    border: 1px solid white;
+}
+
+.user-name-text {
+    font-size: 12px;
+    color: #333;
+    font-weight: bold;
+    margin-right: 6px;
+}
+
+.user-title-badge {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    color: #333;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid #ff9800;
+    box-shadow: 0 2px 6px rgba(255, 215, 0, 0.4);
+    white-space: nowrap;
+}
+
+/* TP Row (Compact) */
+.tp-bar-container-compact {
+    display: flex;
+    align-items: center;
+    width: 140px;
+    position: relative;
+}
+
+.tp-bar-bg-compact {
+    flex: 1;
+    height: 10px;
+    background: #555;
+    border-radius: 5px;
+    margin-right: 6px;
+    border: 1px solid white;
+    overflow: hidden;
+}
+
+.tp-bar-fill {
+    height: 100%;
+    background: linear-gradient(to right, #f5d300, #ffea00);
+}
+
+.tp-text-compact {
+    font-size: 12px;
+    font-weight: bold;
+    color: #333;
+    font-family: monospace;
+}
+
+/* Currency Rows */
+.currency-row {
+    min-width: 100px;
+    justify-content: space-between;
+}
+
+.currency-icon-small,
+.jewel-icon-small {
+    font-size: 14px;
+}
+
+.currency-value-small {
+    font-size: 12px;
+    font-weight: bold;
+    color: #333;
+    margin-left: auto;
+}
+
+.add-btn-small {
+    background: var(--uma-pink, #f06292);
+    color: white;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 6px;
+    cursor: pointer;
+}
+
+/* Settings Button */
+.settings-btn {
+    background: white;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+/* Floating Countdown */
+.countdown-floating {
+    position: absolute;
+    top: 15%;
+    left: 5%;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid var(--uma-pink, #f48fb1);
+    border-radius: 12px;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    z-index: 5;
+    transform: rotate(-2deg);
+}
+
+.countdown-title {
+    font-size: 10px;
+    color: #555;
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.countdown-days {
+    display: flex;
+    align-items: baseline;
+}
+
+.days-num {
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--uma-pink, #e91e63);
+    line-height: 1;
+}
+
+.days-label {
+    font-size: 12px;
+    font-weight: bold;
+    color: #333;
+    margin-left: 2px;
+}
+
+.room-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    /* padding-bottom removed */
+    background: linear-gradient(135deg, #e0f7fa 0%, #fff9c4 100%);
+    /* Placeholder gradient for room */
+}
+
+/* Simulated Room Lines */
+.room-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('../assets/images/bg_classroom.png');
+    background-size: cover;
+    background-position: center;
+    filter: brightness(0.9);
+}
+
+.character-figure {
+    position: relative;
+    z-index: 5;
+    height: 85%;
+    width: auto;
+    display: flex;
+    align-items: flex-end;
+}
+
+.char-image {
+    height: 90%;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+    transition: transform 0.1s;
+}
+
+.character-figure:active .char-image {
+    transform: scale(0.98);
+}
+
+.speech-bubble {
+    position: absolute;
+    bottom: 140px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.98);
+    padding: 15px 30px;
+    border-radius: 50px;
+    /* 丸みを持たせる */
+    border: 3px solid #81c784;
+    /* 参考画像のような緑系の枠線に変更 */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    width: 80%;
+    max-width: 600px;
+    min-height: 80px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: slideUp 0.3s ease-out;
+}
+
+/* 吹き出しの突起（上向き三角形） */
+.speech-bubble::after {
+    content: '';
+    position: absolute;
+    top: -18px;
+    /* 上に配置 */
+    left: 70%;
+    /* 少し右寄りに配置（参考画像風） */
+    transform: translateX(-50%);
+    border-width: 0 12px 18px 12px;
+    /* 上向き三角形 */
+    border-style: solid;
+    border-color: transparent transparent #81c784 transparent;
+    display: block;
+    width: 0;
+}
+
+.speech-bubble::before {
+    content: '';
+    position: absolute;
+    top: -13px;
+    left: 70%;
+    transform: translateX(-50%);
+    border-width: 0 9px 14px 9px;
+    border-style: solid;
+    border-color: transparent transparent rgba(255, 255, 255, 0.98) transparent;
+    display: block;
+    width: 0;
+    z-index: 1;
+}
+
+.speech-bubble p {
+    color: #333;
+    font-weight: bold;
+    font-size: 15px;
+    white-space: pre-wrap;
+    text-align: center;
+    line-height: 1.5;
+    width: 100%;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+.action-area {
+    position: absolute;
+    bottom: 90px;
+    /* 元の位置に戻す */
+    right: 20px;
+    z-index: 20;
+}
+
+.study-btn {
+    background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%);
+    color: white;
+    width: 100px;
+    height: 60px;
+    border-radius: 30px;
+    font-weight: bold;
+    font-size: 18px;
+    box-shadow: 0 4px 15px rgba(0, 198, 255, 0.4), inset 0 2px 5px rgba(255, 255, 255, 0.4);
+    border: 2px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+}
+
+.study-btn:active {
+    transform: scale(0.95);
+}
+
+/* User Row */
+.user-row {
+    margin-bottom: 2px;
+}
+
+.rank-badge-small {
+    background: var(--uma-green, #66bb6a);
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 0 4px;
+    border-radius: 4px;
+    margin-right: 6px;
+    border: 1px solid white;
+}
+
+.user-name-text {
+    font-size: 12px;
+    color: #333;
+    font-weight: bold;
+}
+
+/* TP Row (Compact) */
+.tp-bar-container-compact {
+    display: flex;
+    align-items: center;
+    width: 140px;
+    position: relative;
+}
+
+.tp-bar-bg-compact {
+    flex: 1;
+    height: 10px;
+    background: #555;
+    border-radius: 5px;
+    margin-right: 6px;
+    border: 1px solid white;
+    overflow: hidden;
+}
+
+.tp-bar-fill {
+    height: 100%;
+    background: linear-gradient(to right, #f5d300, #ffea00);
+}
+
+.tp-text-compact {
+    font-size: 12px;
+    font-weight: bold;
+    color: #333;
+    font-family: monospace;
+}
+
+/* Affection Row */
+.affection-row {
+    margin-top: 2px;
+}
+
+.affection-bar-container {
+    display: flex;
+    align-items: center;
+    width: 140px;
+    gap: 4px;
+}
+
+.affection-icon {
+    font-size: 14px;
+}
+
+.affection-bar-bg {
+    flex: 1;
+    height: 10px;
+    background: #ddd;
+    border-radius: 5px;
+    border: 1px solid white;
+    overflow: hidden;
+}
+
+.affection-bar-fill {
+    height: 100%;
+    background: linear-gradient(to right, #ff006e, #ff4d94);
+    transition: width 0.3s ease-out;
+}
+
+.affection-level {
+    font-size: 11px;
+    font-weight: bold;
+    color: #333;
+    white-space: nowrap;
+}
+
+/* Currency Rows */
+.currency-row {
+    min-width: 100px;
+    justify-content: space-between;
+}
+
+.currency-icon-small,
+.jewel-icon-small {
+    font-size: 14px;
+}
+
+.currency-value-small {
+    font-size: 12px;
+    font-weight: bold;
+    color: #333;
+    margin-left: auto;
+}
+
+.add-btn-small {
+    background: var(--uma-pink, #f06292);
+    color: white;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 6px;
+    cursor: pointer;
+}
+
+/* Settings Button */
+.settings-btn {
+    background: white;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+/* Floating Countdown */
+.countdown-floating {
+    position: absolute;
+    top: 15%;
+    left: 5%;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid var(--uma-pink, #f48fb1);
+    border-radius: 12px;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    z-index: 5;
+    transform: rotate(-2deg);
+}
+
+.countdown-title {
+    font-size: 10px;
+    color: #555;
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.countdown-days {
+    display: flex;
+    align-items: baseline;
+}
+
+.days-num {
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--uma-pink, #e91e63);
+    line-height: 1;
+}
+
+.days-label {
+    font-size: 12px;
+    font-weight: bold;
+    color: #333;
+    margin-left: 2px;
+}
+
+.room-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding-bottom: 80px;
+    /* Space for footer */
+    background: linear-gradient(135deg, #e0f7fa 0%, #fff9c4 100%);
+    /* Placeholder gradient for room */
+}
+
+/* Simulated Room Lines */
+.room-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('../assets/images/bg_classroom.png');
+    background-size: cover;
+    background-position: center;
+    filter: brightness(0.9);
+}
+
+.character-figure {
+    position: relative;
+    z-index: 5;
+    height: 85%;
+    width: auto;
+    display: flex;
+    align-items: flex-end;
+}
+
+.char-image {
+    height: 90%;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+    transition: transform 0.1s;
+}
+
+.character-figure:active .char-image {
+    transform: scale(0.98);
+}
+
+.speech-bubble {
+    position: absolute;
+    bottom: 140px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.98);
+    padding: 15px 30px;
+    border-radius: 50px;
+    /* 丸みを持たせる */
+    border: 3px solid #81c784;
+    /* 参考画像のような緑系の枠線に変更 */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    width: 80%;
+    max-width: 600px;
+    min-height: 80px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: slideUp 0.3s ease-out;
+}
+
+/* 吹き出しの突起（上向き三角形） */
+.speech-bubble::after {
+    content: '';
+    position: absolute;
+    top: -18px;
+    /* 上に配置 */
+    left: 70%;
+    /* 少し右寄りに配置（参考画像風） */
+    transform: translateX(-50%);
+    border-width: 0 12px 18px 12px;
+    /* 上向き三角形 */
+    border-style: solid;
+    border-color: transparent transparent #81c784 transparent;
+    display: block;
+    width: 0;
+}
+
+.speech-bubble::before {
+    content: '';
+    position: absolute;
+    top: -13px;
+    left: 70%;
+    transform: translateX(-50%);
+    border-width: 0 9px 14px 9px;
+    border-style: solid;
+    border-color: transparent transparent rgba(255, 255, 255, 0.98) transparent;
+    display: block;
+    width: 0;
+    z-index: 1;
+}
+
+.speech-bubble p {
+    color: #333;
+    font-weight: bold;
+    font-size: 15px;
+    white-space: pre-wrap;
+    text-align: center;
+    line-height: 1.5;
+    width: 100%;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+.action-area {
+    position: absolute;
+    bottom: 90px;
+    /* 元の位置に戻す */
+    right: 20px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.study-btn {
+    background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%);
+    color: white;
+    width: 100px;
+    height: 60px;
+    border-radius: 30px;
+    font-weight: bold;
+    font-size: 18px;
+    box-shadow: 0 4px 15px rgba(0, 198, 255, 0.4), inset 0 2px 5px rgba(255, 255, 255, 0.4);
+    border: 2px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+    cursor: pointer;
+}
+
+.study-btn:active {
+    transform: scale(0.95);
+}
+
+.inventory-btn {
+    background: linear-gradient(to bottom, #ff006e, #ff4d94);
+    color: white;
+    width: 100px;
+    height: 60px;
+    border-radius: 30px;
+    font-weight: bold;
+    font-size: 15px;
+    box-shadow: 0 4px 15px rgba(255, 0, 110, 0.4), inset 0 2px 5px rgba(255, 255, 255, 0.4);
+    border: 2px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+    cursor: pointer;
+}
+
+.inventory-btn:active {
+    transform: scale(0.95);
+}
+
+.story-btn {
+    background: linear-gradient(to bottom, #f093fb, #f5576c);
+    color: white;
+    width: 100px;
+    height: 60px;
+    border-radius: 30px;
+    font-weight: bold;
+    font-size: 15px;
+    box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4), inset 0 2px 5px rgba(255, 255, 255, 0.4);
+    border: 2px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+    cursor: pointer;
+}
+
+.story-btn:active {
+    transform: scale(0.95);
+}
+
+.skin-btn {
+    background: linear-gradient(to bottom, #4facfe, #00f2fe);
+    color: white;
+    width: 100px;
+    height: 60px;
+    border-radius: 30px;
+    font-weight: bold;
+    font-size: 15px;
+    box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4), inset 0 2px 5px rgba(255, 255, 255, 0.4);
+    border: 2px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+    cursor: pointer;
+}
+
+.skin-btn:active {
+    transform: scale(0.95);
+}
+
+.character-btn {
+    background: linear-gradient(to bottom, #a18cd1 0%, #fbc2eb 100%);
+    color: white;
+    width: 100px;
+    height: 60px;
+    border-radius: 30px;
+    font-weight: bold;
+    font-size: 15px;
+    box-shadow: 0 4px 15px rgba(161, 140, 209, 0.4), inset 0 2px 5px rgba(255, 255, 255, 0.4);
+    border: 2px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+    cursor: pointer;
+}
+
+.character-btn:active {
+    transform: scale(0.95);
+}
+
+.mission-btn {
+    background: linear-gradient(to bottom, #f5af19 0%, #f12711 100%);
+    color: white;
+    width: 100px;
+    height: 60px;
+    border-radius: 30px;
+    font-weight: bold;
+    font-size: 15px;
+    box-shadow: 0 4px 15px rgba(245, 175, 25, 0.4), inset 0 2px 5px rgba(255, 255, 255, 0.4);
+    border: 2px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+    cursor: pointer;
+}
+
+.mission-btn:active {
+    transform: scale(0.95);
+}
+
+/* Action Area - Absolute Positioning */
+.action-area {
+    position: absolute;
+    bottom: 100px;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 120px;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.action-area>* {
+    pointer-events: auto;
+}
+
+/* Study Button (Blue - Right Bottom, LARGE - MAIN) */
+.study-btn-large {
+    position: absolute;
+    right: 15px;
+    bottom: 0;
+    width: 180px;
+    height: 100px;
+    background: linear-gradient(135deg, #3a7bd5 0%, #00d2ff 100%);
+    color: white;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 1.5rem;
+    box-shadow: 0 8px 25px rgba(58, 123, 213, 0.6),
+        inset 0 3px 10px rgba(255, 255, 255, 0.3);
+    border: 4px solid rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.study-btn-large:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 10px 30px rgba(58, 123, 213, 0.7),
+        inset 0 3px 10px rgba(255, 255, 255, 0.3);
+}
+
+.study-btn-large:active {
+    transform: translateY(-3px) scale(0.98);
+}
+
+/* Mission Button (Orange - Left Bottom, Smaller) */
+.mission-btn-large {
+    position: absolute;
+    left: 15px;
+    bottom: 0;
+    width: 130px;
+    height: 70px;
+    background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);
+    color: white;
+    border-radius: 16px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    box-shadow: 0 6px 20px rgba(245, 175, 25, 0.5),
+        inset 0 3px 8px rgba(255, 255, 255, 0.3);
+    border: 3px solid rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.mission-btn-large:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(245, 175, 25, 0.6),
+        inset 0 3px 8px rgba(255, 255, 255, 0.3);
+}
+
+.mission-btn-large:active {
+    transform: translateY(-2px) scale(0.98);
+}
+
+/* Social Buttons (Right Side - Green Area) */
+.social-buttons {
+    position: absolute;
+    right: 20px;
+    /* 勉強ボタンと同じ右端 */
+    bottom: 320px;
+    /* 吹き出しの上 */
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    z-index: 20;
+}
+
+.friend-btn,
+.ranking-btn {
+    width: 140px;
+    height: 65px;
+    background: linear-gradient(135deg, #4caf50 0%, #81c784 100%);
+    color: white;
+    border-radius: 16px;
+    font-weight: bold;
+    font-size: 1rem;
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5),
+        inset 0 3px 8px rgba(255, 255, 255, 0.3);
+    border: 3px solid rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.friend-btn:hover,
+.ranking-btn:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(76, 175, 80, 0.6),
+        inset 0 3px 8px rgba(255, 255, 255, 0.3);
+}
+
+.friend-btn:active,
+.ranking-btn:active {
+    transform: translateY(-2px) scale(0.98);
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+    .action-area {
+        bottom: 90px;
+        height: 100px;
+    }
+
+    .study-btn-large {
+        right: 10px;
+        width: 150px;
+        height: 85px;
+        font-size: 1.3rem;
+    }
+
+    .mission-btn-large {
+        left: 10px;
+        width: 110px;
+        height: 60px;
+        font-size: 1rem;
+    }
+
+    .social-buttons {
+        right: 15px;
+        bottom: 320px;
+        gap: 10px;
+    }
+
+    .friend-btn,
+    .ranking-btn {
+        width: 120px;
+        height: 55px;
+        font-size: 0.9rem;
+    }
+}

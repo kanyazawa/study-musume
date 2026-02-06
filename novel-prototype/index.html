@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Visual Novel Engine</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #222;
+            color: white;
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #game-container {
+            width: 800px;
+            height: 600px;
+            background-image: url('https://placehold.co/800x600/333/666?text=Background');
+            /* Placeholder BG */
+            background-size: cover;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+
+        /* Character */
+        #character-img {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 400px;
+            /* Adjust based on asset */
+            height: auto;
+            transition: opacity 0.3s;
+        }
+
+        /* Dialogue Box */
+        #dialogue-box {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            height: 180px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #fff;
+            border-radius: 10px;
+            padding: 20px;
+            box-sizing: border-box;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        #speaker-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffeb3b;
+            margin-bottom: 10px;
+        }
+
+        #dialogue-text {
+            font-size: 18px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        #next-indicator {
+            position: absolute;
+            bottom: 15px;
+            right: 20px;
+            font-size: 20px;
+            animation: bounce 1s infinite;
+        }
+
+        /* Loading / Start Screen */
+        #loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        input {
+            padding: 10px;
+            width: 300px;
+            margin-bottom: 10px;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(5px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="game-container">
+        <!-- Character Layer -->
+        <img id="character-img" src="" alt="Character" style="display:none;">
+
+        <!-- Dialogue Layer -->
+        <div id="dialogue-box" onclick="nextStep()">
+            <div id="speaker-name">Name</div>
+            <div id="dialogue-text">Text will appear here...</div>
+            <div id="next-indicator">▼</div>
+        </div>
+
+        <!-- System Layer -->
+        <div id="loading-overlay">
+            <h2>CSV Visual Novel Player</h2>
+            <p>Googleスプレッドシート(CSV)のURL、またはローカルパスを入力</p>
+            <input type="text" id="csv-url" value="./scenario.csv">
+            <button onclick="loadScenario()">スタート</button>
+            <p style="font-size:12px; color:#aaa; margin-top:20px;">
+                列定義: scene, order, speaker, text, emotion, next
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        // Minimal Image Mapping for demo
+        // You can replace these URLs with real images
+        const ASSET_MAP = {
+            'normal': 'https://placehold.co/400x600/png?text=Normal',
+            'smile': 'https://placehold.co/400x600/png?text=Smile',
+            'surprise': 'https://placehold.co/400x600/png?text=Surprise',
+            'proud': 'https://placehold.co/400x600/png?text=Proud',
+            'excited': 'https://placehold.co/400x600/png?text=Excited'
+        };
+
+        // --- State ---
+        let scenarioData = [];
+        let currentScene = [];
+        let currentIndex = 0;
+
+        // --- CSV Parsing ---
+        function parseCSV(text) {
+            const lines = text.trim().split('\n');
+            if (lines.length === 0) return [];
+
+            // Normalize headers to lowercase and trim
+            let headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+
+            // Handle aliases: map 'id' -> 'order', 'next_id' -> 'next'
+            headers = headers.map(h => {
+                if (h === 'id') return 'order';
+                if (h === 'next_id') return 'next';
+                return h;
+            });
+
+            const data = [];
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                // Handle simple comma split. Note: This breaks if text contains commas.
+                // For a better experience, we can try a slightly smarter regex or just warn the user.
+                const values = lines[i].split(',').map(v => v.trim());
+                const row = {};
+                headers.forEach((h, idx) => {
+                    row[h] = values[idx] || "";
+                });
+                data.push(row);
+            }
+            return data;
+        }
+
+        // --- Game Logic ---
+        async function loadScenario() {
+            const url = document.getElementById('csv-url').value;
+            const btn = document.querySelector('button');
+            btn.disabled = true;
+            btn.textContent = "Loading...";
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("File not found");
+                const text = await response.text();
+                scenarioData = parseCSV(text);
+
+                console.log("Loaded Scenario:", scenarioData);
+
+                document.getElementById('loading-overlay').style.display = 'none';
+                // Start from 'start' scene or the first scene found
+                playScene('start');
+            } catch (e) {
+                alert('Failed to load CSV: ' + e.message);
+                btn.disabled = false;
+                btn.textContent = "スタート";
+            }
+        }
+
+        function playScene(sceneId) {
+            // Filter lines for this scene and sort by order
+            currentScene = scenarioData.filter(row => row.scene === sceneId);
+            currentScene.sort((a, b) => parseInt(a.order) - parseInt(b.order));
+
+            if (currentScene.length === 0) {
+                alert("Scene not found: " + sceneId);
+                return;
+            }
+
+            currentIndex = 0;
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            if (currentIndex >= currentScene.length) {
+                // End of scene, check for transition
+                const lastLine = currentScene[currentScene.length - 1];
+                if (lastLine.next && lastLine.next !== 'END') {
+                    playScene(lastLine.next);
+                } else {
+                    document.getElementById('speaker-name').innerText = "END";
+                    document.getElementById('dialogue-text').innerText = "物語は終了しました。";
+                    document.getElementById('next-indicator').style.display = 'none';
+                }
+                return;
+            }
+
+            const line = currentScene[currentIndex];
+
+            // 1. Text
+            document.getElementById('speaker-name').innerText = line.speaker;
+            document.getElementById('dialogue-text').innerText = line.text;
+
+            // 2. Emotion / Image
+            const img = document.getElementById('character-img');
+            if (line.emotion) {
+                const src = ASSET_MAP[line.emotion] || ASSET_MAP['normal'];
+                img.src = src;
+                img.style.display = 'block';
+            } else {
+                // keep previous or hide? assuming keep
+            }
+
+            // 3. Next Indicator
+            document.getElementById('next-indicator').style.display = 'block';
+        }
+
+        function nextStep() {
+            // If we are showing "END", do nothing or reset
+            const speaker = document.getElementById('speaker-name').innerText;
+            if (speaker === "END") return;
+
+            currentIndex++;
+            updateDisplay();
+        }
+
+        // Debug helper
+        window.onerror = function (msg, url, line) {
+            alert("Error: " + msg);
+        };
+    </script>
+
+</body>
+
+</html>

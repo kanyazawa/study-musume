@@ -1,0 +1,203 @@
+.story-reader {
+    height: 100%;
+    width: 100%;
+    background: #000;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* 背景 */
+.story-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    opacity: 0.8;
+}
+
+/* キャラクター画像 */
+.story-character {
+    position: absolute;
+    bottom: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.character-image {
+    height: 70vh;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.3));
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* テキストボックス */
+.story-textbox {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 700px;
+    background: rgba(0, 0, 0, 0.85);
+    border: 3px solid #fff;
+    border-radius: 15px;
+    padding: 20px 25px;
+    z-index: 100;
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.speaker-name {
+    font-size: 16px;
+    font-weight: bold;
+    color: #ffd700;
+    margin-bottom: 10px;
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+}
+
+.story-text {
+    font-size: 16px;
+    color: #fff;
+    line-height: 1.8;
+    white-space: pre-wrap;
+}
+
+/* コントロール */
+.story-controls {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    z-index: 200;
+}
+
+.skip-btn {
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: 1px solid white;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.skip-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.scene-indicator {
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-size: 13px;
+    border: 1px solid white;
+}
+
+/* タップヒント */
+.tap-hint {
+    position: absolute;
+    bottom: 180px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 14px;
+    opacity: 0.7;
+    animation: blink 2s infinite;
+    z-index: 50;
+    text-align: center;
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 0.4;
+    }
+
+    50% {
+        opacity: 0.9;
+    }
+}
+
+/* エラーメッセージ */
+.error-message {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    gap: 20px;
+}
+
+.error-message p {
+    font-size: 18px;
+}
+
+.error-message button {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 25px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+/* レスポンシブ */
+@media (max-width: 400px) {
+    .character-image {
+        height: 60vh;
+    }
+
+    .story-textbox {
+        width: 95%;
+        padding: 15px 20px;
+    }
+
+    .speaker-name {
+        font-size: 14px;
+    }
+
+    .story-text {
+        font-size: 14px;
+    }
+
+    .tap-hint {
+        bottom: 160px;
+        font-size: 12px;
+    }
+}

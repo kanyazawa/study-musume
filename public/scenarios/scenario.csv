@@ -1,0 +1,11 @@
+scene, id, speaker, text, emotion, image, next_id, option1, option2, option3, answer
+beVerb, 1, Noa, さて、ここまでの復習をしましょうか。, serious, , , , , , 
+beVerb, 2, Quiz, 私 [ ] 学生 です。正しい単語を選びなさい。, normal, , , am, are, is, 1
+beVerb, 3, Noa, 正解！基本はバッチリね。, happy, , , , , , 
+beVerb, 4, Noa, 次の問題よ。, serious, , , , , , 
+beVerb, 5, Quiz, You [ ] a teacher. ここに入るのは？, normal, , , am, are, is, 2
+beVerb, 6, Noa, よし、合格よ！, happy, , end, , , , 
+代名詞, 1, ノア, さあ、代名詞の勉強を始めるわよ！, serious, , , , , , 
+代名詞, 2, 主人公, はい、お願いします！, happy, , , , , , 
+代名詞, 3, Quiz, 私は学生です。 I [ ] a student., normal, , , am, are, is, 1
+代名詞, 4, ノア, よくできたわね！, happy, , end, , , ,

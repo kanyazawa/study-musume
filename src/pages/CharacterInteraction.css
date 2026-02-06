@@ -1,0 +1,136 @@
+.character-interaction-screen {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    background-color: #f0f0f0;
+    /* Default fallback */
+    background-size: cover;
+    background-position: center;
+}
+
+.ci-back-btn {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    cursor: pointer;
+}
+
+/* Control Panel using Dialogue Box style */
+.ci-control-panel {
+    /* Inherits dialogue-box properties but we override some */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+}
+
+.ci-menu-buttons {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    justify-content: space-around;
+}
+
+.ci-btn {
+    background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+    border: 2px solid #ccc;
+    border-radius: 12px;
+    padding: 10px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    font-weight: bold;
+    color: #333;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.1s;
+    flex: 1;
+}
+
+.ci-btn:active {
+    transform: scale(0.95);
+}
+
+/* Gift Panel */
+.ci-gift-panel {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.ci-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-weight: bold;
+    color: white;
+    /* Contrast against dark dialogue box */
+}
+
+.ci-close-small {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+}
+
+.ci-gift-list {
+    flex: 1;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.ci-gift-item {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.ci-gift-item:active {
+    background: #e0e0e0;
+}
+
+.ci-gift-emoji {
+    font-size: 24px;
+}
+
+.ci-gift-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.ci-gift-name {
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.ci-gift-count {
+    font-size: 10px;
+    color: #666;
+}
+
+.no-items {
+    color: white;
+    text-align: center;
+    width: 100%;
+    margin-top: 20px;
+}

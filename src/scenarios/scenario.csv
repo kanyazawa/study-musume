@@ -1,0 +1,4 @@
+scene,id,speaker,text,emotion,next_id
+start,1,ノア,こんにちは！,happy,2
+2,2,主人公,よろしく,normal,3
+3,3,ノア,今日は勉強だよ,smile,end

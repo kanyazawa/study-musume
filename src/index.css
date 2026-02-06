@@ -1,0 +1,48 @@
+:root {
+  --uma-green: #6bc03e;
+  --uma-blue: #4aa3df;
+  --uma-pink: #ed82ae;
+  --uma-yellow: #f5c531;
+  --uma-text: #4a4a4a;
+  --uma-bg: #e6e6e6;
+  --uma-white: #ffffff;
+  
+  --font-main: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: #333; /* Dark background for desktop view */
+  color: var(--uma-text);
+  overflow: hidden; /* Prevent body scroll, handle inside container */
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input, textarea {
+  font-family: inherit;
+}

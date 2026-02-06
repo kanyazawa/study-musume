@@ -1,0 +1,203 @@
+.dialogue-screen {
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #e0f7fa 0%, #fff9c4 100%);
+    display: flex;
+    justify-content: center;
+}
+
+.dialogue-box {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    /* Allow growth */
+    min-height: 250px;
+    /* Minimum size */
+    max-height: 60vh;
+    /* Prevent covering entire screen */
+    background: rgba(255, 255, 255, 0.95);
+    padding: 40px 20px 20px;
+    border-top: 3px solid #ff80ab;
+    /* Uma-pink border */
+    display: flex;
+    flex-direction: column;
+    z-index: 20;
+    box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.name-tag {
+    position: absolute;
+    top: -20px;
+    left: 20px;
+    background: white;
+    padding: 5px 20px;
+    border-radius: 15px;
+    font-weight: bold;
+    font-size: 16px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    border: 1px solid #ccc;
+}
+
+.dialogue-text {
+    font-size: 18px;
+    line-height: 1.6;
+    color: #333;
+    white-space: pre-wrap;
+}
+
+.next-indicator {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    animation: bounce 1s infinite;
+    color: var(--uma-green);
+}
+
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(5px);
+    }
+}
+
+/* Character Override for Dialogue */
+.dialogue-screen .char-image-dialogue {
+    height: 90%;
+    /* Restore original scale feel */
+    width: auto;
+    object-fit: contain;
+    position: absolute;
+    bottom: 0;
+    /* Align to very bottom of screen */
+    left: 50%;
+    transform: translateX(-50%);
+    /* Center horizontally */
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+    transition: all 0.3s ease;
+    z-index: 10;
+    /* Behind text box */
+}
+
+.dialogue-screen .character-figure {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    /* Let clicks pass through to dialog */
+    z-index: 10;
+}
+
+.expression-normal {
+    border-color: var(--uma-pink);
+    background: rgba(237, 130, 174, 0.1);
+}
+
+.tts-btn {
+    position: absolute;
+    top: 15px;
+    /* Slightly higher */
+    right: 20px;
+    background: #fff;
+    border: 2px solid var(--uma-green);
+    /* Green border to stand out */
+    color: var(--uma-green);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 100;
+    /* Ensure it's on top */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.tts-btn:hover {
+    transform: scale(1.1);
+    background-color: #f1f8e9;
+}
+
+.tts-btn:active {
+    transform: scale(0.95);
+}
+
+.quiz-options-container {
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+/* Feedback Overlay */
+.feedback-overlay {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 48px;
+    font-weight: 900;
+    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+    pointer-events: none;
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.feedback-overlay.correct {
+    color: #4caf50;
+    /* Success Green */
+    /* Add a circle border effect if desired, or keep simple text/emoji */
+}
+
+.feedback-overlay.incorrect {
+    color: #f44336;
+    /* Error Red */
+}
+
+@keyframes popIn {
+    0% {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}
+
+.quiz-btn {
+    background: white;
+    border: 2px solid #4a90e2;
+    /* var(--uma-blue) fallback */
+    color: #4a90e2;
+    padding: 10px 15px;
+    border-radius: 20px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.quiz-btn:hover {
+    background: #4a90e2;
+    color: white;
+    transform: translateX(5px);
+}
+
+.quiz-btn:active {
+    transform: scale(0.98);
+}

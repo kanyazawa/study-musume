@@ -1,0 +1,410 @@
+.friends-screen {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding-bottom: 4rem;
+}
+
+/* Header */
+.friends-header {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    backdrop-filter: blur(10px);
+}
+
+.friends-header h1 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 0;
+}
+
+.back-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* My Friend Code */
+.my-friend-code {
+    background: rgba(255, 255, 255, 0.95);
+    margin: 1rem;
+    padding: 1rem;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.code-label {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+
+.code-display {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.code-display:hover {
+    transform: scale(1.05);
+}
+
+.code {
+    display: block;
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: 0.2rem;
+    color: #667eea;
+    font-family: 'Courier New', monospace;
+}
+
+.copy-hint {
+    display: block;
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 0.3rem;
+}
+
+/* Tabs */
+.friends-tabs {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0 1rem;
+    margin-bottom: 1rem;
+}
+
+.tab-btn {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    padding: 0.8rem;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+}
+
+.tab-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.tab-btn.active {
+    background: white;
+    color: #667eea;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Message */
+.message {
+    margin: 0 1rem 1rem;
+    padding: 0.8rem 1rem;
+    border-radius: 12px;
+    text-align: center;
+    font-weight: 600;
+    animation: slideDown 0.3s ease;
+}
+
+.message.success {
+    background: #4caf50;
+    color: white;
+}
+
+.message.error {
+    background: #f44336;
+    color: white;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Content */
+.friends-content {
+    padding: 0 1rem 1rem;
+}
+
+/* Friends List */
+.friends-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.friend-card {
+    background: white;
+    padding: 1rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.friend-info {
+    flex: 1;
+}
+
+.friend-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #333;
+}
+
+.friend-code {
+    font-size: 0.85rem;
+    color: #999;
+    font-family: 'Courier New', monospace;
+    margin-top: 0.2rem;
+}
+
+.remove-btn {
+    background: #f44336;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.remove-btn:hover {
+    background: #d32f2f;
+}
+
+/* Search Section */
+.search-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.search-box {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.search-box input {
+    flex: 1;
+    padding: 1rem;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-align: center;
+    letter-spacing: 0.2rem;
+    font-family: 'Courier New', monospace;
+}
+
+.search-btn {
+    background: white;
+    color: #667eea;
+    border: none;
+    padding: 0 1.5rem;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.3s ease;
+}
+
+.search-btn:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.search-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.search-result {
+    animation: fadeIn 0.3s ease;
+}
+
+.result-card {
+    background: white;
+    padding: 1rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.result-info {
+    flex: 1;
+}
+
+.result-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #333;
+}
+
+.result-code {
+    font-size: 0.85rem;
+    color: #999;
+    font-family: 'Courier New', monospace;
+    margin-top: 0.2rem;
+}
+
+.request-btn {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 0.7rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.request-btn:hover {
+    background: #5568d3;
+}
+
+.request-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Requests List */
+.requests-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.request-card {
+    background: white;
+    padding: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.request-info {
+    margin-bottom: 0.8rem;
+}
+
+.request-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #333;
+}
+
+.request-code {
+    font-size: 0.85rem;
+    color: #999;
+    font-family: 'Courier New', monospace;
+    margin-top: 0.2rem;
+}
+
+.request-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.accept-btn,
+.reject-btn {
+    flex: 1;
+    border: none;
+    padding: 0.7rem;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    transition: all 0.3s ease;
+}
+
+.accept-btn {
+    background: #4caf50;
+    color: white;
+}
+
+.accept-btn:hover {
+    background: #45a049;
+}
+
+.reject-btn {
+    background: #f44336;
+    color: white;
+}
+
+.reject-btn:hover {
+    background: #d32f2f;
+}
+
+.accept-btn:disabled,
+.reject-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: white;
+}
+
+.empty-state svg {
+    opacity: 0.5;
+    margin-bottom: 1rem;
+}
+
+.empty-state p {
+    margin: 0.5rem 0;
+    font-size: 1.1rem;
+}
+
+.empty-state .hint {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}

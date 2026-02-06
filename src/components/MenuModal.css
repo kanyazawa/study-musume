@@ -1,0 +1,165 @@
+.menu-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.menu-modal-content {
+    background-color: white;
+    width: 90%;
+    max-width: 400px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    animation: scaleUp 0.2s ease-out;
+}
+
+.menu-header {
+    background: linear-gradient(to bottom, #ffca28, #ffb300);
+    /* Yellow-Orange */
+    padding: 12px;
+    text-align: center;
+    border-bottom: 2px solid #ff6f00;
+}
+
+.menu-title {
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    letter-spacing: 1px;
+}
+
+.menu-grid {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    /* 2 columns */
+    gap: 12px;
+    background-color: #fafafa;
+}
+
+.menu-item-btn {
+    background-color: white;
+    border: 2px solid #ccc;
+    /* Bluish gray border */
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: transform 0.1s, background-color 0.1s;
+    font-weight: bold;
+    color: #333;
+    font-size: 14px;
+}
+
+.menu-item-btn:active {
+    transform: scale(0.98);
+    background-color: #f0f0f0;
+}
+
+.menu-icon {
+    width: 24px;
+    height: 24px;
+    /* Generic icon coloring */
+    color: #555;
+}
+
+/* Specific icon colors */
+.icon-settings {
+    color: #555;
+}
+
+.icon-mail {
+    color: #e53935;
+}
+
+.icon-bag {
+    color: #3949ab;
+}
+
+.icon-award {
+    color: #fb8c00;
+}
+
+.icon-user {
+    color: #1e88e5;
+}
+
+.icon-ban {
+    color: #d32f2f;
+}
+
+.icon-card {
+    color: #5e35b1;
+}
+
+.icon-help {
+    color: #d81b60;
+}
+
+.icon-gem {
+    color: #00acc1;
+}
+
+.icon-back {
+    color: #1976d2;
+}
+
+.menu-footer {
+    padding: 16px;
+    display: flex;
+    justify-content: center;
+    border-top: 1px solid #eee;
+    background-color: white;
+}
+
+.close-btn {
+    background-color: white;
+    border: 2px solid #999;
+    color: #333;
+    padding: 10px 40px;
+    border-radius: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.close-btn:active {
+    background-color: #eee;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes scaleUp {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}

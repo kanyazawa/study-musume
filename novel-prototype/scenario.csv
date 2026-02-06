@@ -1,0 +1,7 @@
+scene,order,speaker,text,emotion,next
+start,1,ノア,……聞こえる？,normal,
+start,2,ノア,目が覚めたみたいだね。,smile,
+start,3,ノア,「next」列には、次の【シーン名】を指定するんだよ。,normal,intro
+intro,1,主人公,（なるほど、IDじゃなくてシーン名なのか…）,surprise,
+intro,2,ノア,そう！数字の「2」じゃなくて、「intro」って書くの。,smile,
+intro,3,ノア,これで次のシーンに移動できるはずだよ。,excited,end
