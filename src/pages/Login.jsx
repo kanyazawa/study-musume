@@ -18,7 +18,7 @@ const Login = ({ onLoginSuccess }) => {
             if (onLoginSuccess) {
                 onLoginSuccess(result.user);
             }
-            navigate('/');
+            navigate('/home');
         } else {
             setError(result.error);
         }
@@ -28,7 +28,7 @@ const Login = ({ onLoginSuccess }) => {
 
     const handleSkip = () => {
         // ログインせずにローカルモードで続行
-        navigate('/');
+        navigate('/home');
     };
 
     return (

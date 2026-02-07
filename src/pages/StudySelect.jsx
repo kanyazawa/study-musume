@@ -55,7 +55,7 @@ const StudySelect = () => {
             setSelectedSubject(null);
             setSearchQuery('');
         } else {
-            navigate('/');
+            navigate('/home');
         }
     };
 
@@ -221,7 +221,7 @@ const StudySelect = () => {
 
             {/* ホームボタン */}
             <div className="bottom-area">
-                <button className="big-home-btn" onClick={() => navigate('/')}>
+                <button className="big-home-btn" onClick={() => navigate('/home')}>
                     ホーム
                 </button>
             </div>

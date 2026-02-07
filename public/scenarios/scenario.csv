@@ -1,4 +1,4 @@
-scene, id, speaker, text, emotion, image, next_id, option1, option2, option3, answer
+scene, id, speaker, text, emotion, image, next_id, option1, option2, option3, answer, graph
 beVerb, 1, Noa, さて、ここまでの復習をしましょうか。, serious, , , , , , 
 beVerb, 2, Quiz, 私 [ ] 学生 です。正しい単語を選びなさい。, normal, , , am, are, is, 1
 beVerb, 3, Noa, 正解！基本はバッチリね。, happy, , , , , , 
@@ -9,3 +9,7 @@ beVerb, 6, Noa, よし、合格よ！, happy, , end, , , ,
 代名詞, 2, 主人公, はい、お願いします！, happy, , , , , , 
 代名詞, 3, Quiz, 私は学生です。 I [ ] a student., normal, , , am, are, is, 1
 代名詞, 4, ノア, よくできたわね！, happy, , end, , , ,
+image_test, 1, Noa, これが実験室の画像よ。, normal, bg_lab.png, , , , , 
+image_test, 2, Noa, 画像が表示されているかしら？, happy, , end, , , , 
+graph_test, 1, Noa, これが y = x^2 のグラフよ。, normal, , , , , , , x^2
+graph_test, 2, Noa, グラフが表示された？, happy, , end, , , , , 

@@ -1,0 +1,6 @@
+scene,id,speaker,text,emotion,next_id,background,voice,se,effect,graph,option1,option2,option3,answer
+chem_01,1,ノア,この平衡定数の計算、やってみよう！,happy,2,bg_lab,v_a_001,se_correct,,,,,
+chem_01,2,主人公,うん、頑張るよ！,normal,3,,,,,,,,
+chem_01,3,ノア,まずはこのグラフを見て。二次関数 $y=x^2$ よ。,normal,4,,,,,x^2,,,
+chem_01,4,Quiz,平衡定数Kの式はどれ？,,5,,,,,,,生成物の濃度/反応物の濃度,反応物の濃度/生成物の濃度,,1
+chem_01,5,ノア,正解！よくできたね！,happy,end,,,,se_correct,,,,,

@@ -2,12 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import MobileContainer from './components/Layout/MobileContainer';
 import Footer from './components/Layout/Footer';
+import LoadingScreen from './components/UI/LoadingScreen';
+import VolumeControl from './components/UI/VolumeControl'; // 追加
+import { SoundProvider } from './contexts/SoundContext'; // 追加 // 追加
 import { loadStats, saveStats } from './utils/saveUtils';
 import { subscribeToAuthState } from './firebase/auth';
 import { updateTpWithRecovery } from './utils/tpRecoveryUtils';
 import './transitions.css';
 
 // Pages
+// Pages
+import TitlePage from './pages/TitlePage'; // 追加
 import Home from './pages/Home';
 import StudySelect from './pages/StudySelect';
 import Dialogue from './pages/Dialogue';
@@ -40,7 +45,9 @@ const Layout = ({ children }) => {
 
   // Footerを非表示にするパスのリスト
   const hideFooterPaths = ['/study', '/dialogue'];
-  const shouldHideFooter = hideFooterPaths.some(path => location.pathname.startsWith(path));
+  // タイトル画面(/)もフッター非表示
+  const isTitlePage = location.pathname === '/';
+  const shouldHideFooter = isTitlePage || hideFooterPaths.some(path => location.pathname.startsWith(path));
 
   return (
     <>
@@ -96,46 +103,59 @@ function App() {
   }, []);
 
   // 統計情報を更新し、localStorageに保存
-  const updateStats = (updates) => {
+  const updateStats = React.useCallback((updates) => {
     setStats(prev => {
       const newStats = { ...prev, ...updates };
       saveStats(newStats); // localStorageに自動保存
       return newStats;
     });
-  };
+  }, []);
 
   // ログイン成功時のコールバック
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
   };
 
-  return (
-    <Router>
+  // 認証チェック中はローディング画面を表示
+  if (authLoading) {
+    return (
       <MobileContainer>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Home stats={stats} updateStats={updateStats} />} />
-            <Route path="/study" element={<StudySelect stats={stats} />} />
-            <Route path="/dialogue" element={<Dialogue stats={stats} updateStats={updateStats} />} />
-            <Route path="/character" element={<CharacterInteraction stats={stats} updateStats={updateStats} />} />
-
-            <Route path="/inventory" element={<Inventory stats={stats} updateStats={updateStats} />} />
-            <Route path="/story" element={<Story stats={stats} />} />
-            <Route path="/story/:episodeId" element={<StoryReader stats={stats} />} />
-            <Route path="/goal" element={<Goal />} />
-            <Route path="/stats" element={<Stats />} />
-            <Route path="/missions" element={<Missions stats={stats} updateStats={updateStats} />} />
-            <Route path="/calendar" element={<CalendarPage />} />
-            <Route path="/gacha" element={<Gacha stats={stats} updateStats={updateStats} />} />
-            <Route path="/review" element={<Review />} />
-            <Route path="/profile" element={<Profile stats={stats} updateStats={updateStats} />} />
-            <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
-            <Route path="/friends" element={<Friends />} />
-            <Route path="/ranking" element={<Ranking />} />
-          </Routes>
-        </Layout>
+        <LoadingScreen />
       </MobileContainer>
-    </Router>
+    );
+  }
+
+  return (
+    <SoundProvider>
+      <Router>
+        <MobileContainer>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<TitlePage />} /> {/* タイトル画面 */}
+              <Route path="/home" element={<Home stats={stats} updateStats={updateStats} />} /> {/* ホーム画面 */}
+              <Route path="/study" element={<StudySelect stats={stats} />} />
+              <Route path="/dialogue" element={<Dialogue stats={stats} updateStats={updateStats} />} />
+              <Route path="/character" element={<CharacterInteraction stats={stats} updateStats={updateStats} />} />
+
+              <Route path="/inventory" element={<Inventory stats={stats} updateStats={updateStats} />} />
+              <Route path="/story" element={<Story stats={stats} />} />
+              <Route path="/story/:episodeId" element={<StoryReader stats={stats} />} />
+              <Route path="/goal" element={<Goal />} />
+              <Route path="/stats" element={<Stats />} />
+              <Route path="/missions" element={<Missions stats={stats} updateStats={updateStats} />} />
+              <Route path="/calendar" element={<CalendarPage />} />
+              <Route path="/gacha" element={<Gacha stats={stats} updateStats={updateStats} />} />
+              <Route path="/review" element={<Review />} />
+              <Route path="/profile" element={<Profile stats={stats} updateStats={updateStats} />} />
+              <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
+              <Route path="/friends" element={<Friends />} />
+              <Route path="/ranking" element={<Ranking />} />
+            </Routes>
+          </Layout>
+          <VolumeControl />
+        </MobileContainer>
+      </Router>
+    </SoundProvider>
   );
 }
 

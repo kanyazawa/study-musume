@@ -1,0 +1,72 @@
+/* Blackboard Overlay */
+.blackboard-container {
+    position: absolute;
+    top: 10%;
+    right: 5%;
+    z-index: 15;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.blackboard-frame {
+    background-color: #2b3a2b;
+    /* Deep blackboard green */
+    border: 8px solid #8d6e63;
+    /* Wood frame */
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.blackboard-title {
+    font-family: 'Courier New', monospace;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    margin-bottom: 5px;
+    letter-spacing: 2px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
+    width: 100%;
+    text-align: center;
+    padding-bottom: 2px;
+}
+
+#graph-container {
+    background-color: transparent;
+}
+
+/* Ensure function-plot text is readable */
+.function-plot text {
+    font-family: 'Courier New', monospace !important;
+}
+
+.blackboard-chalk-dust {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 20%),
+        radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.03) 0%, transparent 20%);
+    pointer-events: none;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 600px) {
+    .blackboard-container {
+        top: 55px;
+        /* Avoiding header */
+        right: 50%;
+        transform: translateX(50%);
+        width: 90%;
+    }
+
+    .blackboard-frame {
+        width: 100%;
+        padding: 5px;
+    }
+}

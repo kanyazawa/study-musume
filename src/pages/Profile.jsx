@@ -59,7 +59,7 @@ const Profile = ({ stats, updateStats }) => {
         <div className="profile-screen">
             {/* Header */}
             <div className="profile-header">
-                <button className="back-btn" onClick={() => navigate('/')}>
+                <button className="back-btn" onClick={() => navigate('/home')}>
                     <ChevronLeft color="white" size={24} />
                 </button>
                 <h2>プロフィール</h2>

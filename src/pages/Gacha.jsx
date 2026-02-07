@@ -96,7 +96,7 @@ const Gacha = ({ stats, updateStats }) => {
         <div className="gacha-page-cute">
             {/* ヘッダー */}
             <div className="gacha-header-cute">
-                <button className="back-btn-cute" onClick={() => navigate('/')}>
+                <button className="back-btn-cute" onClick={() => navigate('/home')}>
                     <ChevronLeft size={20} />
                 </button>
                 <h2 className="gacha-title-cute">✨ ガチャ</h2>

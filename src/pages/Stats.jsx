@@ -128,7 +128,7 @@ const Stats = () => {
         <div className="stats-screen">
             {/* Header */}
             <div className="stats-header">
-                <button className="back-btn" onClick={() => navigate('/')}>
+                <button className="back-btn" onClick={() => navigate('/home')}>
                     <ChevronLeft color="white" size={24} />
                 </button>
                 <h2>学習統計</h2>

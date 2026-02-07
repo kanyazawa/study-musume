@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Volume2 } from 'lucide-react';
 import './Dialogue.css';
+import LoadingScreen from '../components/UI/LoadingScreen';
 import { speak, VOICEVOX_SPEAKERS, preloadCommonPhrases } from '../utils/voicevoxUtils';
 import { saveStudySession } from '../utils/studyHistoryUtils';
 import { STUDY_TOPICS } from '../data/studyTopics';
@@ -17,11 +18,14 @@ import CharacterMain from '../assets/images/character_main.png';
 import CharacterNew from '../assets/images/character_new.png';
 import CharacterTsundere from '../assets/images/character_tsundere.png';
 import CharacterUser from '../assets/images/character_user.png';
+import BgClassroom from '../assets/images/bg_classroom.png';
 
 // Emotional Variations
 import NoaHappy from '../assets/images/noah_happy.png';
 import NoaNormal from '../assets/images/noah_normal.png';
 import NoaAngry from '../assets/images/noah_angry.png';
+import { useSound } from '../contexts/SoundContext';
+import functionPlot from 'function-plot';
 
 const CHARACTER_IMAGES = {
     'main': CharacterMain,
@@ -41,6 +45,7 @@ const Dialogue = ({ stats, updateStats }) => {
     const [searchParams] = useSearchParams();
     const topic = searchParams.get('topic') || 'start';
     const navigate = useNavigate();
+    const { playSE, playVoice } = useSound();
 
     const [line, setLine] = useState(null);
     const [scenarioData, setScenarioData] = useState([]);
@@ -73,11 +78,14 @@ const Dialogue = ({ stats, updateStats }) => {
         headers = headers.map(h => {
             if (h === 'id') return 'order'; // Map 'id' to 'order'
             if (h === 'next_id') return 'next'; // Map 'next_id' to 'next'
+            if (h === 'emotion') return 'expression'; // Map 'emotion' to 'expression' if needed
+            if (h === 'image') return 'study_image'; // Map 'image' to 'study_image' if generic 'image' is used for this
             return h;
         });
 
         const data = [];
         let lastScene = "";
+        let lastBackground = "";
 
         for (let i = 1; i < lines.length; i++) {
             if (!lines[i].trim()) continue;
@@ -95,6 +103,13 @@ const Dialogue = ({ stats, updateStats }) => {
                 row.scene = lastScene;
             } else if (row.scene) {
                 lastScene = row.scene;
+            }
+
+            // Fill 'background' from previous row if empty (persistence)
+            if (!row.background && lastBackground) {
+                row.background = lastBackground;
+            } else if (row.background) {
+                lastBackground = row.background;
             }
 
             // 2. Fill 'order' (id) if empty
@@ -127,133 +142,167 @@ const Dialogue = ({ stats, updateStats }) => {
     // GAS Web App URL (JSON)
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzWh_YokG87cgf4SDSG8exubfe4__GMQUNIQcLa5TdqAn3xdH6-UJGcONJ-5DLveiBR/exec";
 
-    // Load Scenario
+    // Load Scenario with Caching
     useEffect(() => {
         const loadScenario = async () => {
             setLoading(true);
+            const CACHE_KEY = 'study_scenario_data_v2'; // Changed version to clear cache
+            const CACHE_DURATION = 60 * 60 * 1000; // 60 minutes
+
+            let finalData = null;
+            let usedSource = "none";
+
+            // 1. Try Cache
             try {
-                let data = [];
-                let source = "none";
+                const cachedStr = localStorage.getItem(CACHE_KEY);
+                if (cachedStr) {
+                    const cached = JSON.parse(cachedStr);
+                    const age = Date.now() - cached.timestamp;
 
-                // Helpher to check if topic exists in data
-                const hasTopic = (d, t) => {
-                    if (!d || d.length === 0) return false;
-                    // Check if 't' is strictly in 'scene' column
-                    return d.some(row => row.scene === t);
-                };
-
-                // 1. Try fetching from GAS Web App (JSON)
-                try {
-                    const res = await fetch(GAS_WEB_APP_URL);
-                    if (res.ok) {
-                        const jsonData = await res.json();
-                        const gasData = jsonData.map(d => ({
-                            ...d,
-                            order: d.order ? String(d.order) : "",
-                            next: d.next ? String(d.next) : "",
-                            answer: d.answer ? String(d.answer) : "",
-                            option1: d.option1 || "",
-                            option2: d.option2 || "",
-                            option3: d.option3 || ""
-                        }));
-
-                        // Check if this data actually has the requested topic
-                        if (hasTopic(gasData, topic)) {
-                            data = gasData;
-                            source = "GAS";
-                            setDataSource("GAS");
-                            console.log("Loaded topic from GAS Web App");
-                        } else {
-                            console.warn(`GAS Web App loaded but topic '${topic}' not found. Trying local fallback...`);
-                            throw new Error("Topic not found in GAS");
+                    // Check if cache is fresh and contains the requested topic
+                    if (age < CACHE_DURATION) {
+                        const hasTopic = cached.data.some(d => d.scene === topic);
+                        if (hasTopic || topic === 'start') {
+                            console.log(`Using cached data (Age: ${Math.floor(age / 1000)}s)`);
+                            finalData = cached.data;
+                            usedSource = "Cache";
                         }
-                    } else {
-                        throw new Error("GAS App fetch failed");
-                    }
-                } catch (e) {
-                    console.warn("Falling back to local file:", e.message);
-                    // 2. Fallback to local file (CSV)
-                    try {
-                        const resLocal = await fetch('/scenarios/scenario.csv');
-                        if (!resLocal.ok) throw new Error('Failed to load local scenario file');
-                        const text = await resLocal.text();
-                        data = parseCSV(text);
-                        source = "Local";
-                        setDataSource("Local");
-                        console.log("Loaded topic from Local CSV");
-                    } catch (localErr) {
-                        console.error("Local load failed:", localErr);
-                        // If GAS had loaded but was missing topic, maybe we should still use it?
-                        // For now, leave data empty or if we had cached GAS data, logical to use it but we didn't save it.
                     }
                 }
+            } catch (e) {
+                console.warn("Cache read failed:", e);
+                localStorage.removeItem(CACHE_KEY);
+            }
 
-                // Post-Processing
-                const processedData = [];
-                let lastScene = "";
+            // 2. Fetch from Network if no cache
+            if (!finalData) {
+                try {
+                    let rawData = [];
+                    // Helper to check topic
+                    const hasTopic = (d, t) => d && d.some(row => row.scene === t);
 
-                // Sort by sheet/row index is tricky if mixed sources, but usually fine.
-                data.forEach((row, i) => {
-                    // 1. Fill 'scene'
-                    if (!row.scene && lastScene) {
-                        row.scene = lastScene;
-                    } else if (row.scene) {
-                        lastScene = row.scene;
-                    }
+                    // A. Try GAS
+                    try {
+                        const res = await fetch(GAS_WEB_APP_URL);
+                        if (res.ok) {
+                            const jsonData = await res.json();
+                            const gasData = jsonData.map(d => ({
+                                ...d,
+                                order: d.order ? String(d.order) : "",
+                                next: d.next ? String(d.next) : "",
+                                answer: d.answer ? String(d.answer) : "",
+                                option1: d.option1 || "",
+                                option2: d.option2 || "",
+                                option3: d.option3 || "",
+                                background: d.background || "",
+                                effect: d.effect || "",
+                                voice: d.voice || "",
+                                se: d.se || "",
+                                expression: d.expression || d.emotion || "",
+                                graph: d.graph || "",
+                                study_image: d.study_image || d.image || ""
+                            }));
 
-                    // 2. Fill 'order' (id)
-                    if (!row.order) {
-                        if (processedData.length > 0 && processedData[processedData.length - 1].scene === row.scene) {
-                            const prevOrder = parseInt(processedData[processedData.length - 1].order);
-                            if (!isNaN(prevOrder)) {
-                                row.order = (prevOrder + 1).toString();
+                            if (hasTopic(gasData, topic)) {
+                                rawData = gasData;
+                                usedSource = "GAS";
+                                console.log("Loaded from GAS");
                             } else {
-                                row.order = (processedData.length + 1).toString();
+                                throw new Error("Topic not found in GAS");
                             }
                         } else {
-                            row.order = "1";
+                            throw new Error("GAS fetch failed");
                         }
+                    } catch (gasErr) {
+                        console.warn("Falling back to local:", gasErr.message);
+                        // B. Try Local CSV
+                        const resLocal = await fetch('/scenarios/scenario.csv');
+                        if (!resLocal.ok) throw new Error('Failed to load local scenario');
+                        const text = await resLocal.text();
+                        rawData = parseCSV(text);
+                        usedSource = "Local";
+                        console.log("Loaded from Local CSV");
                     }
 
-                    // Safety: Ensure next is string (for local or other sources)
-                    if (row.next) row.next = String(row.next);
-                    if (row.answer) row.answer = String(row.answer);
+                    // Process Data (Fill empty fields, etc.)
+                    const processedData = [];
+                    let lastScene = "";
+                    let lastBackground = "";
 
-                    processedData.push(row);
-                });
+                    rawData.forEach(row => {
+                        // 1. Fill 'scene'
+                        if (!row.scene && lastScene) {
+                            row.scene = lastScene;
+                        } else if (row.scene) {
+                            lastScene = row.scene;
+                        }
 
-                setScenarioData(processedData);
+                        // Fill background persistence
+                        if (!row.background && lastBackground) {
+                            row.background = lastBackground;
+                        } else if (row.background) {
+                            lastBackground = row.background;
+                        }
 
-                // Determine start scene based on topic
-                const uniqueScenes = [...new Set(processedData.map(d => d.scene))];
+                        // 2. Fill 'order'
+                        if (!row.order) {
+                            if (processedData.length > 0 && processedData[processedData.length - 1].scene === row.scene) {
+                                const prevOrder = parseInt(processedData[processedData.length - 1].order);
+                                row.order = !isNaN(prevOrder) ? (prevOrder + 1).toString() : (processedData.length + 1).toString();
+                            } else {
+                                row.order = "1";
+                            }
+                        }
+
+                        // Safety
+                        if (row.next) row.next = String(row.next);
+                        if (row.answer) row.answer = String(row.answer);
+
+                        processedData.push(row);
+                    });
+
+                    finalData = processedData;
+
+                    // Save to Cache
+                    try {
+                        localStorage.setItem(CACHE_KEY, JSON.stringify({
+                            timestamp: Date.now(),
+                            data: finalData
+                        }));
+                    } catch (e) {
+                        console.warn("Failed to save cache:", e);
+                    }
+
+                } catch (err) {
+                    console.error("All fetch methods failed:", err);
+                    setLine({ speaker: 'System', text: "Error loading scenario: " + err.message, emotion: 'normal' });
+                }
+            }
+
+            // 3. Start Scene
+            if (finalData) {
+                setScenarioData(finalData);
+                setDataSource(usedSource);
+
+                const uniqueScenes = [...new Set(finalData.map(d => d.scene))];
                 let startSceneId = uniqueScenes.includes(topic) ? topic : null;
 
                 if (!startSceneId) {
-                    // Fallback strategies for start scene
-                    if (topic === 'start' && uniqueScenes.includes('start')) {
-                        startSceneId = 'start';
-                    } else if (uniqueScenes.length > 0) {
-                        startSceneId = uniqueScenes[0]; // If specific topic not found, play first available
-                        if (source === "GAS" || source === "Local") {
-                            // Only notify mismatch if we successfully loaded *something*
-                            setLine({ speaker: 'System', text: `Scene '${topic}' not found. Playing '${startSceneId}' instead.`, emotion: 'normal' });
-                            // Don't return, let it play
-                        }
+                    if (topic === 'start' && uniqueScenes.includes('start')) startSceneId = 'start';
+                    else if (uniqueScenes.length > 0) {
+                        startSceneId = uniqueScenes[0];
+                        setLine({ speaker: 'System', text: `Scene '${topic}' not found. Playing '${startSceneId}' instead.`, emotion: 'normal' });
                     }
                 }
 
                 if (startSceneId) {
-                    playScene(processedData, startSceneId);
+                    playScene(finalData, startSceneId);
                 } else {
-                    console.error("No valid scene found for topic:", topic);
-                    setLine({ speaker: 'System', text: `Scene '${topic}' not found in any sheet.`, emotion: 'normal' });
+                    setLine({ speaker: 'System', text: `Scene '${topic}' not found.`, emotion: 'normal' });
                 }
-            } catch (err) {
-                console.error(err);
-                setLine({ speaker: 'System', text: "Error loading scenario: " + err.message, emotion: 'normal' });
-            } finally {
-                setLoading(false);
             }
+
+            setLoading(false);
         };
         loadScenario();
     }, [topic]);
@@ -262,6 +311,58 @@ const Dialogue = ({ stats, updateStats }) => {
     useEffect(() => {
         preloadCommonPhrases(VOICEVOX_SPEAKERS.METAN);
     }, []);
+
+    // Play Audio/Voice when line changes
+    useEffect(() => {
+        if (!line) return;
+
+        // 1. Play SE if exists
+        if (line.se) {
+            playSE(line.se);
+        }
+
+        // 2. Play Voice or TTS
+        if (line.voice) {
+            playVoice(line.voice);
+        } else if (line.text && line.speaker !== "System") {
+            // Optional: Auto-speak logic? For now, we keep manual TTS button, 
+            // but if you want auto-speak for specific lines, logic goes here.
+            // Currently keeping manual based on original code, but 'voice' column overrides.
+        }
+
+        // 3. Render Graph if exists
+        if (line.graph) {
+            setTimeout(() => {
+                try {
+                    const isMobile = window.innerWidth < 600;
+                    const width = isMobile ? window.innerWidth * 0.9 : 400;
+                    const height = isMobile ? 250 : 300;
+
+                    functionPlot({
+                        target: '#graph-container',
+                        width: width,
+                        height: height,
+                        yAxis: { domain: [-10, 10] },
+                        xAxis: { domain: [-10, 10] },
+                        grid: true,
+                        data: [{
+                            fn: line.graph,
+                            color: '#ffffff' // Chalk white
+                        }],
+                        theme: {
+                            axis: {
+                                domainColor: '#ffffff',
+                                ticksColor: '#ffffff',
+                                tickLabelColor: '#ffffff'
+                            },
+                        }
+                    });
+                } catch (e) {
+                    console.error("Graph render failed:", e);
+                }
+            }, 100); // Slight delay for DOM to be ready
+        }
+    }, [line]);
 
     const playScene = (allData, id) => {
         const sceneLines = allData.filter(d => d.scene === id);
@@ -423,7 +524,7 @@ const Dialogue = ({ stats, updateStats }) => {
 
             alert(message);
         }
-        navigate('/');
+        navigate('/home');
     };
 
     const handleSpeak = async (e) => {
@@ -507,14 +608,33 @@ const Dialogue = ({ stats, updateStats }) => {
         }
     };
 
-    if (loading) return <div className="dialogue-screen"><div className="dialogue-box"><div className="dialogue-text">読み込み中...</div></div></div>;
+
+
+    // ... (existing imports)
+
+    // ... (existing code)
+
+    if (loading) return <LoadingScreen />;
     if (!line) return <div className="dialogue-screen"><div className="dialogue-box"><div className="dialogue-text">データがありません</div></div></div>;
 
     const isQuiz = line.speaker === 'Quiz';
 
+    // Background Logic
+    const getBackgroundImage = (bgId) => {
+        if (!bgId) return `url(${BgClassroom})`;
+        if (bgId === 'bg_classroom') return `url(${BgClassroom})`;
+        // For other backgrounds, assume they are in public/images/ or assets mapping
+        // Since we can't dynamically import easily without a map, we try public path first
+        return `url(/images/${bgId}.png), url(${BgClassroom})`;
+    };
+
+    const bgStyle = {
+        backgroundImage: getBackgroundImage(line.background)
+    };
+
     return (
         <div className="dialogue-screen" onClick={handleNext}>
-            <div className="room-background"></div>
+            <div className="room-background" style={bgStyle}></div>
 
             {/* Visual Feedback Overlay */}
             {feedback && (
@@ -523,11 +643,37 @@ const Dialogue = ({ stats, updateStats }) => {
                 </div>
             )}
 
+            {/* Blackboard Graph/Image Overlay */}
+            {(line.graph || line.study_image) && (
+                <div className="blackboard-container">
+                    <div className="blackboard-frame">
+                        <div className="blackboard-title">Smart Blackboard</div>
+                        {line.graph ? (
+                            <div id="graph-container"></div>
+                        ) : (
+                            <div className="study-image-container">
+                                <img
+                                    src={line.study_image.startsWith('http') ? line.study_image : `/images/${line.study_image}`}
+                                    alt="Study Material"
+                                    className="study-image-content"
+                                    onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.style.display = 'none';
+                                        console.warn("Failed to load study image:", line.study_image);
+                                    }}
+                                />
+                            </div>
+                        )}
+                        <div className="blackboard-chalk-dust"></div>
+                    </div>
+                </div>
+            )}
+
             <div className="character-figure">
                 <img
-                    src={CHARACTER_IMAGES[line.image] || CHARACTER_IMAGES[line.emotion] || CHARACTER_IMAGES['default']}
+                    src={CHARACTER_IMAGES[line.expression] || CHARACTER_IMAGES[line.image] || CHARACTER_IMAGES[line.emotion] || CHARACTER_IMAGES['default']}
                     alt="Character"
-                    className="char-image-dialogue"
+                    className={`char-image-dialogue ${line.effect === 'shake' ? 'effect-shake' : ''} ${(line.graph || line.study_image) ? 'with-board' : ''}`}
                 />
             </div>
 

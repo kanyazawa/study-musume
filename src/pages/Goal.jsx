@@ -55,7 +55,7 @@ const Goal = () => {
     return (
         <div className="goal-screen">
             <div className="goal-header">
-                <button className="back-btn" onClick={() => navigate('/')}>
+                <button className="back-btn" onClick={() => navigate('/home')}>
                     <ChevronLeft color="white" />
                 </button>
                 <h2>目標設定</h2>

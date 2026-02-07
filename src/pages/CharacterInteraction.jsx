@@ -70,7 +70,7 @@ const CharacterInteraction = ({ stats, updateStats }) => {
             <div className="room-background"></div>
 
             {/* Back Button */}
-            <button className="ci-back-btn" onClick={() => navigate('/')}>
+            <button className="ci-back-btn" onClick={() => navigate('/home')}>
                 <ArrowLeft size={32} color="white" />
             </button>
 

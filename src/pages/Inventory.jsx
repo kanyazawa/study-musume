@@ -65,7 +65,7 @@ const Inventory = ({ stats, updateStats }) => {
         <div className="inventory-screen">
             {/* ヘッダー */}
             <div className="inventory-header">
-                <button className="back-btn" onClick={() => navigate('/')}>
+                <button className="back-btn" onClick={() => navigate('/home')}>
                     ← 戻る
                 </button>
                 <h1 className="inventory-title">アイテムボックス</h1>

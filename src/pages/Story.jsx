@@ -24,7 +24,7 @@ const Story = ({ stats }) => {
         <div className="story-screen">
             {/* ヘッダー */}
             <div className="story-header">
-                <button className="back-btn" onClick={() => navigate('/')}>
+                <button className="back-btn" onClick={() => navigate('/home')}>
                     ← 戻る
                 </button>
                 <h1 className="story-title">ストーリー</h1>

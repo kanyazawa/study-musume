@@ -49,7 +49,7 @@ const Missions = ({ stats, updateStats }) => {
         <div className="missions-page">
             {/* Header */}
             <div className="missions-header">
-                <button className="back-btn" onClick={() => navigate('/')}>
+                <button className="back-btn" onClick={() => navigate('/home')}>
                     ← 戻る
                 </button>
                 <h1 className="missions-title">📋 デイリーミッション</h1>

@@ -59,7 +59,7 @@ const CalendarPage = () => {
         <div className="calendar-page">
             {/* ヘッダー */}
             <div className="calendar-header">
-                <button className="back-btn" onClick={() => navigate('/')}>
+                <button className="back-btn" onClick={() => navigate('/home')}>
                     <ChevronLeft size={24} />
                 </button>
                 <h2>📅 学習カレンダー</h2>
@@ -149,7 +149,7 @@ const CalendarPage = () => {
 
             {/* ホームボタン */}
             <div className="bottom-area">
-                <button className="big-home-btn" onClick={() => navigate('/')}>
+                <button className="big-home-btn" onClick={() => navigate('/home')}>
                     <Home size={20} />
                     ホーム
                 </button>

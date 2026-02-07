@@ -1,0 +1,109 @@
+.title-screen {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    background-color: #fce4ec;
+}
+
+/* 背景画像（Homeと同じものを使用） */
+.title-screen .room-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('../assets/images/bg_classroom.png');
+    background-size: cover;
+    background-position: center;
+    filter: brightness(0.7) blur(2px);
+    /* 少し暗く、ぼかしてタイトルを目立たせる */
+    z-index: 0;
+}
+
+.title-content {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    height: 80%;
+    width: 100%;
+    opacity: 0;
+    transition: opacity 1s ease-out;
+}
+
+.title-content.fade-in {
+    opacity: 1;
+}
+
+.title-logo-container {
+    margin-top: 60px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 30px 40px;
+    border-radius: 20px;
+    border: 4px solid var(--uma-pink, #f48fb1);
+    box-shadow: 0 10px 30px rgba(233, 30, 99, 0.4);
+    transform: rotate(-2deg);
+}
+
+.main-title {
+    font-size: 32px;
+    font-weight: 900;
+    color: #333;
+    line-height: 1.4;
+    margin: 0;
+    background: linear-gradient(to right, #ff4081, #f50057);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 2px 2px 0px rgba(255, 255, 255, 0.5);
+}
+
+.sub-title {
+    margin-top: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #888;
+    letter-spacing: 2px;
+}
+
+.start-prompt {
+    margin-bottom: 100px;
+    padding: 15px 40px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 30px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.blink-text {
+    font-size: 20px;
+    font-weight: bold;
+    color: white;
+    letter-spacing: 3px;
+    animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
+}
+
+.copyright {
+    position: absolute;
+    bottom: 20px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.8);
+}

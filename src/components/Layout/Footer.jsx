@@ -8,7 +8,7 @@ const Footer = () => {
         <nav className="footer-nav">
             <NavItem to="/story" icon={<BookOpen size={24} />} label="ストーリー" />
             <NavItem to="/stats" icon={<BarChart3 size={24} />} label="統計" />
-            <NavItem to="/" icon={<Home size={28} />} label="ホーム" isMain />
+            <NavItem to="/home" icon={<Home size={28} />} label="ホーム" isMain />
             <NavItem to="/gacha" icon={<Sparkles size={24} />} label="ガチャ" />
             <NavItem to="/character" icon={<Users size={24} />} label="キャラ" />
         </nav>
