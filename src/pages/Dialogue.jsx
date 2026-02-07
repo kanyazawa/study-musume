@@ -332,15 +332,24 @@ const Dialogue = ({ stats, updateStats }) => {
 
         // 3. Render Graph if exists
         if (line.graph) {
-            setTimeout(() => {
+            // Function to render graph
+            const renderGraph = () => {
+                const container = document.getElementById('graph-container');
+                if (!container) return;
+
                 try {
+                    // Get available width from blackboard frame (parent of container)
+                    // If container is hidden or 0, fallback to window width logic
+                    const rect = container.getBoundingClientRect();
+                    const availableWidth = rect.width > 0 ? rect.width : (window.innerWidth < 600 ? window.innerWidth * 0.85 : 400);
+
+                    // Fixed aspect ratio or height based on mobile
                     const isMobile = window.innerWidth < 600;
-                    const width = isMobile ? window.innerWidth * 0.9 : 400;
-                    const height = isMobile ? 250 : 300;
+                    const height = isMobile ? availableWidth * 0.8 : 300;
 
                     functionPlot({
                         target: '#graph-container',
-                        width: width,
+                        width: availableWidth,
                         height: height,
                         yAxis: { domain: [-10, 10] },
                         xAxis: { domain: [-10, 10] },
@@ -360,7 +369,22 @@ const Dialogue = ({ stats, updateStats }) => {
                 } catch (e) {
                     console.error("Graph render failed:", e);
                 }
-            }, 100); // Slight delay for DOM to be ready
+            };
+
+            // Initial render with slight delay to ensure DOM readiness
+            setTimeout(renderGraph, 100);
+
+            // Responsive updates
+            const handleResize = () => {
+                requestAnimationFrame(renderGraph);
+            };
+
+            window.addEventListener('resize', handleResize);
+
+            // Cleanup
+            return () => {
+                window.removeEventListener('resize', handleResize);
+            };
         }
     }, [line]);
 

@@ -245,6 +245,22 @@
     padding-bottom: 5px;
 }
 
+#graph-container {
+    width: 100%;
+    min-height: 250px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    /* Prevent spillover */
+}
+
+/* Ensure SVG fits */
+#graph-container svg {
+    max-width: 100%;
+    height: auto;
+}
+
 .blackboard-chalk-dust {
     position: absolute;
     bottom: 5px;
