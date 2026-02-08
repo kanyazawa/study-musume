@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 
 // BGM Imports
-import bgmTrack from '../assets/audio/bgm.mp3';
+import bgmTrack from '../assets/audio/after_school_sunbeams.mp3';
 
 const SoundContext = createContext();
 

@@ -1,3 +1,5 @@
+import { ALL_ITEMS } from './itemData';
+
 // ガチャで入手可能なアイテムデータ
 
 // レアリティ定義
@@ -9,37 +11,12 @@ export const RARITY = {
     SSR: { stars: 5, label: '★★★★★', color: '#ffcc00', rate: 1 }
 };
 
-// スキンアイテム（後でNANOBANANAで追加予定）
-export const GACHA_SKINS = [
-    // 例: 
-    // {
-    //     id: 'skin_example',
-    //     name: 'サンプルスキン',
-    //     rarity: 'SSR',
-    //     type: 'skin',
-    //     emoji: '👗',
-    //     description: 'サンプルの説明'
-    // }
-];
+// 全ガチャアイテムを統合 (itemData.js から取得)
+export const ALL_GACHA_ITEMS = ALL_ITEMS;
 
-// 背景アイテム（後でNANOBANANAで追加予定）
-export const GACHA_BACKGROUNDS = [
-    // 例:
-    // {
-    //     id: 'bg_example',
-    //     name: 'サンプル背景',
-    //     rarity: 'SR',
-    //     type: 'background',
-    //     emoji: '🖼️',
-    //     description: 'サンプルの説明'
-    // }
-];
-
-// 全ガチャアイテムを統合
-export const ALL_GACHA_ITEMS = [
-    ...GACHA_SKINS,
-    ...GACHA_BACKGROUNDS
-];
+// スキン・背景のみを抽出（必要であれば）
+export const GACHA_SKINS = ALL_GACHA_ITEMS.filter(item => item.type === 'skin');
+export const GACHA_BACKGROUNDS = ALL_GACHA_ITEMS.filter(item => item.type === 'background');
 
 // レアリティごとのアイテムを取得
 export const getItemsByRarity = (rarity) => {
@@ -54,3 +31,4 @@ export const GACHA_POOL = {
     SR: getItemsByRarity('SR'),
     SSR: getItemsByRarity('SSR')
 };
+

@@ -1,4 +1,6 @@
 // アイテムのマスターデータ
+import bgLibrary from '../assets/images/bg_library.png';
+import bgCafe from '../assets/images/bg_cafe.png';
 
 export const ALL_ITEMS = [
     // === プレゼントアイテム（SSR） ===
@@ -204,6 +206,16 @@ export const ALL_ITEMS = [
         imageName: 'character_casual_v9.png'
     },
     {
+        id: 'skin_casual_fall',
+        type: 'skin',
+        name: '秋の私服',
+        rarity: 'SSR',
+        emoji: '🍂',
+        probability: 2,
+        description: '季節感のあるおしゃれな秋コーデ。',
+        imageName: 'noa_casual_fall.png'
+    },
+    {
         id: 'skin_summer',
         type: 'skin',
         name: '夏制服',
@@ -233,7 +245,151 @@ export const ALL_ITEMS = [
         emoji: '☕',
         probability: 5,
         description: '落ち着いた雰囲気のカフェ。勉強も捗りそう。',
-        bgStyle: 'linear-gradient(135deg, #e6dada 0%, #274046 100%)'
+        bgStyle: `url(${bgCafe}) center / cover no-repeat`
+    },
+
+    // ==========================================
+    // ===  新規追加アイテム (Gacha Content)  ===
+    // ==========================================
+
+    // --- N (ノーマル) アイテム: 消耗品・文房具 ---
+    {
+        id: 'item_n_eraser',
+        type: 'consumable',
+        name: '使いかけの消しゴム',
+        rarity: 'N',
+        affection: 5,
+        emoji: '🧽',
+        probability: 20,
+        description: 'どこにでもある普通の消しゴム。'
+    },
+    {
+        id: 'item_n_pencil',
+        type: 'consumable',
+        name: '赤鉛筆',
+        rarity: 'N',
+        affection: 5,
+        emoji: '✏️',
+        probability: 20,
+        description: '丸付けに使う赤鉛筆。'
+    },
+    {
+        id: 'item_n_water',
+        type: 'consumable',
+        name: 'ミネラルウォーター',
+        rarity: 'N',
+        affection: 10,
+        emoji: '💧',
+        probability: 20,
+        description: 'ただの水。水分補給は大切。'
+    },
+
+    // --- N+ (ノーマル+) アイテム: 少し良い消耗品 ---
+    {
+        id: 'item_np_coffee',
+        type: 'consumable',
+        name: '缶コーヒー',
+        rarity: 'N_PLUS',
+        affection: 15,
+        emoji: '🥫',
+        probability: 15,
+        description: '眠気覚ましの一杯。'
+    },
+    {
+        id: 'item_np_snack',
+        type: 'consumable',
+        name: 'ポテトチップス',
+        rarity: 'N_PLUS',
+        affection: 15,
+        emoji: '🥔',
+        probability: 15,
+        description: '塩味がたまらない。'
+    },
+
+    // --- 新規 SSR/SR スキン ---
+    {
+        id: 'skin_winter',
+        type: 'skin',
+        name: '冬制服',
+        rarity: 'SR',
+        emoji: '☃️',
+        probability: 4,
+        description: '暖かそうな冬用の制服。',
+        filter: 'brightness(0.95) hue-rotate(-15deg) contrast(1.1)'
+    },
+    {
+        id: 'skin_gym',
+        type: 'skin',
+        name: '体操服',
+        rarity: 'SR',
+        emoji: '🏃‍♀️',
+        probability: 4,
+        description: '動きやすい体操服。体育の授業の後かな？',
+        filter: 'hue-rotate(180deg) saturate(0.8)'
+    },
+    {
+        id: 'skin_yukata',
+        type: 'skin',
+        name: '浴衣',
+        rarity: 'SSR',
+        emoji: '👘',
+        probability: 1,
+        description: '夏祭りにぴったりの浴衣。',
+        filter: 'hue-rotate(45deg) saturate(1.5)'
+    },
+    {
+        id: 'skin_maid',
+        type: 'skin',
+        name: 'メイド服',
+        rarity: 'SSR',
+        emoji: '🧹',
+        probability: 0.8,
+        description: '「お帰りなさいませ、ご主人様！」...なんてね。',
+        filter: 'contrast(1.2) grayscale(0.2)'
+    },
+
+    // --- 新規 背景 ---
+    {
+        id: 'bg_library',
+        type: 'background',
+        name: '図書館',
+        rarity: 'SR',
+        emoji: '📚',
+        probability: 5,
+        description: '静かな図書館。集中力アップ間違いなし。',
+        bgStyle: `url(${bgLibrary}) center / cover no-repeat`
+    },
+    {
+        id: 'bg_night_view',
+        type: 'background',
+        name: '夜景の見える丘',
+        rarity: 'SSR',
+        emoji: '🌃',
+        probability: 2,
+        description: '星空と街の明かりが綺麗。ロマンチックな場所。',
+        bgStyle: 'linear-gradient(to bottom, #0f2027, #203a43, #2c5364)'
+    },
+    {
+        id: 'bg_fireworks',
+        type: 'background',
+        name: '花火大会',
+        rarity: 'SSR',
+        emoji: '🎆',
+        probability: 1,
+        description: '夜空を彩る大輪の花火。',
+        bgStyle: 'linear-gradient(to bottom, #000000, #434343)'
+    },
+
+    // --- 新キャラチケット (SSR) ---
+    {
+        id: 'char_ticket_shiori',
+        type: 'character_ticket',
+        name: '「栞」招待チケット',
+        rarity: 'SSR',
+        emoji: '🎫',
+        probability: 0.5,
+        description: '新キャラクター「栞（しおり）」を招待できるチケット。',
+        characterId: 'shiori'
     },
 ];
 

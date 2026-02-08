@@ -32,6 +32,7 @@ import Login from './pages/Login';
 import Friends from './pages/Friends';
 import Ranking from './pages/Ranking';
 
+
 // Function to control Footer visibility based on current path
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -150,12 +151,13 @@ function App() {
               <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
               <Route path="/friends" element={<Friends />} />
               <Route path="/ranking" element={<Ranking />} />
+
             </Routes>
           </Layout>
-          <VolumeControl />
+          {/* VolumeControl removed (moved to Settings) */}
         </MobileContainer>
       </Router>
-    </SoundProvider>
+    </SoundProvider >
   );
 }
 

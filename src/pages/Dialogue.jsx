@@ -616,12 +616,22 @@ const Dialogue = ({ stats, updateStats }) => {
         } else {
             // 間違えた問題を復習リストに追加
             const subjectInfo = getSubjectInfo(topic);
+
+            // 選択肢を配列として保存
+            const options = [];
+            for (let i = 1; i <= 3; i++) {
+                if (line[`option${i}`]) {
+                    options.push(line[`option${i}`]);
+                }
+            }
+
             addWrongQuestion({
                 subject: subjectInfo.subject,
                 questionId: line.order || `${topic}-${currentIndex}`,
                 questionText: line.text,
                 correctAnswer: line[`option${line.answer}`] || '不明',
-                userAnswer: line[`option${optionIndex}`] || '不明'
+                userAnswer: line[`option${optionIndex}`] || '不明',
+                options: options.length > 0 ? options : null // 選択肢がある場合のみ保存
             });
 
             // Use VOICEVOX for quiz feedback

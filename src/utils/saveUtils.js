@@ -26,12 +26,14 @@ export const getDefaultStats = () => ({
     selectedIcon: 'default',
     unlockedIcons: ['default'],
     // ログインボーナス
+    hasReceivedWelcomeBonus: false,
     lastLoginDate: null,
     loginStreak: 0,
     totalLoginDays: 0,
     // TP回復システム
     lastTpUpdateTime: Date.now()
 });
+
 
 /**
  * 統計情報をlocalStorageに保存
@@ -59,7 +61,19 @@ export const loadStats = () => {
             console.log('Stats loaded from localStorage:', parsed);
 
             // デフォルト値とマージ（新しいフィールドが追加された場合の対策）
-            return { ...getDefaultStats(), ...parsed };
+            const loadedStats = { ...getDefaultStats(), ...parsed };
+
+            // 初回ログインボーナスチェック（未受取ならダイヤ+3000）
+            if (!loadedStats.hasReceivedWelcomeBonus) {
+                console.log('Granting Welcome Bonus: 3000 Diamonds');
+                loadedStats.diamonds = (loadedStats.diamonds || 0) + 3000;
+                loadedStats.hasReceivedWelcomeBonus = true;
+                // 即座に保存して重複付与を防ぐ
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(loadedStats));
+            }
+
+            return loadedStats;
+
         }
 
         console.log('No saved stats found, using defaults');

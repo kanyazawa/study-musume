@@ -15,10 +15,14 @@ import {
     Calendar,
     Bell,
     Users,
-    Trophy
+    Trophy,
+    Volume2,
+    VolumeX
 } from 'lucide-react';
 import AchievementModal from './AchievementModal';
 import NotificationSettings from './NotificationSettings';
+import { useSound } from '../contexts/SoundContext';
+
 
 const MENU_ITEMS = [
     { id: 'calendar', label: 'カレンダー', icon: <Calendar />, iconClass: 'icon-calendar' },
@@ -41,6 +45,7 @@ const MenuModal = ({ onClose, stats, updateStats }) => {
     const navigate = useNavigate();
     const [showAchievements, setShowAchievements] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
 
     const handleMenuClick = (itemId) => {
         if (itemId === 'titles') {
@@ -59,8 +64,67 @@ const MenuModal = ({ onClose, stats, updateStats }) => {
         } else if (itemId === 'ranking') {
             onClose();
             navigate('/ranking');
+        } else if (itemId === 'settings') {
+            setShowSettings(true);
         }
         // 他のメニューアイテムの処理はここに追加
+    };
+
+    const SettingsPanel = () => {
+        const { isMuted, volume, toggleMute, changeVolume } = useSound();
+
+        return (
+            <div className="menu-modal-overlay" onClick={() => setShowSettings(false)}>
+                <div className="menu-modal-content" onClick={(e) => e.stopPropagation()}>
+                    <div className="menu-header">
+                        <div className="menu-title">設定</div>
+                    </div>
+                    <div className="menu-content-scrollable" style={{ padding: '20px' }}>
+                        <div className="settings-section">
+                            <h3>音量設定</h3>
+                            <div className="volume-control-row" style={{ display: 'flex', alignItems: 'center', gap: '15px', marginTop: '10px' }}>
+                                <button
+                                    onClick={toggleMute}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        padding: 0,
+                                        color: '#ff80ab'
+                                    }}
+                                >
+                                    {isMuted || volume === 0 ? <VolumeX size={32} /> : <Volume2 size={32} />}
+                                </button>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="1"
+                                    step="0.01"
+                                    value={isMuted ? 0 : volume}
+                                    onChange={(e) => changeVolume(parseFloat(e.target.value))}
+                                    style={{
+                                        flex: 1,
+                                        height: '6px',
+                                        borderRadius: '3px',
+                                        accentColor: '#ff80ab',
+                                        cursor: 'pointer'
+                                    }}
+                                />
+                                <span style={{ width: '40px', textAlign: 'right', fontWeight: 'bold' }}>
+                                    {Math.round((isMuted ? 0 : volume) * 100)}%
+                                </span>
+                            </div>
+                        </div>
+                        {/* Other settings placeholders */}
+                    </div>
+                    <div className="menu-footer">
+                        <button className="close-btn" onClick={() => setShowSettings(false)}>
+                            戻る
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     return (
@@ -107,6 +171,8 @@ const MenuModal = ({ onClose, stats, updateStats }) => {
                     onClose={() => setShowNotifications(false)}
                 />
             )}
+
+            {showSettings && <SettingsPanel />}
         </>
     );
 };

@@ -9,6 +9,19 @@
     background-position: center;
 }
 
+/* Simulated Room Lines */
+.room-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('../assets/images/bg_classroom.png');
+    background-size: cover;
+    background-position: center;
+    filter: brightness(0.9);
+}
+
 .ci-back-btn {
     position: absolute;
     top: 20px;
@@ -32,7 +45,8 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 10px;
+    padding: 10px 10px 110px 10px;
+    /* Big bottom padding for footer */
 }
 
 .ci-menu-buttons {
@@ -133,4 +147,104 @@
     text-align: center;
     width: 100%;
     margin-top: 20px;
+}
+
+/* Equipped State */
+.ci-gift-item.equipped {
+    border: 2px solid #ffcc00;
+    background: #fff8e0;
+}
+
+.equipped-badge {
+    font-size: 10px;
+    color: #ffcc00;
+    font-weight: bold;
+    display: block;
+    margin-top: 2px;
+}
+
+/* Character Animation */
+.character-figure {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 85%;
+    /* Match Home */
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    pointer-events: none;
+    transition: transform 0.3s;
+    transform-origin: bottom center;
+}
+
+.char-image {
+    height: 100%;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+}
+
+.character-figure.receiving {
+    transform: scale(1.05);
+}
+
+/* Gift Effect Overlay */
+.gift-effect-overlay {
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 50;
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-align: center;
+    pointer-events: none;
+}
+
+.gift-effect-content {
+    background: rgba(255, 255, 255, 0.95);
+    border: 4px solid #ff80ab;
+    border-radius: 20px;
+    padding: 20px 40px;
+    box-shadow: 0 10px 25px rgba(255, 128, 171, 0.4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.gift-effect-emoji {
+    font-size: 64px;
+    animation: bounceGift 1s infinite alternate;
+}
+
+.gift-effect-message {
+    font-size: 18px;
+    font-weight: bold;
+    color: #4a4a4a;
+    white-space: pre-wrap;
+    /* For line breaks */
+}
+
+@keyframes bounceGift {
+    0% {
+        transform: translateY(0);
+    }
+
+    100% {
+        transform: translateY(-10px) rotate(10deg);
+    }
+}
+
+@keyframes popIn {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
 }

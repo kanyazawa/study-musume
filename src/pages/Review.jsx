@@ -10,6 +10,7 @@ import {
     getReviewStats
 } from '../utils/reviewUtils';
 import { STUDY_TOPICS } from '../data/studyTopics';
+import ReviewQuiz from '../components/ReviewQuiz';
 import './Review.css';
 
 const Review = () => {
@@ -19,6 +20,7 @@ const Review = () => {
     const [selectedSubject, setSelectedSubject] = useState('all');
     const [selectedPriority, setSelectedPriority] = useState('all');
     const [stats, setStats] = useState(null);
+    const [isQuizMode, setIsQuizMode] = useState(false);
 
     useEffect(() => {
         loadReviewData();
@@ -73,12 +75,28 @@ const Review = () => {
             alert('復習する問題がありません');
             return;
         }
-        // TODO: 復習モードで学習開始
-        alert('復習機能は実装中です');
+        setIsQuizMode(true);
+    };
+
+    const handleQuizComplete = (results) => {
+        setIsQuizMode(false);
+        loadReviewData(); // Reload to reflect updated review statuses
     };
 
     // 科目リストを取得
     const subjectList = STUDY_TOPICS.map(s => s.name);
+
+    // If in quiz mode, show ReviewQuiz component
+    if (isQuizMode) {
+        return (
+            <div className="review-page">
+                <ReviewQuiz
+                    questions={filteredQuestions}
+                    onComplete={handleQuizComplete}
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="review-page">

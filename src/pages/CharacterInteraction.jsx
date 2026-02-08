@@ -8,11 +8,12 @@ import './Dialogue.css'; // Reuse dialogue styles for consistency
 // Images
 import CharacterMain from '../assets/images/character_new.png';
 import CharacterCasual from '../assets/images/character_casual_v9.png';
+import CharacterCasualFall from '../assets/images/noa_casual_fall.png';
 // Using happy image for smile reaction
 import NoaHappy from '../assets/images/noah_happy.png';
 
 // Utils
-import { getSkinFilter, getBackgroundStyle } from '../utils/cosmeticUtils';
+import { getSkinFilter, getBackgroundStyle, getSkinImage, getOwnedSkins, getOwnedBackgrounds } from '../utils/cosmeticUtils';
 import { filterInventoryByType, removeFromInventory } from '../utils/itemUtils';
 
 const CharacterInteraction = ({ stats, updateStats }) => {
@@ -20,21 +21,32 @@ const CharacterInteraction = ({ stats, updateStats }) => {
     const [mode, setMode] = useState('main'); // main, gift, costume, bg
     const [expression, setExpression] = useState('normal'); // normal, smile
 
-    // Skin mapping
-    const skinImages = {
-        'default': CharacterMain,
-        'skin_casual': CharacterCasual
+    // Owned Cosmetics
+    const ownedSkins = getOwnedSkins(stats.inventory || []);
+    const ownedBackgrounds = getOwnedBackgrounds(stats.inventory || []);
+
+    const handleEquipSkin = (skinId) => {
+        updateStats({ equippedSkin: skinId });
     };
 
-    // Determine Image to show
-    let currentImage = skinImages[stats.equippedSkin] || CharacterMain;
+    const handleEquipBackground = (bgId) => {
+        updateStats({ equippedBackground: bgId });
+    };
 
-    // Override if smiling (User requested: "If gift received, make her smile")
-    // Note: If we use NoaHappy, it might be uniform only. 
-    // If the user wants to keep the casual skin but add a smile, we can't do that easily without a specific asset.
-    // For now, I will swap to NoaHappy if expression is smile, assuming the user prioritizes the expression.
+    // スキン画像のマッピング
+    const skinImages = {
+        'default': CharacterMain,
+        'skin_casual': CharacterCasual,
+        'skin_casual_fall': CharacterCasualFall
+    };
+
+    // Use utility or map to get skin image
+    const currentSkinImage = skinImages[stats.equippedSkin] || CharacterMain;
+
+    // Override if smiling
+    let displayImage = currentSkinImage;
     if (expression === 'smile') {
-        currentImage = NoaHappy;
+        displayImage = NoaHappy;
     }
 
     const currentSkinFilter = getSkinFilter(stats.equippedSkin);
@@ -43,7 +55,14 @@ const CharacterInteraction = ({ stats, updateStats }) => {
     // Filter Gifts
     const giftItems = filterInventoryByType(stats.inventory, 'gift');
 
+    const [givingItem, setGivingItem] = useState(null);
+
+    // ... (existing code)
+
     const handleGiveGift = (item) => {
+        // Set giving item for animation
+        setGivingItem(item);
+
         // Reduce inventory
         const newInventory = removeFromInventory(stats.inventory, item.itemId, 1);
 
@@ -58,26 +77,41 @@ const CharacterInteraction = ({ stats, updateStats }) => {
         // Trigger Smile
         setExpression('smile');
 
-        // Reset expression after 3 seconds
+        // Reset expression and item after 3 seconds
         setTimeout(() => {
             setExpression('normal');
+            setGivingItem(null);
         }, 3000);
     };
 
+    const isDefaultBg = stats.equippedBackground === 'default';
+
     return (
-        <div className="character-interaction-screen" style={currentBgStyle}>
+        <div className="character-interaction-screen" style={!isDefaultBg ? currentBgStyle : {}}>
             {/* Background Placeholder */}
-            <div className="room-background"></div>
+            {isDefaultBg && <div className="room-background"></div>}
 
             {/* Back Button */}
             <button className="ci-back-btn" onClick={() => navigate('/home')}>
                 <ArrowLeft size={32} color="white" />
             </button>
 
+            {/* Gift Animation Overlay */}
+            {givingItem && (
+                <div className="gift-effect-overlay">
+                    <div className="gift-effect-content">
+                        <div className="gift-effect-emoji">{givingItem.emoji}</div>
+                        <div className="gift-effect-message">
+                            「わぁ、{givingItem.name}！<br />ありがとう、嬉しいな♪」
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Character Figure (Same position as Home) */}
-            <div className="character-figure">
+            <div className={`character-figure ${givingItem ? 'receiving' : ''}`}>
                 <img
-                    src={currentImage}
+                    src={displayImage}
                     alt="Character"
                     className="char-image"
                     style={{ filter: expression !== 'smile' ? currentSkinFilter : 'none' }}
@@ -133,13 +167,59 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                      But "Gift button -> list comes out from bottom" implies inline interaction.
                      For now, let's keep it simple. If they click Costume, maybe show alert or implement similar list.
                  */}
-                {(mode === 'costume' || mode === 'bg') && (
-                    <div className="ci-temp-panel">
-                        <p>機能未実装 (Inventoryから変更してください)</p>
-                        <button onClick={() => setMode('main')}>戻る</button>
+// ... (imports are handled in next step or already present)
+
+                {/* Costume Selection Mode */}
+                {mode === 'costume' && (
+                    <div className="ci-gift-panel">
+                        <div className="ci-panel-header">
+                            <span>衣装を着替える</span>
+                            <button className="ci-close-small" onClick={() => setMode('main')}>×</button>
+                        </div>
+                        <div className="ci-gift-list">
+                            {ownedSkins.map((item, idx) => (
+                                <div
+                                    key={idx}
+                                    className={`ci-gift-item ${stats.equippedSkin === item.id ? 'equipped' : ''}`}
+                                    onClick={() => handleEquipSkin(item.id)}
+                                >
+                                    <span className="ci-gift-emoji">{item.emoji}</span>
+                                    <div className="ci-gift-info">
+                                        <span className="ci-gift-name">{item.name}</span>
+                                        {stats.equippedSkin === item.id && <span className="equipped-badge">装備中</span>}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Background Selection Mode */}
+                {mode === 'bg' && (
+                    <div className="ci-gift-panel">
+                        <div className="ci-panel-header">
+                            <span>背景を変更する</span>
+                            <button className="ci-close-small" onClick={() => setMode('main')}>×</button>
+                        </div>
+                        <div className="ci-gift-list">
+                            {ownedBackgrounds.map((item, idx) => (
+                                <div
+                                    key={idx}
+                                    className={`ci-gift-item ${stats.equippedBackground === item.id ? 'equipped' : ''}`}
+                                    onClick={() => handleEquipBackground(item.id)}
+                                >
+                                    <span className="ci-gift-emoji">{item.emoji}</span>
+                                    <div className="ci-gift-info">
+                                        <span className="ci-gift-name">{item.name}</span>
+                                        {stats.equippedBackground === item.id && <span className="equipped-badge">装備中</span>}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>
+
         </div>
     );
 };

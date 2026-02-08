@@ -69,6 +69,26 @@ export const getOwnedSkins = (inventory) => {
 };
 
 /**
+ * 所持している背景一覧を取得する
+ * @param {Array} inventory - インベントリ
+ * @returns {Array} 背景アイテムの配列
+ */
+export const getOwnedBackgrounds = (inventory) => {
+    const ownedBgs = inventory
+        .filter(invItem => {
+            const item = ALL_ITEMS.find(i => i.id === invItem.itemId);
+            return item && item.type === 'background';
+        })
+        .map(invItem => ALL_ITEMS.find(i => i.id === invItem.itemId));
+
+    // デフォルト背景を先頭に追加
+    return [
+        { id: 'default', name: 'デフォルト', type: 'background', emoji: '🏠' },
+        ...ownedBgs
+    ];
+};
+
+/**
  * 次のスキンを取得する（切り替え用）
  * @param {string} currentSkinId - 現在のスキンID
  * @param {Array} inventory - インベントリ
