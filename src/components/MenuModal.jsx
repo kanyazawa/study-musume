@@ -66,6 +66,9 @@ const MenuModal = ({ onClose, stats, updateStats }) => {
             navigate('/ranking');
         } else if (itemId === 'settings') {
             setShowSettings(true);
+        } else if (itemId === 'title') {
+            onClose();
+            navigate('/');
         }
         // 他のメニューアイテムの処理はここに追加
     };

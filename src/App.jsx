@@ -6,7 +6,7 @@ import LoadingScreen from './components/UI/LoadingScreen';
 import VolumeControl from './components/UI/VolumeControl'; // 追加
 import { SoundProvider } from './contexts/SoundContext'; // 追加 // 追加
 import { loadStats, saveStats } from './utils/saveUtils';
-import { subscribeToAuthState } from './firebase/auth';
+import { subscribeToAuthState, handleRedirectResult } from './firebase/auth';
 import { updateTpWithRecovery } from './utils/tpRecoveryUtils';
 import './transitions.css';
 
@@ -72,6 +72,15 @@ function App() {
 
   // Firebase認証状態を監視
   useEffect(() => {
+    // リダイレクトログインの結果を処理
+    handleRedirectResult().then((result) => {
+      if (result.success && result.user) {
+        console.log("Redirect login successful:", result.user.displayName);
+      }
+    }).catch((err) => {
+      console.error("Redirect result check failed:", err);
+    });
+
     const unsubscribe = subscribeToAuthState((user) => {
       setCurrentUser(user);
       setAuthLoading(false);

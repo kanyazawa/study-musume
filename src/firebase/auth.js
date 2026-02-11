@@ -1,5 +1,7 @@
 import {
     signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
     signOut as firebaseSignOut,
     onAuthStateChanged
 } from "firebase/auth";
@@ -13,38 +15,96 @@ import {
 import { auth, db, googleProvider } from "./config";
 
 /**
+ * ユーザードキュメントを作成または更新
+ */
+const ensureUserDocument = async (user) => {
+    const userDocRef = doc(db, "users", user.uid);
+    const userDoc = await getDoc(userDocRef);
+
+    if (!userDoc.exists()) {
+        // 新規ユーザー: フレンドコードを生成してプロフィール作成
+        const friendCode = generateFriendCode();
+        await setDoc(userDocRef, {
+            uid: user.uid,
+            displayName: user.displayName || "トレーナー",
+            email: user.email,
+            photoURL: user.photoURL,
+            friendCode: friendCode,
+            createdAt: serverTimestamp(),
+            lastLoginAt: serverTimestamp()
+        });
+    } else {
+        // 既存ユーザー: 最終ログイン時刻を更新
+        await updateDoc(userDocRef, {
+            lastLoginAt: serverTimestamp()
+        });
+    }
+};
+
+/**
+ * モバイルデバイスかどうかを判定
+ */
+const isMobileDevice = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+        (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+};
+
+/**
  * Googleでサインイン
+ * モバイル: signInWithRedirect を使用
+ * PC: signInWithPopup を試行し、ブロックされた場合は signInWithRedirect にフォールバック
  */
 export const signInWithGoogle = async () => {
     try {
-        const result = await signInWithPopup(auth, googleProvider);
-        const user = result.user;
-
-        // ユーザードキュメントが存在するかチェック
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-
-        if (!userDoc.exists()) {
-            // 新規ユーザー: フレンドコードを生成してプロフィール作成
-            const friendCode = generateFriendCode();
-            await setDoc(doc(db, "users", user.uid), {
-                uid: user.uid,
-                displayName: user.displayName || "トレーナー",
-                email: user.email,
-                photoURL: user.photoURL,
-                friendCode: friendCode,
-                createdAt: serverTimestamp(),
-                lastLoginAt: serverTimestamp()
-            });
-        } else {
-            // 既存ユーザー: 最終ログイン時刻を更新
-            await updateDoc(doc(db, "users", user.uid), {
-                lastLoginAt: serverTimestamp()
-            });
+        // モバイルブラウザではリダイレクト方式を使用
+        if (isMobileDevice()) {
+            console.log("Mobile device detected, using redirect sign-in...");
+            await signInWithRedirect(auth, googleProvider);
+            // リダイレクト後はページがリロードされるため、ここには戻らない
+            return { success: true, redirect: true };
         }
+
+        // PCブラウザではポップアップを試行
+        let result;
+        try {
+            result = await signInWithPopup(auth, googleProvider);
+        } catch (popupError) {
+            // ポップアップがブロックされた場合、リダイレクト方式にフォールバック
+            if (popupError.code === 'auth/popup-blocked' ||
+                popupError.code === 'auth/popup-closed-by-user' ||
+                popupError.code === 'auth/cancelled-popup-request') {
+                console.log("Popup blocked, falling back to redirect...");
+                await signInWithRedirect(auth, googleProvider);
+                return { success: true, redirect: true };
+            }
+            throw popupError;
+        }
+
+        const user = result.user;
+        await ensureUserDocument(user);
 
         return { success: true, user };
     } catch (error) {
         console.error("Sign in error:", error);
+        return { success: false, error: error.message };
+    }
+};
+
+/**
+ * リダイレクトログインの結果を処理
+ * アプリ起動時に呼び出す
+ */
+export const handleRedirectResult = async () => {
+    try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+            const user = result.user;
+            await ensureUserDocument(user);
+            return { success: true, user };
+        }
+        return { success: false, noResult: true };
+    } catch (error) {
+        console.error("Redirect result error:", error);
         return { success: false, error: error.message };
     }
 };

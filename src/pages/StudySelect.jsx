@@ -8,9 +8,11 @@ const StudySelect = () => {
     const navigate = useNavigate();
 
     // 階層管理
-    const [currentLevel, setCurrentLevel] = useState('subject'); // 'subject' | 'category' | 'unit'
+    const [currentLevel, setCurrentLevel] = useState('subject'); // 'subject' | 'category' | 'unit' | 'chapter' | 'section'
     const [selectedSubject, setSelectedSubject] = useState(null);
     const [selectedCategory, setSelectedCategory] = useState(null);
+    const [selectedUnit, setSelectedUnit] = useState(null);
+    const [selectedChapter, setSelectedChapter] = useState(null);
 
     // 検索
     const [searchQuery, setSearchQuery] = useState('');
@@ -23,11 +25,19 @@ const StudySelect = () => {
     if (selectedCategory) {
         breadcrumbs.push({ level: 'category', name: selectedCategory.name });
     }
+    if (selectedUnit) {
+        breadcrumbs.push({ level: 'unit', name: selectedUnit.name });
+    }
+    if (selectedChapter) {
+        breadcrumbs.push({ level: 'chapter', name: selectedChapter.name });
+    }
 
     // 科目選択
     const handleSubjectClick = (subject) => {
         setSelectedSubject(subject);
         setSelectedCategory(null);
+        setSelectedUnit(null);
+        setSelectedChapter(null);
         setCurrentLevel('category');
         setSearchQuery('');
     };
@@ -35,20 +45,58 @@ const StudySelect = () => {
     // カテゴリー選択
     const handleCategoryClick = (category) => {
         setSelectedCategory(category);
+        setSelectedUnit(null);
+        setSelectedChapter(null);
         setCurrentLevel('unit');
         setSearchQuery('');
     };
 
-    // 単元選択 → Dialogue画面へ
+    // 単元選択
     const handleUnitClick = (unit) => {
-        navigate(`/dialogue?topic=${unit.topic}`);
+        if (unit.chapters && unit.chapters.length > 0) {
+            // 章がある場合は章選択へ
+            setSelectedUnit(unit);
+            setSelectedChapter(null);
+            setCurrentLevel('chapter');
+            setSearchQuery('');
+        } else {
+            // 章がない場合は直接学習へ
+            navigate(`/dialogue?topic=${unit.topic}`);
+        }
+    };
+
+    // 章選択
+    const handleChapterClick = (chapter) => {
+        if (chapter.sections && chapter.sections.length > 0) {
+            // 節（セクション）がある場合は節選択へ
+            setSelectedChapter(chapter);
+            setCurrentLevel('section');
+            setSearchQuery('');
+        } else {
+            navigate(`/dialogue?topic=${chapter.topic}`);
+        }
+    };
+
+    // 節（セクション）選択
+    const handleSectionClick = (section) => {
+        navigate(`/dialogue?topic=${section.topic}`);
     };
 
     // 戻る
     const handleBack = () => {
-        if (currentLevel === 'unit') {
+        if (currentLevel === 'section') {
+            setCurrentLevel('chapter');
+            setSelectedChapter(null);
+            setSearchQuery('');
+        } else if (currentLevel === 'chapter') {
+            setCurrentLevel('unit');
+            setSelectedUnit(null);
+            setSelectedChapter(null); // Clear chapter when going back to unit
+            setSearchQuery('');
+        } else if (currentLevel === 'unit') {
             setCurrentLevel('category');
             setSelectedCategory(null);
+            setSelectedUnit(null);
             setSearchQuery('');
         } else if (currentLevel === 'category') {
             setCurrentLevel('subject');
@@ -64,6 +112,17 @@ const StudySelect = () => {
         if (level === 'subject') {
             setCurrentLevel('category');
             setSelectedCategory(null);
+            setSelectedUnit(null);
+            setSelectedChapter(null);
+            setSearchQuery('');
+        } else if (level === 'category') {
+            setCurrentLevel('unit');
+            setSelectedUnit(null);
+            setSelectedChapter(null);
+            setSearchQuery('');
+        } else if (level === 'unit') {
+            setCurrentLevel('chapter');
+            setSelectedChapter(null);
             setSearchQuery('');
         }
     };
@@ -90,6 +149,18 @@ const StudySelect = () => {
             );
         }
 
+        if (currentLevel === 'chapter' && selectedUnit) {
+            return selectedUnit.chapters.filter(chapter =>
+                !query || chapter.name.toLowerCase().includes(query)
+            );
+        }
+
+        if (currentLevel === 'section' && selectedChapter) {
+            return selectedChapter.sections.filter(section =>
+                !query || section.name.toLowerCase().includes(query)
+            );
+        }
+
         return [];
     };
 
@@ -100,6 +171,8 @@ const StudySelect = () => {
         if (currentLevel === 'subject') return '科目選択';
         if (currentLevel === 'category') return '分野選択';
         if (currentLevel === 'unit') return '単元選択';
+        if (currentLevel === 'chapter') return '章選択';
+        if (currentLevel === 'section') return '学習トピック';
         return '科目選択';
     };
 
@@ -138,7 +211,9 @@ const StudySelect = () => {
                     placeholder={
                         currentLevel === 'subject' ? '科目を検索...' :
                             currentLevel === 'category' ? '分野を検索...' :
-                                '単元を検索...'
+                                currentLevel === 'unit' ? '単元を検索...' :
+                                    currentLevel === 'chapter' ? '章を検索...' :
+                                        'トピックを検索...'
                     }
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -205,6 +280,38 @@ const StudySelect = () => {
                                 onClick={() => handleUnitClick(unit)}
                             >
                                 <span className="unit-name">{unit.name}</span>
+                                <ChevronRight size={20} color="#999" />
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* 章選択 */}
+                {currentLevel === 'chapter' && (
+                    <div className="unit-list">
+                        {displayData.map((chapter) => (
+                            <div
+                                key={chapter.id}
+                                className="unit-card"
+                                onClick={() => handleChapterClick(chapter)}
+                            >
+                                <span className="unit-name">{chapter.name}</span>
+                                <ChevronRight size={20} color="#999" />
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* 節(セクション)選択 */}
+                {currentLevel === 'section' && (
+                    <div className="unit-list">
+                        {displayData.map((section) => (
+                            <div
+                                key={section.id}
+                                className="unit-card"
+                                onClick={() => handleSectionClick(section)}
+                            >
+                                <span className="unit-name">{section.name}</span>
                                 <ChevronRight size={20} color="#999" />
                             </div>
                         ))}
