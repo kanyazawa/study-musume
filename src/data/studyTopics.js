@@ -11,7 +11,7 @@ export const STUDY_TOPICS = [
         name: '数学',
         icon: Calculator,
         color: '#bd10e0',
-        sheetGid: '0', // スプレッドシートの「数学」シートのgid
+        sheetGid: '72508121', // 数学シートのgid
         categories: [
             {
                 id: 'algebra',
@@ -56,7 +56,7 @@ export const STUDY_TOPICS = [
         name: '英語',
         icon: Languages,
         color: '#4a90e2',
-        sheetGid: '0', // TODO: 英語シートを作ったらgidを更新
+        sheetGid: '552880676', // 英語シートのgid
         categories: [
             {
                 id: 'grammar',
@@ -90,7 +90,7 @@ export const STUDY_TOPICS = [
         name: '国語',
         icon: BookType,
         color: '#f5a623',
-        sheetGid: '0', // TODO: 国語シートを作ったらgidを更新
+        sheetGid: '207668141', // 国語シートのgid
         categories: [
             {
                 id: 'reading',
@@ -115,7 +115,7 @@ export const STUDY_TOPICS = [
         name: '理科',
         icon: FlaskConical,
         color: '#50e3c2',
-        sheetGid: '0', // TODO: 理科シートを作ったらgidを更新
+        sheetGid: '1543626185', // 理科シートのgid
         categories: [
             {
                 id: 'physics',
@@ -279,7 +279,7 @@ export const STUDY_TOPICS = [
         name: '社会',
         icon: Globe,
         color: '#e05d44',
-        sheetGid: '0', // TODO: 社会シートを作ったらgidを更新
+        sheetGid: '1074900660', // 社会シートのgid
         categories: [
             {
                 id: 'history',
