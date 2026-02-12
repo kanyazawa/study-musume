@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, History, ChevronLeft, X } from 'lucide-react';
 import { performGacha, getGachaHistory, getCurrentPity, getRemainingPity, GACHA_COST } from '../utils/gachaUtils';
 import { RARITY } from '../data/gachaItems';
 import './Gacha.css';
 
-// ガチャ動画のパス
-const GACHA_VIDEO = '/gacha_animation.mp4';
+// ガチャ動画・音声のパス
+const GACHA_VIDEO = '/gacha_animation (2).mp4';
+const GACHA_AUDIO = '/audio/gacha.mp3';
 const JACKPOT_CHARACTER = '/jackpot_character.jpg';
 
 const Gacha = ({ stats, updateStats }) => {
@@ -17,6 +18,9 @@ const Gacha = ({ stats, updateStats }) => {
     const [showJackpot, setShowJackpot] = useState(false);
     const [history, setHistory] = useState([]);
     const [pityCount, setPityCount] = useState(0);
+    const [pendingResults, setPendingResults] = useState(null);
+    const audioRef = useRef(null);
+    const videoRef = useRef(null);
 
     const diamonds = stats?.diamonds || 0;
 
@@ -24,6 +28,48 @@ const Gacha = ({ stats, updateStats }) => {
         setPityCount(getCurrentPity());
         setHistory(getGachaHistory());
     }, []);
+
+    // ガチャ結果を処理する共通関数
+    const showGachaResults = (results) => {
+        const hasSSR = results.some(r => r.rarity === 'SSR');
+
+        if (hasSSR) {
+            setShowJackpot(true);
+            setTimeout(() => {
+                setShowJackpot(false);
+                setGachaResults(results);
+            }, 3000);
+        } else {
+            setGachaResults(results);
+        }
+
+        setShowVideo(false);
+        setPendingResults(null);
+        setPityCount(getCurrentPity());
+        setHistory(getGachaHistory());
+
+        // アイテムをインベントリに追加
+        const newInventory = [...(stats.inventory || [])];
+        results.forEach(item => {
+            if (item.type !== 'dummy') {
+                const existingIndex = newInventory.findIndex(i => i.itemId === item.id);
+                if (existingIndex >= 0) {
+                    newInventory[existingIndex].quantity++;
+                } else {
+                    newInventory.push({
+                        itemId: item.id,
+                        name: item.name,
+                        type: item.type,
+                        rarity: item.rarity,
+                        emoji: item.emoji,
+                        description: item.description,
+                        quantity: 1
+                    });
+                }
+            }
+        });
+        updateStats({ inventory: newInventory });
+    };
 
     // ガチャ実行
     const handleGacha = (count) => {
@@ -38,53 +84,48 @@ const Gacha = ({ stats, updateStats }) => {
         // ダイヤ消費
         updateStats({ diamonds: diamonds - cost });
 
+        // ガチャ結果を先に計算
+        const results = performGacha(count);
+        setPendingResults(results);
+
         // ガチャアニメーション表示
         setShowVideo(true);
 
-        // 動画終了後に結果表示
-        setTimeout(() => {
-            const results = performGacha(count);
-
-            // SSRが含まれているかチェック
-            const hasSSR = results.some(r => r.rarity === 'SSR');
-
-            if (hasSSR) {
-                // 大当たり演出
-                setShowJackpot(true);
-                setTimeout(() => {
-                    setShowJackpot(false);
-                    setGachaResults(results);
-                }, 3000);
-            } else {
-                setGachaResults(results);
+        // 音声再生
+        try {
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
             }
+            audioRef.current = new Audio(GACHA_AUDIO);
+            audioRef.current.play().catch(() => { });
+        } catch (e) {
+            // 音声再生失敗は無視
+        }
+    };
 
-            setShowVideo(false);
-            setPityCount(getCurrentPity());
-            setHistory(getGachaHistory());
+    // 動画終了時に結果表示
+    const handleVideoEnded = () => {
+        if (pendingResults) {
+            showGachaResults(pendingResults);
+        }
+        // 音声停止
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current = null;
+        }
+    };
 
-            // アイテムをインベントリに追加
-            const newInventory = [...(stats.inventory || [])];
-            results.forEach(item => {
-                if (item.type !== 'dummy') {
-                    const existingIndex = newInventory.findIndex(i => i.itemId === item.id);
-                    if (existingIndex >= 0) {
-                        newInventory[existingIndex].quantity++;
-                    } else {
-                        newInventory.push({
-                            itemId: item.id,
-                            name: item.name,
-                            type: item.type,
-                            rarity: item.rarity,
-                            emoji: item.emoji,
-                            description: item.description,
-                            quantity: 1
-                        });
-                    }
-                }
-            });
-            updateStats({ inventory: newInventory });
-        }, count === 1 ? 3000 : 5000);
+    // スキップ（タップで演出をスキップ）
+    const handleSkip = () => {
+        if (pendingResults) {
+            showGachaResults(pendingResults);
+        }
+        // 音声停止
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current = null;
+        }
     };
 
     // 結果モーダルを閉じる
@@ -174,16 +215,21 @@ const Gacha = ({ stats, updateStats }) => {
 
             {/* ガチャアニメーション */}
             {showVideo && (
-                <div className="video-overlay">
+                <div className="video-overlay" onClick={handleSkip}>
                     <video
+                        ref={videoRef}
                         autoPlay
-                        muted
+                        playsInline
                         className="gacha-video"
-                        onError={() => console.warn('Gacha video not found')}
+                        onEnded={handleVideoEnded}
+                        onError={() => {
+                            console.warn('Gacha video not found, skipping...');
+                            if (pendingResults) showGachaResults(pendingResults);
+                        }}
                     >
                         <source src={GACHA_VIDEO} type="video/mp4" />
                     </video>
-                    <div className="loading-text">召喚中...</div>
+                    <div className="skip-hint">タップでスキップ</div>
                 </div>
             )}
 
@@ -204,34 +250,82 @@ const Gacha = ({ stats, updateStats }) => {
 
             {/* 結果モーダル */}
             {gachaResults && (
-                <div className="modal-overlay" onClick={closeResults}>
-                    <div className="results-modal-cute" onClick={(e) => e.stopPropagation()}>
+                <div className="result-overlay" onClick={closeResults}>
+                    {/* 背景パーティクル */}
+                    <div className="result-particles">
+                        {Array.from({ length: 30 }).map((_, i) => (
+                            <div
+                                key={i}
+                                className={`particle particle-${i % 5}`}
+                                style={{
+                                    left: `${Math.random() * 100}%`,
+                                    animationDelay: `${Math.random() * 3}s`,
+                                    animationDuration: `${2 + Math.random() * 3}s`,
+                                }}
+                            />
+                        ))}
+                    </div>
+
+                    <div className="results-modal-rich" onClick={(e) => e.stopPropagation()}>
                         <button className="close-btn-x" onClick={closeResults}>
                             <X size={24} />
                         </button>
-                        <h3 className="result-title">✨ 結果 ✨</h3>
-                        <div className="results-grid-cute">
+
+                        {/* タイトル */}
+                        <div className="result-title-area">
+                            <h3 className="result-title-rich">
+                                <span className="title-deco">✦</span>
+                                ガチャ結果
+                                <span className="title-deco">✦</span>
+                            </h3>
+                            <div className="result-summary">
+                                {gachaResults.length}件獲得
+                                {gachaResults.some(r => r.rarity === 'SSR') && <span className="summary-ssr">🌟 SSR!</span>}
+                                {gachaResults.some(r => r.rarity === 'SR') && <span className="summary-sr">💜 SR!</span>}
+                            </div>
+                        </div>
+
+                        {/* カードグリッド */}
+                        <div className="results-grid-rich">
                             {gachaResults.map((item, index) => (
                                 <div
                                     key={index}
-                                    className={`result-card-cute rarity-${item.rarity}`}
+                                    className={`result-card-rich rarity-${item.rarity}`}
+                                    style={{ animationDelay: `${index * 0.12}s` }}
                                 >
-                                    <div className="result-emoji-large">{item.emoji}</div>
-                                    <div className="result-name-cute">{item.name}</div>
-                                    <div
-                                        className="result-stars"
-                                        style={{ color: RARITY[item.rarity].color }}
-                                    >
+                                    {/* レアリティ別グロー */}
+                                    {(item.rarity === 'SSR' || item.rarity === 'SR') && (
+                                        <div className={`card-glow glow-${item.rarity}`} />
+                                    )}
+
+                                    {/* レアリティリボン */}
+                                    <div className={`rarity-ribbon ribbon-${item.rarity}`}>
                                         {RARITY[item.rarity].label}
                                     </div>
+
+                                    {/* アイテム表示 */}
+                                    <div className="card-emoji">{item.emoji}</div>
+                                    <div className="card-name">{item.name}</div>
+                                    <div
+                                        className="card-rarity-label"
+                                        style={{ color: RARITY[item.rarity].color }}
+                                    >
+                                        {item.rarity}
+                                    </div>
+
+                                    {/* バッジ */}
                                     {item.isPity && (
-                                        <div className="pity-badge-result">天井</div>
+                                        <div className="badge-pity">天井</div>
+                                    )}
+                                    {item.isNew && (
+                                        <div className="badge-new">NEW</div>
                                     )}
                                 </div>
                             ))}
                         </div>
-                        <button className="close-btn-result" onClick={closeResults}>
-                            閉じる
+
+                        <button className="close-btn-result-rich" onClick={closeResults}>
+                            OK
                         </button>
                     </div>
                 </div>

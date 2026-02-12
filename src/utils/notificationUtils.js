@@ -1,5 +1,6 @@
 /**
  * 通知管理ユーティリティ
+ * Service Worker連携でバックグラウンド通知をサポート
  */
 
 const STORAGE_KEY = 'notificationSettings';
@@ -12,8 +13,93 @@ const DEFAULT_SETTINGS = {
     reminderTime: '20:00', // HH:MM形式
     streakNotifications: true,
     longAbsenceReminder: true,
-    lastReminderDate: null
+    lastReminderDate: null,
+    lastNotifiedDate: null
 };
+
+// ==============================
+// Service Worker 管理
+// ==============================
+
+/**
+ * Service Workerを登録
+ * @returns {Promise<ServiceWorkerRegistration|null>}
+ */
+export const registerServiceWorker = async () => {
+    if (!('serviceWorker' in navigator)) {
+        console.warn('Service Workerはこのブラウザでサポートされていません');
+        return null;
+    }
+
+    try {
+        const registration = await navigator.serviceWorker.register('/sw.js', {
+            scope: '/'
+        });
+        console.log('Service Worker registered:', registration.scope);
+        return registration;
+    } catch (error) {
+        console.error('Service Worker registration failed:', error);
+        return null;
+    }
+};
+
+/**
+ * Service Workerに設定を同期
+ */
+const syncSettingsToSW = async (settings) => {
+    if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
+        // controllerがなくても、readyで待つ
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            if (registration.active) {
+                registration.active.postMessage({
+                    type: 'SYNC_SETTINGS',
+                    data: settings
+                });
+                console.log('Settings synced to SW via registration.active');
+            }
+        } catch (e) {
+            console.warn('SW sync fallback failed:', e);
+        }
+        return;
+    }
+
+    navigator.serviceWorker.controller.postMessage({
+        type: 'SYNC_SETTINGS',
+        data: settings
+    });
+    console.log('Settings synced to SW');
+};
+
+/**
+ * 通知システムを初期化（アプリ起動時に呼ぶ）
+ */
+export const initNotificationSystem = async () => {
+    // 1. Service Worker登録
+    const registration = await registerServiceWorker();
+    if (!registration) return;
+
+    // 2. 既存の設定をSWに同期
+    const settings = getNotificationSettings();
+    if (settings.enabled) {
+        // 少し待ってSWがactiveになるのを確認
+        await navigator.serviceWorker.ready;
+        syncSettingsToSW(settings);
+
+        // オンデマンドチェック
+        if (navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({
+                type: 'CHECK_NOTIFICATION'
+            });
+        }
+    }
+
+    console.log('Notification system initialized');
+};
+
+// ==============================
+// 通知許可
+// ==============================
 
 /**
  * 通知許可をリクエスト
@@ -37,14 +123,17 @@ export const requestNotificationPermission = async () => {
     return false;
 };
 
+// ==============================
+// 通知送信
+// ==============================
+
 /**
- * 通知を送信
+ * 通知を送信（Service Worker経由）
  * @param {string} title - 通知のタイトル
  * @param {string} body - 通知の本文
- * @param {string} icon - 通知のアイコンURL（オプション）
- * @returns {boolean} 送信成功したかどうか
+ * @returns {Promise<boolean>} 送信成功したかどうか
  */
-export const sendNotification = (title, body, icon = null) => {
+export const sendNotification = async (title, body) => {
     if (!('Notification' in window)) {
         console.warn('このブラウザは通知をサポートしていません');
         return false;
@@ -55,23 +144,36 @@ export const sendNotification = (title, body, icon = null) => {
         return false;
     }
 
-    const options = {
-        body,
-        icon: icon || '/icon-192.png',
-        badge: '/icon-192.png',
-        vibrate: [200, 100, 200],
-        tag: 'study-musume',
-        requireInteraction: false
-    };
-
     try {
-        new Notification(title, options);
+        // Service Worker経由で通知（バックグラウンドでも動く）
+        const registration = await navigator.serviceWorker?.ready;
+        if (registration) {
+            await registration.showNotification(title, {
+                body,
+                icon: '/icon-192.png',
+                badge: '/icon-192.png',
+                vibrate: [200, 100, 200],
+                tag: 'study-musume-' + Date.now(),
+                data: { url: '/' }
+            });
+            return true;
+        }
+
+        // フォールバック: 直接通知
+        new Notification(title, {
+            body,
+            icon: '/icon-192.png'
+        });
         return true;
     } catch (error) {
         console.error('通知の送信に失敗しました:', error);
         return false;
     }
 };
+
+// ==============================
+// 設定管理
+// ==============================
 
 /**
  * 通知設定を取得
@@ -91,43 +193,28 @@ export const getNotificationSettings = () => {
 };
 
 /**
- * 通知設定を保存
+ * 通知設定を保存（localStorage + Service Worker同期）
  * @param {Object} settings - 保存する設定
  */
 export const saveNotificationSettings = (settings) => {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+        // Service Workerにも同期
+        syncSettingsToSW(settings);
         console.log('通知設定を保存しました:', settings);
     } catch (error) {
         console.error('通知設定の保存に失敗しました:', error);
     }
 };
 
-/**
- * リマインダーをスケジュール（次の設定時刻を計算）
- * @param {string} time - HH:MM形式の時刻
- * @returns {number} 次のリマインダーまでのミリ秒
- */
-export const scheduleReminder = (time) => {
-    const [hours, minutes] = time.split(':').map(Number);
-
-    const now = new Date();
-    const reminderTime = new Date();
-    reminderTime.setHours(hours, minutes, 0, 0);
-
-    // 今日の設定時刻を過ぎている場合は明日に設定
-    if (reminderTime <= now) {
-        reminderTime.setDate(reminderTime.getDate() + 1);
-    }
-
-    const msUntilReminder = reminderTime.getTime() - now.getTime();
-    return msUntilReminder;
-};
+// ==============================
+// リマインダー
+// ==============================
 
 /**
  * 学習リマインダーを送信
  */
-export const sendStudyReminder = () => {
+export const sendStudyReminder = async () => {
     const settings = getNotificationSettings();
 
     if (!settings.enabled) {
@@ -136,7 +223,6 @@ export const sendStudyReminder = () => {
 
     const today = new Date().toISOString().split('T')[0];
 
-    // 今日既にリマインダーを送信している場合はスキップ
     if (settings.lastReminderDate === today) {
         return;
     }
@@ -149,11 +235,9 @@ export const sendStudyReminder = () => {
     ];
 
     const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-
-    const success = sendNotification('Study Musume 📖', randomMessage);
+    const success = await sendNotification('Study Musume 📖', randomMessage);
 
     if (success) {
-        // 最後のリマインダー送信日を更新
         saveNotificationSettings({
             ...settings,
             lastReminderDate: today
@@ -165,7 +249,7 @@ export const sendStudyReminder = () => {
  * 連続学習達成通知を送信
  * @param {number} streak - 連続日数
  */
-export const sendStreakNotification = (streak) => {
+export const sendStreakNotification = async (streak) => {
     const settings = getNotificationSettings();
 
     if (!settings.enabled || !settings.streakNotifications) {
@@ -173,30 +257,23 @@ export const sendStreakNotification = (streak) => {
     }
 
     let message = '';
-    let emoji = '';
 
     if (streak === 3) {
-        emoji = '🔥';
-        message = `${emoji} 3日連続学習達成！素晴らしい！`;
+        message = `🔥 3日連続学習達成！素晴らしい！`;
     } else if (streak === 7) {
-        emoji = '⭐';
-        message = `${emoji} 1週間連続学習達成！すごいよ！`;
+        message = `⭐ 1週間連続学習達成！すごいよ！`;
     } else if (streak === 14) {
-        emoji = '💎';
-        message = `${emoji} 2週間連続学習達成！本当に頑張ってる！`;
+        message = `💎 2週間連続学習達成！本当に頑張ってる！`;
     } else if (streak === 30) {
-        emoji = '👑';
-        message = `${emoji} 1ヶ月連続学習達成！君は最高だ！`;
+        message = `👑 1ヶ月連続学習達成！君は最高だ！`;
     } else if (streak % 50 === 0) {
-        emoji = '🏆';
-        message = `${emoji} ${streak}日連続学習達成！伝説級だ！`;
+        message = `🏆 ${streak}日連続学習達成！伝説級だ！`;
     } else if (streak % 10 === 0 && streak >= 10) {
-        emoji = '✨';
-        message = `${emoji} ${streak}日連続学習達成！継続は力なり！`;
+        message = `✨ ${streak}日連続学習達成！継続は力なり！`;
     }
 
     if (message) {
-        sendNotification('Study Musume 🎉', message);
+        await sendNotification('Study Musume 🎉', message);
     }
 };
 
@@ -204,7 +281,7 @@ export const sendStreakNotification = (streak) => {
  * 長期間未学習時の励まし通知
  * @param {number} daysSinceLastStudy - 最後の学習からの日数
  */
-export const sendLongAbsenceReminder = (daysSinceLastStudy) => {
+export const sendLongAbsenceReminder = async (daysSinceLastStudy) => {
     const settings = getNotificationSettings();
 
     if (!settings.enabled || !settings.longAbsenceReminder) {
@@ -220,15 +297,25 @@ export const sendLongAbsenceReminder = (daysSinceLastStudy) => {
         ];
 
         const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-        sendNotification('Study Musume 💌', randomMessage);
+        await sendNotification('Study Musume 💌', randomMessage);
     }
 };
 
 /**
- * 通知のテスト送信
+ * 通知のテスト送信（Service Worker経由）
  */
-export const sendTestNotification = () => {
-    sendNotification(
+export const sendTestNotification = async () => {
+    try {
+        const registration = await navigator.serviceWorker?.ready;
+        if (registration?.active) {
+            registration.active.postMessage({ type: 'SEND_TEST' });
+            return;
+        }
+    } catch (e) {
+        // フォールバック
+    }
+
+    await sendNotification(
         'Study Musume テスト通知 🔔',
         'これはテスト通知です。通知が正しく表示されています！'
     );

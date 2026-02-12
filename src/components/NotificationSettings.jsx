@@ -4,7 +4,8 @@ import {
     requestNotificationPermission,
     getNotificationSettings,
     saveNotificationSettings,
-    sendTestNotification
+    sendTestNotification,
+    registerServiceWorker
 } from '../utils/notificationUtils';
 import './NotificationSettings.css';
 
@@ -54,6 +55,8 @@ const NotificationSettings = ({ onClose }) => {
             setPermissionGranted(granted);
 
             if (granted) {
+                // Service Worker登録
+                await registerServiceWorker();
                 setSettings(prev => ({ ...prev, enabled: true }));
                 setPermissionStatus(null);
                 // 許可された場合、テスト通知を送信

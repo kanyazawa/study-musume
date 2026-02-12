@@ -8,6 +8,7 @@ import { SoundProvider } from './contexts/SoundContext'; // 追加 // 追加
 import { loadStats, saveStats } from './utils/saveUtils';
 import { subscribeToAuthState, handleRedirectResult } from './firebase/auth';
 import { updateTpWithRecovery } from './utils/tpRecoveryUtils';
+import { initNotificationSystem } from './utils/notificationUtils';
 import './transitions.css';
 
 // Pages
@@ -86,6 +87,11 @@ function App() {
       setAuthLoading(false);
     });
     return () => unsubscribe();
+  }, []);
+
+  // 通知システム初期化
+  useEffect(() => {
+    initNotificationSystem();
   }, []);
 
   // TP自動回復システム

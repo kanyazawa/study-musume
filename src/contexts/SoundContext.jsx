@@ -31,6 +31,29 @@ export const SoundProvider = ({ children }) => {
         };
     }, []);
 
+    // バックグラウンド時にBGMを停止、フォアグラウンド復帰時に再開
+    const wasPlayingRef = useRef(false);
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                // バックグラウンドに移行 → BGM一時停止
+                if (bgmRef.current && isPlaying) {
+                    bgmRef.current.pause();
+                    wasPlayingRef.current = true;
+                }
+            } else {
+                // フォアグラウンドに復帰 → BGM再開
+                if (bgmRef.current && wasPlayingRef.current) {
+                    bgmRef.current.play().catch(() => { });
+                    wasPlayingRef.current = false;
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [isPlaying]);
+
     // Handle Volume/Mute changes
     useEffect(() => {
         if (bgmRef.current) {
