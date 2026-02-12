@@ -65,8 +65,40 @@ const Dialogue = ({ stats, updateStats }) => {
     const TP_COST = 20;
     const INTELLECT_REWARD = 50;
 
-    // Google Sheet CSV URL (Published or Export)
-    const GOOGLE_SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/16TRO_hL1xFsnQK5j2MW0gmZFG1xckdPue9NsllsV6jA/export?format=csv`;
+    // Google Sheet CSV URL
+    const SPREADSHEET_ID = '16TRO_hL1xFsnQK5j2MW0gmZFG1xckdPue9NsllsV6jA';
+
+    // topicから教科を特定してsheetGidを取得
+    const getSubjectGid = (topicName) => {
+        for (const subject of STUDY_TOPICS) {
+            for (const category of subject.categories) {
+                for (const unit of category.units) {
+                    if (unit.topic === topicName || unit.id === topicName) {
+                        return { gid: subject.sheetGid || '0', subjectId: subject.id };
+                    }
+                    // chapters/sections内も検索
+                    if (unit.chapters) {
+                        for (const chapter of unit.chapters) {
+                            if (chapter.topic === topicName) {
+                                return { gid: subject.sheetGid || '0', subjectId: subject.id };
+                            }
+                            if (chapter.sections) {
+                                for (const section of chapter.sections) {
+                                    if (section.topic === topicName) {
+                                        return { gid: subject.sheetGid || '0', subjectId: subject.id };
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return { gid: '0', subjectId: 'default' };
+    };
+
+    const { gid: sheetGid, subjectId: currentSubjectId } = getSubjectGid(topic);
+    const GOOGLE_SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${sheetGid}`;
 
     // --- CSV Parser ---
     const parseCSV = (text) => {
@@ -146,8 +178,8 @@ const Dialogue = ({ stats, updateStats }) => {
     useEffect(() => {
         const loadScenario = async () => {
             setLoading(true);
-            const CACHE_KEY = 'study_scenario_data_v2'; // Changed version to clear cache
-            const CACHE_DURATION = 60 * 60 * 1000; // 60 minutes
+            const CACHE_KEY = `study_scenario_${currentSubjectId}_v3`; // 教科別キャッシュ
+            const CACHE_DURATION = 60 * 60 * 1000; // 60分
 
             let finalData = null;
             let usedSource = "none";
