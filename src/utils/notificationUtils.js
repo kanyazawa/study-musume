@@ -79,19 +79,21 @@ export const initNotificationSystem = async () => {
     const registration = await registerServiceWorker();
     if (!registration) return;
 
+    // SWがactiveになるのを待つ
+    const reg = await navigator.serviceWorker.ready;
+    console.log('Service Worker is ready:', reg.scope);
+
     // 2. 既存の設定をSWに同期
     const settings = getNotificationSettings();
     if (settings.enabled) {
-        // 少し待ってSWがactiveになるのを確認
-        await navigator.serviceWorker.ready;
         syncSettingsToSW(settings);
 
-        // オンデマンドチェック
-        if (navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({
-                type: 'CHECK_NOTIFICATION'
-            });
-        }
+        // オンデマンドチェック（少し待ってから）
+        setTimeout(() => {
+            if (reg.active) {
+                reg.active.postMessage({ type: 'CHECK_NOTIFICATION' });
+            }
+        }, 1000);
     }
 
     console.log('Notification system initialized');
@@ -116,10 +118,17 @@ export const requestNotificationPermission = async () => {
     }
 
     if (Notification.permission !== 'denied') {
-        const permission = await Notification.requestPermission();
-        return permission === 'granted';
+        try {
+            const permission = await Notification.requestPermission();
+            console.log('Notification permission result:', permission);
+            return permission === 'granted';
+        } catch (e) {
+            console.error('Permission request error:', e);
+            return false;
+        }
     }
 
+    console.warn('Notification permission is denied');
     return false;
 };
 
@@ -140,14 +149,14 @@ export const sendNotification = async (title, body) => {
     }
 
     if (Notification.permission !== 'granted') {
-        console.warn('通知の許可が必要です');
+        console.warn('通知の許可が必要です。現在の状態:', Notification.permission);
         return false;
     }
 
+    // Service Worker経由で通知（iOS PWAではこれが必須）
     try {
-        // Service Worker経由で通知（バックグラウンドでも動く）
-        const registration = await navigator.serviceWorker?.ready;
-        if (registration) {
+        if ('serviceWorker' in navigator) {
+            const registration = await navigator.serviceWorker.ready;
             await registration.showNotification(title, {
                 body,
                 icon: '/icon-192.png',
@@ -156,10 +165,15 @@ export const sendNotification = async (title, body) => {
                 tag: 'study-musume-' + Date.now(),
                 data: { url: '/' }
             });
+            console.log('Notification sent via SW:', title);
             return true;
         }
+    } catch (swError) {
+        console.warn('SW notification failed, trying fallback:', swError);
+    }
 
-        // フォールバック: 直接通知
+    // フォールバック: 直接通知（デスクトップ用）
+    try {
         new Notification(title, {
             body,
             icon: '/icon-192.png'
@@ -302,19 +316,10 @@ export const sendLongAbsenceReminder = async (daysSinceLastStudy) => {
 };
 
 /**
- * 通知のテスト送信（Service Worker経由）
+ * 通知のテスト送信（registration.showNotification直接使用）
  */
 export const sendTestNotification = async () => {
-    try {
-        const registration = await navigator.serviceWorker?.ready;
-        if (registration?.active) {
-            registration.active.postMessage({ type: 'SEND_TEST' });
-            return;
-        }
-    } catch (e) {
-        // フォールバック
-    }
-
+    // iOS PWAではregistration.showNotificationを直接使う
     await sendNotification(
         'Study Musume テスト通知 🔔',
         'これはテスト通知です。通知が正しく表示されています！'
