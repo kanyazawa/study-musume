@@ -609,9 +609,6 @@ const Dialogue = ({ stats, updateStats }) => {
         }
 
         if (isCorrect) {
-            // Use VOICEVOX for quiz feedback
-            speak("正解！", VOICEVOX_SPEAKERS.METAN);
-
             // Increment Stats (Affection & Intellect)
             if (updateStats) {
                 updateStats({
@@ -623,26 +620,22 @@ const Dialogue = ({ stats, updateStats }) => {
             // Show Feedback Overlay
             setFeedback('correct');
 
-            // Auto-advance after 1.5 seconds
+            // 1.5秒後にwin_textを表示
             setTimeout(() => {
                 setFeedback(null);
 
-                const nextIdx = currentIndex + 1;
-                if (nextIdx >= currentScene.length) {
-                    // Same logic as handleNext end
-                    const currentLine = currentScene[currentIndex];
-                    const nextSceneId = currentLine.next;
-                    if (nextSceneId && nextSceneId.toLowerCase() !== 'end' && nextSceneId.trim() !== '') {
-                        const targetSceneExists = scenarioData.some(d => d.scene === nextSceneId);
-                        if (targetSceneExists) playScene(scenarioData, nextSceneId);
-                        else finishStudy();
-                    } else {
-                        finishStudy();
-                    }
-                } else {
-                    setCurrentIndex(nextIdx);
-                    setLine(currentScene[nextIdx]);
-                }
+                const winText = line.win_text || 'ふーん、意外とわかってるじゃない。';
+
+                setLine({
+                    speaker: 'ノア',
+                    text: winText,
+                    emotion: 'happy',
+                    background: line.background || '',
+                    se: 'se_correct',
+                    effect: '',
+                });
+
+                // 現在のindexはそのまま（次のクリックでhandleNextが呼ばれて進む）
             }, 1500);
 
         } else {
@@ -663,14 +656,30 @@ const Dialogue = ({ stats, updateStats }) => {
                 questionText: line.text,
                 correctAnswer: line[`option${line.answer}`] || '不明',
                 userAnswer: line[`option${optionIndex}`] || '不明',
-                options: options.length > 0 ? options : null // 選択肢がある場合のみ保存
+                options: options.length > 0 ? options : null
             });
 
-            // Use VOICEVOX for quiz feedback
-            speak("もう一度頑張って。", VOICEVOX_SPEAKERS.METAN);
-
+            // フィードバック表示
             setFeedback('incorrect');
-            setTimeout(() => setFeedback(null), 1000);
+
+            // 1.5秒後にlose_textを表示してから次に進む
+            setTimeout(() => {
+                setFeedback(null);
+
+                // lose_textがあればノアのセリフとして表示
+                const loseText = line.lose_text || `正解は「${line[`option${line.answer}`] || '?'}」よ。しっかり覚えなさい！`;
+
+                setLine({
+                    speaker: 'ノア',
+                    text: loseText,
+                    emotion: 'serious',
+                    background: line.background || '',
+                    se: '',
+                    effect: '',
+                });
+
+                // 現在のindexはそのまま（次のクリックでhandleNextが呼ばれて進む）
+            }, 1500);
         }
     };
 
