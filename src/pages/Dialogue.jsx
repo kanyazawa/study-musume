@@ -1,10 +1,12 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Volume2 } from 'lucide-react';
 import './Dialogue.css';
+import VrmViewer from '../components/VrmViewer';
+import { estimateSpeechDuration } from '../utils/lipSync';
 import LoadingScreen from '../components/UI/LoadingScreen';
-import { speak, VOICEVOX_SPEAKERS, preloadCommonPhrases } from '../utils/voicevoxUtils';
+import { speak, speakWithVoicevox, prefetchVoicevox, isVoicevoxAvailable, VOICEVOX_SPEAKERS, preloadCommonPhrases } from '../utils/voicevoxUtils';
 import { saveStudySession } from '../utils/studyHistoryUtils';
 import { STUDY_TOPICS } from '../data/studyTopics';
 import { updateMissionsOnStudy } from '../utils/missionUtils';
@@ -55,11 +57,36 @@ const Dialogue = ({ stats, updateStats }) => {
     const [dataSource, setDataSource] = useState("init");
     const [feedback, setFeedback] = useState(null); // 'correct' | 'incorrect'
     const [isSpeaking, setIsSpeaking] = useState(false); // Loading state for TTS
+    const [vrmSpeaking, setVrmSpeaking] = useState(false); // Lip sync state for VRM
+    const [vrmText, setVrmText] = useState(''); // Current text for lip sync
+    const vrmSpeakTimerRef = useRef(null);
+    const voicevoxAvailableRef = useRef(false); // VOICEVOX利用可否（起動時に1回だけチェック）
+    const [use3D, setUse3D] = useState(() => {
+        const saved = localStorage.getItem('characterMode');
+        return saved === '3d';
+    });
+
+    const toggleCharacterMode = useCallback((e) => {
+        e.stopPropagation();
+        setUse3D(prev => {
+            const next = !prev;
+            localStorage.setItem('characterMode', next ? '3d' : '2d');
+            return next;
+        });
+    }, []);
 
     // Study session tracking
     const [sessionStartTime] = useState(Date.now());
     const [questionsAnswered, setQuestionsAnswered] = useState(0);
     const [correctAnswers, setCorrectAnswers] = useState(0);
+
+    // 起動時に1回VOICEVOXの利用可否をチェック
+    useEffect(() => {
+        isVoicevoxAvailable().then(available => {
+            voicevoxAvailableRef.current = available;
+            console.log('VOICEVOX available:', available);
+        });
+    }, []);
 
     // Study Cost and Reward
     const TP_COST = 20;
@@ -71,21 +98,30 @@ const Dialogue = ({ stats, updateStats }) => {
     // topicから教科を特定してsheetGidを取得
     const getSubjectGid = (topicName) => {
         for (const subject of STUDY_TOPICS) {
+            // Check subject level first to get fallback
+            const subjectGid = subject.sheetGid || '0';
+
             for (const category of subject.categories) {
+                // Check category level
+                const categoryGid = category.sheetGid || subjectGid;
+
                 for (const unit of category.units) {
+                    // Check unit level
+                    const unitGid = unit.sheetGid || categoryGid;
+
                     if (unit.topic === topicName || unit.id === topicName) {
-                        return { gid: subject.sheetGid || '0', subjectId: subject.id };
+                        return { gid: unitGid, subjectId: subject.id };
                     }
                     // chapters/sections内も検索
                     if (unit.chapters) {
                         for (const chapter of unit.chapters) {
-                            if (chapter.topic === topicName) {
-                                return { gid: subject.sheetGid || '0', subjectId: subject.id };
+                            if (chapter.topic === topicName || chapter.id === topicName) {
+                                return { gid: unit.sheetGid || category.sheetGid || subject.sheetGid || '0', subjectId: subject.id };
                             }
                             if (chapter.sections) {
                                 for (const section of chapter.sections) {
-                                    if (section.topic === topicName) {
-                                        return { gid: subject.sheetGid || '0', subjectId: subject.id };
+                                    if (section.topic === topicName || section.id === topicName) {
+                                        return { gid: unit.sheetGid || category.sheetGid || subject.sheetGid || '0', subjectId: subject.id };
                                     }
                                 }
                             }
@@ -432,6 +468,11 @@ const Dialogue = ({ stats, updateStats }) => {
         setCurrentScene(sceneLines);
         setCurrentIndex(0);
         setLine(sceneLines[0]);
+
+        // Trigger VRM lip sync for first line
+        if (sceneLines[0] && sceneLines[0].text) {
+            triggerVrmLipSync(sceneLines[0].text);
+        }
     };
 
     // Get subject info from topic
@@ -481,7 +522,13 @@ const Dialogue = ({ stats, updateStats }) => {
             }
         } else {
             setCurrentIndex(nextIdx);
-            setLine(currentScene[nextIdx]);
+            const nextLine = currentScene[nextIdx];
+            setLine(nextLine);
+
+            // Trigger VRM lip sync for new line
+            if (nextLine && nextLine.text) {
+                triggerVrmLipSync(nextLine.text);
+            }
         }
     };
 
@@ -583,15 +630,87 @@ const Dialogue = ({ stats, updateStats }) => {
         navigate('/home');
     };
 
+    // Trigger VRM lip sync animation
+    const triggerVrmLipSync = useCallback((text) => {
+        // Clear previous timer
+        if (vrmSpeakTimerRef.current) {
+            clearTimeout(vrmSpeakTimerRef.current);
+        }
+
+        setVrmText(text);
+        setVrmSpeaking(true);
+
+        // Auto-stop after estimated duration
+        const duration = estimateSpeechDuration(text);
+        vrmSpeakTimerRef.current = setTimeout(() => {
+            setVrmSpeaking(false);
+        }, duration * 1000 + 200); // +200ms buffer
+    }, []);
+
     const handleSpeak = async (e) => {
         e.stopPropagation(); // Prevent advancing dialogue
         if (!line || !line.text || isSpeaking) return;
 
         setIsSpeaking(true);
+        // Trigger lip sync
+        triggerVrmLipSync(line.text);
         // Use VOICEVOX with Metan voice
         await speak(line.text, VOICEVOX_SPEAKERS.METAN);
         setIsSpeaking(false);
     };
+
+    // Auto-speak: VOICEVOXが使えるならそちら、そうでなければブラウザTTSで即再生
+    useEffect(() => {
+        if (!line || !line.text) return;
+        if (line.speaker === 'Quiz') return;
+
+        // 前の読み上げをキャンセル
+        window.speechSynthesis.cancel();
+
+        // VRM lip sync 連動
+        triggerVrmLipSync(line.text);
+
+        const speakerId = VOICEVOX_SPEAKERS.METAN;
+
+        // VOICEVOXが使える場合のみ試す（スマホではスキップ→即ブラウザTTS）
+        const autoSpeak = async () => {
+            if (voicevoxAvailableRef.current) {
+                const success = await speakWithVoicevox(line.text, speakerId);
+                if (success) return;
+            }
+
+            // フォールバック: ブラウザTTS（スマホでも動作）
+            const utterance = new SpeechSynthesisUtterance(line.text);
+            utterance.lang = 'ja-JP';
+            utterance.pitch = 1.3;
+            utterance.rate = 1.0;
+            const voices = window.speechSynthesis.getVoices();
+            const jaVoices = voices.filter(v => v.lang.startsWith('ja'));
+            const voice = jaVoices.find(v =>
+                v.name.includes('Female') || v.name.includes('女性') ||
+                v.name.includes('Kyoko') || v.name.includes('Google 日本語')
+            ) || jaVoices[0];
+            if (voice) utterance.voice = voice;
+            window.speechSynthesis.speak(utterance);
+        };
+
+        autoSpeak();
+
+        // VOICEVOXが使える場合のみ先読みキャッシュ
+        if (voicevoxAvailableRef.current && currentScene && currentIndex >= 0) {
+            const prefetchLines = currentScene.slice(currentIndex + 1, currentIndex + 4);
+            prefetchLines.forEach(async (nextLine) => {
+                if (!nextLine?.text || nextLine.speaker === 'Quiz') return;
+                try {
+                    await prefetchVoicevox(nextLine.text, speakerId);
+                } catch (e) { /* ignore */ }
+            });
+        }
+
+        return () => {
+            window.speechSynthesis.cancel();
+        };
+    }, [line]);
 
     // Quiz Selection Handler
     const handleQuizOption = (optionIndex, e) => {
@@ -744,12 +863,30 @@ const Dialogue = ({ stats, updateStats }) => {
                 </div>
             )}
 
+            {/* 2D/3D Toggle Button */}
+            <button
+                className="char-mode-toggle"
+                onClick={toggleCharacterMode}
+                title={use3D ? '2Dモードに切替' : '3Dモードに切替'}
+            >
+                {use3D ? '3D' : '2D'}
+            </button>
+
             <div className="character-figure">
-                <img
-                    src={CHARACTER_IMAGES[line.expression] || CHARACTER_IMAGES[line.image] || CHARACTER_IMAGES[line.emotion] || CHARACTER_IMAGES['default']}
-                    alt="Character"
-                    className={`char-image-dialogue ${line.effect === 'shake' ? 'effect-shake' : ''} ${(line.graph || line.study_image) ? 'with-board' : ''}`}
-                />
+                {use3D ? (
+                    <VrmViewer
+                        emotion={line.expression || line.emotion || 'normal'}
+                        text={vrmText}
+                        isSpeaking={vrmSpeaking}
+                        className={`vrm-dialogue ${(line.graph || line.study_image) ? 'with-board' : ''}`}
+                    />
+                ) : (
+                    <img
+                        src={CHARACTER_IMAGES[line.expression] || CHARACTER_IMAGES[line.image] || CHARACTER_IMAGES[line.emotion] || CHARACTER_IMAGES['default']}
+                        alt="Character"
+                        className={`char-image-dialogue ${line.effect === 'shake' ? 'effect-shake' : ''} ${(line.graph || line.study_image) ? 'with-board' : ''}`}
+                    />
+                )}
             </div>
 
             <div className="dialogue-box">

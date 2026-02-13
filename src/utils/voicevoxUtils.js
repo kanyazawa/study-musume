@@ -112,6 +112,45 @@ export const speakWithVoicevox = async (text, speakerId = VOICEVOX_SPEAKERS.ZUND
 };
 
 /**
+ * VOICEVOXで音声を合成してキャッシュに保存する（再生しない）
+ * 先読み用：バックグラウンドで次のセリフを事前に合成しておく
+ * @param {string} text - 合成するテキスト
+ * @param {number} speakerId - キャラクターID
+ * @returns {Promise<boolean>} キャッシュ成功ならtrue
+ */
+export const prefetchVoicevox = async (text, speakerId = VOICEVOX_SPEAKERS.ZUNDAMON) => {
+    try {
+        const cacheKey = `${text}_${speakerId}`;
+
+        // 既にキャッシュ済みならスキップ
+        if (audioCache.has(cacheKey)) return true;
+
+        const queryResponse = await fetch(
+            `${VOICEVOX_API_BASE}/audio_query?text=${encodeURIComponent(text)}&speaker=${speakerId}`,
+            { method: 'POST' }
+        );
+        if (!queryResponse.ok) return false;
+
+        const audioQuery = await queryResponse.json();
+        const synthesisResponse = await fetch(
+            `${VOICEVOX_API_BASE}/synthesis?speaker=${speakerId}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(audioQuery),
+            }
+        );
+        if (!synthesisResponse.ok) return false;
+
+        const audioBlob = await synthesisResponse.blob();
+        audioCache.set(cacheKey, audioBlob);
+        return true;
+    } catch (error) {
+        return false;
+    }
+};
+
+/**
  * よく使うフレーズをプリロード（キャッシュ）する
  * @param {number} speakerId - キャラクターID
  */
