@@ -2,69 +2,81 @@
     height: 100%;
     position: relative;
     overflow: hidden;
-    background: linear-gradient(135deg, #e0f7fa 0%, #fff9c4 100%);
+    background: linear-gradient(135deg, #FFF9C4 0%, #E1F5FE 100%);
     display: flex;
     justify-content: center;
 }
 
 .dialogue-box {
     position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
+    bottom: 20px;
+    /* Floating effect */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 95%;
+    max-width: 600px;
     height: auto;
-    /* Allow growth */
-    min-height: 250px;
-    /* Minimum size */
-    max-height: 60vh;
-    /* Prevent covering entire screen */
-    background: rgba(255, 255, 255, 0.95);
-    padding: 40px 20px 20px;
-    border-top: 3px solid #ff80ab;
-    /* Uma-pink border */
+    min-height: 200px;
+    /* Glassmorphism */
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(10px);
+    padding: 45px 25px 25px;
+    border: 4px solid white;
+    border-radius: var(--uma-radius);
+    /* 20px */
     display: flex;
     flex-direction: column;
     z-index: 20;
-    box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--uma-shadow-deep), 0 0 20px rgba(255, 255, 255, 0.5) inset;
 }
 
 .name-tag {
     position: absolute;
-    top: -20px;
+    top: -18px;
     left: 20px;
-    background: white;
-    padding: 5px 20px;
-    border-radius: 15px;
-    font-weight: bold;
-    font-size: 16px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    border: 1px solid #ccc;
+    background: var(--uma-pink);
+    /* Cute Pink */
+    color: white;
+    padding: 8px 24px;
+    border-radius: 20px;
+    font-weight: 800;
+    font-size: 15px;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.1);
+    border: 3px solid white;
+    letter-spacing: 1px;
+    transform: rotate(-2deg);
+    /* Playful tilt */
+    z-index: 25;
 }
 
 .dialogue-text {
-    font-size: 18px;
-    line-height: 1.6;
-    color: #333;
+    font-size: 17px;
+    line-height: 1.7;
+    color: var(--uma-text);
+    font-weight: 500;
     white-space: pre-wrap;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .next-indicator {
     position: absolute;
-    bottom: 20px;
+    bottom: 15px;
     right: 20px;
-    animation: bounce 1s infinite;
-    color: var(--uma-green);
+    width: 24px;
+    height: 24px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FF9EBC' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    animation: bounce 1s infinite alternate ease-in-out;
 }
 
 @keyframes bounce {
-
-    0%,
-    100% {
+    0% {
         transform: translateY(0);
     }
 
-    50% {
-        transform: translateY(5px);
+    100% {
+        transform: translateY(6px);
     }
 }
 
@@ -84,6 +96,9 @@
     transition: all 0.3s ease;
     z-index: 10;
     /* Behind text box */
+    pointer-events: auto;
+    /* Allow clicking */
+    cursor: pointer;
 }
 
 /* Character moves down when blackboard is active */

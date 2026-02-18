@@ -177,6 +177,29 @@ const VrmCharacter = ({ emotion = 'normal', text = '', isSpeaking = false }) => 
         // Update VRM
         vrm.update(delta);
 
+        // --- Breathing / Idle Animation ---
+        const humanoid = vrm.humanoid;
+        if (humanoid) {
+            const t = state.clock.getElapsedTime();
+            // ゆっくりした呼吸 (約3秒周期)
+            const breathe = Math.sin(t * 2.0) * 0.008;
+            // 微妙な横揺れ (約5秒周期)
+            const sway = Math.sin(t * 1.2) * 0.003;
+
+            const spine = humanoid.getNormalizedBoneNode('spine');
+            if (spine) {
+                spine.rotation.x = breathe;
+                spine.rotation.z = sway;
+            }
+
+            // 頭の微妙な動き (約4秒周期)
+            const head = humanoid.getNormalizedBoneNode('head');
+            if (head) {
+                head.rotation.x = Math.sin(t * 1.5) * 0.01;
+                head.rotation.y = Math.sin(t * 0.8) * 0.01;
+            }
+        }
+
         // --- Auto Blink ---
         blinkTimerRef.current += delta;
 

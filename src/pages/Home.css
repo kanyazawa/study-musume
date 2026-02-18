@@ -2,14 +2,20 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    background-color: #fce4ec;
-    /* Light pinkish bg fallback */
+    background-color: var(--uma-bg);
+    background-image:
+        radial-gradient(var(--uma-pink) 1px, transparent 1px),
+        radial-gradient(var(--uma-pink) 1px, transparent 1px);
+    background-size: 20px 20px;
+    background-position: 0 0, 10px 10px;
+    /* Dot pattern */
 }
 
 /* Header Layout Redesign */
 .home-header {
     position: absolute;
-    top: 0;
+    top: 5px;
+    /* Slightly floating */
     left: 0;
     width: 100%;
     padding: 10px 15px;
@@ -17,9 +23,7 @@
     justify-content: space-between;
     align-items: flex-start;
     z-index: 10;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, transparent 100%);
     pointer-events: none;
-    /* Allow clicking through header gaps */
 }
 
 .home-header>* {
@@ -710,93 +714,102 @@
 
 .action-area {
     position: absolute;
-    bottom: 90px;
-    /* 元の位置に戻す */
+    bottom: 100px;
+    /* Raised for dock */
     right: 20px;
     z-index: 20;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 15px;
+}
+
+/* Generic button mixin style */
+.circle-menu-btn {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 13px;
+    color: white;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2), 0 8px 10px rgba(0, 0, 0, 0.1);
+    border: 3px solid white;
+    cursor: pointer;
+    transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.circle-menu-btn:active {
+    transform: scale(0.9) translateY(4px);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Shared Circle Button Style */
+.study-btn,
+.inventory-btn,
+.story-btn,
+.skin-btn {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    margin-bottom: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 13px;
+    color: white;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.15), 0 8px 15px rgba(0, 0, 0, 0.1);
+    border: 3px solid white;
+    cursor: pointer;
+    transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Shine effect */
+.study-btn::after,
+.inventory-btn::after,
+.story-btn::after,
+.skin-btn::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(to bottom right, rgba(255, 255, 255, 0.4) 0%, transparent 40%, transparent 100%);
+    transform: rotate(30deg);
+    pointer-events: none;
+}
+
+.study-btn:active,
+.inventory-btn:active,
+.story-btn:active,
+.skin-btn:active {
+    transform: scale(0.95) translateY(4px);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0.15), 0 0 0 rgba(0, 0, 0, 0.1);
 }
 
 .study-btn {
-    background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%);
-    color: white;
-    width: 100px;
-    height: 60px;
-    border-radius: 30px;
-    font-weight: bold;
-    font-size: 18px;
-    box-shadow: 0 4px 15px rgba(0, 198, 255, 0.4), inset 0 2px 5px rgba(255, 255, 255, 0.4);
-    border: 2px solid white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.1s;
-    cursor: pointer;
-}
-
-.study-btn:active {
-    transform: scale(0.95);
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 }
 
 .inventory-btn {
-    background: linear-gradient(to bottom, #ff006e, #ff4d94);
-    color: white;
-    width: 100px;
-    height: 60px;
-    border-radius: 30px;
-    font-weight: bold;
-    font-size: 15px;
-    box-shadow: 0 4px 15px rgba(255, 0, 110, 0.4), inset 0 2px 5px rgba(255, 255, 255, 0.4);
-    border: 2px solid white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.1s;
-    cursor: pointer;
-}
-
-.inventory-btn:active {
-    transform: scale(0.95);
+    background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
 }
 
 .story-btn {
-    background: linear-gradient(to bottom, #f093fb, #f5576c);
-    color: white;
-    width: 100px;
-    height: 60px;
-    border-radius: 30px;
-    font-weight: bold;
-    font-size: 15px;
-    box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4), inset 0 2px 5px rgba(255, 255, 255, 0.4);
-    border: 2px solid white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.1s;
-    cursor: pointer;
-}
-
-.story-btn:active {
-    transform: scale(0.95);
+    background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
 }
 
 .skin-btn {
-    background: linear-gradient(to bottom, #4facfe, #00f2fe);
-    color: white;
-    width: 100px;
-    height: 60px;
-    border-radius: 30px;
-    font-weight: bold;
-    font-size: 15px;
-    box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4), inset 0 2px 5px rgba(255, 255, 255, 0.4);
-    border: 2px solid white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.1s;
-    cursor: pointer;
+    background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
 }
 
 .skin-btn:active {

@@ -4,11 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Shirt, Image as ImageIcon, Gift } from 'lucide-react';
 import './CharacterInteraction.css';
 import './Dialogue.css'; // Reuse dialogue styles for consistency
+import CharacterSelect from '../components/CharacterSelect';
+import VrmViewer from '../components/VrmViewer';
 
 // Images
 import CharacterMain from '../assets/images/character_new.png';
 import CharacterCasual from '../assets/images/character_casual_v9.png';
 import CharacterCasualFall from '../assets/images/noa_casual_fall.png';
+import CharacterRen from '../assets/images/character_ren.png'; // Added Ren
 // Using happy image for smile reaction
 import NoaHappy from '../assets/images/noah_happy.png';
 
@@ -20,6 +23,14 @@ const CharacterInteraction = ({ stats, updateStats }) => {
     const navigate = useNavigate();
     const [mode, setMode] = useState('main'); // main, gift, costume, bg
     const [expression, setExpression] = useState('normal'); // normal, smile
+    const [showCharSelect, setShowCharSelect] = useState(false);
+
+    const handleCharSelectComplete = (newStats) => {
+        if (updateStats) {
+            updateStats(newStats);
+        }
+        setShowCharSelect(false);
+    };
 
     // Owned Cosmetics
     const ownedSkins = getOwnedSkins(stats.inventory || []);
@@ -34,19 +45,30 @@ const CharacterInteraction = ({ stats, updateStats }) => {
     };
 
     // スキン画像のマッピング
-    const skinImages = {
+    // Noah (Female)
+    const noahImages = {
         'default': CharacterMain,
         'skin_casual': CharacterCasual,
         'skin_casual_fall': CharacterCasualFall
     };
 
+    // Ren (Male)
+    const renImages = {
+        'default': CharacterRen, // Import CharacterRen at top
+        'skin_casual': CharacterRen, // Fallback for now
+        'skin_casual_fall': CharacterRen
+    };
+
+    const characterId = stats.characterId || 'noah';
+    const skinImages = characterId === 'ren' ? renImages : noahImages;
+
     // Use utility or map to get skin image
-    const currentSkinImage = skinImages[stats.equippedSkin] || CharacterMain;
+    const currentSkinImage = skinImages[stats.equippedSkin] || skinImages['default'];
 
     // Override if smiling
     let displayImage = currentSkinImage;
     if (expression === 'smile') {
-        displayImage = NoaHappy;
+        displayImage = characterId === 'ren' ? CharacterRen : NoaHappy;
     }
 
     const currentSkinFilter = getSkinFilter(stats.equippedSkin);
@@ -109,13 +131,20 @@ const CharacterInteraction = ({ stats, updateStats }) => {
             )}
 
             {/* Character Figure (Same position as Home) */}
-            <div className={`character-figure ${givingItem ? 'receiving' : ''}`}>
-                <img
-                    src={displayImage}
-                    alt="Character"
-                    className="char-image"
-                    style={{ filter: expression !== 'smile' ? currentSkinFilter : 'none' }}
-                />
+            <div className={`character-figure ${givingItem ? 'receiving' : ''}`} onClick={() => setShowCharSelect(true)}>
+                {stats.characterId === 'noah' && localStorage.getItem('characterMode') === '3d' ? (
+                    <VrmViewer
+                        emotion={expression}
+                        className="vrm-interaction"
+                    />
+                ) : (
+                    <img
+                        src={displayImage}
+                        alt="Character"
+                        className="char-image"
+                        style={{ filter: expression !== 'smile' ? currentSkinFilter : 'none' }}
+                    />
+                )}
             </div>
 
             {/* Bottom Control Panel (Study Scene Style) */}
@@ -220,6 +249,39 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                 )}
             </div>
 
+            {/* Character Selection Overlay */}
+            {showCharSelect && (
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    zIndex: 2000,
+                    backgroundColor: 'rgba(0,0,0,0.5)'
+                }}>
+                    <CharacterSelect onComplete={handleCharSelectComplete} />
+                    <button
+                        onClick={(e) => { e.stopPropagation(); setShowCharSelect(false); }}
+                        style={{
+                            position: 'absolute',
+                            top: '20px',
+                            right: '20px',
+                            zIndex: 2001,
+                            background: 'white',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '40px',
+                            height: '40px',
+                            fontSize: '24px',
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
+                        }}
+                    >
+                        ×
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

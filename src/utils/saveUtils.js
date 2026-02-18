@@ -14,7 +14,7 @@ export const getDefaultStats = () => ({
     tp: 60,
     maxTp: 100,
     intellect: 0,
-    diamonds: 0,
+    diamonds: 3000,
     affection: 0,
     affectionLevel: 0,
     inventory: [],
@@ -25,8 +25,11 @@ export const getDefaultStats = () => ({
     characterName: 'さくら',
     selectedIcon: 'default',
     unlockedIcons: ['default'],
+    // キャラクター選択
+    characterId: 'noah', // default: 'noah'
+    hasSelectedCharacter: false, // 初回選択が完了しているか
     // ログインボーナス
-    hasReceivedWelcomeBonus: false,
+    hasReceivedWelcomeBonus: true,
     lastLoginDate: null,
     loginStreak: 0,
     totalLoginDays: 0,
@@ -34,6 +37,46 @@ export const getDefaultStats = () => ({
     lastTpUpdateTime: Date.now()
 });
 
+// ============================================
+// クラウド同期用ヘルパー
+// ============================================
+
+// クラウド同期対象のlocalStorageキー一覧
+const SYNC_KEYS = [
+    'gameStats',
+    'reviewQuestions',
+    'studyHistory',
+    'gachaHistory',
+    'pityCounter',
+    'missionProgress',
+    'lastMissionReset',
+    'studiedSubjectsToday',
+    'uma_main_goal',
+    'uma_todos',
+    'achievements',
+    'statsTracking',
+    'studyProgress',
+    'lastStudyTopic',
+];
+
+// デバウンスタイマー
+let _syncTimer = null;
+let _syncFn = null;
+
+/**
+ * クラウド同期関数を登録
+ */
+export const registerCloudSync = (fn) => {
+    _syncFn = fn;
+};
+
+const triggerCloudSync = () => {
+    if (!_syncFn) return;
+    if (_syncTimer) clearTimeout(_syncTimer);
+    _syncTimer = setTimeout(() => {
+        _syncFn().catch(err => console.warn('Cloud sync error:', err));
+    }, 5000);
+};
 
 /**
  * 統計情報をlocalStorageに保存
@@ -43,8 +86,36 @@ export const saveStats = (stats) => {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
         console.log('Stats saved:', stats);
+        triggerCloudSync();
     } catch (error) {
         console.error('Error saving stats:', error);
+    }
+};
+
+/**
+ * 全セーブデータの一括収集
+ */
+export const collectAllSaveData = () => {
+    const data = {};
+    for (const key of SYNC_KEYS) {
+        const val = localStorage.getItem(key);
+        if (val !== null) {
+            data[key] = val;
+        }
+    }
+    data._savedAt = Date.now();
+    return data;
+};
+
+/**
+ * 全セーブデータの復元
+ */
+export const restoreAllSaveData = (data) => {
+    if (!data) return;
+    for (const key of SYNC_KEYS) {
+        if (data[key] !== undefined && data[key] !== null) {
+            localStorage.setItem(key, data[key]);
+        }
     }
 };
 
@@ -58,13 +129,15 @@ export const loadStats = () => {
 
         if (savedData) {
             const parsed = JSON.parse(savedData);
+
             console.log('Stats loaded from localStorage:', parsed);
 
             // デフォルト値とマージ（新しいフィールドが追加された場合の対策）
             const loadedStats = { ...getDefaultStats(), ...parsed };
 
             // 初回ログインボーナスチェック（未受取ならダイヤ+3000）
-            if (!loadedStats.hasReceivedWelcomeBonus) {
+            // 旧データ（undefined）または false の場合に付与
+            if (parsed.hasReceivedWelcomeBonus !== true) {
                 console.log('Granting Welcome Bonus: 3000 Diamonds');
                 loadedStats.diamonds = (loadedStats.diamonds || 0) + 3000;
                 loadedStats.hasReceivedWelcomeBonus = true;

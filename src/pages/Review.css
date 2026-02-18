@@ -162,6 +162,11 @@
     padding: 1rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.question-card:hover {
+    box-shadow: 0 4px 16px rgba(126, 87, 194, 0.25);
 }
 
 .question-card:active {
@@ -236,32 +241,28 @@
     color: #666;
 }
 
-/* 復習開始ボタン */
-.start-review-btn {
-    position: fixed;
-    bottom: 90px;
-    left: 50%;
-    transform: translateX(-50%);
+/* 復習開始ボタン（インライン） */
+.start-review-btn-inline {
+    width: 100%;
     background: linear-gradient(135deg, #7e57c2 0%, #9575cd 100%);
     color: white;
     border: none;
-    border-radius: 30px;
-    padding: 1rem 2rem;
+    border-radius: 16px;
+    padding: 1rem;
     font-size: 1.1rem;
     font-weight: bold;
     box-shadow: 0 4px 15px rgba(126, 87, 194, 0.4);
     cursor: pointer;
     transition: all 0.3s ease;
-    z-index: 50;
 }
 
-.start-review-btn:hover {
-    transform: translateX(-50%) translateY(-4px);
+.start-review-btn-inline:hover {
+    transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(126, 87, 194, 0.6);
 }
 
-.start-review-btn:active {
-    transform: translateX(-50%) translateY(-2px);
+.start-review-btn-inline:active {
+    transform: translateY(-1px);
 }
 
 /* モバイル対応 */
@@ -286,8 +287,7 @@
         padding: 0.8rem;
     }
 
-    .start-review-btn {
-        width: 90%;
-        max-width: 400px;
+    .start-review-btn-inline {
+        font-size: 1rem;
     }
 }

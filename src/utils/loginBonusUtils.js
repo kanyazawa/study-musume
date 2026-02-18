@@ -68,17 +68,18 @@ export const processLoginBonus = (currentStats) => {
         return null;
     }
 
-    // 連続ログインかチェック
+    // 連続ログインかチェック（記録用）
     const consecutive = isConsecutiveLogin(currentStats.lastLoginDate);
 
-    // 連続ログイン日数を更新
+    // 連続ログイン日数を更新（記録用として残す）
     let newStreak = consecutive ? (currentStats.loginStreak || 0) + 1 : 1;
 
     // 累計ログイン日数を更新
     const newTotalDays = (currentStats.totalLoginDays || 0) + 1;
 
-    // 報酬を取得
-    const reward = getTodayReward(newStreak - 1);
+    // 報酬を取得（累積日数に基づいて決定）
+    // 1-7のサイクルで報酬を決定 (newTotalDays - 1 で 0-6 のインデックスを作成)
+    const reward = getTodayReward(newTotalDays - 1);
 
     // 新しいダイヤ数
     const newDiamonds = (currentStats.diamonds || 0) + reward.diamonds;
@@ -91,7 +92,7 @@ export const processLoginBonus = (currentStats) => {
             diamonds: newDiamonds
         },
         reward: reward,
-        streak: newStreak,
+        streak: newTotalDays, // 表示用には累計日数を使う
         totalDays: newTotalDays,
         consecutive: consecutive
     };

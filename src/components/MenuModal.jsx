@@ -69,6 +69,9 @@ const MenuModal = ({ onClose, stats, updateStats }) => {
         } else if (itemId === 'title') {
             onClose();
             navigate('/');
+        } else if (itemId === 'items') {
+            onClose();
+            navigate('/inventory');
         }
         // 他のメニューアイテムの処理はここに追加
     };

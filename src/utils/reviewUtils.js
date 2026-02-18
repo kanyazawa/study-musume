@@ -65,6 +65,7 @@ export const addWrongQuestion = (questionData) => {
             lastWrongDate: now,
             reviewLevel: 0, // 間違えたのでレベルリセット
             nextReviewDate: calculateNextReviewDate(0),
+            options: questionData.options || existing.options || null,
             reviewHistory: [
                 ...existing.reviewHistory,
                 { date: now, result: 'wrong' }
@@ -79,6 +80,7 @@ export const addWrongQuestion = (questionData) => {
             questionText: questionData.questionText,
             correctAnswer: questionData.correctAnswer,
             userAnswer: questionData.userAnswer,
+            options: questionData.options || null,
             wrongCount: 1,
             firstWrongDate: now,
             lastWrongDate: now,

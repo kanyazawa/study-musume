@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './Home.css';
 // Images
 import CharacterMain from '../assets/images/character_new.png';
-import CharacterUser from '../assets/images/character_user.png';
+import CharacterRen from '../assets/images/character_ren.png';
 import CharacterCasual from '../assets/images/character_casual_v9.png';
 // Footer removed
 import MenuModal from '../components/MenuModal';
@@ -51,13 +51,24 @@ const Home = ({ stats, updateStats }) => {
     const equippedTitle = selectedTitle ? ACHIEVEMENTS.find(a => a.id === selectedTitle)?.rewards?.title : null;
 
     // スキン画像のマッピング
-    const skinImages = {
+    // キャラクターIDに基づいて切り替え (デフォルトは 'noah')
+    const characterId = stats.characterId || 'noah';
+
+    // Ren (Male) placeholder
+    const renImages = {
+        'default': CharacterRen // Placeholder
+    };
+
+    // Noah (Female)
+    const noahImages = {
         'default': CharacterMain,
         'skin_casual': CharacterCasual
     };
 
+    const skinImages = characterId === 'ren' ? renImages : noahImages;
+
     // 装備中のスキン・背景の取得
-    const currentSkinImage = skinImages[equippedSkin] || CharacterMain;
+    const currentSkinImage = skinImages[equippedSkin] || skinImages['default'];
     const currentSkinFilter = getSkinFilter(equippedSkin);
     const currentBgStyle = getBackgroundStyle(equippedBackground);
 

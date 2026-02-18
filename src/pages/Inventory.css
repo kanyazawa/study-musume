@@ -155,6 +155,24 @@
     box-shadow: 0 8px 25px rgba(205, 127, 50, 0.5);
 }
 
+.item-card.rarity-N {
+    border-color: #999;
+    box-shadow: 0 4px 15px rgba(153, 153, 153, 0.3);
+}
+
+.item-card.rarity-N:hover {
+    box-shadow: 0 8px 25px rgba(153, 153, 153, 0.5);
+}
+
+.item-card.rarity-N_PLUS {
+    border-color: #4CAF50;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+}
+
+.item-card.rarity-N_PLUS:hover {
+    box-shadow: 0 8px 25px rgba(76, 175, 80, 0.5);
+}
+
 .item-icon {
     font-size: 60px;
 }
@@ -198,6 +216,11 @@
 
 .item-rarity.rarity-R {
     color: #CD7F32;
+}
+
+.item-rarity.rarity-N,
+.item-rarity.rarity-N_PLUS {
+    color: #666;
 }
 
 /* モーダル */
@@ -268,6 +291,16 @@
     background: linear-gradient(135deg, #DEB887 0%, #8B4513 100%);
 }
 
+.modal-icon.rarity-N {
+    border-color: #999;
+    background: #f0f0f0;
+}
+
+.modal-icon.rarity-N_PLUS {
+    border-color: #4CAF50;
+    background: #E8F5E9;
+}
+
 .modal-title {
     font-size: 22px;
     font-weight: bold;
@@ -285,6 +318,7 @@
 
 .modal-rarity.rarity-SSR {
     background: linear-gradient(to right, violet, indigo, blue, green, yellow, orange, red);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -295,6 +329,16 @@
 
 .modal-rarity.rarity-R {
     color: #CD7F32;
+}
+
+.modal-rarity.rarity-N {
+    color: #666;
+    background: #f0f0f0;
+}
+
+.modal-rarity.rarity-N_PLUS {
+    color: #2E7D32;
+    background: #E8F5E9;
 }
 
 .modal-description {

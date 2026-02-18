@@ -8,10 +8,116 @@ import {
     serverTimestamp
 } from "firebase/firestore";
 import { db } from "./config";
-import { loadStats, saveStats } from "../utils/saveUtils";
+import {
+    loadStats,
+    saveStats,
+    collectAllSaveData,
+    restoreAllSaveData
+} from "../utils/saveUtils";
 
 /**
- * ユーザーの統計情報をFirestoreに同期
+ * ============================================
+ * 全セーブデータの一括同期
+ * Firestore Doc: users/{uid}/saveData/current
+ * ============================================
+ */
+
+/**
+ * 全localStorageデータをFirestoreにアップロード
+ * @param {string} uid - Firebase UID
+ */
+export const uploadAllSaveData = async (uid) => {
+    try {
+        const allData = collectAllSaveData();
+        const ref = doc(db, "users", uid, "saveData", "current");
+        await setDoc(ref, {
+            ...allData,
+            updatedAt: serverTimestamp()
+        }, { merge: false }); // 完全上書き
+        console.log('[CloudSync] Upload完了');
+        return { success: true };
+    } catch (error) {
+        console.error('[CloudSync] Upload失敗:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+/**
+ * Firestoreから全セーブデータをダウンロード
+ * @param {string} uid - Firebase UID
+ * @returns {{ success: boolean, data?: Object, savedAt?: number }}
+ */
+export const downloadAllSaveData = async (uid) => {
+    try {
+        const ref = doc(db, "users", uid, "saveData", "current");
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+            const data = snap.data();
+            return {
+                success: true,
+                data,
+                savedAt: data._savedAt || 0
+            };
+        }
+        return { success: false, error: 'No cloud save found' };
+    } catch (error) {
+        console.error('[CloudSync] Download失敗:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+/**
+ * ログイン時の同期処理（一括同期版）
+ * - クラウドとローカルの _savedAt を比較して新しい方を採用
+ * - 初回ログイン時はローカルデータをアップロード
+ */
+export const syncOnLogin = async (uid) => {
+    try {
+        const localData = collectAllSaveData();
+        const localSavedAt = localData._savedAt || 0;
+
+        const cloudResult = await downloadAllSaveData(uid);
+
+        if (cloudResult.success && cloudResult.data) {
+            const cloudSavedAt = cloudResult.savedAt || 0;
+
+            if (cloudSavedAt > localSavedAt) {
+                // クラウドの方が新しい → ローカルを上書き
+                console.log('[CloudSync] クラウドデータが新しいため復元します');
+                restoreAllSaveData(cloudResult.data);
+                return {
+                    success: true,
+                    source: 'cloud',
+                    data: loadStats() // 復元後のstatsを返す
+                };
+            } else {
+                // ローカルの方が新しい → クラウドを更新
+                console.log('[CloudSync] ローカルデータが新しいためアップロードします');
+                await uploadAllSaveData(uid);
+                return {
+                    success: true,
+                    source: 'local',
+                    data: loadStats()
+                };
+            }
+        } else {
+            // クラウドにデータなし → ローカルデータをアップロード
+            console.log('[CloudSync] 初回同期: ローカルデータをアップロードします');
+            await uploadAllSaveData(uid);
+            return {
+                success: true,
+                source: 'local',
+                data: loadStats()
+            };
+        }
+    } catch (error) {
+        console.error('[CloudSync] ログイン同期エラー:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+/**
+ * ユーザーの統計情報をFirestoreに同期（ランキング用・既存互換）
  */
 export const syncUserStats = async (uid, localStats) => {
     try {
@@ -88,50 +194,7 @@ export const logStudySession = async (uid, sessionData) => {
     }
 };
 
-/**
- * ログイン時にlocalStorageとFirestoreを同期
- */
-export const syncOnLogin = async (uid) => {
-    try {
-        // localStorageから現在のデータを取得
-        const localStats = loadStats();
 
-        // Firestoreからデータを取得
-        const firestoreResult = await fetchUserStats(uid);
-
-        if (firestoreResult.success) {
-            // Firestoreのデータが存在する場合、新しい方を使用
-            const firestoreStats = firestoreResult.data;
-            const firestoreTime = firestoreStats.totalStudyTime || 0;
-            const localTime = localStats.totalStudyTime || 0;
-
-            if (firestoreTime > localTime) {
-                // Firestoreの方が新しい場合、localStorageを更新
-                const mergedStats = {
-                    ...localStats,
-                    totalStudyTime: firestoreStats.totalStudyTime,
-                    totalSessions: firestoreStats.totalSessions,
-                    level: firestoreStats.level,
-                    affection: firestoreStats.affection,
-                    diamonds: firestoreStats.diamonds
-                };
-                saveStats(mergedStats);
-                return { success: true, data: mergedStats };
-            } else {
-                // localStorageの方が新しい場合、Firestoreを更新
-                await syncUserStats(uid, localStats);
-                return { success: true, data: localStats };
-            }
-        } else {
-            // Firestoreにデータがない場合、localStorageのデータをアップロード
-            await syncUserStats(uid, localStats);
-            return { success: true, data: localStats };
-        }
-    } catch (error) {
-        console.error("Sync on login error:", error);
-        return { success: false, error: error.message };
-    }
-};
 
 /**
  * 学習完了時の処理（localStorageとFirestoreの両方に保存）

@@ -255,7 +255,7 @@ export const ALL_ITEMS = [
     // --- N (ノーマル) アイテム: 消耗品・文房具 ---
     {
         id: 'item_n_eraser',
-        type: 'consumable',
+        type: 'gift',
         name: '使いかけの消しゴム',
         rarity: 'N',
         affection: 5,
@@ -265,7 +265,7 @@ export const ALL_ITEMS = [
     },
     {
         id: 'item_n_pencil',
-        type: 'consumable',
+        type: 'gift',
         name: '赤鉛筆',
         rarity: 'N',
         affection: 5,
@@ -275,7 +275,7 @@ export const ALL_ITEMS = [
     },
     {
         id: 'item_n_water',
-        type: 'consumable',
+        type: 'gift',
         name: 'ミネラルウォーター',
         rarity: 'N',
         affection: 10,
@@ -287,7 +287,7 @@ export const ALL_ITEMS = [
     // --- N+ (ノーマル+) アイテム: 少し良い消耗品 ---
     {
         id: 'item_np_coffee',
-        type: 'consumable',
+        type: 'gift',
         name: '缶コーヒー',
         rarity: 'N_PLUS',
         affection: 15,
@@ -297,7 +297,7 @@ export const ALL_ITEMS = [
     },
     {
         id: 'item_np_snack',
-        type: 'consumable',
+        type: 'gift',
         name: 'ポテトチップス',
         rarity: 'N_PLUS',
         affection: 15,

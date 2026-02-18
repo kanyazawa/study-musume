@@ -170,39 +170,39 @@ const Review = () => {
                         <p className="empty-hint">問題を間違えると自動で復習リストに追加されます</p>
                     </div>
                 ) : (
-                    filteredQuestions.map((question) => {
-                        const badge = getPriorityBadge(question.nextReviewDate);
-                        return (
-                            <div key={question.id} className="question-card">
-                                <div className="card-header">
-                                    <span className="subject-tag">{question.subject}</span>
-                                    <span className={`priority-badge ${badge.className}`}>
-                                        {badge.text}
-                                    </span>
-                                </div>
-                                <div className="question-preview">
-                                    {question.questionText}
-                                </div>
-                                <div className="card-footer">
-                                    <div className="wrong-count">
-                                        ❌ {question.wrongCount}回間違えた
+                    <>
+                        {/* 復習開始ボタン（リスト上部） */}
+                        <button className="start-review-btn-inline" onClick={startReview}>
+                            ▶ 復習を開始（{filteredQuestions.length}問）
+                        </button>
+
+                        {filteredQuestions.map((question) => {
+                            const badge = getPriorityBadge(question.nextReviewDate);
+                            return (
+                                <div key={question.id} className="question-card" onClick={startReview}>
+                                    <div className="card-header">
+                                        <span className="subject-tag">{question.subject}</span>
+                                        <span className={`priority-badge ${badge.className}`}>
+                                            {badge.text}
+                                        </span>
                                     </div>
-                                    <div className="next-review">
-                                        📅 {formatRelativeDate(question.nextReviewDate)}
+                                    <div className="question-preview">
+                                        {question.questionText}
+                                    </div>
+                                    <div className="card-footer">
+                                        <div className="wrong-count">
+                                            ❌ {question.wrongCount}回間違えた
+                                        </div>
+                                        <div className="next-review">
+                                            📅 {formatRelativeDate(question.nextReviewDate)}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        );
-                    })
+                            );
+                        })}
+                    </>
                 )}
             </div>
-
-            {/* 復習開始ボタン */}
-            {filteredQuestions.length > 0 && (
-                <button className="start-review-btn" onClick={startReview}>
-                    復習を開始（{filteredQuestions.length}問）
-                </button>
-            )}
         </div>
     );
 };

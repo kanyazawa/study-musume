@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Volume2 } from 'lucide-react';
@@ -20,6 +19,7 @@ import CharacterMain from '../assets/images/character_main.png';
 import CharacterNew from '../assets/images/character_new.png';
 import CharacterTsundere from '../assets/images/character_tsundere.png';
 import CharacterUser from '../assets/images/character_user.png';
+import CharacterRen from '../assets/images/character_ren.png'; // Ren Image
 import BgClassroom from '../assets/images/bg_classroom.png';
 
 // Emotional Variations
@@ -43,11 +43,29 @@ const CHARACTER_IMAGES = {
     'smile': NoaHappy     // Fallback for smile
 };
 
+const REN_IMAGES = {
+    'default': CharacterRen,
+    'main': CharacterRen,
+    'new': CharacterRen,
+    // Map all emotions to the Ren image for now
+    'happy': CharacterRen,
+    'normal': CharacterRen,
+    'angry': CharacterRen,
+    'serious': CharacterRen,
+    'smile': CharacterRen
+};
+
 const Dialogue = ({ stats, updateStats }) => {
     const [searchParams] = useSearchParams();
     const topic = searchParams.get('topic') || 'start';
     const navigate = useNavigate();
     const { playSE, playVoice } = useSound();
+
+    // Character Selection Logic
+    const characterId = stats?.characterId || 'noah';
+    const isRen = characterId === 'ren';
+    const characterName = isRen ? 'レン' : 'ノア';
+    const currentImages = isRen ? REN_IMAGES : CHARACTER_IMAGES;
 
     const [line, setLine] = useState(null);
     const [scenarioData, setScenarioData] = useState([]);
@@ -479,13 +497,27 @@ const Dialogue = ({ stats, updateStats }) => {
     const getSubjectInfo = (topic) => {
         for (const subject of STUDY_TOPICS) {
             for (const category of subject.categories) {
-                const unit = category.units.find(u => u.topic === topic);
-                if (unit) {
-                    return {
-                        subject: subject.name,
-                        category: category.name,
-                        unit: unit.name
-                    };
+                // Check units
+                for (const unit of category.units) {
+                    if (unit.topic === topic || unit.id === topic) {
+                        return { subject: subject.name, category: category.name, unit: unit.name };
+                    }
+                    // Check chapters
+                    if (unit.chapters) {
+                        for (const chapter of unit.chapters) {
+                            if (chapter.topic === topic || chapter.id === topic) {
+                                return { subject: subject.name, category: category.name, unit: unit.name };
+                            }
+                            // Check sections
+                            if (chapter.sections) {
+                                for (const section of chapter.sections) {
+                                    if (section.topic === topic || section.id === topic) {
+                                        return { subject: subject.name, category: category.name, unit: unit.name };
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -539,17 +571,37 @@ const Dialogue = ({ stats, updateStats }) => {
 
         // Find subject/category/unit from topic
         let subjectInfo = { subject: '不明', category: '', unit: topic };
+
         for (const subject of STUDY_TOPICS) {
             for (const category of subject.categories) {
-                const unit = category.units.find(u => u.topic === topic);
-                if (unit) {
-                    subjectInfo = {
-                        subject: subject.name,
-                        category: category.name,
-                        unit: unit.name
-                    };
-                    break;
+                // Check units
+                for (const unit of category.units) {
+                    if (unit.topic === topic || unit.id === topic) {
+                        subjectInfo = { subject: subject.name, category: category.name, unit: unit.name };
+                        break;
+                    }
+                    // Check chapters
+                    if (unit.chapters) {
+                        for (const chapter of unit.chapters) {
+                            if (chapter.topic === topic || chapter.id === topic) {
+                                subjectInfo = { subject: subject.name, category: category.name, unit: unit.name }; // Using Unit name as main grouping
+                                break;
+                            }
+                            // Check sections
+                            if (chapter.sections) {
+                                for (const section of chapter.sections) {
+                                    if (section.topic === topic || section.id === topic) {
+                                        subjectInfo = { subject: subject.name, category: category.name, unit: unit.name };
+                                        break;
+                                    }
+                                }
+                            }
+                            if (subjectInfo.subject !== '不明') break;
+                        }
+                    }
+                    if (subjectInfo.subject !== '不明') break;
                 }
+                if (subjectInfo.subject !== '不明') break;
             }
             if (subjectInfo.subject !== '不明') break;
         }
@@ -591,7 +643,7 @@ const Dialogue = ({ stats, updateStats }) => {
                 ...stats,
                 tp: newTp,
                 intellect: currentIntellect + INTELLECT_REWARD,
-                totalStudyTime: (stats?.totalStudyTime || 0) + sessionDurationMinutes,
+                totalStudyTime: (stats?.totalStudyTime || 0) + sessionDurationMinutes, // Fix cumulative
                 totalSessions: (stats?.totalSessions || 0) + 1
             };
 
@@ -659,6 +711,12 @@ const Dialogue = ({ stats, updateStats }) => {
         setIsSpeaking(false);
     };
 
+    // Helper to get display name
+    const getDisplayName = (speaker) => {
+        if (speaker === 'ノア') return characterName;
+        return speaker;
+    };
+
     // Auto-speak: VOICEVOXが使えるならそちら、そうでなければブラウザTTSで即再生
     useEffect(() => {
         if (!line || !line.text) return;
@@ -682,15 +740,36 @@ const Dialogue = ({ stats, updateStats }) => {
             // フォールバック: ブラウザTTS（スマホでも動作）
             const utterance = new SpeechSynthesisUtterance(line.text);
             utterance.lang = 'ja-JP';
-            utterance.pitch = 1.3;
-            utterance.rate = 1.0;
+
+            // Ren(Male) logic for Pitch/Rate
+            if (isRen) {
+                utterance.pitch = 0.8; // Lower pitch for male
+                utterance.rate = 1.0;
+            } else {
+                utterance.pitch = 1.3; // Higher pitch for female (Noah)
+                utterance.rate = 1.0;
+            }
+
             const voices = window.speechSynthesis.getVoices();
             const jaVoices = voices.filter(v => v.lang.startsWith('ja'));
-            const voice = jaVoices.find(v =>
-                v.name.includes('Female') || v.name.includes('女性') ||
-                v.name.includes('Kyoko') || v.name.includes('Google 日本語')
-            ) || jaVoices[0];
+
+            let voice = null;
+            if (isRen) {
+                // Try to find a male voice
+                voice = jaVoices.find(v =>
+                    v.name.includes('Male') || v.name.includes('Man') || v.name.includes('男性') ||
+                    v.name.includes('Ichiro') // Google Japanese Male?
+                );
+            } else {
+                voice = jaVoices.find(v =>
+                    v.name.includes('Female') || v.name.includes('女性') ||
+                    v.name.includes('Kyoko') || v.name.includes('Google 日本語')
+                ) || jaVoices[0];
+            }
+            // If no specific voice found, fall back to default jaVoice
             if (voice) utterance.voice = voice;
+            else if (jaVoices.length > 0) utterance.voice = jaVoices[0];
+
             window.speechSynthesis.speak(utterance);
         };
 
@@ -872,7 +951,9 @@ const Dialogue = ({ stats, updateStats }) => {
                 {use3D ? '3D' : '2D'}
             </button>
 
-            <div className="character-figure">
+            <div
+                className="character-figure"
+            >
                 {use3D ? (
                     <VrmViewer
                         emotion={line.expression || line.emotion || 'normal'}
@@ -882,7 +963,13 @@ const Dialogue = ({ stats, updateStats }) => {
                     />
                 ) : (
                     <img
-                        src={CHARACTER_IMAGES[line.expression] || CHARACTER_IMAGES[line.image] || CHARACTER_IMAGES[line.emotion] || CHARACTER_IMAGES['default']}
+                        src={
+                            line?.expression && currentImages[line.expression]
+                                ? currentImages[line.expression]
+                                : line?.emotion && currentImages[line.emotion]
+                                    ? currentImages[line.emotion]
+                                    : currentImages['normal']
+                        }
                         alt="Character"
                         className={`char-image-dialogue ${line.effect === 'shake' ? 'effect-shake' : ''} ${(line.graph || line.study_image) ? 'with-board' : ''}`}
                     />
@@ -890,7 +977,7 @@ const Dialogue = ({ stats, updateStats }) => {
             </div>
 
             <div className="dialogue-box">
-                <div className="name-tag">{isQuiz ? 'Question' : line.speaker}</div>
+                <div className="name-tag">{isQuiz ? 'Question' : getDisplayName(line.speaker)}</div>
                 <div className="dialogue-text">
                     {line.text}
                 </div>
@@ -927,6 +1014,8 @@ const Dialogue = ({ stats, updateStats }) => {
                     <div className="next-indicator">▼</div>
                 )}
             </div>
+
+            {/* Character Selection Overlay Removed */}
         </div>
     );
 };
