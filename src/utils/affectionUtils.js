@@ -1,4 +1,4 @@
-import { AFFECTION_LEVELS, AFFECTION_QUOTES } from '../data/affectionData';
+import { AFFECTION_LEVELS, AFFECTION_QUOTES, AFFECTION_QUOTES_REN } from '../data/affectionData';
 
 /**
  * 好感度ポイントから現在のレベル情報を取得する
@@ -68,11 +68,18 @@ export const getPointsToNextLevel = (affection) => {
 /**
  * 好感度レベルに応じたランダムなセリフを取得する
  * @param {number} affectionLevel - 好感度レベル
+ * @param {string} characterId - キャラクターID ('noah' | 'ren')
  * @returns {string} セリフ
  */
-export const getRandomQuote = (affectionLevel) => {
+export const getRandomQuote = (affectionLevel, characterId = 'noah') => {
+    // キャラクターIDに応じたセリフ配列を取得
+    let quotesMap = AFFECTION_QUOTES;
+    if (characterId === 'ren') {
+        quotesMap = AFFECTION_QUOTES_REN;
+    }
+
     // レベルに対応するセリフ配列を取得
-    const quotes = AFFECTION_QUOTES[affectionLevel] || AFFECTION_QUOTES[0];
+    const quotes = quotesMap[affectionLevel] || quotesMap[0];
 
     // ランダムに1つ選択
     const randomIndex = Math.floor(Math.random() * quotes.length);

@@ -308,14 +308,24 @@ export const ALL_ITEMS = [
 
     // --- 新規 SSR/SR スキン ---
     {
-        id: 'skin_winter',
+        id: 'skin_casual_gray_hoodie',
         type: 'skin',
-        name: '冬制服',
+        name: '私服（グレーパーカー）',
         rarity: 'SR',
-        emoji: '☃️',
+        emoji: '🧥',
         probability: 4,
-        description: '暖かそうな冬用の制服。',
-        filter: 'brightness(0.95) hue-rotate(-15deg) contrast(1.1)'
+        description: 'グレーのパーカーとジーンズの私服姿。',
+        imageName: 'character_casual_gray_hoodie.jpg'
+    },
+    {
+        id: 'skin_casual_hoodie',
+        type: 'skin',
+        name: '私服（パーカー）',
+        rarity: 'SR',
+        emoji: '🧥',
+        probability: 4,
+        description: '黒いパーカーとジーンズのカジュアルな私服姿。',
+        imageName: 'character_casual_hoodie.png'
     },
     {
         id: 'skin_gym',
@@ -325,7 +335,7 @@ export const ALL_ITEMS = [
         emoji: '🏃‍♀️',
         probability: 4,
         description: '動きやすい体操服。体育の授業の後かな？',
-        filter: 'hue-rotate(180deg) saturate(0.8)'
+        imageName: 'character_gym.jpg'
     },
     {
         id: 'skin_yukata',

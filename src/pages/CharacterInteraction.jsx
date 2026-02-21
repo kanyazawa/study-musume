@@ -11,6 +11,9 @@ import VrmViewer from '../components/VrmViewer';
 import CharacterMain from '../assets/images/character_new.png';
 import CharacterCasual from '../assets/images/character_casual_v9.png';
 import CharacterCasualFall from '../assets/images/noa_casual_fall.png';
+import CharacterGym from '../assets/images/character_gym.jpg';
+import CharacterCasualGray from '../assets/images/character_casual_gray_hoodie.jpg';
+import CharacterCasualBlack from '../assets/images/character_casual_hoodie.png';
 import CharacterRen from '../assets/images/character_ren.png'; // Added Ren
 // Using happy image for smile reaction
 import NoaHappy from '../assets/images/noah_happy.png';
@@ -49,7 +52,10 @@ const CharacterInteraction = ({ stats, updateStats }) => {
     const noahImages = {
         'default': CharacterMain,
         'skin_casual': CharacterCasual,
-        'skin_casual_fall': CharacterCasualFall
+        'skin_casual_fall': CharacterCasualFall,
+        'skin_gym': CharacterGym,
+        'skin_casual_gray_hoodie': CharacterCasualGray,
+        'skin_casual_hoodie': CharacterCasualBlack
     };
 
     // Ren (Male)

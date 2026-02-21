@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import './StudySelect.css';
 import { STUDY_TOPICS, getCategoryById, searchUnits } from '../data/studyTopics';
 
-const StudySelect = () => {
+const StudySelect = ({ stats }) => {
     const navigate = useNavigate();
 
     // 階層管理
@@ -176,6 +176,7 @@ const StudySelect = () => {
         return '科目選択';
     };
 
+    // タイトルを取得
     return (
         <div className="study-select-screen">
             {/* ヘッダー */}

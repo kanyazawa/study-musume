@@ -268,7 +268,8 @@
     display: flex;
     justify-content: center;
     align-items: flex-end;
-    /* padding-bottom removed */
+    padding-bottom: 80px;
+    /* Space for footer */
     background: linear-gradient(135deg, #e0f7fa 0%, #fff9c4 100%);
     /* Placeholder gradient for room */
 }
@@ -612,7 +613,7 @@
     height: 100%;
     background-image: url('../assets/images/bg_classroom.png');
     background-size: cover;
-    background-position: center;
+    background-position: bottom center;
     filter: brightness(0.9);
 }
 
@@ -639,7 +640,8 @@
 
 .speech-bubble {
     position: absolute;
-    bottom: 140px;
+    bottom: 280px;
+    /* Push higher to clear side buttons and social buttons */
     left: 50%;
     transform: translateX(-50%);
     background: rgba(255, 255, 255, 0.98);
@@ -651,7 +653,8 @@
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
     width: 80%;
     max-width: 600px;
-    min-height: 80px;
+    min-height: 100px;
+    /* 常に2行分くらいの高さ確保 */
     z-index: 20;
     display: flex;
     align-items: center;
@@ -693,10 +696,10 @@
 .speech-bubble p {
     color: #333;
     font-weight: bold;
-    font-size: 15px;
+    font-size: 17px;
     white-space: pre-wrap;
     text-align: center;
-    line-height: 1.5;
+    line-height: 1.6;
     width: 100%;
 }
 
@@ -858,15 +861,25 @@
     transform: scale(0.95);
 }
 
-/* Action Area - Absolute Positioning */
+/* Action Area - Centered row at bottom */
 .action-area {
     position: absolute;
-    bottom: 100px;
-    left: 0;
+    bottom: 130px;
     right: 0;
+    left: 0;
     width: 100%;
-    height: 120px;
-    z-index: 5;
+    /* Full width */
+    padding: 0 20px;
+    /* Add padding for sides */
+    transform: none;
+    z-index: 20;
+    display: flex;
+    flex-direction: row;
+    /* Horizontal */
+    align-items: flex-end;
+    justify-content: space-between;
+    /* Separate Mission (Left) and Study (Right) */
+    gap: 16px;
     pointer-events: none;
 }
 
@@ -874,13 +887,11 @@
     pointer-events: auto;
 }
 
-/* Study Button (Blue - Right Bottom, LARGE - MAIN) */
+/* Study Button (Blue - LARGE - MAIN) */
 .study-btn-large {
-    position: absolute;
-    right: 15px;
-    bottom: 0;
+    position: static;
     width: 180px;
-    height: 100px;
+    height: 90px;
     background: linear-gradient(135deg, #3a7bd5 0%, #00d2ff 100%);
     color: white;
     border-radius: 20px;
@@ -906,11 +917,9 @@
     transform: translateY(-3px) scale(0.98);
 }
 
-/* Mission Button (Orange - Left Bottom, Smaller) */
+/* Mission Button (Orange - Smaller) */
 .mission-btn-large {
-    position: absolute;
-    left: 15px;
-    bottom: 0;
+    position: static;
     width: 130px;
     height: 70px;
     background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);
@@ -938,15 +947,15 @@
     transform: translateY(-2px) scale(0.98);
 }
 
-/* Social Buttons (Right Side - Green Area) */
+/* Social Buttons (Right Side - Top) */
 .social-buttons {
     position: absolute;
     right: 20px;
-    /* 勉強ボタンと同じ右端 */
-    bottom: 320px;
-    /* 吹き出しの上 */
+    top: 450px;
+    /* キャラの腰あたりに配置 */
     display: flex;
     flex-direction: column;
+    align-items: flex-end;
     gap: 15px;
     z-index: 20;
 }
@@ -985,27 +994,27 @@
 /* Mobile Responsive */
 @media (max-width: 480px) {
     .action-area {
-        bottom: 90px;
-        height: 100px;
+        bottom: 120px;
+        gap: 12px;
     }
 
     .study-btn-large {
-        right: 10px;
         width: 150px;
-        height: 85px;
+        height: 80px;
         font-size: 1.3rem;
     }
 
     .mission-btn-large {
-        left: 10px;
         width: 110px;
-        height: 60px;
+        height: 65px;
         font-size: 1rem;
     }
 
+    /* Social Buttons Mobile */
     .social-buttons {
         right: 15px;
-        bottom: 320px;
+        top: 280px;
+        /* モバイルでは腰あたり */
         gap: 10px;
     }
 

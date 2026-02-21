@@ -757,28 +757,127 @@ export const STUDY_TOPICS = [
         sheetGid: '552880676', // 英語シートのgid
         categories: [
             {
-                id: 'grammar',
+                id: 'eng_vocab',
+                name: '単語',
+                units: [
+                    {
+                        id: 'eng_vocab_basic',
+                        name: '英単語',
+                        topic: '英単語',
+                        chapters: [
+                            { id: 'eng_vocab_sec1', name: '頻出単語', topic: '頻出単語' }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'eng_grammar',
                 name: '文法',
                 units: [
-                    { id: 'be-verb', name: 'be動詞', topic: 'be動詞' },
-                    { id: 'general-verb', name: '一般動詞', topic: '一般動詞' },
-                    { id: 'plural', name: '複数形', topic: '複数形' },
-                    { id: 'pronoun', name: '代名詞', topic: '代名詞' },
-                    { id: 'third-person', name: '三単現のs', topic: '三単現のｓ' },
-                ]
-            },
-            {
-                id: 'reading',
-                name: '読解',
-                units: [
-                    { id: 'comprehension', name: '長文読解', topic: '長文読解' },
-                ]
-            },
-            {
-                id: 'vocabulary',
-                name: '語彙',
-                units: [
-                    { id: 'basic-words', name: '基本単語', topic: '基本単語' },
+                    {
+                        id: 'eng_gr_0', name: '0. 文の成り立ち', topic: '文の成り立ち',
+                        chapters: [
+                            { id: 'eng_gr_0_1', name: '0.1 文の要素と品詞', topic: '主語・動詞・目的語・補語・8品詞' },
+                            { id: 'eng_gr_0_2', name: '0.2 5文型', topic: '5文型の見分け方' }
+                        ]
+                    },
+                    {
+                        id: 'eng_gr_1', name: '1. 名詞・代名詞・冠詞', topic: '名詞・代名詞・冠詞',
+                        chapters: [
+                            { id: 'eng_gr_1_1', name: '1.1 名詞と冠詞', topic: '可算・不可算名詞、冠詞の使い分け' },
+                            { id: 'eng_gr_1_2', name: '1.2 代名詞', topic: '代名詞が指し示す内容' }
+                        ]
+                    },
+                    {
+                        id: 'eng_gr_2', name: '2. 時制 (Tenses)', topic: '時制',
+                        chapters: [
+                            { id: 'eng_gr_2_1', name: '2.1 基本の時制', topic: '現在形、過去形、未来表現' },
+                            { id: 'eng_gr_2_2', name: '2.2 進行形', topic: '進行形と状態・動作動詞' },
+                            { id: 'eng_gr_2_3', name: '2.3 完了形', topic: '各種完了形' }
+                        ]
+                    },
+                    {
+                        id: 'eng_gr_3', name: '3. 助動詞 (Auxiliaries)', topic: '助動詞',
+                        chapters: [
+                            { id: 'eng_gr_3_1', name: '3.1 基本助動詞', topic: '基本助動詞の用法' },
+                            { id: 'eng_gr_3_2', name: '3.2 推量と過去', topic: '助動詞+have+p.p.' }
+                        ]
+                    },
+                    {
+                        id: 'eng_gr_4', name: '4. 受動態 (Passive)', topic: '受動態',
+                        chapters: [
+                            { id: 'eng_gr_4_1', name: '4.1 基本の受動態', topic: '基本の受動態' },
+                            { id: 'eng_gr_4_2', name: '4.2 複雑な受動態', topic: '複雑な受動態' }
+                        ]
+                    },
+                    {
+                        id: 'eng_gr_5', name: '5. 不定詞 (Infinitives)', topic: '不定詞',
+                        chapters: [
+                            { id: 'eng_gr_5_1', name: '5.1 基本3用法', topic: '不定詞の基本3用法' },
+                            { id: 'eng_gr_5_2', name: '5.2 応用表現', topic: '不定詞の応用表現' }
+                        ]
+                    },
+                    {
+                        id: 'eng_gr_6', name: '6. 動名詞 (Gerunds)', topic: '動名詞',
+                        chapters: [
+                            { id: 'eng_gr_6_1', name: '6.1 基本用法', topic: '動名詞の基本用法' },
+                            { id: 'eng_gr_6_2', name: '6.2 慣用表現', topic: '動名詞の慣用表現' }
+                        ]
+                    },
+                    {
+                        id: 'eng_gr_7', name: '7. 分詞 (Participles)', topic: '分詞',
+                        chapters: [
+                            { id: 'eng_gr_7_1', name: '7.1 分詞の限定用法', topic: '分詞の限定用法' },
+                            { id: 'eng_gr_7_2', name: '7.2 分詞構文', topic: '分詞構文' }
+                        ]
+                    },
+                    {
+                        id: 'eng_gr_8', name: '8. 接続詞 (Conjunctions)', topic: '接続詞',
+                        chapters: [
+                            { id: 'eng_gr_8_1', name: '8.1 等位・従属接続詞', topic: '等位・従属接続詞' }
+                        ]
+                    },
+                    {
+                        id: 'eng_gr_9', name: '9. 前置詞 (Prepositions)', topic: '前置詞',
+                        chapters: [
+                            { id: 'eng_gr_9_1', name: '9.1 基本の前置詞', topic: '基本の前置詞' },
+                            { id: 'eng_gr_9_2', name: '9.2 重要な前置詞', topic: '重要な前置詞' }
+                        ]
+                    },
+                    {
+                        id: 'eng_gr_10', name: '10. 関係詞 (Relatives)', topic: '関係詞',
+                        chapters: [
+                            { id: 'eng_gr_10_1', name: '10.1 関係代名詞', topic: '関係代名詞' },
+                            { id: 'eng_gr_10_2', name: '10.2 関係副詞', topic: '関係副詞' }
+                        ]
+                    },
+                    {
+                        id: 'eng_gr_11', name: '11. 比較 (Comparison)', topic: '比較',
+                        chapters: [
+                            { id: 'eng_gr_11_1', name: '11.1 基本3態', topic: '比較の基本3態' },
+                            { id: 'eng_gr_11_2', name: '11.2 重要表現', topic: '比較の重要表現' }
+                        ]
+                    },
+                    {
+                        id: 'eng_gr_12', name: '12. 仮定法 (Subjunctive)', topic: '仮定法',
+                        chapters: [
+                            { id: 'eng_gr_12_1', name: '12.1 基本の仮定法', topic: '基本の仮定法' },
+                            { id: 'eng_gr_12_2', name: '12.2 応用仮定法', topic: '応用仮定法' }
+                        ]
+                    },
+                    {
+                        id: 'eng_gr_13', name: '13. 特殊構文 (Misc)', topic: '特殊構文',
+                        chapters: [
+                            { id: 'eng_gr_13_1', name: '13.1 否定・強調', topic: '否定・強調' },
+                            { id: 'eng_gr_13_2', name: '13.2 倒置・挿入', topic: '倒置・挿入' }
+                        ]
+                    },
+                    {
+                        id: 'eng_gr_14', name: '14. 語彙・熟語 (Advanced)', topic: '語彙・熟語',
+                        chapters: [
+                            { id: 'eng_gr_14_1', name: '14.1 句動詞・熟語', topic: '句動詞・熟語' }
+                        ]
+                    }
                 ]
             }
         ]

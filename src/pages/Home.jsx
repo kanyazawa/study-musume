@@ -5,6 +5,9 @@ import './Home.css';
 import CharacterMain from '../assets/images/character_new.png';
 import CharacterRen from '../assets/images/character_ren.png';
 import CharacterCasual from '../assets/images/character_casual_v9.png';
+import CharacterGym from '../assets/images/character_gym.jpg';
+import CharacterCasualGray from '../assets/images/character_casual_gray_hoodie.jpg';
+import CharacterCasualBlack from '../assets/images/character_casual_hoodie.png';
 // Footer removed
 import MenuModal from '../components/MenuModal';
 import LoginBonusModal from '../components/LoginBonusModal';
@@ -59,10 +62,12 @@ const Home = ({ stats, updateStats }) => {
         'default': CharacterRen // Placeholder
     };
 
-    // Noah (Female)
     const noahImages = {
         'default': CharacterMain,
-        'skin_casual': CharacterCasual
+        'skin_casual': CharacterCasual,
+        'skin_gym': CharacterGym,
+        'skin_casual_gray_hoodie': CharacterCasualGray,
+        'skin_casual_hoodie': CharacterCasualBlack
     };
 
     const skinImages = characterId === 'ren' ? renImages : noahImages;
@@ -87,7 +92,7 @@ const Home = ({ stats, updateStats }) => {
 
     // Random speech on mount and click (好感度レベルに応じて)
     const talk = () => {
-        const randomQuote = getRandomQuote(affectionLevelInfo.level);
+        const randomQuote = getRandomQuote(affectionLevelInfo.level, characterId);
         setSpeech(randomQuote);
 
         // Update mission progress for character interaction
@@ -199,9 +204,9 @@ const Home = ({ stats, updateStats }) => {
             </div>
 
             {/* Main Content Area (Room & Character) */}
-            <div className="room-container" style={currentBgStyle}>
+            <div className="room-container" style={equippedBackground !== 'default' ? currentBgStyle : {}}>
                 {/* Placeholder for Room Background */}
-                <div className="room-background"></div>
+                {equippedBackground === 'default' && <div className="room-background"></div>}
 
                 {/* Countdown (Floating) */}
                 <div className="countdown-floating">

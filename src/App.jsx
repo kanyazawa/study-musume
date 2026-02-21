@@ -50,8 +50,7 @@ const Layout = ({ children }) => {
   }, [location, displayLocation]);
 
   // Footerを非表示にするパスのリスト
-  // Footerを非表示にするパスのリスト
-  const hideFooterPaths = ['/study', '/dialogue', '/character-select'];
+  const hideFooterPaths = ['/study', '/dialogue', '/character-select', '/story'];
   // タイトル画面(/)もフッター非表示
   const isTitlePage = location.pathname === '/';
   const shouldHideFooter = isTitlePage || hideFooterPaths.some(path => location.pathname.startsWith(path));

@@ -13,11 +13,10 @@ import { updateStatsOnStudy, checkForNewAchievements } from '../utils/achievemen
 import { addWrongQuestion } from '../utils/reviewUtils';
 import { saveStudyCompletion } from '../firebase/sync';
 import { getCurrentUser } from '../firebase/auth';
+import { convertTone } from '../utils/toneUtils';
 
 // Images
-import CharacterMain from '../assets/images/character_main.png';
 import CharacterNew from '../assets/images/character_new.png';
-import CharacterTsundere from '../assets/images/character_tsundere.png';
 import CharacterUser from '../assets/images/character_user.png';
 import CharacterRen from '../assets/images/character_ren.png'; // Ren Image
 import BgClassroom from '../assets/images/bg_classroom.png';
@@ -26,13 +25,17 @@ import BgClassroom from '../assets/images/bg_classroom.png';
 import NoaHappy from '../assets/images/noah_happy.png';
 import NoaNormal from '../assets/images/noah_normal.png';
 import NoaAngry from '../assets/images/noah_angry.png';
+import RenNormal from '../assets/images/ren_normal.png';
+import RenAngry from '../assets/images/ren_angry.png';
+import RenHappy from '../assets/images/ren_happy.png';
+
 import { useSound } from '../contexts/SoundContext';
 import functionPlot from 'function-plot';
 
 const CHARACTER_IMAGES = {
-    'main': CharacterMain,
+    'main': NoaNormal,
     'new': CharacterNew,
-    'tsundere': CharacterTsundere,
+    'tsundere': NoaNormal,
     'user': CharacterUser,
     'default': NoaNormal,
     // Emotion mapping
@@ -44,15 +47,14 @@ const CHARACTER_IMAGES = {
 };
 
 const REN_IMAGES = {
-    'default': CharacterRen,
-    'main': CharacterRen,
-    'new': CharacterRen,
-    // Map all emotions to the Ren image for now
-    'happy': CharacterRen,
-    'normal': CharacterRen,
-    'angry': CharacterRen,
-    'serious': CharacterRen,
-    'smile': CharacterRen
+    'default': RenNormal,
+    'main': RenNormal,
+    'new': RenNormal,
+    'happy': RenHappy,
+    'normal': RenNormal,
+    'angry': RenAngry,
+    'serious': RenNormal, // Fallback for serious
+    'smile': RenHappy     // Fallback for smile
 };
 
 const Dialogue = ({ stats, updateStats }) => {
@@ -483,13 +485,23 @@ const Dialogue = ({ stats, updateStats }) => {
             return;
         }
 
+
+
         setCurrentScene(sceneLines);
         setCurrentIndex(0);
-        setLine(sceneLines[0]);
+
+        // Process line for tone
+        const firstLine = sceneLines[0];
+        const processedLine = isRen ? {
+            ...firstLine,
+            text: convertTone(firstLine.text, 'ren')
+        } : firstLine;
+
+        setLine(processedLine);
 
         // Trigger VRM lip sync for first line
-        if (sceneLines[0] && sceneLines[0].text) {
-            triggerVrmLipSync(sceneLines[0].text);
+        if (processedLine && processedLine.text) {
+            triggerVrmLipSync(processedLine.text);
         }
     };
 
@@ -555,11 +567,18 @@ const Dialogue = ({ stats, updateStats }) => {
         } else {
             setCurrentIndex(nextIdx);
             const nextLine = currentScene[nextIdx];
-            setLine(nextLine);
+
+            // Process line for tone
+            const processedLine = (isRen && nextLine) ? {
+                ...nextLine,
+                text: convertTone(nextLine.text, 'ren')
+            } : nextLine;
+
+            setLine(processedLine);
 
             // Trigger VRM lip sync for new line
-            if (nextLine && nextLine.text) {
-                triggerVrmLipSync(nextLine.text);
+            if (processedLine && processedLine.text) {
+                triggerVrmLipSync(processedLine.text);
             }
         }
     };
@@ -822,10 +841,12 @@ const Dialogue = ({ stats, updateStats }) => {
             setTimeout(() => {
                 setFeedback(null);
 
-                const winText = line.win_text || 'ふーん、意外とわかってるじゃない。';
+                const defaultWin = isRen ? '正解だ。よく理解できている。' : 'ふーん、意外とわかってるじゃない。';
+                const rawWinText = line.win_text || defaultWin;
+                const winText = isRen ? convertTone(rawWinText, 'ren') : rawWinText;
 
                 setLine({
-                    speaker: 'ノア',
+                    speaker: isRen ? 'レン' : 'ノア',
                     text: winText,
                     emotion: 'happy',
                     background: line.background || '',
@@ -864,11 +885,14 @@ const Dialogue = ({ stats, updateStats }) => {
             setTimeout(() => {
                 setFeedback(null);
 
-                // lose_textがあればノアのセリフとして表示
-                const loseText = line.lose_text || `正解は「${line[`option${line.answer}`] || '?'}」よ。しっかり覚えなさい！`;
+                const defaultLose = isRen
+                    ? `正解は「${line[`option${line.answer}`] || '?'}」だ。もう一度確認しろ。`
+                    : `正解は「${line[`option${line.answer}`] || '?'}」よ。しっかり覚えなさい！`;
+                const rawLoseText = line.lose_text || defaultLose;
+                const loseText = isRen ? convertTone(rawLoseText, 'ren') : rawLoseText;
 
                 setLine({
-                    speaker: 'ノア',
+                    speaker: isRen ? 'レン' : 'ノア',
                     text: loseText,
                     emotion: 'serious',
                     background: line.background || '',
@@ -968,7 +992,7 @@ const Dialogue = ({ stats, updateStats }) => {
                                 ? currentImages[line.expression]
                                 : line?.emotion && currentImages[line.emotion]
                                     ? currentImages[line.emotion]
-                                    : currentImages['normal']
+                                    : currentImages['normal'] || currentImages['default']
                         }
                         alt="Character"
                         className={`char-image-dialogue ${line.effect === 'shake' ? 'effect-shake' : ''} ${(line.graph || line.study_image) ? 'with-board' : ''}`}

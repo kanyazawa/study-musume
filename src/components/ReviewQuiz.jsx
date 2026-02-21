@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { updateReviewResult } from '../utils/reviewUtils';
-import CharacterMain from '../assets/images/character_main.png';
+import CharacterReview from '../assets/images/character_review_noah.png';
 import BgClassroom from '../assets/images/bg_classroom.png';
 import './ReviewQuiz.css';
 
@@ -140,7 +140,7 @@ const ReviewQuiz = ({ questions, onComplete }) => {
             {/* Character */}
             <div className="character-figure">
                 <img
-                    src={CharacterMain}
+                    src={CharacterReview}
                     alt="Character"
                     className="char-image-dialogue"
                 />

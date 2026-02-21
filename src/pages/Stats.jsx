@@ -27,6 +27,9 @@ import {
 import './Stats.css';
 import CharacterMain from '../assets/images/character_new.png';
 import CharacterCasual from '../assets/images/character_casual_v9.png';
+import CharacterGym from '../assets/images/character_gym.jpg';
+import CharacterCasualGray from '../assets/images/character_casual_gray_hoodie.jpg';
+import CharacterCasualBlack from '../assets/images/character_casual_hoodie.png';
 import CharacterRen from '../assets/images/character_ren.png';
 import { getDailyStats, getUsedSubjects, getSubjectDistribution, getDailyAccuracy } from '../utils/studyHistoryUtils';
 import {
@@ -56,12 +59,15 @@ const Stats = ({ stats = {} }) => {
     ];
 
     // Character Image Logic for Header
-    const skinImages = {
+    const noahImages = {
         'default': CharacterMain,
         'skin_casual': CharacterCasual,
-        // Add Ren support if needed, or stick to main char for now
+        'skin_gym': CharacterGym,
+        'skin_casual_gray_hoodie': CharacterCasualGray,
+        'skin_casual_hoodie': CharacterCasualBlack
     };
-    const currentSkinImage = stats.characterId === 'ren' ? CharacterRen : (skinImages[stats.equippedSkin] || CharacterMain);
+    // Add Ren support if needed, or stick to main char for now
+    const currentSkinImage = stats.characterId === 'ren' ? CharacterRen : (noahImages[stats.equippedSkin] || CharacterMain);
 
     // Character Name Logic
     const characterName = stats.characterId === 'ren' ? 'レン' : 'ノア';
