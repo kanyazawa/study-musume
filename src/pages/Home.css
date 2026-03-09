@@ -917,6 +917,36 @@
     transform: translateY(-3px) scale(0.98);
 }
 
+/* Battle Button (Red/Orange - LARGE - same size as Study) */
+.battle-btn-large {
+    position: static;
+    width: 180px;
+    height: 90px;
+    background: linear-gradient(135deg, #f12711 0%, #f5af19 100%);
+    color: white;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 1.5rem;
+    box-shadow: 0 8px 25px rgba(241, 39, 17, 0.5),
+        inset 0 3px 10px rgba(255, 255, 255, 0.3);
+    border: 4px solid rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.battle-btn-large:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 10px 30px rgba(241, 39, 17, 0.6),
+        inset 0 3px 10px rgba(255, 255, 255, 0.3);
+}
+
+.battle-btn-large:active {
+    transform: translateY(-3px) scale(0.98);
+}
+
 /* Mission Button (Orange - Smaller) */
 .mission-btn-large {
     position: static;
@@ -961,16 +991,14 @@
 }
 
 .friend-btn,
-.ranking-btn {
+.ranking-btn,
+.mission-btn-side {
     width: 140px;
     height: 65px;
-    background: linear-gradient(135deg, #4caf50 0%, #81c784 100%);
     color: white;
     border-radius: 16px;
     font-weight: bold;
     font-size: 1rem;
-    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5),
-        inset 0 3px 8px rgba(255, 255, 255, 0.3);
     border: 3px solid rgba(255, 255, 255, 0.9);
     display: flex;
     align-items: center;
@@ -979,15 +1007,28 @@
     cursor: pointer;
 }
 
-.friend-btn:hover,
-.ranking-btn:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(76, 175, 80, 0.6),
+.friend-btn,
+.ranking-btn {
+    background: linear-gradient(135deg, #4caf50 0%, #81c784 100%);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5),
         inset 0 3px 8px rgba(255, 255, 255, 0.3);
 }
 
+.mission-btn-side {
+    background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);
+    box-shadow: 0 6px 20px rgba(245, 175, 25, 0.5),
+        inset 0 3px 8px rgba(255, 255, 255, 0.3);
+}
+
+.friend-btn:hover,
+.ranking-btn:hover,
+.mission-btn-side:hover {
+    transform: translateY(-4px);
+}
+
 .friend-btn:active,
-.ranking-btn:active {
+.ranking-btn:active,
+.mission-btn-side:active {
     transform: translateY(-2px) scale(0.98);
 }
 
@@ -1019,9 +1060,16 @@
     }
 
     .friend-btn,
-    .ranking-btn {
+    .ranking-btn,
+    .mission-btn-side {
         width: 120px;
         height: 55px;
         font-size: 0.9rem;
+    }
+
+    .battle-btn-large {
+        width: 150px;
+        height: 80px;
+        font-size: 1.3rem;
     }
 }

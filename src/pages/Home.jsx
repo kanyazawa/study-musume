@@ -234,8 +234,8 @@ const Home = ({ stats, updateStats }) => {
 
                 {/* Action Buttons */}
                 <div className="action-area">
-                    <button className="mission-btn-large" onClick={() => navigate('/missions')}>
-                        <span>✓ ミッション</span>
+                    <button className="battle-btn-large" onClick={() => navigate('/multiplayer-match')}>
+                        <span>⚔️ 対戦</span>
                     </button>
                     <button className="study-btn-large" onClick={() => navigate('/study')}>
                         <span>📚 勉強</span>
@@ -244,6 +244,9 @@ const Home = ({ stats, updateStats }) => {
 
                 {/* Social Buttons (Right Side) */}
                 <div className="social-buttons">
+                    <button className="mission-btn-side" onClick={() => navigate('/missions')}>
+                        <span>✓ ミッション</span>
+                    </button>
                     <button className="friend-btn" onClick={() => navigate('/friends')}>
                         <span>👥 フレンド</span>
                     </button>

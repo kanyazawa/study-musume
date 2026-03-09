@@ -36,6 +36,7 @@ import Login from './pages/Login';
 import Friends from './pages/Friends';
 import Ranking from './pages/Ranking';
 import CharacterSelectPage from './pages/CharacterSelectPage';
+import MultiplayerMatch from './pages/MultiplayerMatch';
 
 
 // Function to control Footer visibility based on current path
@@ -50,7 +51,7 @@ const Layout = ({ children }) => {
   }, [location, displayLocation]);
 
   // Footerを非表示にするパスのリスト
-  const hideFooterPaths = ['/study', '/dialogue', '/character-select', '/story'];
+  const hideFooterPaths = ['/study', '/dialogue', '/character-select', '/story', '/multiplayer-match'];
   // タイトル画面(/)もフッター非表示
   const isTitlePage = location.pathname === '/';
   const shouldHideFooter = isTitlePage || hideFooterPaths.some(path => location.pathname.startsWith(path));
@@ -211,6 +212,7 @@ function App() {
               <Route path="/friends" element={<Friends />} />
               <Route path="/ranking" element={<Ranking />} />
               <Route path="/character-select" element={<CharacterSelectPage updateStats={updateStats} />} />
+              <Route path="/multiplayer-match" element={<MultiplayerMatch stats={stats} updateStats={updateStats} />} />
 
             </Routes>
           </Layout>
