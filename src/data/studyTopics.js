@@ -768,7 +768,10 @@ export const STUDY_TOPICS = [
                             { id: 'eng_vocab_grade5', name: '英検5級', topic: '英検5級', level: 'grade5' },
                             { id: 'eng_vocab_grade4', name: '英検4級', topic: '英検4級', level: 'grade4' },
                             { id: 'eng_vocab_grade3', name: '英検3級', topic: '英検3級', level: 'grade3' },
-                            { id: 'eng_vocab_grade_pre2', name: '英検準2級', topic: '英検準2級', level: 'grade_pre2' }
+                            { id: 'eng_vocab_grade_pre2', name: '英検準2級', topic: '英検準2級', level: 'grade_pre2' },
+                            { id: 'eng_vocab_grade2', name: '英検2級', topic: '英検2級', level: 'grade2' },
+                            { id: 'eng_vocab_grade_pre1', name: '英検準1級', topic: '英検準1級', level: 'grade_pre1' },
+                            { id: 'eng_vocab_grade1', name: '英検1級', topic: '英検1級', level: 'grade1' }
                         ]
                     }
                 ]
