@@ -3,13 +3,36 @@
    ============================== */
 
 .mp-screen {
+    box-sizing: border-box;
     height: 100%;
     display: flex;
     flex-direction: column;
     background: linear-gradient(150deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
     color: white;
     overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
 }
+
+.mp-screen *, .mp-screen *::before, .mp-screen *::after {
+    box-sizing: inherit;
+}
+
+/* Background Image Layer */
+.mp-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center bottom;
+    background-repeat: no-repeat;
+    z-index: 0;
+    opacity: 0.6; /* キャラやUIが見やすいように少し暗く透かす */
+    pointer-events: none;
+}
+
 
 /* Header */
 .mp-header {
@@ -238,6 +261,14 @@
     justify-content: center;
     font-size: 32px;
     border: 3px solid rgba(255, 255, 255, 0.3);
+    overflow: hidden;
+}
+
+.mp-vs-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
 }
 
 .mp-vs-name {
@@ -291,247 +322,388 @@
 /* ==============================
    Playing Screen
    ============================== */
-.mp-score-bar {
+.mp-playing-screen {
+    position: relative;
+    overflow: hidden; /* 背景キャラがはみ出ないように */
+}
+
+/* Background Character (Center) */
+.mp-center-character {
+    position: absolute;
+    bottom: -60px; /* キャラをさらに下に移動して問題と被らないように */
+    left: 50%;
+    transform: translateX(-50%);
+    height: 75%; /* 高さを少し抑えることで顔が上にきすぎるのを防ぐ */
+    width: auto;
+    object-fit: contain;
+    z-index: 5;
+    pointer-events: none;
+    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.4));
+    animation: mp-float-char 4s ease-in-out infinite;
+}
+
+@keyframes mp-float-char {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-10px); }
+}
+
+.mp-playing-content-wrapper {
+    position: relative;
+    z-index: 10;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 16px;
-    background: rgba(0, 0, 0, 0.4);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.mp-score-player {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.mp-score-me {
-    flex-direction: row;
-}
-
-.mp-score-opponent {
-    flex-direction: row;
-}
-
-.mp-score-name {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.7);
-    max-width: 80px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.mp-score-value {
-    font-size: 1.4rem;
-    font-weight: 800;
-    background: linear-gradient(135deg, #ffd700, #ffed4e);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.mp-score-question {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 4px 12px;
-    border-radius: 10px;
-    font-size: 0.85rem;
-    font-weight: 700;
-}
-
-/* Opponent Progress */
-.mp-opponent-progress {
-    text-align: center;
-    padding: 4px;
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.45);
-    background: rgba(0, 0, 0, 0.2);
-}
-
-/* Timer */
-.mp-timer-bar {
-    height: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    overflow: hidden;
-}
-
-.mp-timer-fill {
+    flex-direction: column;
     height: 100%;
-    background: linear-gradient(to right, #4facfe, #00f2fe);
-    transition: width 1s linear;
+    justify-content: space-between;
 }
 
-.mp-timer-fill.mp-timer-danger {
-    background: linear-gradient(to right, #f12711, #f5af19);
-    animation: mp-timer-blink 0.5s infinite;
+/* Spacer */
+.mp-spacer {
+    flex: 1;
 }
 
-@keyframes mp-timer-blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+/* ==============================
+   Top & Bottom Status Areas
+   ============================== */
+.mp-top-status, .mp-bottom-status-wrapper {
+    width: 100%;
+    padding: 12px 20px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%);
+    backdrop-filter: blur(4px);
 }
 
-.mp-timer-text {
+.mp-bottom-status-wrapper {
+    background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+    padding-bottom: 24px;
+}
+
+.mp-status-info {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 6px;
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.8);
-}
-
-/* Question */
-.mp-question-area {
-    text-align: center;
-    padding: 30px 20px 20px;
-}
-
-.mp-question-word {
-    font-size: 2.8rem;
-    font-weight: 900;
-    letter-spacing: 2px;
-    background: linear-gradient(135deg, #ffffff, #e0e0ff);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 8px;
-    animation: mp-word-appear 0.4s ease-out;
-}
-
-@keyframes mp-word-appear {
-    from { transform: scale(0.8); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-}
-
-.mp-question-hint {
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.5);
-}
-
-/* Options */
-.mp-options-grid {
-    padding: 10px 16px 20px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
     gap: 12px;
+    margin-bottom: 8px;
 }
 
-.mp-option-btn {
+.mp-status-op {
+    flex-direction: row;
+}
+
+.mp-status-me {
+    flex-direction: row-reverse;
+}
+
+.mp-status-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid rgba(255, 255, 255, 0.5);
     background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 16px;
-    padding: 16px 12px;
+}
+
+.mp-status-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+}
+
+.mp-status-name {
+    font-size: 1rem;
+    font-weight: 800;
     color: white;
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
+    flex: 1;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+
+.mp-status-me .mp-status-name {
+    text-align: right;
+}
+
+.mp-status-score {
+    font-size: 1.2rem;
+    font-weight: 900;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 4px 12px;
+    border-radius: 12px;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Progress Bars */
+.mp-progress-bar-container {
+    width: 100%;
+    height: 14px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.mp-progress-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* 光の反射エフェクト */
+.mp-progress-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 100%);
+}
+
+.mp-bg-op {
+    background: linear-gradient(90deg, #ff416c 0%, #ff4b2b 100%);
+    box-shadow: 0 0 10px rgba(255, 65, 108, 0.5);
+}
+
+.mp-bg-me {
+    background: linear-gradient(90deg, #00c6ff 0%, #0072ff 100%);
+    box-shadow: 0 0 10px rgba(0, 198, 255, 0.5);
+    /* 右から左へ伸びるようにしたい場合は float: right などを使うが、今回は左揃えで統一 */
+}
+
+/* ==============================
+   Question Area (Center Card)
+   ============================== */
+.mp-question-container {
+    padding: 0 20px;
+    margin-top: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    transition: all 0.15s ease;
-    min-height: 80px;
+    z-index: 15;
+}
+
+.mp-question-card {
+    background: #ffffff; /* 完全な白背景 */
+    border-radius: 20px;
+    border: 2px solid #ddd;
+    padding: 24px 30px;
+    text-align: center;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); /* 少し影を薄くしてすっきりさせる */
+    animation: mp-card-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes mp-card-pop {
+    0% { transform: scale(0.9); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.mp-question-word {
+    font-size: 2.5rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #111111; /* 黒文字 */
+    text-shadow: none; /* ドロップシャドウ削除 */
+    margin-bottom: 4px;
+}
+
+.mp-question-hint {
+    font-size: 0.95rem;
+    color: #555555; /* 濃いグレーの文字 */
+    font-weight: 600;
+}
+
+/* Question Timer */
+.mp-timer-wrapper {
+    width: 100%;
+    max-width: 400px;
+    height: 24px;
+    background: #eeeeee; /* 白背景に合うように薄いグレーに変更 */
+    border-radius: 12px;
+    margin-top: 12px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #ddd;
+}
+
+.mp-timer-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #11998e 0%, #38ef7d 100%);
+    transition: width 1s linear;
+}
+
+.mp-timer-bar-fill.mp-timer-danger {
+    background: linear-gradient(90deg, #f12711 0%, #f5af19 100%);
+    animation: mp-timer-blink 0.5s infinite;
+}
+
+.mp-timer-text-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    align-items: center;
     justify-content: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #333333; /* 読みやすい暗い色 */
+    text-shadow: none; /* 文字の縁取りを消す */
+}
+
+/* ==============================
+   Bottom Area (Options)
+   ============================== */
+.mp-bottom-area {
+    width: 100%;
+    z-index: 15;
+}
+
+.mp-options-grid {
+    padding: 0 20px 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+/* Cyber Pop Jelly Buttons */
+.mp-option-btn {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(8px);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-radius: 24px;
+    padding: 20px 14px;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+    min-height: 80px;
+    box-shadow: 
+        0 8px 0 rgba(0, 0, 0, 0.2), 
+        inset 0 4px 6px rgba(255, 255, 255, 0.2);
+    transform: translateY(0);
 }
 
 .mp-option-btn:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.6);
+    box-shadow: 
+        0 10px 0 rgba(0, 0, 0, 0.2), 
+        inset 0 4px 6px rgba(255, 255, 255, 0.3);
     transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.4);
 }
 
 .mp-option-btn:active:not(:disabled) {
-    transform: scale(0.96);
-}
-
-.mp-option-label {
-    font-size: 0.75rem;
-    font-weight: 800;
-    color: rgba(255, 255, 255, 0.5);
-    text-transform: uppercase;
+    transform: translateY(6px);
+    box-shadow: 
+        0 2px 0 rgba(0, 0, 0, 0.2), 
+        inset 0 4px 6px rgba(255, 255, 255, 0.1);
 }
 
 .mp-option-text {
     line-height: 1.3;
     text-align: center;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
-/* Feedback States */
+/* Feedback States for Options */
 .mp-option-correct {
-    background: rgba(34, 197, 94, 0.3) !important;
-    border-color: #22c55e !important;
-    animation: mp-correct-flash 0.5s ease;
-}
-
-@keyframes mp-correct-flash {
-    0% { transform: scale(1); }
-    30% { transform: scale(1.05); }
-    100% { transform: scale(1); }
+    background: linear-gradient(135deg, #11998e, #38ef7d) !important;
+    border-color: #fff !important;
+    box-shadow: 0 4px 0 #0f7a71, 0 0 20px rgba(56, 239, 125, 0.6) !important;
+    transform: translateY(4px);
+    animation: mp-correct-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .mp-option-wrong {
-    background: rgba(239, 68, 68, 0.3) !important;
-    border-color: #ef4444 !important;
+    background: linear-gradient(135deg, #ff416c, #ff4b2b) !important;
+    border-color: #fff !important;
+    box-shadow: 0 4px 0 #cc3456, 0 0 20px rgba(255, 75, 43, 0.6) !important;
+    transform: translateY(4px);
     animation: mp-wrong-shake 0.4s ease;
 }
 
-@keyframes mp-wrong-shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-6px); }
-    75% { transform: translateX(6px); }
+@keyframes mp-correct-pop {
+    0% { transform: translateY(4px) scale(1); }
+    50% { transform: translateY(4px) scale(1.05); filter: brightness(1.2); }
+    100% { transform: translateY(4px) scale(1); }
 }
 
 .mp-option-disabled {
-    opacity: 0.3;
+    opacity: 0.4;
+    cursor: default;
+    transform: translateY(4px);
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.1);
 }
 
-/* Feedback Overlay */
-.mp-feedback-overlay {
-    position: fixed;
-    bottom: 100px;
+/* ==============================
+   Large Center Feedback Overlay
+   ============================== */
+.mp-feedback-center {
+    position: absolute;
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%);
-    text-align: center;
-    z-index: 50;
-    animation: mp-feedback-appear 0.3s ease;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 70%);
 }
 
-@keyframes mp-feedback-appear {
-    from { transform: translate(-50%, 10px); opacity: 0; }
-    to { transform: translate(-50%, 0); opacity: 1; }
-}
-
-.mp-feedback {
-    padding: 14px 28px;
-    border-radius: 16px;
-    font-size: 1.1rem;
-    font-weight: 700;
-    white-space: nowrap;
+.mp-feedback-card {
+    background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(10px);
+    padding: 30px 50px;
+    border-radius: 30px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 0 0 4px rgba(255,255,255,0.5);
+    animation: mp-super-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.mp-feedback-correct {
-    background: rgba(34, 197, 94, 0.9);
-    box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4);
+.mp-feedback-card h2 {
+    font-size: 3rem;
+    font-weight: 900;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 2px;
 }
 
-.mp-feedback-wrong {
-    background: rgba(239, 68, 68, 0.9);
-    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+.mp-feedback-card p {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-top: 10px;
+    color: #333;
 }
 
-.mp-feedback-timeout {
-    background: rgba(245, 158, 11, 0.9);
-    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
+.mp-fc-correct h2 {
+    background: linear-gradient(135deg, #11998e, #38ef7d);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 4px 8px rgba(56, 239, 125, 0.4));
 }
+.mp-fc-correct { border: 4px solid #38ef7d; }
 
-.mp-feedback-opponent {
-    margin-top: 8px;
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.6);
+.mp-fc-wrong h2, .mp-fc-timeout h2 {
+    background: linear-gradient(135deg, #ff416c, #ff4b2b);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 4px 8px rgba(255, 75, 43, 0.4));
+}
+.mp-fc-wrong, .mp-fc-timeout { border: 4px solid #ff4b2b; }
+
+@keyframes mp-super-pop {
+    0% { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+    70% { transform: scale(1.1) rotate(5deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0); opacity: 1; }
 }
 
 /* ==============================
@@ -545,6 +717,61 @@
     justify-content: center;
     padding: 30px;
     gap: 20px;
+}
+
+/* Result Characters */
+.mp-result-character-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.mp-result-char-img {
+    position: absolute;
+    height: 90%;
+    bottom: -20px;
+    object-fit: contain;
+    opacity: 0.8;
+}
+
+.mp-result-char-me {
+    left: 10%;
+    animation: mp-slide-in-left 0.6s ease forwards;
+}
+
+.mp-result-char-op {
+    right: 10%;
+    transform: scaleX(-1);
+    animation: mp-slide-in-right 0.6s ease forwards;
+}
+
+@keyframes mp-slide-in-left {
+    from { transform: translateX(-50px); opacity: 0; }
+    to { transform: translateX(0); opacity: 0.8; }
+}
+
+@keyframes mp-slide-in-right {
+    from { transform: translateX(50px) scaleX(-1); opacity: 0; }
+    to { transform: translateX(0) scaleX(-1); opacity: 0.8; }
+}
+
+.mp-result-panel {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+    padding: 30px;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
 }
 
 .mp-result-emoji {
@@ -696,4 +923,144 @@
     .mp-result-player-score {
         font-size: 2.4rem;
     }
+}
+
+/* ==============================
+   Rating Card (Init Screen)
+   ============================== */
+.mp-rating-card {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 24px 30px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    max-width: 360px;
+    width: 100%;
+}
+
+.mp-rating-rank {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.mp-rank-icon {
+    font-size: 2rem;
+}
+
+.mp-rank-name {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #ffd700;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.mp-rating-number {
+    font-size: 3rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, #ffffff, #e0e0e0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+}
+
+.mp-rating-level {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.mp-rating-next {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 6px;
+}
+
+/* ==============================
+   Rating Change (Result Screen)
+   ============================== */
+.mp-rating-change-section {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 16px 24px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+    width: 100%;
+    max-width: 300px;
+    animation: mp-card-pop 0.5s ease 0.3s both;
+}
+
+.mp-rating-change-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.mp-rating-change-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-weight: 700;
+}
+
+.mp-rating-old {
+    font-size: 1.4rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.mp-rating-arrow {
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.mp-rating-new {
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: #fff;
+}
+
+.mp-rating-delta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 10px;
+}
+
+.mp-delta-up {
+    color: #38ef7d;
+    background: rgba(56, 239, 125, 0.15);
+}
+
+.mp-delta-down {
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.15);
+}
+
+.mp-level-up-banner {
+    margin-top: 12px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 107, 107, 0.2));
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    border-radius: 14px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #ffd700;
+    animation: mp-level-up-glow 1.5s ease infinite;
+}
+
+@keyframes mp-level-up-glow {
+    0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.2); }
+    50% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.5); }
 }

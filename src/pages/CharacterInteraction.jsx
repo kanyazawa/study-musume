@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Shirt, Image as ImageIcon, Gift } from 'lucide-react';
+import { ArrowLeft, Shirt, Image as ImageIcon, Gift, MessageCircle } from 'lucide-react';
 import './CharacterInteraction.css';
 import './Dialogue.css'; // Reuse dialogue styles for consistency
 import CharacterSelect from '../components/CharacterSelect';
@@ -160,6 +160,10 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                         <button className="ci-btn" onClick={() => setMode('costume')}>
                             <Shirt size={24} />
                             <span>衣装</span>
+                        </button>
+                        <button className="ci-btn" onClick={() => navigate('/dialogue?topic=start&type=talk')}>
+                            <MessageCircle size={24} />
+                            <span>話す</span>
                         </button>
                         <button className="ci-btn" onClick={() => setMode('bg')}>
                             <ImageIcon size={24} />

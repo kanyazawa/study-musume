@@ -61,7 +61,11 @@ const StudySelect = ({ stats }) => {
             setSearchQuery('');
         } else {
             // 章がない場合は直接学習へ
-            navigate(`/dialogue?topic=${unit.topic}`);
+            if (unit.id === 'eng_vocab_basic' || unit.topic === '英単語') {
+                navigate(`/multiplayer-match?mode=solo`);
+            } else {
+                navigate(`/dialogue?topic=${unit.topic}`);
+            }
         }
     };
 
@@ -73,13 +77,22 @@ const StudySelect = ({ stats }) => {
             setCurrentLevel('section');
             setSearchQuery('');
         } else {
-            navigate(`/dialogue?topic=${chapter.topic}`);
+            if (chapter.level) {
+                // クイズレベルが設定されている場合（例: 英検5級など）はソロモードへ
+                navigate(`/multiplayer-match?mode=solo&level=${chapter.level}`);
+            } else {
+                navigate(`/dialogue?topic=${chapter.topic}`);
+            }
         }
     };
 
     // 節（セクション）選択
     const handleSectionClick = (section) => {
-        navigate(`/dialogue?topic=${section.topic}`);
+        if (section.level) {
+            navigate(`/multiplayer-match?mode=solo&level=${section.level}`);
+        } else {
+            navigate(`/dialogue?topic=${section.topic}`);
+        }
     };
 
     // 戻る

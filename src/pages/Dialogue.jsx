@@ -60,6 +60,7 @@ const REN_IMAGES = {
 const Dialogue = ({ stats, updateStats }) => {
     const [searchParams] = useSearchParams();
     const topic = searchParams.get('topic') || 'start';
+    const type = searchParams.get('type') || 'study'; // 'study' or 'talk'
     const navigate = useNavigate();
     const { playSE, playVoice } = useSound();
 
@@ -302,14 +303,36 @@ const Dialogue = ({ stats, updateStats }) => {
                             throw new Error("GAS fetch failed");
                         }
                     } catch (gasErr) {
-                        console.warn("Falling back to local:", gasErr.message);
-                        // B. Try Local CSV
-                        const resLocal = await fetch('/scenarios/scenario.csv');
-                        if (!resLocal.ok) throw new Error('Failed to load local scenario');
-                        const text = await resLocal.text();
-                        rawData = parseCSV(text);
-                        usedSource = "Local";
-                        console.log("Loaded from Local CSV");
+                        console.warn("GAS failed, trying Spreadsheet CSV:", gasErr.message);
+                        // B. Try Google Spreadsheet CSV Export (直接スプレッドシートから取得)
+                        try {
+                            const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${sheetGid}`;
+                            console.log("Fetching from Spreadsheet CSV:", csvUrl, "gid:", sheetGid);
+                            const resCsv = await fetch(csvUrl);
+                            if (resCsv.ok) {
+                                const csvText = await resCsv.text();
+                                const csvData = parseCSV(csvText);
+                                if (hasTopic(csvData, topic)) {
+                                    rawData = csvData;
+                                    usedSource = "Spreadsheet CSV";
+                                    console.log("Loaded from Spreadsheet CSV");
+                                } else {
+                                    console.warn("Topic not found in Spreadsheet CSV, scenes:", [...new Set(csvData.map(d => d.scene))]);
+                                    throw new Error("Topic not found in Spreadsheet CSV");
+                                }
+                            } else {
+                                throw new Error("Spreadsheet CSV fetch failed: " + resCsv.status);
+                            }
+                        } catch (csvErr) {
+                            console.warn("Spreadsheet CSV failed, falling back to local:", csvErr.message);
+                            // C. Try Local CSV (最終フォールバック)
+                            const resLocal = await fetch('/scenarios/scenario.csv');
+                            if (!resLocal.ok) throw new Error('Failed to load local scenario');
+                            const text = await resLocal.text();
+                            rawData = parseCSV(text);
+                            usedSource = "Local";
+                            console.log("Loaded from Local CSV");
+                        }
                     }
 
                     // Process Data (Fill empty fields, etc.)
@@ -584,6 +607,11 @@ const Dialogue = ({ stats, updateStats }) => {
     };
 
     const finishStudy = async () => {
+        if (type === 'talk') {
+            navigate('/character');
+            return;
+        }
+
         // Calculate session duration
         const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000); // seconds
         const sessionDurationMinutes = Math.floor(sessionDuration / 60); // minutes

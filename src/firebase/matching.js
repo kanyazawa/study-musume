@@ -31,121 +31,29 @@ import {
     Timestamp
 } from 'firebase/firestore';
 import { db } from './config';
+import { getVocabByLevel, getAllVocab } from '../data/vocabData';
+import { getLevelFromRating, DEFAULT_RATING } from '../utils/ratingUtils';
 
 const MATCH_ROOMS_COLLECTION = 'matchRooms';
 const TARGET_CORRECT = 10; // 先に10問正解で勝ち
 const QUESTIONS_POOL_SIZE = 30; // 多めに問題を用意
 
-// ==============================
-// 英単語データ (ローカルフォールバック)
-// ==============================
-const VOCAB_POOL = [
-    { word: 'abandon', meaning: '捨てる、見捨てる' },
-    { word: 'abolish', meaning: '廃止する' },
-    { word: 'abstract', meaning: '抽象的な' },
-    { word: 'abundant', meaning: '豊富な' },
-    { word: 'accomplish', meaning: '成し遂げる' },
-    { word: 'accurate', meaning: '正確な' },
-    { word: 'acquire', meaning: '取得する' },
-    { word: 'adequate', meaning: '十分な' },
-    { word: 'admire', meaning: '称賛する' },
-    { word: 'adolescent', meaning: '青年期の' },
-    { word: 'agriculture', meaning: '農業' },
-    { word: 'ancestor', meaning: '祖先' },
-    { word: 'apparent', meaning: '明らかな' },
-    { word: 'appetite', meaning: '食欲' },
-    { word: 'atmosphere', meaning: '大気、雰囲気' },
-    { word: 'attitude', meaning: '態度' },
-    { word: 'author', meaning: '著者' },
-    { word: 'authority', meaning: '権威、当局' },
-    { word: 'brief', meaning: '簡潔な' },
-    { word: 'brilliant', meaning: '素晴らしい' },
-    { word: 'calculate', meaning: '計算する' },
-    { word: 'capable', meaning: '有能な' },
-    { word: 'colleague', meaning: '同僚' },
-    { word: 'commerce', meaning: '商業' },
-    { word: 'committee', meaning: '委員会' },
-    { word: 'companion', meaning: '仲間' },
-    { word: 'complicate', meaning: '複雑にする' },
-    { word: 'concentrate', meaning: '集中する' },
-    { word: 'conflict', meaning: '紛争、対立' },
-    { word: 'conscience', meaning: '良心' },
-    { word: 'consequence', meaning: '結果' },
-    { word: 'considerable', meaning: 'かなりの' },
-    { word: 'continent', meaning: '大陸' },
-    { word: 'contribute', meaning: '貢献する' },
-    { word: 'convenient', meaning: '便利な' },
-    { word: 'correspond', meaning: '一致する' },
-    { word: 'creature', meaning: '生き物' },
-    { word: 'curiosity', meaning: '好奇心' },
-    { word: 'declare', meaning: '宣言する' },
-    { word: 'demonstrate', meaning: '実証する' },
-    { word: 'deserve', meaning: '値する' },
-    { word: 'determine', meaning: '決定する' },
-    { word: 'disaster', meaning: '災害' },
-    { word: 'discipline', meaning: '規律' },
-    { word: 'distinguish', meaning: '区別する' },
-    { word: 'domestic', meaning: '国内の' },
-    { word: 'eliminate', meaning: '除去する' },
-    { word: 'embrace', meaning: '受け入れる' },
-    { word: 'emerge', meaning: '現れる' },
-    { word: 'emphasis', meaning: '強調' },
-    { word: 'encounter', meaning: '遭遇する' },
-    { word: 'enormous', meaning: '巨大な' },
-    { word: 'enthusiasm', meaning: '熱意' },
-    { word: 'essential', meaning: '不可欠な' },
-    { word: 'evaluate', meaning: '評価する' },
-    { word: 'evidence', meaning: '証拠' },
-    { word: 'exaggerate', meaning: '誇張する' },
-    { word: 'fascinating', meaning: '魅力的な' },
-    { word: 'fortune', meaning: '運、財産' },
-    { word: 'frequent', meaning: '頻繁な' },
-    { word: 'genuine', meaning: '本物の' },
-    { word: 'hesitate', meaning: 'ためらう' },
-    { word: 'illustrate', meaning: '説明する' },
-    { word: 'implement', meaning: '実行する' },
-    { word: 'incredible', meaning: '信じられない' },
-    { word: 'inevitable', meaning: '避けられない' },
-    { word: 'interpret', meaning: '解釈する' },
-    { word: 'investigate', meaning: '調査する' },
-    { word: 'justify', meaning: '正当化する' },
-    { word: 'luxury', meaning: '贅沢' },
-    { word: 'magnificent', meaning: '壮大な' },
-    { word: 'manufacture', meaning: '製造する' },
-    { word: 'moderate', meaning: '適度な' },
-    { word: 'negotiate', meaning: '交渉する' },
-    { word: 'obligation', meaning: '義務' },
-    { word: 'obstacle', meaning: '障害' },
-    { word: 'opportunity', meaning: '機会' },
-    { word: 'phenomenon', meaning: '現象' },
-    { word: 'prejudice', meaning: '偏見' },
-    { word: 'preserve', meaning: '保存する' },
-    { word: 'privilege', meaning: '特権' },
-    { word: 'proportion', meaning: '割合' },
-    { word: 'prospect', meaning: '見込み' },
-    { word: 'pursue', meaning: '追求する' },
-    { word: 'reluctant', meaning: '気が進まない' },
-    { word: 'reputation', meaning: '評判' },
-    { word: 'resemble', meaning: '似ている' },
-    { word: 'sacrifice', meaning: '犠牲にする' },
-    { word: 'sufficient', meaning: '十分な' },
-    { word: 'temporary', meaning: '一時的な' },
-    { word: 'tremendous', meaning: '途方もない' },
-    { word: 'triumph', meaning: '勝利' },
-    { word: 'vulnerable', meaning: '脆弱な' },
-];
-
 /**
- * ランダムに問題を生成する
+ * ランダムに問題を生成する（レベル別）
  * 英単語を表示し、4つの日本語の意味から正解を選ぶ形式
+ * @param {string} level - 'grade5' | 'grade4' | 'grade3' | 'grade_pre2'
+ * @param {number} count - 出題数
  */
-function generateQuestions(count = QUESTIONS_POOL_SIZE) {
-    const shuffled = [...VOCAB_POOL].sort(() => Math.random() - 0.5);
-    const selected = shuffled.slice(0, count);
-    const allMeanings = VOCAB_POOL.map(v => v.meaning);
+export function generateQuestions(level = 'grade5', count = QUESTIONS_POOL_SIZE) {
+    const levelVocab = getVocabByLevel(level);
+    const allVocab = getAllVocab();
+    const allMeanings = allVocab.map(v => v.meaning);
+
+    const shuffled = [...levelVocab].sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, Math.min(count, shuffled.length));
 
     return selected.map(item => {
-        // 不正解の選択肢を3つ選ぶ
+        // 不正解の選択肢を3つ選ぶ（同レベルの単語リスト + 全体から補完）
         const wrongMeanings = allMeanings
             .filter(m => m !== item.meaning)
             .sort(() => Math.random() - 0.5)
@@ -166,9 +74,12 @@ function generateQuestions(count = QUESTIONS_POOL_SIZE) {
  * 空いているルームを探すか、新規作成してマッチング開始
  * @param {string} uid - プレイヤーのUID
  * @param {string} displayName - 表示名
+ * @param {string} characterId - キャラクターID
+ * @param {string} equippedSkin - 装備スキンID
+ * @param {number} rating - プレイヤーのレート
  * @returns {{ roomId: string, isCreator: boolean }}
  */
-export async function findOrCreateRoom(uid, displayName) {
+export async function findOrCreateRoom(uid, displayName, characterId = 'noah', equippedSkin = 'default', rating = DEFAULT_RATING) {
     const roomsRef = collection(db, MATCH_ROOMS_COLLECTION);
 
     // 1. 待機中のルームを探す（自分が作ったルーム以外）
@@ -184,9 +95,11 @@ export async function findOrCreateRoom(uid, displayName) {
         // 自分が作成したルームは除外
         if (data.player1.uid === uid) continue;
 
-        // このルームに参加
+        // このルームに参加 → 両者のレートの低い方に合わせてレベルを決定
         const roomRef = doc(db, MATCH_ROOMS_COLLECTION, docSnap.id);
-        const questions = generateQuestions();
+        const p1Rating = data.player1.rating || DEFAULT_RATING;
+        const matchLevel = getLevelFromRating(Math.min(p1Rating, rating)).level;
+        const questions = generateQuestions(matchLevel);
 
         await updateDoc(roomRef, {
             status: 'playing',
@@ -194,9 +107,13 @@ export async function findOrCreateRoom(uid, displayName) {
                 uid,
                 displayName,
                 score: 0,
-                answers: []
+                answers: [],
+                characterId,
+                equippedSkin,
+                rating
             },
             questions,
+            level: matchLevel,
             currentQuestion: 0,
             startedAt: serverTimestamp()
         });
@@ -205,16 +122,21 @@ export async function findOrCreateRoom(uid, displayName) {
     }
 
     // 2. 空きルームがない → 新規作成
+    const myLevel = getLevelFromRating(rating).level;
     const newRoom = await addDoc(roomsRef, {
         status: 'waiting',
         player1: {
             uid,
             displayName,
             score: 0,
-            answers: []
+            answers: [],
+            characterId,
+            equippedSkin,
+            rating
         },
         player2: null,
         questions: [],
+        level: myLevel,
         currentQuestion: 0,
         createdAt: serverTimestamp(),
         startedAt: null

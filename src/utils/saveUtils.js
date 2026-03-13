@@ -34,7 +34,9 @@ export const getDefaultStats = () => ({
     loginStreak: 0,
     totalLoginDays: 0,
     // TP回復システム
-    lastTpUpdateTime: Date.now()
+    lastTpUpdateTime: Date.now(),
+    // マルチプレイ対戦レート
+    multiplayerRating: 1000
 });
 
 // ============================================
