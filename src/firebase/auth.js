@@ -50,12 +50,32 @@ const isMobileDevice = () => {
 };
 
 /**
+ * Firebase の Google リダイレクト認証は、PWA standalone や一部 WebView で不安定。
+ * その環境では通常ブラウザで開くよう案内する。
+ */
+const isStandaloneMode = () => {
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+};
+
+const isInAppBrowser = () => {
+    const userAgent = navigator.userAgent || '';
+    return /Line|FBAN|FBAV|Instagram|wv/i.test(userAgent);
+};
+
+/**
  * Googleでサインイン
  * モバイル: signInWithRedirect を使用
  * PC: signInWithPopup を試行し、ブロックされた場合は signInWithRedirect にフォールバック
  */
 export const signInWithGoogle = async () => {
     try {
+        if (isMobileDevice() && (isStandaloneMode() || isInAppBrowser())) {
+            return {
+                success: false,
+                error: 'スマホのホーム画面アプリやアプリ内ブラウザではGoogleログインできません。SafariまたはChromeで直接開いてください。'
+            };
+        }
+
         // モバイルブラウザではリダイレクト方式を使用
         if (isMobileDevice()) {
             console.log("Mobile device detected, using redirect sign-in...");

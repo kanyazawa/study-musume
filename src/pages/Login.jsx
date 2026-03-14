@@ -15,6 +15,9 @@ const Login = ({ onLoginSuccess }) => {
         const result = await signInWithGoogle();
 
         if (result.success) {
+            if (result.redirect) {
+                return;
+            }
             if (onLoginSuccess) {
                 onLoginSuccess(result.user);
             }

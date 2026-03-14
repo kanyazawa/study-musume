@@ -1,4 +1,16 @@
 [[redirects]]
+  from = "/__/auth/*"
+  to = "https://study-musume.firebaseapp.com/__/auth/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/__/firebase/init.json"
+  to = "https://study-musume.firebaseapp.com/__/firebase/init.json"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

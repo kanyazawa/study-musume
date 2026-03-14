@@ -4,7 +4,6 @@ import { getFirestore } from "firebase/firestore";
 
 const requiredEnvVars = [
     "VITE_FIREBASE_API_KEY",
-    "VITE_FIREBASE_AUTH_DOMAIN",
     "VITE_FIREBASE_PROJECT_ID",
     "VITE_FIREBASE_STORAGE_BUCKET",
     "VITE_FIREBASE_MESSAGING_SENDER_ID",
@@ -17,9 +16,20 @@ for (const key of requiredEnvVars) {
     }
 }
 
+const runtimeHost = typeof window !== 'undefined' ? window.location.host : '';
+const configuredAuthDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
+const authDomain =
+    import.meta.env.PROD && runtimeHost && !/^(localhost|127\.0\.0\.1)/i.test(runtimeHost)
+        ? runtimeHost
+        : configuredAuthDomain;
+
+if (!authDomain) {
+    throw new Error('Missing Firebase auth domain configuration');
+}
+
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    authDomain,
     projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
     storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
     messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
