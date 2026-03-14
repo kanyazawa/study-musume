@@ -4,7 +4,6 @@ import './Missions.css';
 import {
     getAllMissionsWithProgress,
     claimMissionReward,
-    hasUnclaimedRewards,
 } from '../utils/missionUtils';
 
 const Missions = ({ stats, updateStats }) => {

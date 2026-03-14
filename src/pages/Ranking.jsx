@@ -15,30 +15,14 @@ const Ranking = () => {
     const [loading, setLoading] = useState(false);
     const [friendIds, setFriendIds] = useState([]);
 
-    useEffect(() => {
-        const user = getCurrentUser();
-        if (!user) {
-            navigate('/login');
-            return;
-        }
-        setCurrentUser(user);
-        loadFriendsData(user.uid);
-    }, [navigate]);
-
-    useEffect(() => {
-        if (currentUser) {
-            loadRankingData();
-        }
-    }, [activeTab, currentUser, friendIds]);
-
-    const loadFriendsData = async (uid) => {
+    async function loadFriendsData(uid) {
         const result = await getFriendsList(uid);
         if (result.success) {
             setFriendIds([uid, ...result.friends.map(f => f.id)]);
         }
-    };
+    }
 
-    const loadRankingData = async () => {
+    async function loadRankingData() {
         setLoading(true);
 
         let result;
@@ -63,7 +47,23 @@ const Ranking = () => {
         }
 
         setLoading(false);
-    };
+    }
+
+    useEffect(() => {
+        const user = getCurrentUser();
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+        setCurrentUser(user);
+        loadFriendsData(user.uid);
+    }, [navigate]);
+
+    useEffect(() => {
+        if (currentUser) {
+            loadRankingData();
+        }
+    }, [activeTab, currentUser, friendIds]);
 
     const getRankIcon = (rank) => {
         if (rank === 1) return <Crown size={24} color="#FFD700" />;

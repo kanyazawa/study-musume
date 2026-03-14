@@ -1,19 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './TitlePage.css';
-import { useSound } from '../contexts/SoundContext'; // 追加
+import { useSound } from '../contexts/SoundContext';
 
 const TitlePage = () => {
     const navigate = useNavigate();
-    const { playBGM } = useSound(); // 追加
-    const [isVisible, setIsVisible] = useState(false);
-
-    useEffect(() => {
-        setIsVisible(true);
-    }, []);
+    const { playBGM } = useSound();
 
     const handleStart = () => {
-        playBGM(); // ここで再生開始
+        playBGM();
         navigate('/home');
     };
 
@@ -21,10 +16,10 @@ const TitlePage = () => {
         <div className="title-screen" onClick={handleStart}>
             <div className="room-background"></div>
 
-            <div className={`title-content ${isVisible ? 'fade-in' : ''}`}>
+            <div className="title-content fade-in">
                 <div className="title-logo-container">
                     <h1 className="main-title">先輩<br />ここがわかりません</h1>
-                    <div className="sub-title">Study Musume</div>
+                    <div className="sub-title">先輩、ここがわかりません</div>
                 </div>
 
                 <div className="start-prompt">
@@ -32,7 +27,7 @@ const TitlePage = () => {
                 </div>
 
                 <div className="copyright">
-                    &copy; 2026 Study Musume Project
+                    &copy; 2026 先輩、ここがわかりません Project
                 </div>
             </div>
         </div>

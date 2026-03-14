@@ -24,7 +24,6 @@ import {
     getDocs,
     query,
     where,
-    orderBy,
     limit,
     onSnapshot,
     serverTimestamp,
@@ -205,7 +204,7 @@ export async function submitAnswer(roomId, uid, questionIndex, selectedAnswer, i
  * @param {string} roomId
  * @param {string} uid
  */
-export async function markFinished(roomId, uid) {
+export async function markFinished(roomId) {
     const roomRef = doc(db, MATCH_ROOMS_COLLECTION, roomId);
     const roomSnap = await getDoc(roomRef);
     if (!roomSnap.exists()) return;
@@ -221,7 +220,7 @@ export async function markFinished(roomId, uid) {
  * @param {string} roomId
  * @param {string} uid
  */
-export async function leaveRoom(roomId, uid) {
+export async function leaveRoom(roomId) {
     try {
         const roomRef = doc(db, MATCH_ROOMS_COLLECTION, roomId);
         const roomSnap = await getDoc(roomRef);

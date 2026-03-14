@@ -26,17 +26,7 @@ const Friends = () => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
 
-    useEffect(() => {
-        const user = getCurrentUser();
-        if (!user) {
-            navigate('/login');
-            return;
-        }
-        setCurrentUser(user);
-        loadUserData(user.uid);
-    }, [navigate]);
-
-    const loadUserData = async (uid) => {
+    async function loadUserData(uid) {
         setLoading(true);
 
         // マイフレンドコードを取得
@@ -58,7 +48,17 @@ const Friends = () => {
         }
 
         setLoading(false);
-    };
+    }
+
+    useEffect(() => {
+        const user = getCurrentUser();
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+        setCurrentUser(user);
+        loadUserData(user.uid);
+    }, [navigate]);
 
     const handleSearch = async () => {
         if (!searchCode.trim()) {

@@ -65,7 +65,7 @@ export const saveMissions = (missionProgress) => {
  * @param {number} increment - 増加量
  * @param {Object} studyData - 学習データ（科目、スコアなど）
  */
-export const updateMissionProgress = (missionType, increment = 1, studyData = {}) => {
+export const updateMissionProgress = (missionType, increment = 1) => {
     const missions = loadMissions();
     let updated = false;
 
@@ -97,7 +97,6 @@ export const updateMissionProgress = (missionType, increment = 1, studyData = {}
  * @param {Object} studyData - { subject, duration, score, totalQuestions }
  */
 export const updateMissionsOnStudy = (studyData) => {
-    const missions = loadMissions();
     const { subject, duration = 0, score = 0, totalQuestions = 0 } = studyData;
 
     // 学習回数
@@ -210,8 +209,7 @@ export const getAllMissionsWithProgress = () => {
  * 未受取の報酬があるかチェック
  */
 export const hasUnclaimedRewards = () => {
-    const missions = loadMissions();
-    return Object.values(missions).some(m => m.completed && !m.claimed);
+    return Object.values(loadMissions()).some(m => m.completed && !m.claimed);
 };
 
 /**

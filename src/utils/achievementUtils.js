@@ -93,9 +93,10 @@ const checkAchievementCondition = (achievement, stats, gameStats) => {
         case 'total_study_time':
             return stats.totalStudyTime >= value;
 
-        case 'affection_level':
+        case 'affection_level': {
             const affectionLevel = getAffectionLevel(gameStats?.affection || 0);
             return affectionLevel.level >= value;
+        }
 
         case 'gacha_count':
             return stats.gachaCount >= value;
@@ -103,10 +104,11 @@ const checkAchievementCondition = (achievement, stats, gameStats) => {
         case 'inventory_count':
             return (gameStats?.inventory || []).length >= value;
 
-        case 'all_skins':
+        case 'all_skins': {
             // スキンIDを確認（実装に応じて調整）
             const skins = (gameStats?.inventory || []).filter(item => item.type === 'skin');
             return skins.length >= 2; // デフォルト + カジュアル（必要に応じて調整）
+        }
 
         case 'study_early_morning':
             return stats.studyTimes.some(time => {

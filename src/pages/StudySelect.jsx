@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import './StudySelect.css';
-import { STUDY_TOPICS, getCategoryById, searchUnits } from '../data/studyTopics';
+import { STUDY_TOPICS } from '../data/studyTopics';
 
-const StudySelect = ({ stats }) => {
+const StudySelect = () => {
     const navigate = useNavigate();
 
     // 階層管理

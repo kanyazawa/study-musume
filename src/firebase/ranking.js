@@ -3,7 +3,6 @@ import {
     query,
     where,
     getDocs,
-    orderBy,
     limit
 } from "firebase/firestore";
 import { db } from "./config";

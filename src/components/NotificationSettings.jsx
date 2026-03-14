@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Bell, BellOff } from 'lucide-react';
 import {
     requestNotificationPermission,
@@ -17,23 +17,12 @@ const NotificationSettings = ({ onClose }) => {
     const [showSuccess, setShowSuccess] = useState(false);
     const [permissionStatus, setPermissionStatus] = useState(null); // 'requesting', 'denied', null
     const [errorMessage, setErrorMessage] = useState('');
-    const [isIOS, setIsIOS] = useState(false);
-    const [isStandalone, setIsStandalone] = useState(false);
+    const [isIOS] = useState(() => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase()));
+    const [isStandalone] = useState(
+        () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone,
+    );
 
     useEffect(() => {
-        // コンポーネントマウント時に設定を読み込み
-        setSettings(getNotificationSettings());
-
-        // iOS判定
-        const userAgent = window.navigator.userAgent.toLowerCase();
-        const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
-        setIsIOS(isIosDevice);
-
-        // PWAモード（ホーム画面から起動）判定
-        const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-        setIsStandalone(isStandaloneMode);
-
-        // 通知の状態を確認
         if ('Notification' in window) {
             console.log('Notification permission:', Notification.permission);
         }

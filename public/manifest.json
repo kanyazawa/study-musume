@@ -1,7 +1,7 @@
 {
-    "name": "Study Musume",
-    "short_name": "StudyMusume",
-    "description": "あなたの学習を応援するスタディ娘",
+    "name": "先輩、ここがわかりません",
+    "short_name": "先ここ",
+    "description": "あなたの学習を応援する美少女育成ゲーム",
     "id": "/",
     "start_url": "/",
     "scope": "/",

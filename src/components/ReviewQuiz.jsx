@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { updateReviewResult } from '../utils/reviewUtils';
 import CharacterReview from '../assets/images/character_review_noah.png';
 import BgClassroom from '../assets/images/bg_classroom.png';
@@ -19,17 +19,6 @@ const ReviewQuiz = ({ questions, onComplete }) => {
 
     const currentQuestion = questions[currentIndex];
     const progress = ((currentIndex + 1) / questions.length) * 100;
-
-    useEffect(() => {
-        // Reset state when questions change
-        setCurrentIndex(0);
-        setSelectedAnswer(null);
-        setFeedback(null);
-        setResults([]);
-        setIsCompleted(false);
-        setInputValue('');
-        setShowNextButton(false);
-    }, [questions]);
 
     const handleNextQuestion = () => {
         if (currentIndex + 1 < questions.length) {

@@ -249,7 +249,7 @@ export const sendStudyReminder = async () => {
     ];
 
     const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-    const success = await sendNotification('Study Musume 📖', randomMessage);
+    const success = await sendNotification('先輩、ここがわかりません 📖', randomMessage);
 
     if (success) {
         saveNotificationSettings({
@@ -287,7 +287,7 @@ export const sendStreakNotification = async (streak) => {
     }
 
     if (message) {
-        await sendNotification('Study Musume 🎉', message);
+        await sendNotification('先輩、ここがわかりません 🎉', message);
     }
 };
 
@@ -311,7 +311,7 @@ export const sendLongAbsenceReminder = async (daysSinceLastStudy) => {
         ];
 
         const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-        await sendNotification('Study Musume 💌', randomMessage);
+        await sendNotification('先輩、ここがわかりません 💌', randomMessage);
     }
 };
 
@@ -321,7 +321,7 @@ export const sendLongAbsenceReminder = async (daysSinceLastStudy) => {
 export const sendTestNotification = async () => {
     // iOS PWAではregistration.showNotificationを直接使う
     await sendNotification(
-        'Study Musume テスト通知 🔔',
+        '先輩、ここがわかりません テスト通知 🔔',
         'これはテスト通知です。通知が正しく表示されています！'
     );
 };

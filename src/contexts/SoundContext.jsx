@@ -4,14 +4,15 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import bgmTrack from '../assets/audio/after_school_sunbeams.mp3';
 
 const SoundContext = createContext();
+const INITIAL_VOLUME = 0.3;
 
 export const useSound = () => useContext(SoundContext);
 
 export const SoundProvider = ({ children }) => {
     // State
     const [isMuted, setIsMuted] = useState(false);
-    const [volume, setVolume] = useState(0.3); // Default volume 30%
-    const [seVolume, setSeVolume] = useState(0.3); // SE volume defaults to same as BGM
+    const [volume, setVolume] = useState(INITIAL_VOLUME);
+    const [seVolume, setSeVolume] = useState(INITIAL_VOLUME);
     const [isPlaying, setIsPlaying] = useState(false);
 
     // Refs
@@ -21,7 +22,7 @@ export const SoundProvider = ({ children }) => {
     useEffect(() => {
         bgmRef.current = new Audio(bgmTrack);
         bgmRef.current.loop = true;
-        bgmRef.current.volume = volume;
+        bgmRef.current.volume = INITIAL_VOLUME;
 
         return () => {
             if (bgmRef.current) {
@@ -105,7 +106,7 @@ export const SoundProvider = ({ children }) => {
         const path = filename.includes('.') ? `/audio/${filename}` : `/audio/${filename}.mp3`;
 
         const audio = new Audio(path);
-        audio.volume = messageVolume || volume; // Use message volume if available
+        audio.volume = seVolume || volume;
         audio.play().catch(e => console.warn(`Failed to play Voice: ${filename}`, e));
     };
 

@@ -7,8 +7,6 @@ import {
     updateDoc,
     query,
     where,
-    arrayUnion,
-    arrayRemove,
     serverTimestamp
 } from "firebase/firestore";
 import { db } from "./config";

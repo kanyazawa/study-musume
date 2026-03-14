@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Inventory.css';
 
-import { filterInventoryByType, getItemById, removeFromInventory } from '../utils/itemUtils';
+import { filterInventoryByType, removeFromInventory } from '../utils/itemUtils';
 import { GIFT_REACTIONS } from '../data/affectionData';
 import { checkLevelUp } from '../utils/affectionUtils';
 

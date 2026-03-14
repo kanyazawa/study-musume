@@ -29,7 +29,7 @@ export const isVoicevoxAvailable = async () => {
             method: 'GET',
         });
         return response.ok;
-    } catch (error) {
+    } catch {
         return false;
     }
 };
@@ -145,7 +145,7 @@ export const prefetchVoicevox = async (text, speakerId = VOICEVOX_SPEAKERS.ZUNDA
         const audioBlob = await synthesisResponse.blob();
         audioCache.set(cacheKey, audioBlob);
         return true;
-    } catch (error) {
+    } catch {
         return false;
     }
 };

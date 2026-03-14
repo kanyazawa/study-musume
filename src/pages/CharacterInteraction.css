@@ -41,6 +41,7 @@
 /* Control Panel using Dialogue Box style */
 .ci-control-panel {
     /* Inherits dialogue-box properties but we override some */
+    bottom: calc(88px + env(safe-area-inset-bottom, 0px));
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -107,7 +108,7 @@
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
-    padding-bottom: 100px;
+    padding-bottom: 24px;
 }
 
 .ci-gift-item {
@@ -251,5 +252,20 @@
     100% {
         transform: translate(-50%, -50%) scale(1);
         opacity: 1;
+    }
+}
+
+@media (max-width: 480px) {
+    .ci-control-panel {
+        bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+        width: calc(100% - 16px);
+    }
+
+    .ci-menu-buttons {
+        gap: 10px;
+    }
+
+    .ci-btn {
+        padding: 10px 12px;
     }
 }

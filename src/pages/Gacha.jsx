@@ -99,7 +99,7 @@ const Gacha = ({ stats, updateStats }) => {
             }
             audioRef.current = new Audio(GACHA_AUDIO);
             audioRef.current.play().catch(() => { });
-        } catch (e) {
+        } catch {
             // 音声再生失敗は無視
         }
     };

@@ -640,21 +640,17 @@
 
 .speech-bubble {
     position: absolute;
-    bottom: 280px;
-    /* Push higher to clear side buttons and social buttons */
+    bottom: 30%; /* ％指定でキャラの頭付近に安定させる */
     left: 50%;
     transform: translateX(-50%);
     background: rgba(255, 255, 255, 0.98);
-    padding: 15px 30px;
-    border-radius: 50px;
-    /* 丸みを持たせる */
+    padding: 12px 24px;
+    border-radius: 40px;
     border: 3px solid #81c784;
-    /* 参考画像のような緑系の枠線に変更 */
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    width: 80%;
-    max-width: 600px;
-    min-height: 100px;
-    /* 常に2行分くらいの高さ確保 */
+    width: 85%;
+    max-width: 450px;
+    min-height: 80px;
     z-index: 20;
     display: flex;
     align-items: center;
@@ -980,13 +976,13 @@
 /* Social Buttons (Right Side - Top) */
 .social-buttons {
     position: absolute;
-    right: 20px;
-    top: 450px;
-    /* キャラの腰あたりに配置 */
+    right: 15px;
+    top: 50%;
+    transform: translateY(-80%); /* 少し上にずらして中央配置 */
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 15px;
+    gap: 12px;
     z-index: 20;
 }
 

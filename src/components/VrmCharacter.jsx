@@ -6,7 +6,7 @@
  * - リップシンク（口パク）
  * - 表情変化
  */
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
@@ -114,7 +114,7 @@ const VrmCharacter = ({ emotion = 'normal', text = '', isSpeaking = false }) => 
                     console.log('Available expressions:', expNames);
                 }
             },
-            (progress) => {
+            () => {
                 // Loading progress
             },
             (error) => {
@@ -155,7 +155,7 @@ const VrmCharacter = ({ emotion = 'normal', text = '', isSpeaking = false }) => 
 
         try {
             vrm.expressionManager.setValue(name, value);
-        } catch (e) {
+        } catch {
             // Expression not found, silently ignore
         }
     }, []);

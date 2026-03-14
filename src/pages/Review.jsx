@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Filter, Calendar, BookOpen } from 'lucide-react';
 import {
     getReviewQuestions,
-    filterBySubject,
-    filterByPriority,
     getReviewPriority,
     formatRelativeDate,
     getReviewStats
@@ -22,21 +20,13 @@ const Review = () => {
     const [stats, setStats] = useState(null);
     const [isQuizMode, setIsQuizMode] = useState(false);
 
-    useEffect(() => {
-        loadReviewData();
-    }, []);
-
-    useEffect(() => {
-        applyFilters();
-    }, [selectedSubject, selectedPriority, questions]);
-
-    const loadReviewData = () => {
+    function loadReviewData() {
         const allQuestions = getReviewQuestions();
         setQuestions(allQuestions);
         setStats(getReviewStats());
-    };
+    }
 
-    const applyFilters = () => {
+    function applyFilters() {
         let filtered = questions;
 
         // 科目フィルター
@@ -58,7 +48,15 @@ const Review = () => {
         filtered.sort((a, b) => a.nextReviewDate - b.nextReviewDate);
 
         setFilteredQuestions(filtered);
-    };
+    }
+
+    useEffect(() => {
+        loadReviewData();
+    }, []);
+
+    useEffect(() => {
+        applyFilters();
+    }, [selectedSubject, selectedPriority, questions]);
 
     const getPriorityBadge = (nextReviewDate) => {
         const priority = getReviewPriority(nextReviewDate);
@@ -78,9 +76,9 @@ const Review = () => {
         setIsQuizMode(true);
     };
 
-    const handleQuizComplete = (results) => {
+    const handleQuizComplete = () => {
         setIsQuizMode(false);
-        loadReviewData(); // Reload to reflect updated review statuses
+        loadReviewData();
     };
 
     // 科目リストを取得
@@ -91,6 +89,7 @@ const Review = () => {
         return (
             <div className="review-page">
                 <ReviewQuiz
+                    key={filteredQuestions.map((question) => question.id).join('-')}
                     questions={filteredQuestions}
                     onComplete={handleQuizComplete}
                 />

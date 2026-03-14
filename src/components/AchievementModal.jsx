@@ -19,16 +19,16 @@ const AchievementModal = ({ onClose, stats, updateStats }) => {
     const [unlockedTitles, setUnlockedTitles] = useState([]);
     const [selectedTitle, setSelectedTitle] = useState(stats?.selectedTitle || null);
 
-    useEffect(() => {
-        refreshData();
-    }, []);
-
-    const refreshData = () => {
+    function refreshData() {
         const allAchievements = getAllAchievementsWithProgress();
         setAchievements(allAchievements);
         setAchievementStats(getAchievementStats());
         setUnlockedTitles(getUnlockedTitles());
-    };
+    }
+
+    useEffect(() => {
+        refreshData();
+    }, []);
 
     const filteredAchievements = selectedCategory === 'all'
         ? achievements

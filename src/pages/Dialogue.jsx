@@ -14,6 +14,7 @@ import { addWrongQuestion } from '../utils/reviewUtils';
 import { saveStudyCompletion } from '../firebase/sync';
 import { getCurrentUser } from '../firebase/auth';
 import { convertTone } from '../utils/toneUtils';
+import { getQuizReaction } from '../utils/affectionUtils';
 
 // Images
 import CharacterNew from '../assets/images/character_new.png';
@@ -75,7 +76,6 @@ const Dialogue = ({ stats, updateStats }) => {
     const [currentScene, setCurrentScene] = useState(null);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [dataSource, setDataSource] = useState("init");
     const [feedback, setFeedback] = useState(null); // 'correct' | 'incorrect'
     const [isSpeaking, setIsSpeaking] = useState(false); // Loading state for TTS
     const [vrmSpeaking, setVrmSpeaking] = useState(false); // Lip sync state for VRM
@@ -239,7 +239,6 @@ const Dialogue = ({ stats, updateStats }) => {
             const CACHE_DURATION = 60 * 60 * 1000; // 60分
 
             let finalData = null;
-            let usedSource = "none";
 
             // 1. Try Cache
             try {
@@ -254,7 +253,6 @@ const Dialogue = ({ stats, updateStats }) => {
                         if (hasTopic || topic === 'start') {
                             console.log(`Using cached data (Age: ${Math.floor(age / 1000)}s)`);
                             finalData = cached.data;
-                            usedSource = "Cache";
                         }
                     }
                 }
@@ -294,7 +292,6 @@ const Dialogue = ({ stats, updateStats }) => {
 
                             if (hasTopic(gasData, topic)) {
                                 rawData = gasData;
-                                usedSource = "GAS";
                                 console.log("Loaded from GAS");
                             } else {
                                 throw new Error("Topic not found in GAS");
@@ -314,7 +311,6 @@ const Dialogue = ({ stats, updateStats }) => {
                                 const csvData = parseCSV(csvText);
                                 if (hasTopic(csvData, topic)) {
                                     rawData = csvData;
-                                    usedSource = "Spreadsheet CSV";
                                     console.log("Loaded from Spreadsheet CSV");
                                 } else {
                                     console.warn("Topic not found in Spreadsheet CSV, scenes:", [...new Set(csvData.map(d => d.scene))]);
@@ -330,7 +326,6 @@ const Dialogue = ({ stats, updateStats }) => {
                             if (!resLocal.ok) throw new Error('Failed to load local scenario');
                             const text = await resLocal.text();
                             rawData = parseCSV(text);
-                            usedSource = "Local";
                             console.log("Loaded from Local CSV");
                         }
                     }
@@ -393,8 +388,6 @@ const Dialogue = ({ stats, updateStats }) => {
             // 3. Start Scene
             if (finalData) {
                 setScenarioData(finalData);
-                setDataSource(usedSource);
-
                 const uniqueScenes = [...new Set(finalData.map(d => d.scene))];
                 let startSceneId = uniqueScenes.includes(topic) ? topic : null;
 
@@ -829,7 +822,7 @@ const Dialogue = ({ stats, updateStats }) => {
                 if (!nextLine?.text || nextLine.speaker === 'Quiz') return;
                 try {
                     await prefetchVoicevox(nextLine.text, speakerId);
-                } catch (e) { /* ignore */ }
+                } catch { /* ignore */ }
             });
         }
 
@@ -869,14 +862,19 @@ const Dialogue = ({ stats, updateStats }) => {
             setTimeout(() => {
                 setFeedback(null);
 
-                const defaultWin = isRen ? '正解だ。よく理解できている。' : 'ふーん、意外とわかってるじゃない。';
-                const rawWinText = line.win_text || defaultWin;
+                const defaultWinReaction = getQuizReaction({
+                    characterId,
+                    affection: stats?.affection || 0,
+                    isCorrect: true,
+                    streak: correctAnswers + 1,
+                });
+                const rawWinText = line.win_text || defaultWinReaction.text;
                 const winText = isRen ? convertTone(rawWinText, 'ren') : rawWinText;
 
                 setLine({
                     speaker: isRen ? 'レン' : 'ノア',
                     text: winText,
-                    emotion: 'happy',
+                    emotion: defaultWinReaction.emotion,
                     background: line.background || '',
                     se: 'se_correct',
                     effect: '',
@@ -913,16 +911,20 @@ const Dialogue = ({ stats, updateStats }) => {
             setTimeout(() => {
                 setFeedback(null);
 
-                const defaultLose = isRen
-                    ? `正解は「${line[`option${line.answer}`] || '?'}」だ。もう一度確認しろ。`
-                    : `正解は「${line[`option${line.answer}`] || '?'}」よ。しっかり覚えなさい！`;
-                const rawLoseText = line.lose_text || defaultLose;
+                const defaultLoseReaction = getQuizReaction({
+                    characterId,
+                    affection: stats?.affection || 0,
+                    isCorrect: false,
+                    correctAnswer: line[`option${line.answer}`] || '?',
+                    streak: correctAnswers,
+                });
+                const rawLoseText = line.lose_text || defaultLoseReaction.text;
                 const loseText = isRen ? convertTone(rawLoseText, 'ren') : rawLoseText;
 
                 setLine({
                     speaker: isRen ? 'レン' : 'ノア',
                     text: loseText,
-                    emotion: 'serious',
+                    emotion: defaultLoseReaction.emotion,
                     background: line.background || '',
                     se: '',
                     effect: '',
@@ -981,9 +983,9 @@ const Dialogue = ({ stats, updateStats }) => {
                                     src={line.study_image.startsWith('http') ? line.study_image : `/images/${line.study_image}`}
                                     alt="Study Material"
                                     className="study-image-content"
-                                    onError={(e) => {
-                                        e.target.onerror = null;
-                                        e.target.style.display = 'none';
+                                    onError={(event) => {
+                                        event.target.onerror = null;
+                                        event.target.style.display = 'none';
                                         console.warn("Failed to load study image:", line.study_image);
                                     }}
                                 />

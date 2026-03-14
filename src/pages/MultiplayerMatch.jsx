@@ -259,11 +259,12 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         if (!isSolo) submitAnswer(roomId, myUid, myQuestionIndex, answer, isCorrect);
 
         if (isCorrect) {
-            // 正解 → スコア加算して即次の問題へ
+            // 正解 → スコア加算
             setMyScore(prev => prev + 1);
+            // 演出が早すぎないように、1秒（1000ms）待つように変更
             feedbackTimeoutRef.current = setTimeout(() => {
                 goToNextQuestion(true);
-            }, 150);
+            }, 1000);
         } else {
             // 不正解 → 復習リストに保存
             addWrongQuestion({
@@ -280,6 +281,28 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             }, WRONG_ANSWER_DELAY);
         }
     }, [selectedAnswer, roomData, myUid, roomId, showFeedback, myQuestionIndex, goToNextQuestion]);
+
+    // 「わからない」：正解を見せて不正解扱いで次へ
+    const handleSkip = useCallback(() => {
+        if (selectedAnswer !== null || !roomData || !myUid) return;
+        const question = roomData.questions[myQuestionIndex];
+        // 「わからない」を選据したことにする仸の特殊値
+        setSelectedAnswer('__skip__');
+        setShowFeedback(true);
+        clearInterval(timerIntervalRef.current);
+        if (!isSolo) submitAnswer(roomId, myUid, myQuestionIndex, '__skip__', false);
+        addWrongQuestion({
+            subject: '英単語バトル',
+            questionId: question.word,
+            questionText: question.word,
+            correctAnswer: question.correctAnswer,
+            userAnswer: '（わからない）',
+            options: question.options
+        });
+        feedbackTimeoutRef.current = setTimeout(() => {
+            goToNextQuestion(false);
+        }, WRONG_ANSWER_DELAY);
+    }, [selectedAnswer, roomData, myUid, roomId, myQuestionIndex, goToNextQuestion]);
 
     // タイムアップ
     const handleTimeUp = useCallback(async () => {
@@ -336,7 +359,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     // ヘルパー：背景コンポーネント
     const renderBackground = () => (
         <div 
-            className="mp-background" 
+            className={`mp-background ${myEquippedBackground !== 'default' ? 'is-custom' : ''}`} 
             style={myEquippedBackground !== 'default' ? currentBgStyle : { backgroundImage: `url(${BgClassroom})` }} 
         />
     );
@@ -469,7 +492,6 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         const question = roomData.questions[myQuestionIndex];
         const opponent = getOpponent();
         const opScore = opponent?.score || 0;
-        const opProgress = opponent?.answers?.length || 0;
         const totalQuestions = roomData.questions.length;
 
         // 進行度の計算 (%)
@@ -491,12 +513,14 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                     </button>
                 )}
                 
-                {/* 中央キャラクター */}
-                <img 
-                    className="mp-center-character" 
-                    src={getCharacterImage(myCharacterId, myEquippedSkin)} 
-                    alt="Character" 
-                />
+                {/* キャラクター（mp-playing-screenに対してabsolute配置） */}
+                <div className="mp-character-area">
+                    <img 
+                        className="mp-center-character" 
+                        src={getCharacterImage(myCharacterId, myEquippedSkin)} 
+                        alt="Character" 
+                    />
+                </div>
                 
                 {/* プレイ画面のコンテンツラッパー */}
                 <div className="mp-playing-content-wrapper">
@@ -517,7 +541,8 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                         </div>
                     )}
 
-                    {/* 中央：問題とタイマー (キャラクターに被るようなカード型) */}
+
+                    {/* 問題とタイマー（中央） */}
                     <div className="mp-question-container">
                         <div className="mp-question-card">
                             <div className="mp-question-word">{question.word}</div>
@@ -534,10 +559,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                         </div>
                     </div>
 
-                    {/* スペーサー：下部に押しやるため */}
-                    <div className="mp-spacer" />
-
-                    {/* 下部：自分のステータス＆プログレスバー＆解答ボタン */}
+                    {/* 下部：解答ボタン＆自分のステータス */}
                     <div className="mp-bottom-area">
                         {/* 解答ボタン */}
                         <div className="mp-options-grid">
@@ -566,6 +588,17 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                             })}
                         </div>
 
+                        {/* わからないボタン（常に表示、回答後はdisabledで位置を固定） */}
+                        <div className="mp-skip-wrapper">
+                            <button 
+                                className="mp-skip-btn" 
+                                onClick={handleSkip}
+                                disabled={selectedAnswer !== null}
+                            >
+                                🤔 わからない
+                            </button>
+                        </div>
+
                         {/* 自分のプログレスバーとステータス */}
                         <div className="mp-bottom-status-wrapper">
                             <div className="mp-progress-bar-container">
@@ -588,16 +621,16 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                         <div className="mp-feedback-center">
                             {selectedAnswer === '__timeout__' ? (
                                 <div className="mp-feedback-card mp-fc-timeout">
-                                    <h2>TIME UP</h2>
+                                    <h2>❌</h2>
                                     <p>正解: {question.correctAnswer}</p>
                                 </div>
                             ) : selectedAnswer === question.correctAnswer ? (
                                 <div className="mp-feedback-card mp-fc-correct">
-                                    <h2>CORRECT!</h2>
+                                    <h2>◯</h2>
                                 </div>
                             ) : (
                                 <div className="mp-feedback-card mp-fc-wrong">
-                                    <h2>MISS...</h2>
+                                    <h2>❌</h2>
                                     <p>正解: {question.correctAnswer}</p>
                                 </div>
                             )}

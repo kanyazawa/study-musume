@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import './LoadingScreen.css';
 
 // Import local images directly
@@ -15,15 +15,7 @@ const IMAGES = [
 ];
 
 const LoadingScreen = () => {
-    const [currentImage, setCurrentImage] = useState(null);
-
-    useEffect(() => {
-        // Randomly select an image on mount
-        const randomIndex = Math.floor(Math.random() * IMAGES.length);
-        setCurrentImage(IMAGES[randomIndex]);
-    }, []);
-
-    if (!currentImage) return null;
+    const [currentImage] = useState(() => IMAGES[Math.floor(Math.random() * IMAGES.length)]);
 
     return (
         <div className="loading-screen-overlay">

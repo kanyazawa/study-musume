@@ -37,7 +37,7 @@ const Login = ({ onLoginSuccess }) => {
                 {/* Logo & Title */}
                 <div className="login-header">
                     <div className="login-logo">📚</div>
-                    <h1 className="login-title">Study Musume</h1>
+                    <h1 className="login-title">先輩、ここがわかりません</h1>
                     <p className="login-subtitle">勉強を楽しく、一緒に頑張ろう！</p>
                 </div>
 

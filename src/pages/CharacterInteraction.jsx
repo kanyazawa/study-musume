@@ -17,9 +17,11 @@ import CharacterCasualBlack from '../assets/images/character_casual_hoodie.png';
 import CharacterRen from '../assets/images/character_ren.png'; // Added Ren
 // Using happy image for smile reaction
 import NoaHappy from '../assets/images/noah_happy.png';
+import RenHappy from '../assets/images/ren_happy.png';
 
 // Utils
-import { getSkinFilter, getBackgroundStyle, getSkinImage, getOwnedSkins, getOwnedBackgrounds } from '../utils/cosmeticUtils';
+import { getGiftReaction } from '../utils/affectionUtils';
+import { getSkinFilter, getBackgroundStyle, getOwnedSkins, getOwnedBackgrounds } from '../utils/cosmeticUtils';
 import { filterInventoryByType, removeFromInventory } from '../utils/itemUtils';
 
 const CharacterInteraction = ({ stats, updateStats }) => {
@@ -27,6 +29,7 @@ const CharacterInteraction = ({ stats, updateStats }) => {
     const [mode, setMode] = useState('main'); // main, gift, costume, bg
     const [expression, setExpression] = useState('normal'); // normal, smile
     const [showCharSelect, setShowCharSelect] = useState(false);
+    const [giftReaction, setGiftReaction] = useState(null);
 
     const handleCharSelectComplete = (newStats) => {
         if (updateStats) {
@@ -74,7 +77,7 @@ const CharacterInteraction = ({ stats, updateStats }) => {
     // Override if smiling
     let displayImage = currentSkinImage;
     if (expression === 'smile') {
-        displayImage = characterId === 'ren' ? CharacterRen : NoaHappy;
+        displayImage = characterId === 'ren' ? RenHappy : NoaHappy;
     }
 
     const currentSkinFilter = getSkinFilter(stats.equippedSkin);
@@ -96,19 +99,25 @@ const CharacterInteraction = ({ stats, updateStats }) => {
 
         // Increase Affection
         const newAffection = (stats.affection || 0) + item.affection;
+        const reaction = getGiftReaction({
+            characterId,
+            affection: stats.affection || 0,
+            item,
+        });
 
         updateStats({
             inventory: newInventory,
             affection: newAffection
         });
 
-        // Trigger Smile
-        setExpression('smile');
+        setGiftReaction(reaction);
+        setExpression(reaction.emotion === 'happy' ? 'smile' : 'normal');
 
         // Reset expression and item after 3 seconds
         setTimeout(() => {
             setExpression('normal');
             setGivingItem(null);
+            setGiftReaction(null);
         }, 3000);
     };
 
@@ -130,7 +139,9 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                     <div className="gift-effect-content">
                         <div className="gift-effect-emoji">{givingItem.emoji}</div>
                         <div className="gift-effect-message">
-                            「わぁ、{givingItem.name}！<br />ありがとう、嬉しいな♪」
+                            {'「'}
+                            {giftReaction?.text || `わぁ、${givingItem.name}！ありがとう、嬉しいな♪`}
+                            {'」'}
                         </div>
                     </div>
                 </div>

@@ -163,7 +163,6 @@ const getPeriodStats = (days) => {
  */
 export const getWeeklyReport = () => {
     const thisWeek = getPeriodStats(7);
-    const lastWeek = getPeriodStats(14); // 過去14日のデータから前週を計算
 
     // 前週のデータ（8-14日前）
     const history = getStudyHistory();

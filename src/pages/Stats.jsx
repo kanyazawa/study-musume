@@ -6,18 +6,12 @@ import {
     Bar,
     PieChart,
     Pie,
-    LineChart,
-    Line,
-    AreaChart,
-    Area,
     XAxis,
     YAxis,
     CartesianGrid,
     Tooltip,
-    Legend,
     ResponsiveContainer,
     Cell,
-    ComposedChart,
     RadarChart,
     PolarGrid,
     PolarAngleAxis,
@@ -31,24 +25,18 @@ import CharacterGym from '../assets/images/character_gym.jpg';
 import CharacterCasualGray from '../assets/images/character_casual_gray_hoodie.jpg';
 import CharacterCasualBlack from '../assets/images/character_casual_hoodie.png';
 import CharacterRen from '../assets/images/character_ren.png';
-import { getDailyStats, getUsedSubjects, getSubjectDistribution, getDailyAccuracy } from '../utils/studyHistoryUtils';
+import { getDailyStats, getUsedSubjects, getDailyAccuracy } from '../utils/studyHistoryUtils';
 import {
     calculateSubjectAccuracy,
     getOverallStats,
-    getWeakPoints,
-    getWeeklyReport,
-    getMonthlyReport,
-    getHourlyStats,
     getDailyStats as getDayOfWeekStats,
     formatDuration,
-    getAccuracyColor,
-    getComparisonText
 } from '../utils/statsUtils';
 import { STUDY_TOPICS } from '../data/studyTopics';
 
 const Stats = ({ stats = {} }) => {
     const navigate = useNavigate();
-    const [period, setPeriod] = useState(7); // 7 or 30 days
+    const [period] = useState(7);
     const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'subjects' | 'calendar'
 
     // V0 Tabs Configuration
@@ -75,17 +63,12 @@ const Stats = ({ stats = {} }) => {
     // Get data
     const dailyStatsData = getDailyStats(period);
     const usedSubjects = getUsedSubjects();
-    const subjectDistribution = getSubjectDistribution(period);
     const dailyAccuracy = getDailyAccuracy(period);
 
     // Get detailed stats
     const overallStats = getOverallStats();
     const subjectAccuracy = calculateSubjectAccuracy();
-    const weakPoints = getWeakPoints(5);
-    const weeklyReport = getWeeklyReport();
-    const monthlyReport = getMonthlyReport();
-    const hourlyStats = getHourlyStats();
-    const dayOfWeekStats = getDayOfWeekStats();
+    getDayOfWeekStats();
 
     // Character Banner Message Logic based on Stats
     const getBannerMessage = () => {

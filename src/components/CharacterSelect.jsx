@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { saveStats } from '../utils/saveUtils';
+import { loadStats, saveStats } from '../utils/saveUtils';
 import './CharacterSelect.css'; // We will create this CSS
 
 // Images
@@ -31,13 +31,10 @@ const CharacterSelect = ({ onComplete }) => {
             localStorage.setItem('characterMode', '2d');
         }
 
-        // Save stats
-        import('../utils/saveUtils').then(({ loadStats, saveStats }) => {
-            const currentStats = loadStats();
-            const newStats = { ...currentStats, ...updates };
-            saveStats(newStats);
-            onComplete(newStats);
-        });
+        const currentStats = loadStats();
+        const newStats = { ...currentStats, ...updates };
+        saveStats(newStats);
+        onComplete(newStats);
     };
 
     return (

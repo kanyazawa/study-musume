@@ -8,26 +8,21 @@ import CharacterCasual from '../assets/images/character_casual_v9.png';
 import CharacterGym from '../assets/images/character_gym.jpg';
 import CharacterCasualGray from '../assets/images/character_casual_gray_hoodie.jpg';
 import CharacterCasualBlack from '../assets/images/character_casual_hoodie.png';
+import NoaHappy from '../assets/images/noah_happy.png';
+import NoaAngry from '../assets/images/noah_angry.png';
+import RenHappy from '../assets/images/ren_happy.png';
+import RenAngry from '../assets/images/ren_angry.png';
 // Footer removed
 import MenuModal from '../components/MenuModal';
 import LoginBonusModal from '../components/LoginBonusModal';
 
 // Utils
-import { getAffectionLevel, getAffectionProgress, getRandomQuote } from '../utils/affectionUtils';
-import { getSkinImage, getSkinFilter, getBackgroundStyle, getNextSkinId } from '../utils/cosmeticUtils';
+import { getAffectionLevel, getAffectionProgress, getHomeReaction } from '../utils/affectionUtils';
+import { getSkinFilter, getBackgroundStyle } from '../utils/cosmeticUtils';
 import { updateMissionsOnInteract } from '../utils/missionUtils';
-import { getUnlockedTitles, checkForNewAchievements } from '../utils/achievementUtils';
+import { checkForNewAchievements } from '../utils/achievementUtils';
 import { ACHIEVEMENTS } from '../data/achievements';
 import { processLoginBonus } from '../utils/loginBonusUtils';
-
-const TSUNDERE_QUOTES = [
-    "べ、別にアンタのために\n勉強教えてあげるわけじゃないんだからね！",
-    "早く勉強しなさいよ、バカ！",
-    "……ま、まあ、頑張ってるのは知ってるけど。",
-    "ちょっと！\n私の顔ばっかり見てないでテキスト見なさいよ！",
-    "次のテストで赤点取ったら承知しないから！",
-    "ふん、意外とやるじゃない……\nほ、褒めてないわよ！"
-];
 
 const Home = ({ stats, updateStats }) => {
     // Default stats if not provided (fallback)
@@ -39,13 +34,13 @@ const Home = ({ stats, updateStats }) => {
         intellect = 0,
         diamonds = 0,
         affection = 0,
-        inventory = [],
         equippedSkin = 'default',
         equippedBackground = 'default'
     } = stats || {};
 
     const navigate = useNavigate();
     const [speech, setSpeech] = useState("");
+    const [emotion, setEmotion] = useState('normal');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [loginBonusData, setLoginBonusData] = useState(null);
 
@@ -59,7 +54,10 @@ const Home = ({ stats, updateStats }) => {
 
     // Ren (Male) placeholder
     const renImages = {
-        'default': CharacterRen // Placeholder
+        'default': CharacterRen,
+        'happy': RenHappy,
+        'serious': RenAngry,
+        'normal': CharacterRen,
     };
 
     const noahImages = {
@@ -67,24 +65,19 @@ const Home = ({ stats, updateStats }) => {
         'skin_casual': CharacterCasual,
         'skin_gym': CharacterGym,
         'skin_casual_gray_hoodie': CharacterCasualGray,
-        'skin_casual_hoodie': CharacterCasualBlack
+        'skin_casual_hoodie': CharacterCasualBlack,
+        'happy': NoaHappy,
+        'serious': NoaAngry,
+        'normal': CharacterMain,
     };
 
     const skinImages = characterId === 'ren' ? renImages : noahImages;
 
     // 装備中のスキン・背景の取得
-    const currentSkinImage = skinImages[equippedSkin] || skinImages['default'];
+    const baseSkinImage = skinImages[equippedSkin] || skinImages['default'];
+    const currentSkinImage = skinImages[emotion] || baseSkinImage;
     const currentSkinFilter = getSkinFilter(equippedSkin);
     const currentBgStyle = getBackgroundStyle(equippedBackground);
-
-    // 着せ替え機能
-    const changeSkin = (e) => {
-        e.stopPropagation(); // talkイベントの発火を防ぐ
-        const nextSkinId = getNextSkinId(equippedSkin, inventory);
-        if (updateStats) {
-            updateStats({ equippedSkin: nextSkinId });
-        }
-    };
 
     // 好感度レベルを取得
     const affectionLevelInfo = getAffectionLevel(affection);
@@ -92,8 +85,15 @@ const Home = ({ stats, updateStats }) => {
 
     // Random speech on mount and click (好感度レベルに応じて)
     const talk = () => {
-        const randomQuote = getRandomQuote(affectionLevelInfo.level, characterId);
-        setSpeech(randomQuote);
+        const reaction = getHomeReaction({
+            affection,
+            tp,
+            maxTp,
+            loginStreak: stats?.loginStreak || 0,
+            characterId,
+        });
+        setSpeech(reaction.text);
+        setEmotion(reaction.emotion || 'normal');
 
         // Update mission progress for character interaction
         updateMissionsOnInteract();
@@ -223,7 +223,7 @@ const Home = ({ stats, updateStats }) => {
                         src={currentSkinImage}
                         alt="Character"
                         className="char-image"
-                        style={{ filter: currentSkinFilter }}
+                        style={{ filter: emotion === 'normal' ? currentSkinFilter : 'none' }}
                     />
 
                     {/* Speech Bubble */}

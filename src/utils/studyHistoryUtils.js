@@ -149,7 +149,7 @@ export const getSubjectDistribution = (days = 7) => {
 
     // 配列に変換
     return Object.entries(subjectTimes)
-        .filter(([subject, _]) => subject && subject !== '不明')
+        .filter(([subject]) => subject && subject !== '不明')
         .map(([subject, time]) => ({
             name: subject,
             value: Math.round(time),
