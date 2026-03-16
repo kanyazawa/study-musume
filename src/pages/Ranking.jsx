@@ -14,16 +14,21 @@ const Ranking = () => {
     const [myRank, setMyRank] = useState(null);
     const [loading, setLoading] = useState(false);
     const [friendIds, setFriendIds] = useState([]);
+    const [error, setError] = useState(null);
 
     async function loadFriendsData(uid) {
         const result = await getFriendsList(uid);
         if (result.success) {
             setFriendIds([uid, ...result.friends.map(f => f.id)]);
+        } else {
+            setFriendIds([uid]);
+            setError(result.error || 'フレンド一覧の取得に失敗しました');
         }
     }
 
     async function loadRankingData() {
         setLoading(true);
+        setError(null);
 
         let result;
         if (activeTab === 'friends') {
@@ -44,6 +49,10 @@ const Ranking = () => {
             if (rankResult.success) {
                 setMyRank(rankResult.rank);
             }
+        } else {
+            setRanking([]);
+            setMyRank(null);
+            setError(result.error || 'ランキングの取得に失敗しました');
         }
 
         setLoading(false);
@@ -126,6 +135,12 @@ const Ranking = () => {
                     <div className="ranking-loading">
                         <div className="loading-spinner"></div>
                         <p>読み込み中...</p>
+                    </div>
+                ) : error ? (
+                    <div className="empty-state">
+                        <Trophy size={48} />
+                        <p>ランキングを読み込めませんでした</p>
+                        <p className="hint">{error}</p>
                     </div>
                 ) : ranking.length === 0 ? (
                     <div className="empty-state">

@@ -28,23 +28,28 @@ const Friends = () => {
 
     async function loadUserData(uid) {
         setLoading(true);
+        const [profileResult, friendsResult, requestsResult] = await Promise.all([
+            getUserProfile(uid),
+            getFriendsList(uid),
+            getPendingRequests(uid)
+        ]);
 
-        // マイフレンドコードを取得
-        const profileResult = await getUserProfile(uid);
         if (profileResult.success) {
-            setMyFriendCode(profileResult.data.friendCode);
+            setMyFriendCode(profileResult.data.friendCode || '');
+        } else {
+            showMessage(profileResult.error || 'プロフィールの取得に失敗しました', 'error');
         }
 
-        // フレンドリストを取得
-        const friendsResult = await getFriendsList(uid);
         if (friendsResult.success) {
             setFriends(friendsResult.friends);
+        } else {
+            showMessage(friendsResult.error || 'フレンド一覧の取得に失敗しました', 'error');
         }
 
-        // フレンド申請を取得
-        const requestsResult = await getPendingRequests(uid);
         if (requestsResult.success) {
             setPendingRequests(requestsResult.requests);
+        } else {
+            showMessage(requestsResult.error || 'フレンド申請の取得に失敗しました', 'error');
         }
 
         setLoading(false);
@@ -141,9 +146,27 @@ const Friends = () => {
         setTimeout(() => setMessage(null), 3000);
     };
 
-    const copyFriendCode = () => {
-        navigator.clipboard.writeText(myFriendCode);
-        showMessage('フレンドコードをコピーしました！', 'success');
+    const copyFriendCode = async () => {
+        if (!myFriendCode) {
+            showMessage('フレンドコードがまだ作成されていません', 'error');
+            return;
+        }
+
+        try {
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(myFriendCode);
+            } else {
+                const input = document.createElement('input');
+                input.value = myFriendCode;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+            }
+            showMessage('フレンドコードをコピーしました！', 'success');
+        } catch (error) {
+            showMessage('コピーに失敗しました。長押しで選択してください', 'error');
+        }
     };
 
     if (!currentUser) {
