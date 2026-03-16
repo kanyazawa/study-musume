@@ -19,11 +19,7 @@ const requiredEnvVars = [
     ["VITE_FIREBASE_APP_ID", firebaseEnv.appId]
 ];
 
-for (const [key, value] of requiredEnvVars) {
-    if (!value) {
-        throw new Error(`Missing Firebase environment variable: ${key}`);
-    }
-}
+export const isFirebaseConfigured = requiredEnvVars.every(([, value]) => Boolean(value));
 
 const runtimeHost = typeof window !== "undefined" ? window.location.host : "";
 const configuredAuthDomain = firebaseEnv.authDomain;
@@ -32,23 +28,36 @@ const authDomain =
         ? runtimeHost
         : configuredAuthDomain;
 
-if (!authDomain) {
-    throw new Error("Missing Firebase auth domain configuration");
+if (!isFirebaseConfigured) {
+    const missingKeys = requiredEnvVars
+        .filter(([, value]) => !value)
+        .map(([key]) => key);
+    console.warn("Firebase is disabled because required environment variables are missing:", missingKeys);
 }
 
-const firebaseConfig = {
-    apiKey: firebaseEnv.apiKey,
-    authDomain,
-    projectId: firebaseEnv.projectId,
-    storageBucket: firebaseEnv.storageBucket,
-    messagingSenderId: firebaseEnv.messagingSenderId,
-    appId: firebaseEnv.appId
-};
+let app = null;
+let auth = null;
+let db = null;
+let googleProvider = null;
 
-const app = initializeApp(firebaseConfig);
+if (isFirebaseConfigured && authDomain) {
+    const firebaseConfig = {
+        apiKey: firebaseEnv.apiKey,
+        authDomain,
+        projectId: firebaseEnv.projectId,
+        storageBucket: firebaseEnv.storageBucket,
+        messagingSenderId: firebaseEnv.messagingSenderId,
+        appId: firebaseEnv.appId
+    };
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const googleProvider = new GoogleAuthProvider();
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+    googleProvider = new GoogleAuthProvider();
+} else if (firebaseEnv.authDomain) {
+    console.warn("Firebase auth domain is configured, but Firebase startup was skipped because other env vars are missing.");
+}
+
+export { app, auth, db, googleProvider };
 
 export default app;

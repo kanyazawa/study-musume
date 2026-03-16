@@ -12,12 +12,16 @@ import {
     updateDoc,
     serverTimestamp
 } from "firebase/firestore";
-import { auth, db, googleProvider } from "./config";
+import { auth, db, googleProvider, isFirebaseConfigured } from "./config";
 
 /**
  * ユーザードキュメントを作成または更新
  */
 const ensureUserDocument = async (user) => {
+    if (!db) {
+        return;
+    }
+
     const userDocRef = doc(db, "users", user.uid);
     const userDoc = await getDoc(userDocRef);
 
@@ -69,6 +73,13 @@ const isInAppBrowser = () => {
  */
 export const signInWithGoogle = async () => {
     try {
+        if (!isFirebaseConfigured || !auth || !googleProvider) {
+            return {
+                success: false,
+                error: "Firebase が未設定のため、現在はログインできません。"
+            };
+        }
+
         if (isMobileDevice() && (isStandaloneMode() || isInAppBrowser())) {
             return {
                 success: false,
@@ -116,6 +127,10 @@ export const signInWithGoogle = async () => {
  */
 export const handleRedirectResult = async () => {
     try {
+        if (!isFirebaseConfigured || !auth) {
+            return { success: false, noResult: true };
+        }
+
         const result = await getRedirectResult(auth);
         if (result) {
             const user = result.user;
@@ -134,6 +149,10 @@ export const handleRedirectResult = async () => {
  */
 export const signOut = async () => {
     try {
+        if (!auth) {
+            return { success: true };
+        }
+
         await firebaseSignOut(auth);
         return { success: true };
     } catch (error) {
@@ -146,6 +165,11 @@ export const signOut = async () => {
  * 認証状態の監視
  */
 export const subscribeToAuthState = (callback) => {
+    if (!auth) {
+        callback(null);
+        return () => { };
+    }
+
     return onAuthStateChanged(auth, callback);
 };
 
@@ -153,7 +177,7 @@ export const subscribeToAuthState = (callback) => {
  * 現在のユーザーを取得
  */
 export const getCurrentUser = () => {
-    return auth.currentUser;
+    return auth?.currentUser || null;
 };
 
 /**
@@ -161,6 +185,10 @@ export const getCurrentUser = () => {
  */
 export const getUserProfile = async (uid) => {
     try {
+        if (!db) {
+            return { success: false, error: "Firebase が未設定です" };
+        }
+
         const userDoc = await getDoc(doc(db, "users", uid));
         if (userDoc.exists()) {
             return { success: true, data: userDoc.data() };
@@ -177,6 +205,10 @@ export const getUserProfile = async (uid) => {
  */
 export const updateUserProfile = async (uid, data) => {
     try {
+        if (!db) {
+            return { success: false, error: "Firebase が未設定です" };
+        }
+
         await updateDoc(doc(db, "users", uid), data);
         return { success: true };
     } catch (error) {
