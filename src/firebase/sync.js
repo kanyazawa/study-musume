@@ -14,6 +14,15 @@ import {
     restoreAllSaveData
 } from "../utils/saveUtils";
 
+const buildRankingStatsPayload = (stats = {}) => ({
+    totalStudyTime: stats.totalStudyTime || 0,
+    totalSessions: stats.totalSessions || 0,
+    level: stats.level || 1,
+    affection: stats.affection || 0,
+    diamonds: stats.diamonds || 0,
+    updatedAt: serverTimestamp()
+});
+
 /**
  * ============================================
  * 全セーブデータの一括同期
@@ -28,11 +37,14 @@ import {
 export const uploadAllSaveData = async (uid) => {
     try {
         const allData = collectAllSaveData();
+        const currentStats = loadStats();
         const ref = doc(db, "users", uid, "saveData", "current");
+        const rankingRef = doc(db, "users", uid, "stats", "current");
         await setDoc(ref, {
             ...allData,
             updatedAt: serverTimestamp()
         }, { merge: false }); // 完全上書き
+        await setDoc(rankingRef, buildRankingStatsPayload(currentStats), { merge: true });
         console.log('[CloudSync] Upload完了');
         return { success: true };
     } catch (error) {
@@ -84,6 +96,7 @@ export const syncOnLogin = async (uid) => {
                 // クラウドの方が新しい → ローカルを上書き
                 console.log('[CloudSync] クラウドデータが新しいため復元します');
                 restoreAllSaveData(cloudResult.data);
+                await syncUserStats(uid, loadStats());
                 return {
                     success: true,
                     source: 'cloud',
@@ -93,6 +106,7 @@ export const syncOnLogin = async (uid) => {
                 // ローカルの方が新しい → クラウドを更新
                 console.log('[CloudSync] ローカルデータが新しいためアップロードします');
                 await uploadAllSaveData(uid);
+                await syncUserStats(uid, loadStats());
                 return {
                     success: true,
                     source: 'local',
@@ -103,6 +117,7 @@ export const syncOnLogin = async (uid) => {
             // クラウドにデータなし → ローカルデータをアップロード
             console.log('[CloudSync] 初回同期: ローカルデータをアップロードします');
             await uploadAllSaveData(uid);
+            await syncUserStats(uid, loadStats());
             return {
                 success: true,
                 source: 'local',
@@ -121,17 +136,7 @@ export const syncOnLogin = async (uid) => {
 export const syncUserStats = async (uid, localStats) => {
     try {
         const userStatsRef = doc(db, "users", uid, "stats", "current");
-
-        const syncData = {
-            totalStudyTime: localStats.totalStudyTime || 0,
-            totalSessions: localStats.totalSessions || 0,
-            level: localStats.level || 1,
-            affection: localStats.affection || 0,
-            diamonds: localStats.diamonds || 0,
-            updatedAt: serverTimestamp()
-        };
-
-        await setDoc(userStatsRef, syncData, { merge: true });
+        await setDoc(userStatsRef, buildRankingStatsPayload(localStats), { merge: true });
         return { success: true };
     } catch (error) {
         console.error("Sync user stats error:", error);
