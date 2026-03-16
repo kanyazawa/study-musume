@@ -16,7 +16,7 @@ import CharacterSelect from './components/CharacterSelect';
 
 function App() {
   const [stats, setStats] = useState(() => loadStats());
-  const { authLoading, handleLoginSuccess } = useAuthSync(setStats);
+  const { authLoading, handleLoginSuccess, currentUser } = useAuthSync(setStats);
 
   const handleCharacterSelectComplete = (newStats) => {
     setStats(newStats);
@@ -58,6 +58,7 @@ function App() {
               stats={stats}
               updateStats={updateStats}
               onLoginSuccess={handleLoginSuccess}
+              currentUser={currentUser}
             />
           </AppLayout>
         </MobileContainer>

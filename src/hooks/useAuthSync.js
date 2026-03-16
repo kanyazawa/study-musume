@@ -5,7 +5,7 @@ import { syncOnLogin, uploadAllSaveData } from '../firebase/sync';
 import { loadStats, registerCloudSync } from '../utils/saveUtils';
 
 export const useAuthSync = (setStats) => {
-  const [, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
   const redirectToHomeIfNeeded = () => {
@@ -62,5 +62,5 @@ export const useAuthSync = (setStats) => {
     setCurrentUser(user);
   };
 
-  return { authLoading, handleLoginSuccess };
+  return { authLoading, handleLoginSuccess, currentUser };
 };

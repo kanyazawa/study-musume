@@ -1,5 +1,5 @@
 import React from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import Home from '../pages/Home';
 import StudySelect from '../pages/StudySelect';
 import Dialogue from '../pages/Dialogue';
@@ -22,7 +22,7 @@ import CharacterSelectPage from '../pages/CharacterSelectPage';
 import MultiplayerMatch from '../pages/MultiplayerMatch';
 import TitlePage from '../pages/TitlePage';
 
-const AppRoutes = ({ stats, updateStats, onLoginSuccess }) => (
+const AppRoutes = ({ stats, updateStats, onLoginSuccess, currentUser }) => (
   <Routes>
     <Route path="/" element={<TitlePage />} />
     <Route path="/home" element={<Home stats={stats} updateStats={updateStats} />} />
@@ -40,7 +40,10 @@ const AppRoutes = ({ stats, updateStats, onLoginSuccess }) => (
     <Route path="/gacha" element={<Gacha stats={stats} updateStats={updateStats} />} />
     <Route path="/review" element={<Review />} />
     <Route path="/profile" element={<Profile stats={stats} updateStats={updateStats} />} />
-    <Route path="/login" element={<Login onLoginSuccess={onLoginSuccess} />} />
+    <Route
+      path="/login"
+      element={currentUser ? <Navigate to="/home" replace /> : <Login onLoginSuccess={onLoginSuccess} />}
+    />
     <Route path="/friends" element={<Friends />} />
     <Route path="/ranking" element={<Ranking />} />
     <Route path="/character-select" element={<CharacterSelectPage updateStats={updateStats} />} />
