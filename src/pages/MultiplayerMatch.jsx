@@ -92,14 +92,18 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         }
         setMyUid(user.uid);
 
-        getUserProfile(user.uid).then(result => {
-            if (result.success) {
-                setMyDisplayName(result.data.displayName || user.displayName || 'Player');
-            } else {
-                setMyDisplayName(user.displayName || 'Player');
-            }
-        });
-    }, [navigate]);
+        if (stats?.name) {
+            setMyDisplayName(stats.name);
+        } else {
+            getUserProfile(user.uid).then(result => {
+                if (result.success) {
+                    setMyDisplayName(result.data.displayName || user.displayName || 'Player');
+                } else {
+                    setMyDisplayName(user.displayName || 'Player');
+                }
+            });
+        }
+    }, [navigate, stats?.name]);
 
     // ルームデータ更新時
     useEffect(() => {
@@ -529,11 +533,15 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                     {!isSolo && (
                         <div className="mp-top-status">
                             <div className="mp-status-info mp-status-op">
-                                <div className="mp-status-avatar">
-                                    <span style={{fontSize: '24px'}}>👤</span>
+                                <div className="mp-status-header">
+                                    <div className="mp-status-name-with-avatar">
+                                        <div className="mp-status-avatar">
+                                            <span style={{fontSize: '24px'}}>👤</span>
+                                        </div>
+                                        <div className="mp-status-name">{opponent?.displayName || '???'}</div>
+                                    </div>
+                                    <div className="mp-status-score">{opScore} / {TARGET_CORRECT}</div>
                                 </div>
-                                <div className="mp-status-name">{opponent?.displayName || '???'}</div>
-                                <div className="mp-status-score">{opScore} / {TARGET_CORRECT}</div>
                             </div>
                             <div className="mp-progress-bar-container">
                                 <div className="mp-progress-bar-fill mp-bg-op" style={{ width: `${opProgressPercent}%` }} />
