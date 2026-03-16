@@ -68,8 +68,9 @@ const isInAppBrowser = () => {
 
 /**
  * Googleでサインイン
- * モバイル: signInWithRedirect を使用
- * PC: signInWithPopup を試行し、ブロックされた場合は signInWithRedirect にフォールバック
+ * 通常ブラウザ: signInWithPopup を優先
+ * PC: ポップアップがブロックされた場合は signInWithRedirect にフォールバック
+ * モバイル: redirect 復帰時のストレージ制約を避けるため popup を優先
  */
 export const signInWithGoogle = async () => {
     try {
@@ -87,20 +88,26 @@ export const signInWithGoogle = async () => {
             };
         }
 
-        // モバイルブラウザではリダイレクト方式を使用
-        if (isMobileDevice()) {
-            console.log("Mobile device detected, using redirect sign-in...");
-            await signInWithRedirect(auth, googleProvider);
-            // リダイレクト後はページがリロードされるため、ここには戻らない
-            return { success: true, redirect: true };
-        }
+        const mobileBrowser = isMobileDevice();
 
-        // PCブラウザではポップアップを試行
+        // 通常ブラウザではポップアップを試行
         let result;
         try {
             result = await signInWithPopup(auth, googleProvider);
         } catch (popupError) {
-            // ポップアップがブロックされた場合、リダイレクト方式にフォールバック
+            // モバイルでは redirect 復帰が失敗しやすいため、まずは許可を促す
+            if (mobileBrowser && (
+                popupError.code === 'auth/popup-blocked' ||
+                popupError.code === 'auth/popup-closed-by-user' ||
+                popupError.code === 'auth/cancelled-popup-request'
+            )) {
+                return {
+                    success: false,
+                    error: 'スマホのSafari/Chromeでポップアップを許可して、もう一度ログインしてください。'
+                };
+            }
+
+            // PCではポップアップがブロックされた場合、リダイレクト方式にフォールバック
             if (popupError.code === 'auth/popup-blocked' ||
                 popupError.code === 'auth/popup-closed-by-user' ||
                 popupError.code === 'auth/cancelled-popup-request') {
