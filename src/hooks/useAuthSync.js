@@ -8,11 +8,19 @@ export const useAuthSync = (setStats) => {
   const [, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
+  const redirectToHomeIfNeeded = () => {
+    if (typeof window === 'undefined') return;
+    if (window.location.pathname === '/login') {
+      window.location.replace('/home');
+    }
+  };
+
   useEffect(() => {
     handleRedirectResult()
       .then((result) => {
         if (result.success && result.user) {
           console.log('Redirect login successful:', result.user.displayName);
+          redirectToHomeIfNeeded();
         }
       })
       .catch((err) => {
@@ -30,6 +38,8 @@ export const useAuthSync = (setStats) => {
           setStats(loadStats());
           console.log('Restored data from cloud');
         }
+
+        redirectToHomeIfNeeded();
 
         registerCloudSync(async () => {
           if (auth.currentUser) {
