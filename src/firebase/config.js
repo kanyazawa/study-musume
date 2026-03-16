@@ -30,12 +30,8 @@ const requiredEnvVars = [
 
 export const isFirebaseConfigured = requiredEnvVars.every(([, value]) => Boolean(value));
 
-const runtimeHost = typeof window !== "undefined" ? window.location.host : "";
 const configuredAuthDomain = firebaseEnv.authDomain;
-const authDomain =
-    import.meta.env.PROD && runtimeHost && !/^(localhost|127\.0\.0\.1)/i.test(runtimeHost)
-        ? runtimeHost
-        : configuredAuthDomain;
+const authDomain = configuredAuthDomain;
 
 if (!isFirebaseConfigured) {
     const missingKeys = requiredEnvVars
