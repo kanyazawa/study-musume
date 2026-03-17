@@ -30,3 +30,6 @@ dist-ssr
 android/
 ios/
 capacitor.config.json
+
+# Local build caches
+.gradle-user/

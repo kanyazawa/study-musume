@@ -22,6 +22,7 @@ import {
 import AchievementModal from './AchievementModal';
 import NotificationSettings from './NotificationSettings';
 import { useSound } from '../contexts/SoundContext';
+import TtsSettingsModal from './TtsSettingsModal';
 
 
 const MENU_ITEMS = [
@@ -46,6 +47,7 @@ const MenuModal = ({ onClose, stats, updateStats }) => {
     const [showAchievements, setShowAchievements] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
+    const [showTtsSettings, setShowTtsSettings] = useState(false);
 
     const handleMenuClick = (itemId) => {
         if (itemId === 'titles') {
@@ -121,7 +123,22 @@ const MenuModal = ({ onClose, stats, updateStats }) => {
                                 </span>
                             </div>
                         </div>
-                        {/* Other settings placeholders */}
+                        <div className="settings-section" style={{ marginTop: '24px' }}>
+                            <h3>読み上げ設定</h3>
+                            <p style={{ color: '#555', lineHeight: 1.6, marginTop: '10px' }}>
+                                AivisSpeech や VOICEVOX、ブラウザTTSの切り替えと話者設定ができます。
+                            </p>
+                            <button
+                                className="menu-item-btn"
+                                style={{ marginTop: '12px', width: '100%', justifyContent: 'center' }}
+                                onClick={() => setShowTtsSettings(true)}
+                            >
+                                <span className="menu-icon icon-settings">
+                                    <Volume2 />
+                                </span>
+                                TTSエンジン設定を開く
+                            </button>
+                        </div>
                     </div>
                     <div className="menu-footer">
                         <button className="close-btn" onClick={() => setShowSettings(false)}>
@@ -179,6 +196,7 @@ const MenuModal = ({ onClose, stats, updateStats }) => {
             )}
 
             {showSettings && <SettingsPanel />}
+            {showTtsSettings && <TtsSettingsModal onClose={() => setShowTtsSettings(false)} />}
         </>
     );
 };

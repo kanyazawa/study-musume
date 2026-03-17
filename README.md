@@ -136,6 +136,76 @@ Netlify 用の SPA リダイレクト設定が [netlify.toml](/C:/Users/Hide2/.g
 - 画像処理用の Python スクリプトはフロントエンド本体の実行には不要です。
 - テスト基盤はまだ未整備です。
 
+## スプレッドシート授業データと読み上げ
+
+`Dialogue` 画面では Google スプレッドシートの CSV を読み込み、通常行は自動で読み上げます。授業データ側では最低限 `scene`, `id`, `speaker`, `text` があれば動きます。
+
+追加で使える列:
+
+- `tts`: `off`, `false`, `0` を入れるとその行だけ自動読み上げを止めます
+- `tts_speaker`: speaker ID、`話者名`、`話者名 / スタイル名` を指定できます
+- `tts_pitch`: ブラウザTTSのピッチを数値で上書きします
+- `tts_rate`: ブラウザTTSの速度を数値で上書きします
+
+`voice` 列はこれまで通り `public/audio` 配下の音声ファイル再生に使われます。`text` にカンマや改行を含む場合も、CSV のクオート付きセルでそのまま扱えます。
+
+### AivisSpeech を事前音声化してスマホで使う
+
+スマホ本番ではブラウザTTSより、AivisSpeech で先に音声ファイルを書き出して `voice` 列で再生する方が自然で安定します。
+
+前提:
+
+- AivisSpeech Engine を起動して `http://127.0.0.1:10101` で待ち受ける
+- CSV に `text` 列がある
+- できれば `voice` 列と `tts_speaker` 列も用意する
+
+`tts_speaker` には次のどちらでも書けます。
+
+- `話者名`
+- `話者名 / スタイル名`
+
+例:
+
+- `まお`
+- `まお / ノーマル`
+
+音声生成プレビュー:
+
+```bash
+npm run tts:aivis -- --input src/scenarios/chem_scenario.csv --dry-run
+```
+
+音声生成して `voice` 列つき CSV も出力:
+
+```bash
+npm run tts:aivis -- --input src/scenarios/chem_scenario.csv --write-csv tmp/chem_scenario.with-voice.csv
+```
+
+特定シーンだけ生成:
+
+```bash
+npm run tts:aivis -- --input src/scenarios/chem_scenario.csv --sheet be_sentence_01
+```
+
+補足:
+
+- 音声は `public/audio/tts-generated/...` に `.wav` で出力されます
+- `voice` 列には `tts-generated/...` の相対パスが入ります
+- `voice` 列が埋まった行は `Dialogue` でTTSより先に再生されるため、スマホでも同じ声を使えます
+- `--overwrite` を付けると既存の `voice` 列があっても再生成します
+- `--fallback-speaker "まお / ノーマル"` で `tts_speaker` が空欄の行の既定話者を変えられます
+
+シート記入ルールの簡易ガイドは [docs/tts-sheet-guide.md](/C:/Users/Hide2/.gemini/study-musume/docs/tts-sheet-guide.md) にまとめています。
+
+ホーム右上メニューの `設定` から `TTSエンジン設定` を開くと、以下を切り替えられます。
+
+- `AivisSpeech`
+- `VOICEVOX`
+- `ブラウザTTS`
+- `自動判定`
+
+接続先URL、優先話者、ブラウザTTSのピッチと速度も保存されます。AivisSpeech を使う場合は通常 `http://127.0.0.1:10101` を指定します。
+
 ## 次の改善候補
 
 - `App.jsx` の責務分割

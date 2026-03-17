@@ -5,7 +5,7 @@ import './Dialogue.css';
 import VrmViewer from '../components/VrmViewer';
 import { estimateSpeechDuration } from '../utils/lipSync';
 import LoadingScreen from '../components/UI/LoadingScreen';
-import { speak, speakWithVoicevox, prefetchVoicevox, isVoicevoxAvailable, VOICEVOX_SPEAKERS, preloadCommonPhrases } from '../utils/voicevoxUtils';
+import { speakWithBrowserTts, speakWithEngine, prefetchEngine, isEngineAvailable, VOICEVOX_SPEAKERS, preloadCommonPhrases, resolveSpeakerIdForEngine, shouldAutoSpeakLine } from '../utils/voicevoxUtils';
 import { saveStudySession } from '../utils/studyHistoryUtils';
 import { STUDY_TOPICS } from '../data/studyTopics';
 import { updateMissionsOnStudy } from '../utils/missionUtils';
@@ -15,6 +15,8 @@ import { saveStudyCompletion } from '../firebase/sync';
 import { getCurrentUser } from '../firebase/auth';
 import { convertTone } from '../utils/toneUtils';
 import { getQuizReaction } from '../utils/affectionUtils';
+import { parseCsvTable } from '../utils/csvUtils';
+import { getTtsSettings, TTS_ENGINES } from '../utils/ttsSettings';
 
 // Images
 import CharacterNew from '../assets/images/character_new.png';
@@ -81,7 +83,7 @@ const Dialogue = ({ stats, updateStats }) => {
     const [vrmSpeaking, setVrmSpeaking] = useState(false); // Lip sync state for VRM
     const [vrmText, setVrmText] = useState(''); // Current text for lip sync
     const vrmSpeakTimerRef = useRef(null);
-    const voicevoxAvailableRef = useRef(false); // VOICEVOX利用可否（起動時に1回だけチェック）
+    const ttsAvailabilityRef = useRef({ aivis: false, voicevox: false });
     const [use3D, setUse3D] = useState(() => {
         const saved = localStorage.getItem('characterMode');
         return saved === '3d';
@@ -101,11 +103,15 @@ const Dialogue = ({ stats, updateStats }) => {
     const [questionsAnswered, setQuestionsAnswered] = useState(0);
     const [correctAnswers, setCorrectAnswers] = useState(0);
 
-    // 起動時に1回VOICEVOXの利用可否をチェック
+    // 起動時に1回TTSエンジンの利用可否をチェック
     useEffect(() => {
-        isVoicevoxAvailable().then(available => {
-            voicevoxAvailableRef.current = available;
-            console.log('VOICEVOX available:', available);
+        const settings = getTtsSettings();
+        Promise.all([
+            isEngineAvailable(TTS_ENGINES.AIVIS, settings.aivisUrl),
+            isEngineAvailable(TTS_ENGINES.VOICEVOX, settings.voicevoxUrl),
+        ]).then(([aivisAvailable, voicevoxAvailable]) => {
+            ttsAvailabilityRef.current = { aivis: aivisAvailable, voicevox: voicevoxAvailable };
+            console.log('TTS engines available:', ttsAvailabilityRef.current);
         });
     }, []);
 
@@ -159,9 +165,9 @@ const Dialogue = ({ stats, updateStats }) => {
 
     // --- CSV Parser ---
     const parseCSV = (text) => {
-        const lines = text.trim().split('\n');
-        if (lines.length === 0) return [];
-        let headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const rows = parseCsvTable(text);
+        if (rows.length === 0) return [];
+        let headers = rows[0].map(h => h.trim().toLowerCase());
 
         // Normalize headers
         headers = headers.map(h => {
@@ -176,14 +182,12 @@ const Dialogue = ({ stats, updateStats }) => {
         let lastScene = "";
         let lastBackground = "";
 
-        for (let i = 1; i < lines.length; i++) {
-            if (!lines[i].trim()) continue;
-            // Handle basic comma splitting (note: this breaks on commas inside quotes)
-            const values = lines[i].split(',').map(v => v.trim());
+        for (let i = 1; i < rows.length; i++) {
+            const values = rows[i];
             const row = {};
 
             headers.forEach((h, idx) => {
-                row[h] = values[idx] || "";
+                row[h] = (values[idx] || "").trim();
             });
 
             // --- Auto-fill logic ---
@@ -739,6 +743,16 @@ const Dialogue = ({ stats, updateStats }) => {
         }, duration * 1000 + 200); // +200ms buffer
     }, []);
 
+    const resolveLineSpeakerId = useCallback(async (targetLine, chosenEngine, ttsSettings) => {
+        const fallbackSpeakerId = isRen ? VOICEVOX_SPEAKERS.RITSU : VOICEVOX_SPEAKERS.METAN;
+        const preferredSpeaker = targetLine?.tts_speaker || targetLine?.voicevox_speaker || targetLine?.speaker_id || ttsSettings.preferredSpeaker;
+
+        return resolveSpeakerIdForEngine(chosenEngine, preferredSpeaker, {
+            fallbackSpeakerId,
+            baseUrl: chosenEngine === TTS_ENGINES.AIVIS ? ttsSettings.aivisUrl : ttsSettings.voicevoxUrl,
+        });
+    }, [isRen]);
+
     const handleSpeak = async (e) => {
         e.stopPropagation(); // Prevent advancing dialogue
         if (!line || !line.text || isSpeaking) return;
@@ -746,8 +760,30 @@ const Dialogue = ({ stats, updateStats }) => {
         setIsSpeaking(true);
         // Trigger lip sync
         triggerVrmLipSync(line.text);
-        // Use VOICEVOX with Metan voice
-        await speak(line.text, VOICEVOX_SPEAKERS.METAN);
+
+        const ttsSettings = getTtsSettings();
+        const chosenEngine = ttsSettings.engine === TTS_ENGINES.AUTO
+            ? (ttsAvailabilityRef.current.aivis ? TTS_ENGINES.AIVIS : ttsAvailabilityRef.current.voicevox ? TTS_ENGINES.VOICEVOX : TTS_ENGINES.BROWSER)
+            : ttsSettings.engine;
+        const speakerId = await resolveLineSpeakerId(line, chosenEngine, ttsSettings);
+
+        let spoke = false;
+        if (ttsSettings.enabled && chosenEngine !== TTS_ENGINES.BROWSER) {
+            spoke = await speakWithEngine(chosenEngine, line.text, speakerId, {
+                baseUrl: chosenEngine === TTS_ENGINES.AIVIS ? ttsSettings.aivisUrl : ttsSettings.voicevoxUrl,
+            });
+        }
+
+        if (!spoke) {
+            const pitchValue = Number(line.tts_pitch);
+            const rateValue = Number(line.tts_rate);
+            speakWithBrowserTts(line.text, {
+                pitch: Number.isFinite(pitchValue) ? pitchValue : (isRen ? 0.8 : ttsSettings.browserPitch),
+                rate: Number.isFinite(rateValue) ? rateValue : ttsSettings.browserRate,
+                isMale: isRen,
+            });
+        }
+
         setIsSpeaking(false);
     };
 
@@ -759,8 +795,7 @@ const Dialogue = ({ stats, updateStats }) => {
 
     // Auto-speak: VOICEVOXが使えるならそちら、そうでなければブラウザTTSで即再生
     useEffect(() => {
-        if (!line || !line.text) return;
-        if (line.speaker === 'Quiz') return;
+        if (!shouldAutoSpeakLine(line)) return;
 
         // 前の読み上げをキャンセル
         window.speechSynthesis.cancel();
@@ -768,60 +803,42 @@ const Dialogue = ({ stats, updateStats }) => {
         // VRM lip sync 連動
         triggerVrmLipSync(line.text);
 
-        const speakerId = VOICEVOX_SPEAKERS.METAN;
+        const ttsSettings = getTtsSettings();
+        if (!ttsSettings.enabled) return;
 
-        // VOICEVOXが使える場合のみ試す（スマホではスキップ→即ブラウザTTS）
+        const chosenEngine = ttsSettings.engine === TTS_ENGINES.AUTO
+            ? (ttsAvailabilityRef.current.aivis ? TTS_ENGINES.AIVIS : ttsAvailabilityRef.current.voicevox ? TTS_ENGINES.VOICEVOX : TTS_ENGINES.BROWSER)
+            : ttsSettings.engine;
+
         const autoSpeak = async () => {
-            if (voicevoxAvailableRef.current) {
-                const success = await speakWithVoicevox(line.text, speakerId);
+            const speakerId = await resolveLineSpeakerId(line, chosenEngine, ttsSettings);
+            if (chosenEngine !== TTS_ENGINES.BROWSER) {
+                const success = await speakWithEngine(chosenEngine, line.text, speakerId, {
+                    baseUrl: chosenEngine === TTS_ENGINES.AIVIS ? ttsSettings.aivisUrl : ttsSettings.voicevoxUrl,
+                });
                 if (success) return;
             }
 
-            // フォールバック: ブラウザTTS（スマホでも動作）
-            const utterance = new SpeechSynthesisUtterance(line.text);
-            utterance.lang = 'ja-JP';
-
-            // Ren(Male) logic for Pitch/Rate
-            if (isRen) {
-                utterance.pitch = 0.8; // Lower pitch for male
-                utterance.rate = 1.0;
-            } else {
-                utterance.pitch = 1.3; // Higher pitch for female (Noah)
-                utterance.rate = 1.0;
-            }
-
-            const voices = window.speechSynthesis.getVoices();
-            const jaVoices = voices.filter(v => v.lang.startsWith('ja'));
-
-            let voice = null;
-            if (isRen) {
-                // Try to find a male voice
-                voice = jaVoices.find(v =>
-                    v.name.includes('Male') || v.name.includes('Man') || v.name.includes('男性') ||
-                    v.name.includes('Ichiro') // Google Japanese Male?
-                );
-            } else {
-                voice = jaVoices.find(v =>
-                    v.name.includes('Female') || v.name.includes('女性') ||
-                    v.name.includes('Kyoko') || v.name.includes('Google 日本語')
-                ) || jaVoices[0];
-            }
-            // If no specific voice found, fall back to default jaVoice
-            if (voice) utterance.voice = voice;
-            else if (jaVoices.length > 0) utterance.voice = jaVoices[0];
-
-            window.speechSynthesis.speak(utterance);
+            const pitchValue = Number(line.tts_pitch);
+            const rateValue = Number(line.tts_rate);
+            speakWithBrowserTts(line.text, {
+                pitch: Number.isFinite(pitchValue) ? pitchValue : (isRen ? 0.8 : ttsSettings.browserPitch),
+                rate: Number.isFinite(rateValue) ? rateValue : ttsSettings.browserRate,
+                isMale: isRen,
+            });
         };
 
         autoSpeak();
 
-        // VOICEVOXが使える場合のみ先読みキャッシュ
-        if (voicevoxAvailableRef.current && currentScene && currentIndex >= 0) {
+        if (chosenEngine !== TTS_ENGINES.BROWSER && currentScene && currentIndex >= 0) {
             const prefetchLines = currentScene.slice(currentIndex + 1, currentIndex + 4);
             prefetchLines.forEach(async (nextLine) => {
-                if (!nextLine?.text || nextLine.speaker === 'Quiz') return;
+                if (!shouldAutoSpeakLine(nextLine)) return;
                 try {
-                    await prefetchVoicevox(nextLine.text, speakerId);
+                    const nextSpeakerId = await resolveLineSpeakerId(nextLine, chosenEngine, ttsSettings);
+                    await prefetchEngine(chosenEngine, nextLine.text, nextSpeakerId, {
+                        baseUrl: chosenEngine === TTS_ENGINES.AIVIS ? ttsSettings.aivisUrl : ttsSettings.voicevoxUrl,
+                    });
                 } catch { /* ignore */ }
             });
         }
@@ -829,7 +846,7 @@ const Dialogue = ({ stats, updateStats }) => {
         return () => {
             window.speechSynthesis.cancel();
         };
-    }, [line]);
+    }, [currentIndex, currentScene, line, resolveLineSpeakerId, triggerVrmLipSync]);
 
     // Quiz Selection Handler
     const handleQuizOption = (optionIndex, e) => {

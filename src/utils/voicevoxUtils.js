@@ -1,139 +1,271 @@
 /**
- * VOICEVOX連携ユーティリティ
- * VOICEVOXアプリが起動していれば音声合成APIを使用して再生
+ * TTS連携ユーティリティ
+ * VOICEVOX / AivisSpeech / ブラウザTTS を扱う
  */
 
 import { Capacitor } from '@capacitor/core';
+import { getTtsSettings, TTS_ENGINES } from './ttsSettings';
 
-const VOICEVOX_API_BASE = 'http://localhost:50021';
-
-// キャラクターID（speaker ID）
-export const VOICEVOX_SPEAKERS = {
-    ZUNDAMON: 3,           // ずんだもん（ノーマル）
-    ZUNDAMON_SWEET: 1,     // ずんだもん（あまあま）
-    METAN: 2,              // 四国めたん（ノーマル）
-    TSUMUGI: 8,            // 春日部つむぎ（ノーマル）
-    RITSU: 9,              // 雨晴はう（ノーマル）
+const DEFAULT_ENGINE_BASE_URLS = {
+    [TTS_ENGINES.AIVIS]: 'http://127.0.0.1:10101',
+    [TTS_ENGINES.VOICEVOX]: 'http://127.0.0.1:50021',
 };
 
-// 音声キャッシュ（テキスト+speakerIdをキーにしてBlobをキャッシュ）
-const audioCache = new Map();
+export const VOICEVOX_SPEAKERS = {
+    ZUNDAMON: 3,
+    ZUNDAMON_SWEET: 1,
+    METAN: 2,
+    TSUMUGI: 8,
+    RITSU: 9,
+};
 
-/**
- * VOICEVOXが利用可能かチェックする
- * @returns {Promise<boolean>} 利用可能ならtrue
- */
-export const isVoicevoxAvailable = async () => {
+const VOICEVOX_SPEAKER_ALIASES = {
+    zundamon: VOICEVOX_SPEAKERS.ZUNDAMON,
+    zundamon_sweet: VOICEVOX_SPEAKERS.ZUNDAMON_SWEET,
+    sweet: VOICEVOX_SPEAKERS.ZUNDAMON_SWEET,
+    metan: VOICEVOX_SPEAKERS.METAN,
+    tsumugi: VOICEVOX_SPEAKERS.TSUMUGI,
+    ritsu: VOICEVOX_SPEAKERS.RITSU,
+    ずんだもん: VOICEVOX_SPEAKERS.ZUNDAMON,
+    四国めたん: VOICEVOX_SPEAKERS.METAN,
+    春日部つむぎ: VOICEVOX_SPEAKERS.TSUMUGI,
+    雨晴はう: VOICEVOX_SPEAKERS.RITSU,
+};
+
+const DISABLED_TTS_VALUES = new Set(['0', 'false', 'off', 'no', 'mute', 'none', 'disabled']);
+const audioCache = new Map();
+const speakerListCache = new Map();
+const speakerListPromiseCache = new Map();
+
+const normalizeSpeakerKey = (value) => String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[／/]/g, '/')
+    .replace(/\s+/g, ' ');
+
+export const shouldAutoSpeakLine = (line) => {
+    if (!line?.text) return false;
+    if (line.speaker === 'Quiz' || line.speaker === 'System') return false;
+
+    const rawValue = line.tts ?? line.auto_tts ?? '';
+    if (!rawValue) return true;
+
+    return !DISABLED_TTS_VALUES.has(String(rawValue).trim().toLowerCase());
+};
+
+export const resolveVoicevoxSpeakerId = (value, fallbackSpeakerId = VOICEVOX_SPEAKERS.METAN) => {
+    if (value === undefined || value === null || value === '') {
+        return fallbackSpeakerId;
+    }
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return value;
+    }
+
+    const normalized = String(value).trim().toLowerCase();
+    if (VOICEVOX_SPEAKER_ALIASES[normalized]) {
+        return VOICEVOX_SPEAKER_ALIASES[normalized];
+    }
+
+    const numericValue = Number(normalized);
+    if (Number.isFinite(numericValue)) {
+        return numericValue;
+    }
+
+    return fallbackSpeakerId;
+};
+
+export const getEngineDisplayName = (engine) => {
+    if (engine === TTS_ENGINES.AIVIS) return 'AivisSpeech';
+    if (engine === TTS_ENGINES.VOICEVOX) return 'VOICEVOX';
+    if (engine === TTS_ENGINES.BROWSER) return 'ブラウザTTS';
+    return '自動判定';
+};
+
+export const getEngineBaseUrl = (engine, settings = getTtsSettings()) => {
+    if (engine === TTS_ENGINES.AIVIS) {
+        return settings.aivisUrl || DEFAULT_ENGINE_BASE_URLS[TTS_ENGINES.AIVIS];
+    }
+    if (engine === TTS_ENGINES.VOICEVOX) {
+        return settings.voicevoxUrl || DEFAULT_ENGINE_BASE_URLS[TTS_ENGINES.VOICEVOX];
+    }
+    return '';
+};
+
+export const isEngineAvailable = async (engine = TTS_ENGINES.VOICEVOX, baseUrl = getEngineBaseUrl(engine)) => {
+    if (!baseUrl) return false;
     try {
-        const response = await fetch(`${VOICEVOX_API_BASE}/version`, {
-            method: 'GET',
-        });
+        const response = await fetch(`${baseUrl}/version`, { method: 'GET' });
         return response.ok;
     } catch {
         return false;
     }
 };
 
-/**
- * VOICEVOXで音声を合成して再生する（キャッシュ対応）
- * @param {string} text - 読み上げるテキスト
- * @param {number} speakerId - キャラクターID（デフォルト: ずんだもん）
- * @returns {Promise<boolean>} 成功したらtrue、失敗したらfalse
- */
-export const speakWithVoicevox = async (text, speakerId = VOICEVOX_SPEAKERS.ZUNDAMON) => {
-    try {
-        const cacheKey = `${text}_${speakerId}`;
+export const isVoicevoxAvailable = async () => isEngineAvailable(TTS_ENGINES.VOICEVOX);
 
-        // キャッシュをチェック
+const createCacheKey = (engine, text, speakerId, baseUrl) => `${engine}_${baseUrl}_${text}_${speakerId}`;
+
+export const fetchEngineSpeakers = async (engine = TTS_ENGINES.VOICEVOX, baseUrl = getEngineBaseUrl(engine)) => {
+    if (!baseUrl || engine === TTS_ENGINES.BROWSER) return [];
+
+    const cacheKey = `${engine}:${baseUrl}`;
+    if (speakerListCache.has(cacheKey)) {
+        return speakerListCache.get(cacheKey);
+    }
+
+    if (speakerListPromiseCache.has(cacheKey)) {
+        return speakerListPromiseCache.get(cacheKey);
+    }
+
+    try {
+        const speakerPromise = fetch(`${baseUrl}/speakers`)
+            .then(async (response) => {
+                if (!response.ok) return [];
+                const data = await response.json();
+                const speakers = data.flatMap((speaker) =>
+                    (speaker.styles || []).map((style) => ({
+                        engine,
+                        speakerName: speaker.name,
+                        styleName: style.name,
+                        styleId: style.id,
+                        displayName: `${speaker.name} / ${style.name}`,
+                    }))
+                );
+                speakerListCache.set(cacheKey, speakers);
+                return speakers;
+            })
+            .finally(() => {
+                speakerListPromiseCache.delete(cacheKey);
+            });
+
+        speakerListPromiseCache.set(cacheKey, speakerPromise);
+        return speakerPromise;
+    } catch {
+        return [];
+    }
+};
+
+export const resolveSpeakerIdForEngine = async (
+    engine = TTS_ENGINES.VOICEVOX,
+    value,
+    { fallbackSpeakerId, baseUrl = getEngineBaseUrl(engine) } = {}
+) => {
+    const resolvedId = resolveVoicevoxSpeakerId(value, undefined);
+    if (resolvedId !== undefined) {
+        return resolvedId;
+    }
+
+    if (!value || engine === TTS_ENGINES.BROWSER || !baseUrl) {
+        return fallbackSpeakerId;
+    }
+
+    const normalized = normalizeSpeakerKey(value);
+    if (!normalized) {
+        return fallbackSpeakerId;
+    }
+
+    const speakers = await fetchEngineSpeakers(engine, baseUrl);
+    const exactMatch = speakers.find((speaker) => {
+        const speakerName = normalizeSpeakerKey(speaker.speakerName);
+        const styleName = normalizeSpeakerKey(speaker.styleName);
+        const displayName = normalizeSpeakerKey(speaker.displayName);
+        return normalized === displayName
+            || normalized === `${speakerName}/${styleName}`
+            || normalized === speakerName
+            || normalized === styleName;
+    });
+
+    if (exactMatch) {
+        return exactMatch.styleId;
+    }
+
+    const partialMatch = speakers.find((speaker) => {
+        const speakerName = normalizeSpeakerKey(speaker.speakerName);
+        const styleName = normalizeSpeakerKey(speaker.styleName);
+        return speakerName.includes(normalized)
+            || normalized.includes(speakerName)
+            || styleName.includes(normalized)
+            || normalized.includes(styleName);
+    });
+
+    return partialMatch?.styleId ?? fallbackSpeakerId;
+};
+
+export const speakWithEngine = async (
+    engine = TTS_ENGINES.VOICEVOX,
+    text,
+    speakerId = VOICEVOX_SPEAKERS.ZUNDAMON,
+    { baseUrl = getEngineBaseUrl(engine) } = {}
+) => {
+    try {
+        if (!baseUrl) return false;
+
+        const cacheKey = createCacheKey(engine, text, speakerId, baseUrl);
         if (audioCache.has(cacheKey)) {
             const audioBlob = audioCache.get(cacheKey);
             const audioUrl = URL.createObjectURL(audioBlob);
             const audio = new Audio(audioUrl);
-
-            audio.addEventListener('ended', () => {
-                URL.revokeObjectURL(audioUrl);
-            });
-
+            audio.addEventListener('ended', () => URL.revokeObjectURL(audioUrl));
             await audio.play();
             return true;
         }
 
-        // キャッシュになければ生成
-        // 1. 音声合成用のクエリを作成
         const queryResponse = await fetch(
-            `${VOICEVOX_API_BASE}/audio_query?text=${encodeURIComponent(text)}&speaker=${speakerId}`,
-            {
-                method: 'POST',
-            }
+            `${baseUrl}/audio_query?text=${encodeURIComponent(text)}&speaker=${speakerId}`,
+            { method: 'POST' }
         );
-
-        if (!queryResponse.ok) {
-            throw new Error('Audio query failed');
-        }
+        if (!queryResponse.ok) throw new Error('Audio query failed');
 
         const audioQuery = await queryResponse.json();
-
-        // 2. 音声を合成
         const synthesisResponse = await fetch(
-            `${VOICEVOX_API_BASE}/synthesis?speaker=${speakerId}`,
+            `${baseUrl}/synthesis?speaker=${speakerId}`,
             {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(audioQuery),
             }
         );
+        if (!synthesisResponse.ok) throw new Error('Audio synthesis failed');
 
-        if (!synthesisResponse.ok) {
-            throw new Error('Audio synthesis failed');
-        }
-
-        // 3. 音声データを取得してキャッシュ
         const audioBlob = await synthesisResponse.blob();
         audioCache.set(cacheKey, audioBlob);
 
-        // 4. 再生
         const audioUrl = URL.createObjectURL(audioBlob);
         const audio = new Audio(audioUrl);
-
-        // 再生終了後にメモリ解放
-        audio.addEventListener('ended', () => {
-            URL.revokeObjectURL(audioUrl);
-        });
-
+        audio.addEventListener('ended', () => URL.revokeObjectURL(audioUrl));
         await audio.play();
         return true;
-
     } catch (error) {
-        console.warn('VOICEVOX synthesis failed:', error);
+        console.warn(`${getEngineDisplayName(engine)} synthesis failed:`, error);
         return false;
     }
 };
 
-/**
- * VOICEVOXで音声を合成してキャッシュに保存する（再生しない）
- * 先読み用：バックグラウンドで次のセリフを事前に合成しておく
- * @param {string} text - 合成するテキスト
- * @param {number} speakerId - キャラクターID
- * @returns {Promise<boolean>} キャッシュ成功ならtrue
- */
-export const prefetchVoicevox = async (text, speakerId = VOICEVOX_SPEAKERS.ZUNDAMON) => {
-    try {
-        const cacheKey = `${text}_${speakerId}`;
+export const speakWithVoicevox = async (text, speakerId = VOICEVOX_SPEAKERS.ZUNDAMON, options = {}) =>
+    speakWithEngine(TTS_ENGINES.VOICEVOX, text, speakerId, options);
 
-        // 既にキャッシュ済みならスキップ
+export const prefetchEngine = async (
+    engine = TTS_ENGINES.VOICEVOX,
+    text,
+    speakerId = VOICEVOX_SPEAKERS.ZUNDAMON,
+    { baseUrl = getEngineBaseUrl(engine) } = {}
+) => {
+    try {
+        if (!baseUrl) return false;
+
+        const cacheKey = createCacheKey(engine, text, speakerId, baseUrl);
         if (audioCache.has(cacheKey)) return true;
 
         const queryResponse = await fetch(
-            `${VOICEVOX_API_BASE}/audio_query?text=${encodeURIComponent(text)}&speaker=${speakerId}`,
+            `${baseUrl}/audio_query?text=${encodeURIComponent(text)}&speaker=${speakerId}`,
             { method: 'POST' }
         );
         if (!queryResponse.ok) return false;
 
         const audioQuery = await queryResponse.json();
         const synthesisResponse = await fetch(
-            `${VOICEVOX_API_BASE}/synthesis?speaker=${speakerId}`,
+            `${baseUrl}/synthesis?speaker=${speakerId}`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -150,103 +282,60 @@ export const prefetchVoicevox = async (text, speakerId = VOICEVOX_SPEAKERS.ZUNDA
     }
 };
 
-/**
- * よく使うフレーズをプリロード（キャッシュ）する
- * @param {number} speakerId - キャラクターID
- */
-export const preloadCommonPhrases = async (speakerId = VOICEVOX_SPEAKERS.METAN) => {
-    const commonPhrases = [
-        '正解！',
-        'もう一度頑張って。'
-    ];
+export const prefetchVoicevox = async (text, speakerId = VOICEVOX_SPEAKERS.ZUNDAMON, options = {}) =>
+    prefetchEngine(TTS_ENGINES.VOICEVOX, text, speakerId, options);
 
-    console.log('Preloading common phrases...');
+export const preloadCommonPhrases = async (speakerId = VOICEVOX_SPEAKERS.METAN) => {
+    const commonPhrases = ['正解！', 'もう一度頑張って。'];
 
     for (const phrase of commonPhrases) {
         try {
-            const cacheKey = `${phrase}_${speakerId}`;
-
-            // 既にキャッシュされていればスキップ
-            if (audioCache.has(cacheKey)) {
-                continue;
-            }
-
-            // 音声を生成してキャッシュ
-            const queryResponse = await fetch(
-                `${VOICEVOX_API_BASE}/audio_query?text=${encodeURIComponent(phrase)}&speaker=${speakerId}`,
-                { method: 'POST' }
-            );
-
-            if (!queryResponse.ok) continue;
-
-            const audioQuery = await queryResponse.json();
-            const synthesisResponse = await fetch(
-                `${VOICEVOX_API_BASE}/synthesis?speaker=${speakerId}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(audioQuery),
-                }
-            );
-
-            if (!synthesisResponse.ok) continue;
-
-            const audioBlob = await synthesisResponse.blob();
-            audioCache.set(cacheKey, audioBlob);
-            console.log(`Cached: ${phrase}`);
+            await prefetchVoicevox(phrase, speakerId);
         } catch (error) {
             console.warn(`Failed to preload: ${phrase}`, error);
         }
     }
-
-    console.log('Preloading complete!');
 };
 
-/**
- * テキストをVOICEVOXまたはブラウザTTSで読み上げる
- * VOICEVOXが利用できない場合は自動的にブラウザTTSにフォールバック
- * モバイルプラットフォームではVOICEVOXをスキップ
- * @param {string} text - 読み上げるテキスト
- * @param {number} speakerId - VOICEVOXキャラクターID
- */
-export const speak = async (text, speakerId = VOICEVOX_SPEAKERS.ZUNDAMON) => {
-    // モバイルプラットフォームではVOICEVOXをスキップ
-    const isNativePlatform = Capacitor.isNativePlatform();
+export const speakWithBrowserTts = (text, { pitch = 1.3, rate = 1.0, isMale = false } = {}) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'ja-JP';
+    utterance.pitch = pitch;
+    utterance.rate = rate;
 
+    const voices = window.speechSynthesis.getVoices();
+    const jaVoices = voices.filter((voice) => voice.lang.startsWith('ja'));
+
+    let selectedVoice = null;
+    if (isMale) {
+        selectedVoice = jaVoices.find((voice) =>
+            voice.name.includes('Male') || voice.name.includes('Man') || voice.name.includes('男性') || voice.name.includes('Ichiro')
+        );
+    } else {
+        selectedVoice = jaVoices.find((voice) =>
+            voice.name.includes('Female') || voice.name.includes('female') ||
+            voice.name.includes('女性') || voice.name.includes('Kyoko') ||
+            voice.name.includes('Otoya') || voice.name.includes('Google 日本語')
+        ) || jaVoices[0];
+    }
+
+    if (selectedVoice) {
+        utterance.voice = selectedVoice;
+    }
+
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+};
+
+export const speak = async (text, speakerId = VOICEVOX_SPEAKERS.ZUNDAMON) => {
+    const isNativePlatform = Capacitor.isNativePlatform();
     let success = false;
 
-    // Webブラウザの場合のみVOICEVOXを試す
     if (!isNativePlatform) {
         success = await speakWithVoicevox(text, speakerId);
     }
 
-    // VOICEVOXが失敗した、またはモバイルの場合はブラウザTTSにフォールバック
     if (!success) {
-        if (isNativePlatform) {
-            console.log('Using browser TTS on mobile platform');
-        } else {
-            console.log('Falling back to browser TTS');
-        }
-
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'ja-JP';
-        utterance.pitch = 1.3;
-        utterance.rate = 1.0;
-
-        // 日本語女性音声を選択
-        const voices = window.speechSynthesis.getVoices();
-        const japaneseVoices = voices.filter(voice => voice.lang.startsWith('ja'));
-        const femaleVoice = japaneseVoices.find(voice =>
-            voice.name.includes('Female') || voice.name.includes('female') ||
-            voice.name.includes('女性') || voice.name.includes('Kyoko') ||
-            voice.name.includes('Otoya') || voice.name.includes('Google 日本語')
-        ) || japaneseVoices[0];
-
-        if (femaleVoice) {
-            utterance.voice = femaleVoice;
-        }
-
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(utterance);
+        speakWithBrowserTts(text);
     }
 };
