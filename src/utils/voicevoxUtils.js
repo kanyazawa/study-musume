@@ -46,6 +46,7 @@ const normalizeSpeakerKey = (value) => String(value || '')
 export const shouldAutoSpeakLine = (line) => {
     if (!line?.text) return false;
     if (line.speaker === 'Quiz' || line.speaker === 'System') return false;
+    if (line.voice) return false;
 
     const rawValue = line.tts ?? line.auto_tts ?? '';
     if (!rawValue) return true;
