@@ -5,6 +5,8 @@ import { performGacha, getGachaHistory, getCurrentPity, getRemainingPity, GACHA_
 import { RARITY } from '../data/gachaItems';
 import './Gacha.css';
 
+const IS_LITE_DEPLOY = import.meta.env.VITE_LITE_DEPLOY === 'true';
+
 // ガチャ動画・音声のパス
 const GACHA_VIDEO = '/gacha_animation (2).mp4';
 const GACHA_AUDIO = '/audio/gacha.mp3';
@@ -87,6 +89,11 @@ const Gacha = ({ stats, updateStats }) => {
         // ガチャ結果を先に計算
         const results = performGacha(count);
         setPendingResults(results);
+
+        if (IS_LITE_DEPLOY) {
+            showGachaResults(results);
+            return;
+        }
 
         // ガチャアニメーション表示
         setShowVideo(true);

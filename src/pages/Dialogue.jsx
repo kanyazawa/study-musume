@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Volume2 } from 'lucide-react';
 import './Dialogue.css';
-import VrmViewer from '../components/VrmViewer';
 import { estimateSpeechDuration } from '../utils/lipSync';
 import LoadingScreen from '../components/UI/LoadingScreen';
 import { speakWithBrowserTts, speakWithEngine, prefetchEngine, isEngineAvailable, VOICEVOX_SPEAKERS, preloadCommonPhrases, resolveSpeakerIdForEngine, shouldAutoSpeakLine } from '../utils/voicevoxUtils';
@@ -33,7 +32,9 @@ import RenAngry from '../assets/images/ren_angry.png';
 import RenHappy from '../assets/images/ren_happy.png';
 
 import { useSound } from '../contexts/SoundContext';
-import functionPlot from 'function-plot';
+
+const VrmViewer = lazy(() => import('../components/VrmViewer'));
+const IS_LITE_DEPLOY = import.meta.env.VITE_LITE_DEPLOY === 'true';
 
 const CHARACTER_IMAGES = {
     'main': NoaNormal,
@@ -86,11 +87,12 @@ const Dialogue = ({ stats, updateStats }) => {
     const ttsAvailabilityRef = useRef({ aivis: false, voicevox: false });
     const [use3D, setUse3D] = useState(() => {
         const saved = localStorage.getItem('characterMode');
-        return saved === '3d';
+        return !IS_LITE_DEPLOY && saved === '3d';
     });
 
     const toggleCharacterMode = useCallback((e) => {
         e.stopPropagation();
+        if (IS_LITE_DEPLOY) return;
         setUse3D(prev => {
             const next = !prev;
             localStorage.setItem('characterMode', next ? '3d' : '2d');
@@ -431,7 +433,7 @@ const Dialogue = ({ stats, updateStats }) => {
 
         // 2. Play Voice or TTS
         if (line.voice) {
-            playVoice(line.voice);
+            speakLineWithPreferredAudio(line);
         } else if (line.text && line.speaker !== "System") {
             // Optional: Auto-speak logic? For now, we keep manual TTS button, 
             // but if you want auto-speak for specific lines, logic goes here.
@@ -455,25 +457,31 @@ const Dialogue = ({ stats, updateStats }) => {
                     const isMobile = window.innerWidth < 600;
                     const height = isMobile ? availableWidth * 0.8 : 300;
 
-                    functionPlot({
-                        target: '#graph-container',
-                        width: availableWidth,
-                        height: height,
-                        yAxis: { domain: [-10, 10] },
-                        xAxis: { domain: [-10, 10] },
-                        grid: true,
-                        data: [{
-                            fn: line.graph,
-                            color: '#ffffff' // Chalk white
-                        }],
-                        theme: {
-                            axis: {
-                                domainColor: '#ffffff',
-                                ticksColor: '#ffffff',
-                                tickLabelColor: '#ffffff'
-                            },
-                        }
-                    });
+                    import('function-plot')
+                        .then(({ default: functionPlot }) => {
+                            functionPlot({
+                                target: '#graph-container',
+                                width: availableWidth,
+                                height: height,
+                                yAxis: { domain: [-10, 10] },
+                                xAxis: { domain: [-10, 10] },
+                                grid: true,
+                                data: [{
+                                    fn: line.graph,
+                                    color: '#ffffff' // Chalk white
+                                }],
+                                theme: {
+                                    axis: {
+                                        domainColor: '#ffffff',
+                                        ticksColor: '#ffffff',
+                                        tickLabelColor: '#ffffff'
+                                    },
+                                }
+                            });
+                        })
+                        .catch((error) => {
+                            console.warn("Graph render failed:", error);
+                        });
                 } catch (e) {
                     console.error("Graph render failed:", e);
                 }
@@ -494,7 +502,7 @@ const Dialogue = ({ stats, updateStats }) => {
                 window.removeEventListener('resize', handleResize);
             };
         }
-    }, [line]);
+    }, [line, playSE, speakLineWithPreferredAudio]);
 
     const playScene = (allData, id) => {
         const sceneLines = allData.filter(d => d.scene === id);
@@ -753,6 +761,40 @@ const Dialogue = ({ stats, updateStats }) => {
         });
     }, [isRen]);
 
+    const speakLineWithPreferredAudio = useCallback(async (targetLine) => {
+        if (!targetLine?.text) return false;
+
+        const ttsSettings = getTtsSettings();
+        if (!ttsSettings.enabled) return false;
+
+        const chosenEngine = ttsSettings.engine === TTS_ENGINES.AUTO
+            ? (ttsAvailabilityRef.current.aivis ? TTS_ENGINES.AIVIS : ttsAvailabilityRef.current.voicevox ? TTS_ENGINES.VOICEVOX : TTS_ENGINES.BROWSER)
+            : ttsSettings.engine;
+
+        if (targetLine.voice && !IS_LITE_DEPLOY) {
+            const played = await playVoice(targetLine.voice);
+            if (played) return true;
+        }
+
+        const speakerId = await resolveLineSpeakerId(targetLine, chosenEngine, ttsSettings);
+
+        if (chosenEngine !== TTS_ENGINES.BROWSER) {
+            const success = await speakWithEngine(chosenEngine, targetLine.text, speakerId, {
+                baseUrl: chosenEngine === TTS_ENGINES.AIVIS ? ttsSettings.aivisUrl : ttsSettings.voicevoxUrl,
+            });
+            if (success) return true;
+        }
+
+        const pitchValue = Number(targetLine.tts_pitch);
+        const rateValue = Number(targetLine.tts_rate);
+        speakWithBrowserTts(targetLine.text, {
+            pitch: Number.isFinite(pitchValue) ? pitchValue : (isRen ? 0.8 : ttsSettings.browserPitch),
+            rate: Number.isFinite(rateValue) ? rateValue : ttsSettings.browserRate,
+            isMale: isRen,
+        });
+        return true;
+    }, [isRen, playVoice, resolveLineSpeakerId]);
+
     const handleSpeak = async (e) => {
         e.stopPropagation(); // Prevent advancing dialogue
         if (!line || !line.text || isSpeaking) return;
@@ -761,28 +803,7 @@ const Dialogue = ({ stats, updateStats }) => {
         // Trigger lip sync
         triggerVrmLipSync(line.text);
 
-        const ttsSettings = getTtsSettings();
-        const chosenEngine = ttsSettings.engine === TTS_ENGINES.AUTO
-            ? (ttsAvailabilityRef.current.aivis ? TTS_ENGINES.AIVIS : ttsAvailabilityRef.current.voicevox ? TTS_ENGINES.VOICEVOX : TTS_ENGINES.BROWSER)
-            : ttsSettings.engine;
-        const speakerId = await resolveLineSpeakerId(line, chosenEngine, ttsSettings);
-
-        let spoke = false;
-        if (ttsSettings.enabled && chosenEngine !== TTS_ENGINES.BROWSER) {
-            spoke = await speakWithEngine(chosenEngine, line.text, speakerId, {
-                baseUrl: chosenEngine === TTS_ENGINES.AIVIS ? ttsSettings.aivisUrl : ttsSettings.voicevoxUrl,
-            });
-        }
-
-        if (!spoke) {
-            const pitchValue = Number(line.tts_pitch);
-            const rateValue = Number(line.tts_rate);
-            speakWithBrowserTts(line.text, {
-                pitch: Number.isFinite(pitchValue) ? pitchValue : (isRen ? 0.8 : ttsSettings.browserPitch),
-                rate: Number.isFinite(rateValue) ? rateValue : ttsSettings.browserRate,
-                isMale: isRen,
-            });
-        }
+        await speakLineWithPreferredAudio(line);
 
         setIsSpeaking(false);
     };
@@ -811,21 +832,7 @@ const Dialogue = ({ stats, updateStats }) => {
             : ttsSettings.engine;
 
         const autoSpeak = async () => {
-            const speakerId = await resolveLineSpeakerId(line, chosenEngine, ttsSettings);
-            if (chosenEngine !== TTS_ENGINES.BROWSER) {
-                const success = await speakWithEngine(chosenEngine, line.text, speakerId, {
-                    baseUrl: chosenEngine === TTS_ENGINES.AIVIS ? ttsSettings.aivisUrl : ttsSettings.voicevoxUrl,
-                });
-                if (success) return;
-            }
-
-            const pitchValue = Number(line.tts_pitch);
-            const rateValue = Number(line.tts_rate);
-            speakWithBrowserTts(line.text, {
-                pitch: Number.isFinite(pitchValue) ? pitchValue : (isRen ? 0.8 : ttsSettings.browserPitch),
-                rate: Number.isFinite(rateValue) ? rateValue : ttsSettings.browserRate,
-                isMale: isRen,
-            });
+            await speakLineWithPreferredAudio(line);
         };
 
         autoSpeak();
@@ -846,7 +853,7 @@ const Dialogue = ({ stats, updateStats }) => {
         return () => {
             window.speechSynthesis.cancel();
         };
-    }, [currentIndex, currentScene, line, resolveLineSpeakerId, triggerVrmLipSync]);
+    }, [currentIndex, currentScene, line, resolveLineSpeakerId, speakLineWithPreferredAudio, triggerVrmLipSync]);
 
     // Quiz Selection Handler
     const handleQuizOption = (optionIndex, e) => {
@@ -1014,24 +1021,28 @@ const Dialogue = ({ stats, updateStats }) => {
             )}
 
             {/* 2D/3D Toggle Button */}
-            <button
-                className="char-mode-toggle"
-                onClick={toggleCharacterMode}
-                title={use3D ? '2Dモードに切替' : '3Dモードに切替'}
-            >
-                {use3D ? '3D' : '2D'}
-            </button>
+            {!IS_LITE_DEPLOY && (
+                <button
+                    className="char-mode-toggle"
+                    onClick={toggleCharacterMode}
+                    title={use3D ? '2Dモードに切替' : '3Dモードに切替'}
+                >
+                    {use3D ? '3D' : '2D'}
+                </button>
+            )}
 
             <div
                 className="character-figure"
             >
                 {use3D ? (
-                    <VrmViewer
-                        emotion={line.expression || line.emotion || 'normal'}
-                        text={vrmText}
-                        isSpeaking={vrmSpeaking}
-                        className={`vrm-dialogue ${(line.graph || line.study_image) ? 'with-board' : ''}`}
-                    />
+                    <Suspense fallback={null}>
+                        <VrmViewer
+                            emotion={line.expression || line.emotion || 'normal'}
+                            text={vrmText}
+                            isSpeaking={vrmSpeaking}
+                            className={`vrm-dialogue ${(line.graph || line.study_image) ? 'with-board' : ''}`}
+                        />
+                    </Suspense>
                 ) : (
                     <img
                         src={

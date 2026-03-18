@@ -1,11 +1,9 @@
-
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Shirt, Image as ImageIcon, Gift, MessageCircle } from 'lucide-react';
 import './CharacterInteraction.css';
 import './Dialogue.css'; // Reuse dialogue styles for consistency
 import CharacterSelect from '../components/CharacterSelect';
-import VrmViewer from '../components/VrmViewer';
 
 // Images
 import CharacterMain from '../assets/images/character_new.png';
@@ -23,6 +21,9 @@ import RenHappy from '../assets/images/ren_happy.png';
 import { getGiftReaction } from '../utils/affectionUtils';
 import { getSkinFilter, getBackgroundStyle, getOwnedSkins, getOwnedBackgrounds } from '../utils/cosmeticUtils';
 import { filterInventoryByType, removeFromInventory } from '../utils/itemUtils';
+
+const VrmViewer = lazy(() => import('../components/VrmViewer'));
+const IS_LITE_DEPLOY = import.meta.env.VITE_LITE_DEPLOY === 'true';
 
 const CharacterInteraction = ({ stats, updateStats }) => {
     const navigate = useNavigate();
@@ -149,11 +150,13 @@ const CharacterInteraction = ({ stats, updateStats }) => {
 
             {/* Character Figure (Same position as Home) */}
             <div className={`character-figure ${givingItem ? 'receiving' : ''}`} onClick={() => setShowCharSelect(true)}>
-                {stats.characterId === 'noah' && localStorage.getItem('characterMode') === '3d' ? (
-                    <VrmViewer
-                        emotion={expression}
-                        className="vrm-interaction"
-                    />
+                {stats.characterId === 'noah' && !IS_LITE_DEPLOY && localStorage.getItem('characterMode') === '3d' ? (
+                    <Suspense fallback={null}>
+                        <VrmViewer
+                            emotion={expression}
+                            className="vrm-interaction"
+                        />
+                    </Suspense>
                 ) : (
                     <img
                         src={displayImage}

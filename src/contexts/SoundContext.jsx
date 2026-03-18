@@ -18,18 +18,22 @@ export const SoundProvider = ({ children }) => {
     // Refs
     const bgmRef = useRef(null);
 
-    // Initialize Audio
-    useEffect(() => {
-        bgmRef.current = new Audio(bgmTrack);
-        bgmRef.current.loop = true;
-        bgmRef.current.volume = INITIAL_VOLUME;
+    const ensureBgm = () => {
+        if (!bgmRef.current) {
+            bgmRef.current = new Audio(bgmTrack);
+            bgmRef.current.loop = true;
+            bgmRef.current.preload = 'none';
+            bgmRef.current.volume = isMuted ? 0 : volume;
+        }
 
-        return () => {
-            if (bgmRef.current) {
-                bgmRef.current.pause();
-                bgmRef.current = null;
-            }
-        };
+        return bgmRef.current;
+    };
+
+    useEffect(() => () => {
+        if (bgmRef.current) {
+            bgmRef.current.pause();
+            bgmRef.current = null;
+        }
     }, []);
 
     // バックグラウンド時にBGMを停止、フォアグラウンド復帰時に再開
@@ -63,12 +67,11 @@ export const SoundProvider = ({ children }) => {
     }, [isMuted, volume]);
 
     const playBGM = () => {
-        if (bgmRef.current) {
-            // Promise handling for browsers requiring user interaction
-            bgmRef.current.play()
-                .then(() => setIsPlaying(true))
-                .catch(e => console.log("Audio play blocked (waiting for interaction):", e));
-        }
+        const bgm = ensureBgm();
+        bgm.load();
+        bgm.play()
+            .then(() => setIsPlaying(true))
+            .catch(e => console.log("Audio play blocked (waiting for interaction):", e));
     };
 
     const stopBGM = () => {
@@ -100,14 +103,35 @@ export const SoundProvider = ({ children }) => {
 
     // Play Voice (from public/audio)
     const playVoice = (filename) => {
-        if (!filename || isMuted) return;
+        if (!filename || isMuted) return Promise.resolve(false);
 
         // Add extension if missing
         const path = filename.includes('.') ? `/audio/${filename}` : `/audio/${filename}.mp3`;
 
-        const audio = new Audio(path);
-        audio.volume = seVolume || volume;
-        audio.play().catch(e => console.warn(`Failed to play Voice: ${filename}`, e));
+        return new Promise((resolve) => {
+            const audio = new Audio(path);
+            let settled = false;
+
+            const finish = (played) => {
+                if (settled) return;
+                settled = true;
+                resolve(played);
+            };
+
+            audio.preload = 'none';
+            audio.volume = seVolume || volume;
+            audio.addEventListener('error', () => {
+                console.warn(`Failed to load Voice: ${filename}`);
+                finish(false);
+            }, { once: true });
+
+            audio.play()
+                .then(() => finish(true))
+                .catch((e) => {
+                    console.warn(`Failed to play Voice: ${filename}`, e);
+                    finish(false);
+                });
+        });
     };
 
     const toggleMute = () => setIsMuted(prev => !prev);
