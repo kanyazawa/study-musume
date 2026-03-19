@@ -1,3 +1,5 @@
+import { CUSTOM_VOCAB_GRADE_PRE1 } from './customPre1Vocab';
+
 /**
  * 英検レベル別 英単語マスターデータ
  * 
@@ -1937,7 +1939,7 @@ export const VOCAB_GRADE_PRE2 = [
 // ==============================
 // 英検2級 (高校卒業程度)
 // ==============================
-export const VOCAB_GRADE2 = [
+const LEGACY_GRADE2_VOCAB = [
     { word: 'abandon', meaning: '見捨てる、断念する' },
     { word: 'abolish', meaning: '廃止する' },
     { word: 'abstract', meaning: '抽象的な' },
@@ -2051,10 +2053,2278 @@ export const VOCAB_GRADE2 = [
     { word: 'consequence', meaning: '結果' }
 ];
 
+const GRADE2_WORD_LIST = `
+Arctic
+Buddhist
+Close
+How come
+Jewish
+Mexican
+Muslim
+No
+Search
+What is more
+a bunch of
+a couple of
+a number of
+a variety of
+abandon
+ability
+abolish
+abortion
+abroad
+abrupt
+absence
+absolute
+absolutely
+absorb
+absorb in
+abstract
+academic
+academically
+accept
+accidentally
+accommodate
+accommodation
+accompany
+accomplish
+accomplishment
+according
+according to
+account
+account for
+accumulate
+accuracy
+accurate
+accuse
+accustomed
+achieve
+achievement
+acknowledge
+acquaint
+acquaintance
+acquire
+act on
+active
+activist
+actual
+actually
+acute
+ad
+adapt
+add
+add to
+addicted
+addition
+additionally
+address
+adequate
+adjust
+administration
+admire
+admission
+admit
+adolescent
+adopt
+advantage
+advertise
+advertisement
+advertising
+advice
+advocate
+affair
+affect
+affection
+afford
+afraid
+after all
+afterwards
+agent
+aggression
+aggressive
+agree with
+agreement
+agricultural
+agriculture
+aid
+aim
+aircraft
+airline
+aisle
+alike
+alive
+all around the world
+all the way
+alliance
+allow
+ally
+almost
+along with
+aloud
+alter
+alternative
+although
+altitude
+altogether
+ambiguous
+ambition
+ambulance
+amendment
+amount
+amount to
+amuse
+analysis
+analyze
+ancestor
+ancient
+and so on
+anger
+angle
+ankle
+anniversary
+annoy
+annual
+annually
+answer for
+anxiety
+anxious
+apart
+apologize
+apology
+apparent
+apparently
+appeal
+appear
+appearance
+appetite
+applause
+application
+apply
+apply for
+apply to
+appoint
+appointment
+appreciate
+approach
+appropriate
+approval
+approve
+approximately
+architect
+architecture
+argue
+argument
+arise
+armed
+arms
+arrange
+arrangement
+arrest
+arrival
+arrogant
+article
+artificial
+as a matter of fact
+as a result
+as far as I know
+as follows
+as if
+as though
+as to
+as well
+ashamed
+asleep
+aspect
+assault
+assemble
+assembly
+assess
+assessment
+asset
+assign
+assignment
+assist
+assistance
+associate
+associated with
+association
+assumption
+assure
+astonish
+at a loss
+at a time
+at any cost
+at best
+at first
+at last
+at least
+at most
+at one time
+at present
+at that time
+at the same time
+at times
+atmosphere
+atomic
+attach
+attach to
+attempt
+attend
+attitude
+attorney
+attract
+attractive
+attribute
+audience
+author
+authority
+automobile
+available
+avenue
+avoid
+awake
+award
+aware
+awareness
+awful
+awkward
+background
+bake
+ban
+bang
+bank account
+bare
+barely
+basin
+basis
+battery
+be accustomed to
+be adjusted to
+be affected by
+be awake
+be aware of
+be beneficial to
+be born with
+be concerned about
+be concerned with
+be connected to
+be considered to
+be effective at
+be engaged in
+be familiar with
+be filled with
+be involved in
+be known as
+be known for
+be likely to
+be made from
+be obliged to
+be pleased with
+be short of
+be threatened to
+be well of
+be willing to
+bear
+beat
+because of
+before long
+beg
+behalf
+behave
+behavior
+behind
+belief
+believe in
+belong
+bend
+beneath
+benefit
+beside
+bet
+betray
+between A and B
+beverage
+beyond
+bill
+billion
+bind
+biological
+biology
+bishop
+bite
+bitter
+blame
+blame for
+blast
+bleed
+blink
+block
+blood
+bloody
+bloom
+blow
+bold
+bond
+border
+bored
+borrow
+bother
+bound for
+boundary
+bow
+brain
+bravely
+break into
+break out
+breast
+breath
+breed
+breeze
+brick
+brief
+briefly
+brightness
+brilliant
+bring
+bring up
+broad
+broadcast
+budget
+bully
+burden
+bureau
+burst
+bury
+buyer
+by chance
+by degrees
+by heart
+by means of
+by nature
+by the end of
+calculate
+call it a day
+call off
+calm
+calm down
+candidate
+capable
+capable of
+capacity
+capital
+capture
+carbon
+carbon dioxide
+carry out
+cash
+cast
+catch up with
+cause
+cave
+cease
+ceiling
+celebrate
+celebration
+cell
+certain
+certainly
+chamber
+chapter
+characteristic
+charge
+charm
+chase
+check for
+checkup
+chemical
+chemistry
+chest
+childhood
+circuit
+circumstance
+citizen
+civil
+civilian
+civilization
+civilize
+civilized
+claim to do
+classical
+clerk
+climate
+climb
+cling
+clip
+closely
+clothing
+clue
+coal
+coalition
+coast
+collaboration
+collapse
+colleague
+collect
+college
+colony
+combat
+combine
+come across
+come into being
+come out
+come up with
+comedy
+comfort
+comfortable
+commander
+commercial
+commission
+commissioner
+commit
+commitment
+committee
+commodity
+common
+communist
+community
+commute
+companion
+compare
+comparison
+compassion
+compete
+competitive
+competitor
+compile
+complain
+complain of
+complete
+completely
+complex
+complexity
+complicated
+compliment
+compose
+composer
+composition
+compound
+comprehend
+comprehensive
+compromise
+conceal
+concentrate
+concentrate on
+concentration
+concept
+concern
+conclude
+conclusion
+concrete
+condition
+conduct
+conference
+confess
+confidence
+confident
+confine
+confirm
+conflict
+conform
+confront
+confuse
+confusion
+congratulations on
+congress
+connect
+conquer
+conscious
+consciously
+consequence
+consequently
+conservation
+consider
+considerable
+consideration
+consist
+consist of
+consistent
+constant
+constantly
+constitute
+constitution
+construct
+construction
+consume
+consumer
+consumption
+contain
+container
+contemporary
+content
+context
+continent
+continue
+contract
+contrary
+contrast
+contribute
+contribution
+controversial
+convenient
+conventional
+conversation
+converse
+convert
+convey
+convict
+conviction
+convince
+cooperation
+cop
+cope
+cope with
+copyright
+correct
+corridor
+cough
+council
+counter
+county
+courage
+court
+cover
+crack
+craft
+create
+creation
+creative
+creature
+credit
+crew
+crime
+criminal
+crisis
+critic
+critical
+criticism
+criticize
+critics
+crop
+crowd
+crown
+crucial
+cruel
+cruise
+cultivate
+culture
+cure
+curiosity
+curious
+currency
+current
+custom
+customer
+cut down
+cut down on
+dare
+deadline
+deaf
+deal
+deal with
+dealer
+debate
+debt
+decade
+deceive
+decent
+decide
+decision
+declare
+decline
+decrease
+dedicate
+defeat
+defend
+defendant
+deficit
+definite
+definitely
+definition
+degree
+delay
+delete
+deliberately
+delicate
+delight
+deliver
+delivery
+demand
+democracy
+democrat
+democratic
+demonstrate
+dentist
+deny
+department
+depend
+depend on
+dependent
+depending
+deposit
+depress
+depression
+deputy
+derive
+descend
+describe
+description
+desert
+deserve
+designate
+desirable
+desire
+desperate
+despite
+destination
+destroy
+destruction
+detail
+detailed
+detect
+detective
+determine
+devastate
+develop
+development
+device
+devise
+dialect
+die
+diet
+differ
+differ from
+difference
+dig
+digest
+dignity
+diminish
+dip
+direction
+directly
+director
+disadvantage
+disagree
+disappear
+disappoint
+disaster
+discover
+discovery
+discrimination
+discuss
+discussion
+disease
+dislike
+disorder
+display
+disposal
+dispute
+distance
+distant
+distinct
+distinction
+distinguish
+distort
+distract
+distribution
+distributor
+district
+disturb
+divide
+division
+divorce
+dizziness
+dizzy
+do away with
+do well
+document
+documentary
+domain
+domestic
+dominate
+donate
+donation
+dormitory
+doubt
+doubtfully
+dozen
+drag
+drain
+dramatic
+draw
+drift
+drop by
+drop off
+drought
+drug
+due
+due to
+dull
+dump
+during
+dust
+duty
+each other
+eager
+earn
+earnest
+ease
+echo
+economic
+economics
+economy
+edge
+editor
+educate
+education
+educational
+effect
+effective
+effectively
+efficiency
+efficient
+elaborate
+elderly
+election
+electric
+electrical
+electricity
+electronic
+element
+elementary
+eliminate
+embarrass
+embarrassed
+embrace
+emergency
+emotional
+emotionally
+emperor
+emphasis
+emphasize
+empire
+employ
+employee
+employer
+employment
+empty
+encounter
+encourage
+end up
+endanger
+endow
+endure
+enforcement
+engaged
+enhance
+enlarge
+enormous
+enrich
+ensure
+enter
+enterprise
+entertainment
+enthusiasm
+entire
+entirely
+entitle
+entitle to
+envelope
+environment
+environmental
+environmentally
+envy
+equal
+equality
+equipment
+equivalent
+era
+erosion
+escape
+especially
+essay
+essentially
+establish
+establishment
+estate
+estimate
+etc
+ethnic
+evaluate
+even if
+even though
+eventually
+evidence
+evident
+evil
+evoke
+evolution
+evolve
+exact
+exactly
+exaggerate
+examination
+examine
+except
+except for
+exception
+exceptionally
+excess
+excessive
+exclude
+exclusive
+excuse
+executive
+exert
+exhaust
+exhibit
+exhibition
+exist
+existence
+existing
+expand
+expansion
+expect
+expectation
+expense
+expensive
+experiment
+expire
+expired
+explain
+explanation
+explode
+explore
+explorer
+explorers
+explosion
+export
+expose
+exposure
+express
+expression
+extend
+extension
+extensive
+extent
+extinct
+extinction
+extra
+extract
+extraordinary
+extreme
+extremely
+eyesight
+fabric
+face
+facility
+factor
+factory
+fail
+failure
+fair
+fairly
+faith
+false
+fame
+familiar
+famine
+famous
+fancy
+far off
+fare
+fascinate
+fat
+fate
+fatigue
+fault
+favor
+favorite
+fear
+feature
+federal
+fee
+feed
+fellow
+female
+fertilizer
+fiber
+figure
+fill out
+finally
+finance
+financial
+fingerprint
+fire
+firm
+firmly
+first of all
+five senses
+fix
+flame
+flavor
+flee
+flexibility
+flood
+flow
+focus
+focus on
+fold
+folk
+for example
+for fear of
+for free
+for instance
+for some time
+for sure
+for the time being
+force
+forecast
+foreign
+forever
+forget
+formal
+formation
+former
+formula
+forward
+fossil
+fossil fuel
+found
+foundation
+founder
+fraction
+fragile
+fragment
+freeze
+frequent
+frequently
+friendly
+frighten
+frightened
+from now on
+from time to time
+frown
+fuel
+fulfill
+fully
+fund
+fundamental
+funding
+fur
+furniture
+furthermore
+gain
+garbage
+gather
+gay
+gaze
+gear
+gene
+generate
+generation
+generous
+generously
+genetically
+genius
+gentle
+genuine
+germ
+get along
+get along with
+get away with
+get by
+get over
+get rid of
+get used to
+girlfriend
+give out
+given
+glance
+global
+globe
+go after
+goal
+govern
+government
+governor
+grace
+gradually
+graduate
+grammar
+grand
+grasp
+grass
+grave
+gravity
+greet
+grocery
+guarantee
+guess
+guide
+guilty
+guilty of
+habit
+hand in
+handle
+handout
+hang
+hang up
+happen
+harbor
+hardly
+harm
+harmful
+harmony
+harsh
+harvest
+hate
+have an effect on
+have effects on
+headline
+headquarters
+health insurance
+hear from
+heart rate
+heel
+height
+hell
+hemisphere
+heritage
+hesitantly
+hesitate
+hesitation
+hide
+hierarchy
+highlight
+hire
+historian
+historic
+historical
+history
+holy
+honor
+horror
+hospitality
+household
+however
+huge
+humanity
+humble
+humid
+humidity
+hundreds of
+hunger
+ideal
+identical
+identify
+identity
+ignorance
+ignore
+ill
+illegal
+illness
+illustrate
+illustration
+imagination
+imitate
+immediate
+immediately
+immigrant
+immigrate
+immigration
+immune
+impact
+imperial
+implement
+implication
+imply
+import
+impose
+impossible
+impress
+impression
+impressive
+improve
+improvement
+impulse
+in a row
+in addition
+in advance
+in case
+in charge of
+in common
+in contrast
+in contrast to
+in danger of
+in demand
+in detail
+in effect
+in exchange
+in fact
+in fashion
+in general
+in need of
+in order to
+in other words
+in particular
+in place
+in practice
+in reality
+in response
+in response to
+in shape
+in short
+in some way
+in spite of
+in stock
+in terms of
+in the long run
+in the meantime
+in time
+in touch
+in tough
+in trouble
+in turn
+in vain
+incident
+inclined
+include
+income
+inconvenience
+incorporate
+increase
+increasingly
+incredible
+indeed
+independent
+index
+indicate
+indigenous
+individual
+indoor
+induce
+industrial
+industrialize
+industry
+inevitable
+infant
+inferior
+inflation
+influence
+inform
+infrastructure
+ingredient
+inhabitant
+initial
+initially
+initiative
+injection
+injury
+innocent
+innocently
+inquiry
+insect
+inside
+insight
+insist
+insist on
+inspector
+inspire
+install
+instant
+instead
+instead of
+instinct
+institution
+instruct
+instruction
+instrument
+insult
+insurance
+integrate
+intellectual
+intelligence
+intend
+intend to
+intense
+intensive
+intention
+interfere
+interior
+internal
+international
+interpret
+interpretation
+interrupt
+intervention
+intimate
+introduce
+intuition
+invade
+invent
+invention
+invest
+invest in
+investigate
+investigation
+investigator
+investment
+investor
+invisible
+involve
+involvement
+irrelevant
+irrigation
+irritate
+island
+isolate
+isolated
+isolation
+issue
+it is common to hear
+item
+jail
+jealously
+joint
+journey
+joy
+judge
+jury
+justify
+keep up
+keep up with
+kindergarten
+knee
+knowledge
+lab
+labor
+laboratory
+lack
+landscape
+language
+lap
+laptop
+large amount of
+largely
+lately
+later
+latest
+latter
+laugh at
+laughter
+launch
+laundry
+law
+lawn
+lawyer
+layer
+lazy
+lead to
+leak
+lean
+leap
+leave out
+leftover
+legal
+legend
+legislation
+leisure
+leisurely
+length
+lessen
+lesser
+liberty
+lie
+likely
+limb
+liquid
+literally
+literary
+literature
+litter
+live on
+load
+locate
+location
+log
+logic
+logical
+look forward to
+look into
+look over
+look through
+look up to
+lord
+lose
+lose face
+low-income
+luckily
+lung
+luxury
+mad
+made of
+magnificent
+mainly
+maintain
+maintenance
+major
+majority
+make a difference
+make fun of
+make sense
+make sure
+make up
+maker
+male
+mammal
+manage
+manager
+manipulate
+manner
+manufacturer
+market
+mass
+massive
+master
+masterpiece
+match
+mate
+material
+matter
+mature
+maximum
+maybe
+mayor
+meal
+mean
+means
+meanwhile
+measure
+medical
+medicine
+medieval
+medium
+melt
+memory loss
+mental
+mention
+merchant
+mere
+merely
+mess
+metal
+method
+migrate
+mildly
+military
+million
+mindful
+mineral
+minimum
+minister
+ministry
+minority
+mixture
+modern
+modest
+modify
+molecule
+moment
+moral
+more and more
+moreover
+mortgage
+mostly
+motive
+multiple
+mummy
+murder
+muscle
+mutual
+mysterious
+mystery
+myth
+naked
+nap
+narrow
+nation
+national
+natural
+nature
+navy
+nearby
+neat
+necessarily
+necessity
+needlessly
+negative
+neglect
+negotiate
+negotiation
+neighbor
+neighborhood
+nerve
+nervous
+nevertheless
+newly
+no longer
+nod
+normally
+not always
+not yet
+notice
+notion
+nowhere
+nuclear
+numerous
+nursery school
+nutrition
+obey
+object
+objection
+objective
+objectively
+obligation
+obscure
+observation
+observe
+observer
+obsession
+obstacle
+obtain
+obvious
+obviously
+occasion
+occasionally
+occupation
+occupy
+occur
+odd
+off duty
+offensive
+on account of
+on average
+on behalf of
+on demand
+on duty
+on purpose
+on schedule
+on the contrary
+on the other hand
+on the run
+once
+one day
+operate
+operation
+operator
+opinion
+opponent
+opportunity
+oppose
+opposite
+opposition
+optimistic
+orbit
+order
+ordinary
+organ
+organic
+organization
+organize
+origin
+originate
+otherwise
+out of breath
+out of date
+out of place
+out of stock
+out of use
+outcome
+output
+outstanding
+over time
+overall
+overcome
+overlap
+overtake
+overwhelm
+overwhelming
+owe
+own
+oxygen
+pain
+painful
+palm
+pan
+parallel
+parking lot
+parliament
+participant
+participate
+participate in
+particle
+particular
+particularly
+partly
+partnership
+party
+pass out
+passage
+passenger
+passive
+past
+pastime
+patch
+path
+patience
+patient
+payment
+peaceful
+peacefully
+peak
+peculiar
+pedestrian
+peel
+peer
+penetrate
+pension
+perceive
+percentage
+perception
+period
+permanent
+permanently
+permission
+permit
+persist in
+personality
+personally
+perspective
+persuade
+persuasion
+phase
+phenomenon
+physical
+physician
+physics
+pile
+pioneer
+pit
+pitch
+plain
+planet
+plant
+plastic bag
+play a role in
+pleasant
+pleasure
+plenty
+plot
+poet
+poison
+policy
+polite
+politely
+politician
+politics
+poll
+pollution
+popular
+popularity
+population
+portable
+portion
+portrait
+pose
+positive
+possibility
+possible
+possibly
+postpone
+potential
+potentially
+pour
+poverty
+practical
+practically
+praise
+pray
+prayer
+precede
+precious
+precise
+precisely
+predator
+predict
+prefer
+preference
+pregnant
+prejudice
+preparation
+prescription
+presence
+present
+preserve
+preserved
+president
+pretend
+pretty
+prevent
+prevent A from B
+previous
+previously
+prey
+price
+primary
+primitive
+principal
+prior
+priority
+prisoner
+privilege
+prize
+probably
+procedure
+proceed
+process
+produce
+product
+production
+profession
+profit
+profound
+progress
+prohibit
+prolong
+promote
+promotion
+prompt
+pronunciation
+proper
+properly
+property
+proportion
+proposal
+propose
+proposed
+prosecution
+prosecutor
+prospect
+protect
+protein
+protest
+protocol
+proud
+prove
+proverb
+provide
+provide A with B
+provided that
+province
+provision
+provoke
+psychological
+psychologist
+psychology
+public
+publication
+publicity
+publish
+publisher
+pull away
+pull down
+pull off
+punctual
+punish
+punishment
+pupil
+purchase
+purpose
+pursue
+pursuit
+put away
+put off
+put together
+put up with
+qualify
+quality
+quantity
+quarrel
+quarter
+quit
+quite
+racial
+radical
+raise
+range
+rapid
+rapidly
+rare
+rarely
+rather
+rather than
+rating
+rational
+raw
+ray
+reach
+reach out
+react
+react to
+reaction
+realize
+rear
+reasonable
+rebel
+recall
+receive
+recent
+recently
+recession
+recognition
+recognize
+recommend
+recommendation
+recover
+recovery
+reduce
+reduction
+refer
+refer to
+reference
+reflection
+refrain from
+refuge
+refugee
+refund
+refuse
+regarding
+regardless
+regime
+region
+regional
+regret
+regulation
+reinforce
+reject
+related to
+relation
+relative
+relatively
+release
+relevant
+relevant to
+reliable
+relief
+relieve
+religion
+rely
+rely on
+remain
+remaining
+remarkable
+remember
+remind
+remind of
+remote
+remove
+renew
+rent
+repair
+replace
+replacement
+reply
+represent
+representation
+representative
+republic
+reputation
+require
+research
+researcher
+reservation
+reserve
+resident
+resign
+resist
+resistance
+resolution
+resolve
+resource
+respect
+respond
+responsibility
+responsible
+restore
+restrain
+restrict
+restriction
+result in
+retail
+retain
+retire
+retirement
+retrieve
+reuse
+reveal
+revenge
+revenue
+reverse
+revise
+revolution
+reward
+rid
+ridiculous
+right
+rise
+ritual
+roast
+role
+roll
+rough
+rub
+rude
+rug
+ruin
+rule out
+rumor
+run away
+run out of
+rural
+sacrifice
+salary
+salty
+sanitation
+satellite
+satisfaction
+satisfactory
+satisfy
+savage
+scar
+scarce
+scatter
+scheme
+scholar
+scholarship
+science
+scientific
+scientist
+sculpture
+seat
+secondhand
+secretary
+see in
+seed
+seek
+seem
+seize
+seldom
+select
+senate
+senior
+sensitive
+separation
+sequence
+servant
+settle
+settle down
+settlement
+several
+severe
+sewage
+shame
+share
+sharp
+shed
+shit
+shooting
+shortage
+shortly
+show up
+shrink
+shrug
+sigh
+sight
+sign
+significance
+significant
+significantly
+silly
+similar
+similar to
+similarity
+similarly
+since then
+sincere
+sincerely
+sink
+sit up
+site
+slavery
+slide
+slight
+slightly
+smart
+smell
+snap
+sneeze
+so-called
+soak
+soar
+social
+socially
+society
+sole
+solid
+solution
+solve
+somehow
+sophisticated
+sorrow
+sort
+source
+souvenir
+sparkle
+speaking of
+specialize in
+species
+specific
+spectator
+spend
+sphere
+spill
+spiritual
+spiritually
+split
+spoil
+spouse
+spread
+spur
+squeeze
+stable
+stake
+stand out
+stand still
+stand up
+stare
+stare at
+starve
+state
+statistics
+status
+stay up
+steadily
+steady
+steam
+steel
+stem
+stern
+stiff
+stimulate
+stir
+stock
+storage
+straight on
+strain
+strange
+strangely
+stranger
+strategy
+stream
+strengthen
+stretch
+strict
+strike
+stroke
+strongly
+structure
+struggle
+struggle with
+stubborn
+stupid
+subject
+submit
+subsequent
+substance
+substitute
+subtle
+suburb
+succeed
+success
+such as
+sudden
+sue
+suffer
+suffer from
+suffering
+sufficient
+suggest
+suggestion
+suicide
+suit
+suitable
+sum
+summit
+summon
+superior
+supervisor
+supplement
+supporter
+suppose
+suppress
+supreme
+sure
+surface
+surgery
+surround
+survey
+survival
+survive
+suspect
+suspend
+suspicious
+sustain
+sustainable
+swallow
+swear
+sweep
+symmetry
+sympathy
+symptom
+tail
+take A for granted
+take after
+take care
+take down
+take over
+take part in
+tale
+talent
+tame
+tap
+task
+taste
+tax
+tear
+technical
+teenager
+telescope
+temper
+temperature
+temple
+temporarily
+temporary
+term
+terminal
+terrible
+terribly
+terror
+thanks to
+the other
+theory
+therapy
+therefore
+thermometer
+thick
+think over
+thorough
+though
+thought
+threat
+throat
+throughout
+throw away
+thrust
+tide
+tidy
+tight
+till
+tiny
+tip
+tissue
+to some extent
+to start with
+toe
+tolerate
+toll
+tongue
+totally
+tough
+tourism
+toward
+towards
+toxic
+tradition
+traditional
+traffic
+traffic jam
+tragedy
+trait
+transaction
+transfer
+transform
+transition
+translate
+translation
+transport
+transportation
+treasure
+treat
+treatment
+tremble
+tremendous
+tribe
+trigger
+trivial
+troop
+tropical
+truly
+trust
+truth
+try on
+try out
+tuition
+tumor
+turn A into B
+turn in
+turn into
+twin
+twist
+typical
+typically
+ugly
+ultimate
+unable
+unbelievable
+uncomfortable
+under way
+undergo
+undertake
+unexpected
+unfortunately
+union
+unique
+unit
+universal
+universe
+university
+unknown
+unless
+unlike
+unlikely
+unpleasant
+until
+unusual
+unusually
+up to
+upset
+urban
+urge
+urgent
+use up
+useful
+useless
+utilize
+utter
+vaccine
+vague
+vain
+valuable
+vanish
+variation
+various
+vehicle
+vending machine
+venture
+verbal
+vessel
+vice
+victim
+viewer
+violate
+violence
+virtually
+virtue
+virus
+visible
+visually
+vital
+vivid
+vocabulary
+voluntarily
+vote
+vote for
+voter
+vow
+voyage
+vulnerable
+wage
+wait for
+wan
+war
+warm
+warn
+waste
+watch out
+wealthy
+wear
+weather
+weigh
+weight
+welcome
+welfare
+well off
+well-known
+what is called
+what is worse
+whatever
+whenever
+whereas
+wherever
+whether
+whisper
+whistle
+whole
+widely
+wildlife
+willing
+wipe
+wisdom
+wise
+with luck
+withdraw
+within
+within reach
+withstand
+witness
+work out
+worry
+worth
+worthy of
+wrap
+wrong
+yell
+yield
+`
+    .trim()
+    .split('\n')
+    .map((word) => word.trim())
+    .filter(Boolean);
+
 // ==============================
 // 英検準1級 (大学中級程度)
 // ==============================
-export const VOCAB_GRADE_PRE1 = [
+const LEGACY_GRADE_PRE1_VOCAB = [
     { word: 'abdicate', meaning: '退位する、放棄する' },
     { word: 'absorb', meaning: '吸収する、夢中にさせる' },
     { word: 'absurd', meaning: 'ばかげた' },
@@ -2157,6 +4427,18 @@ export const VOCAB_GRADE_PRE1 = [
     { word: 'barrier', meaning: '障害、防壁' }
 ];
 
+export const VOCAB_GRADE_PRE1 = Array.from(
+    new Map(
+        [
+            ...LEGACY_GRADE_PRE1_VOCAB,
+            ...CUSTOM_VOCAB_GRADE_PRE1
+        ].map(({ word, meaning }) => [
+            normalizeVocabKey(word),
+            { word, meaning }
+        ])
+    ).values()
+);
+
 // ==============================
 // 英検1級 (大学上級程度)
 // ==============================
@@ -2252,6 +4534,940 @@ export const VOCAB_GRADE1 = [
     { word: 'consolidate', meaning: '統合する、強化する' },
     { word: 'conspicuous', meaning: '目立つ、顕著な' }
 ];
+
+function normalizeVocabKey(value) {
+    return String(value ?? '').trim().toLowerCase();
+}
+
+const GRADE2_ADDITIONAL_MEANINGS = new Map([
+    ['arctic', '北極の'],
+    ['buddhist', '仏教徒、仏教の'],
+    ['how come', 'なぜ、どうして'],
+    ['jewish', 'ユダヤ人の、ユダヤ教の'],
+    ['mexican', 'メキシコ人の、メキシコの'],
+    ['muslim', 'イスラム教徒、イスラム教の'],
+    ['no', 'いいえ、ない'],
+    ['what is more', 'その上、さらに'],
+    ['a bunch of', 'たくさんの、一束の'],
+    ['a couple of', '2つの、2人の、いくつかの'],
+    ['abortion', '妊娠中絶'],
+    ['abrupt', '突然の、不意の'],
+    ['absence', '不在、欠席'],
+    ['absolute', '絶対的な'],
+    ['absorb in', '〜に夢中にさせる'],
+    ['academically', '学問的に'],
+    ['accommodation', '宿泊設備、住居'],
+    ['according', '従って'],
+    ['account for', '説明する、占める'],
+    ['accuracy', '正確さ'],
+    ['accustomed', '慣れた'],
+    ['acquaint', '知らせる、知り合いにさせる'],
+    ['act on', '〜に基づいて行動する、作用する'],
+    ['acute', '鋭い、深刻な'],
+    ['ad', '広告'],
+    ['add to', '付け加える、増やす'],
+    ['addicted', '中毒になって、夢中で'],
+    ['advertisement', '広告'],
+    ['afterwards', 'その後で'],
+    ['aggression', '攻撃、侵略'],
+    ['aggressive', '攻撃的な'],
+    ['agricultural', '農業の'],
+    ['aisle', '通路'],
+    ['alive', '生きている'],
+    ['all around the world', '世界中で'],
+    ['almost', 'ほとんど'],
+    ['along with', '〜と一緒に'],
+    ['aloud', '声に出して'],
+    ['altogether', '完全に、全部で'],
+    ['ambition', '野心、志'],
+    ['ambulance', '救急車'],
+    ['amount to', '合計で〜になる、〜に等しい'],
+    ['anger', '怒り'],
+    ['angle', '角度、視点'],
+    ['annual', '毎年の、年1回の'],
+    ['appetite', '食欲'],
+    ['applause', '拍手'],
+    ['application', '申し込み、応募、適用'],
+    ['apply for', '申し込む、応募する'],
+    ['approximately', 'およそ、約'],
+    ['as a matter of fact', '実際のところ'],
+    ['as far as i know', '私の知る限りでは'],
+    ['as follows', '次のとおり'],
+    ['as if', 'まるで〜のように'],
+    ['as though', 'あたかも〜であるかのように'],
+    ['ashamed', '恥ずかしく思って'],
+    ['assembly', '集会、組み立て'],
+    ['associated with', '〜と関係がある'],
+    ['at a loss', '途方に暮れて'],
+    ['at best', 'せいぜい、多くても'],
+    ['at least', '少なくとも'],
+    ['at times', '時々'],
+    ['atomic', '原子の'],
+    ['attach to', '〜に付ける、添付する'],
+    ['automobile', '自動車'],
+    ['bake', '焼く'],
+    ['bang', 'ドンと音を立てる、強打する'],
+    ['bank account', '銀行口座'],
+    ['basin', '盆地、洗面器'],
+    ['be accustomed to', '〜に慣れている'],
+    ['be adjusted to', '〜に順応している'],
+    ['be awake', '目が覚めている'],
+    ['be aware of', '〜に気づいている'],
+    ['be born with', '生まれつき〜を持っている'],
+    ['be concerned about', '〜を心配している'],
+    ['be connected to', '〜につながっている'],
+    ['be considered to', '〜だと考えられている'],
+    ['be effective at', '〜に効果がある、得意である'],
+    ['be engaged in', '〜に従事している'],
+    ['be familiar with', '〜に精通している'],
+    ['be involved in', '〜に関わっている'],
+    ['be known for', '〜で知られている'],
+    ['be made from', '〜から作られる'],
+    ['be obliged to', '〜する義務がある'],
+    ['be pleased with', '〜に満足している'],
+    ['be short of', '〜が不足している'],
+    ['be threatened to', '〜すると脅される'],
+    ['be well of', '裕福である'],
+    ['be willing to', '喜んで〜する'],
+    ['beat', '打ち負かす、たたく'],
+    ['before long', 'まもなく'],
+    ['beg', '懇願する、物ごいをする'],
+    ['behalf', '利益、立場'],
+    ['behind', '後ろに、遅れて'],
+    ['believe in', '〜の存在を信じる、信用する'],
+    ['beneath', '〜の下に'],
+    ['beside', '〜のそばに'],
+    ['between a and b', 'AとBの間に'],
+    ['beverage', '飲み物'],
+    ['bill', '請求書、法案'],
+    ['billion', '10億'],
+    ['bind', '縛る、結びつける'],
+    ['biology', '生物学'],
+    ['bishop', '司教'],
+    ['blame for', '〜のことで責める'],
+    ['blast', '爆発、突風'],
+    ['bleed', '出血する'],
+    ['blink', 'まばたきする'],
+    ['bloom', '咲く、開花'],
+    ['border', '国境、境界'],
+    ['bound for', '〜行きの'],
+    ['bow', 'おじぎする、弓'],
+    ['break out', '突然始まる、逃げ出す'],
+    ['breed', '繁殖する、品種'],
+    ['breeze', 'そよ風'],
+    ['briefly', '簡潔に、短時間'],
+    ['brightness', '明るさ'],
+    ['bring up', '育てる、話題に出す'],
+    ['bully', 'いじめっ子、いじめる'],
+    ['burden', '重荷、負担'],
+    ['bureau', '局、事務局'],
+    ['burst', '破裂する、突然〜し始める'],
+    ['bury', '埋める、埋葬する'],
+    ['buyer', '買い手'],
+    ['by degrees', '徐々に'],
+    ['by heart', '暗記して'],
+    ['by means of', '〜によって'],
+    ['by nature', '生まれつき、本来'],
+    ['by the end of', '〜の終わりまでに'],
+    ['calm', '落ち着いた、落ち着かせる'],
+    ['calm down', '落ち着く、落ち着かせる'],
+    ['candidate', '候補者'],
+    ['carbon dioxide', '二酸化炭素'],
+    ['carry out', '実行する'],
+    ['cash', '現金'],
+    ['cave', '洞窟'],
+    ['charm', '魅力、お守り'],
+    ['checkup', '健康診断'],
+    ['chemistry', '化学'],
+    ['circuit', '回路、一周'],
+    ['civilize', '文明化する'],
+    ['civilized', '文明化された'],
+    ['classical', '古典的な'],
+    ['cling', 'しがみつく'],
+    ['clip', '留め金で留める、切り抜き'],
+    ['colony', '植民地'],
+    ['come across', '偶然出会う'],
+    ['come into being', '生じる、誕生する'],
+    ['come out', '出てくる、明らかになる'],
+    ['commissioner', '委員、長官'],
+    ['commodity', '商品'],
+    ['common', '共通の、普通の'],
+    ['communist', '共産主義者、共産主義の'],
+    ['commute', '通勤する'],
+    ['companion', '仲間、連れ'],
+    ['comparison', '比較'],
+    ['compassion', '思いやり、同情'],
+    ['competitor', '競争相手'],
+    ['complain of', '〜を訴える、不満を言う'],
+    ['complete', '完全な、完了する'],
+    ['completely', '完全に'],
+    ['complexity', '複雑さ'],
+    ['compliment', 'ほめ言葉、ほめる'],
+    ['composition', '作文、構成'],
+    ['conceal', '隠す'],
+    ['concrete', '具体的な、コンクリート'],
+    ['conference', '会議'],
+    ['confident', '自信がある'],
+    ['confine', '制限する、閉じ込める'],
+    ['conform', '従う、一致する'],
+    ['confront', '立ち向かう'],
+    ['confusion', '混乱'],
+    ['congratulations on', '〜おめでとう'],
+    ['conquer', '征服する、克服する'],
+    ['consciously', '意識して'],
+    ['consequently', 'その結果'],
+    ['conservation', '保護、保存'],
+    ['consist of', '〜から成る'],
+    ['constant', '絶え間ない、不変の'],
+    ['constantly', '絶えず'],
+    ['constitute', '構成する'],
+    ['constitution', '憲法、体質'],
+    ['construction', '建設、構造'],
+    ['container', '容器'],
+    ['content', '内容、中身'],
+    ['continent', '大陸'],
+    ['contract', '契約'],
+    ['convenient', '便利な'],
+    ['conversation', '会話'],
+    ['converse', '会話する、逆の'],
+    ['convict', '有罪とする、受刑者'],
+    ['cop', '警官'],
+    ['cope with', '〜に対処する'],
+    ['cough', 'せき、せきをする'],
+    ['counter', '反論する、カウンター'],
+    ['creative', '創造的な'],
+    ['crew', '乗組員、スタッフ'],
+    ['critic', '批評家'],
+    ['criticize', '批判する'],
+    ['critics', '批評家たち'],
+    ['crown', '王冠'],
+    ['cruise', '巡航する、クルーズ'],
+    ['cultivate', '耕作する、育む'],
+    ['cure', '治療する、治療法'],
+    ['cut down', '切り倒す、削減する'],
+    ['dare', 'あえて〜する'],
+    ['deaf', '耳の聞こえない'],
+    ['deal with', '対処する'],
+    ['decent', 'きちんとした、かなり良い'],
+    ['dedicate', 'ささげる、専念する'],
+    ['defend', '守る、防御する'],
+    ['deficit', '赤字、不足'],
+    ['definite', '明確な、確かな'],
+    ['definition', '定義'],
+    ['deliberately', '故意に、慎重に'],
+    ['delicate', '繊細な、壊れやすい'],
+    ['democrat', '民主主義者、民主党員'],
+    ['democratic', '民主的な'],
+    ['dentist', '歯科医'],
+    ['department', '部門、売り場'],
+    ['depress', '憂うつにさせる'],
+    ['descend', '降りる、由来する'],
+    ['description', '描写、説明'],
+    ['designate', '指定する'],
+    ['desirable', '望ましい'],
+    ['desperate', '絶望的な、必死の'],
+    ['destination', '目的地'],
+    ['devastate', '壊滅させる'],
+    ['devise', '考案する'],
+    ['dialect', '方言'],
+    ['differ', '異なる'],
+    ['digest', '消化する、要約'],
+    ['dignity', '尊厳'],
+    ['diminish', '減少する、減らす'],
+    ['dip', '少し下がる、浸す'],
+    ['disadvantage', '不利、不利益'],
+    ['disagree', '意見が合わない'],
+    ['discrimination', '差別'],
+    ['dislike', '嫌う'],
+    ['display', '展示する、表示'],
+    ['dispute', '論争'],
+    ['distant', '遠い'],
+    ['distinct', 'はっきり異なる'],
+    ['distinguish', '区別する'],
+    ['distort', 'ゆがめる'],
+    ['distract', '注意をそらす'],
+    ['distribution', '分配、流通'],
+    ['distributor', '販売業者、配給会社'],
+    ['division', '分割、部門'],
+    ['divorce', '離婚する、離婚'],
+    ['dizziness', 'めまい'],
+    ['dizzy', 'めまいがする'],
+    ['do away with', '廃止する、なくす'],
+    ['document', '文書、記録する'],
+    ['documentary', '記録映画、事実に基づく'],
+    ['domain', '領域、ドメイン'],
+    ['dominate', '支配する'],
+    ['donate', '寄付する'],
+    ['donation', '寄付'],
+    ['dormitory', '寮'],
+    ['doubtfully', '疑わしげに'],
+    ['drag', '引きずる'],
+    ['drought', '干ばつ'],
+    ['drug', '薬物、医薬品'],
+    ['due to', '〜のために'],
+    ['during', '〜の間に'],
+    ['earnest', '真剣な'],
+    ['economics', '経済学'],
+    ['editor', '編集者'],
+    ['educational', '教育の'],
+    ['effectively', '効果的に'],
+    ['elaborate', '精巧な、詳しく述べる'],
+    ['electrical', '電気の'],
+    ['elementary', '初歩の、基本の'],
+    ['eliminate', '排除する'],
+    ['embarrassed', '恥ずかしい、困惑した'],
+    ['emperor', '皇帝'],
+    ['empire', '帝国'],
+    ['employer', '雇い主'],
+    ['empty', '空の'],
+    ['endanger', '危険にさらす'],
+    ['endow', '授ける、寄付する'],
+    ['enrich', '豊かにする'],
+    ['ensure', '確実にする'],
+    ['enterprise', '事業、企業'],
+    ['enthusiasm', '熱意'],
+    ['entitle to', '〜する権利を与える'],
+    ['envy', 'うらやむ、ねたみ'],
+    ['equality', '平等'],
+    ['equipment', '設備、用具'],
+    ['equivalent', '同等の、同等物'],
+    ['era', '時代'],
+    ['erosion', '浸食'],
+    ['essentially', '本質的に'],
+    ['etc', 'など'],
+    ['even if', 'たとえ〜でも'],
+    ['evident', '明らかな'],
+    ['evoke', '呼び起こす'],
+    ['evolve', '進化する、発展する'],
+    ['exact', '正確な、まさにその'],
+    ['exaggerate', '誇張する'],
+    ['except for', '〜を除いて'],
+    ['excess', '過剰'],
+    ['excessive', '過度の'],
+    ['exclusive', '排他的な、高級な'],
+    ['executive', '経営幹部、重役'],
+    ['exert', '及ぼす、行使する'],
+    ['exhaust', '疲れ果てさせる、使い果たす'],
+    ['exhibit', '展示する、展示品'],
+    ['expire', '期限が切れる'],
+    ['expired', '期限切れの'],
+    ['explode', '爆発する'],
+    ['explorers', '探検家たち'],
+    ['explosion', '爆発'],
+    ['extinct', '絶滅した'],
+    ['extinction', '絶滅'],
+    ['extract', '取り出す、抜粋'],
+    ['eyesight', '視力'],
+    ['facility', '施設、能力'],
+    ['fame', '名声'],
+    ['familiar', 'よく知られた、親しい'],
+    ['famine', '飢饉'],
+    ['fancy', '派手な、好む'],
+    ['fare', '運賃'],
+    ['fascinate', '魅了する'],
+    ['fatigue', '疲労'],
+    ['favorite', 'お気に入りの'],
+    ['figure', '数字、人物、図'],
+    ['finally', 'ついに、最後に'],
+    ['fingerprint', '指紋'],
+    ['firmly', 'しっかりと'],
+    ['first of all', 'まず第一に'],
+    ['flame', '炎'],
+    ['focus on', '〜に集中する'],
+    ['fold', '折る、折りたたむ'],
+    ['for example', '例えば'],
+    ['for free', '無料で'],
+    ['for some time', 'しばらくの間'],
+    ['for sure', '確かに'],
+    ['for the time being', '当分の間'],
+    ['forecast', '予報、予測する'],
+    ['formula', '公式、方式'],
+    ['fossil', '化石'],
+    ['found', '設立する'],
+    ['fraction', '一部、分数'],
+    ['fragile', '壊れやすい'],
+    ['fragment', '断片'],
+    ['friendly', '親しみやすい'],
+    ['from now on', 'これからは'],
+    ['frown', 'しかめ面をする'],
+    ['fulfill', '果たす'],
+    ['fur', '毛皮'],
+    ['gay', '陽気な、同性愛の'],
+    ['gaze', 'じっと見つめる'],
+    ['gear', '歯車、用具'],
+    ['gene', '遺伝子'],
+    ['generate', '生み出す、発生させる'],
+    ['generation', '世代'],
+    ['genetically', '遺伝学的に'],
+    ['genuine', '本物の'],
+    ['germ', '細菌'],
+    ['get away with', '〜をうまくやり逃れる'],
+    ['get by', '何とかやっていく'],
+    ['get over', '乗り越える、回復する'],
+    ['get used to', '〜に慣れる'],
+    ['girlfriend', 'ガールフレンド'],
+    ['give out', '配る、尽きる'],
+    ['globe', '地球、球体'],
+    ['go after', '追いかける、狙う'],
+    ['goal', '目標、ゴール'],
+    ['grace', '優雅さ、恩恵'],
+    ['grand', '壮大な'],
+    ['grasp', 'つかむ、理解する'],
+    ['grass', '草'],
+    ['grave', '墓、重大な'],
+    ['grocery', '食料品'],
+    ['guilty', '有罪の、後ろめたい'],
+    ['hand in', '提出する'],
+    ['handout', '配布物、施し'],
+    ['hang up', '電話を切る、つるす'],
+    ['harmony', '調和'],
+    ['harsh', '厳しい'],
+    ['health insurance', '健康保険'],
+    ['hemisphere', '半球'],
+    ['hesitantly', 'ためらいながら'],
+    ['hesitation', 'ためらい'],
+    ['hierarchy', '階層、序列'],
+    ['historian', '歴史家'],
+    ['holy', '神聖な'],
+    ['honor', '名誉、敬意'],
+    ['hospitality', 'もてなし'],
+    ['humble', '謙虚な'],
+    ['humid', '湿気の多い'],
+    ['humidity', '湿度'],
+    ['hunger', '飢え'],
+    ['identical', '同一の'],
+    ['ignorance', '無知'],
+    ['ill', '病気の'],
+    ['illustrate', '説明する、挿絵を入れる'],
+    ['illustration', '挿絵、説明'],
+    ['immigration', '移民、入国'],
+    ['impact', '影響、衝撃'],
+    ['imperial', '帝国の'],
+    ['impose', '課す、押しつける'],
+    ['impossible', '不可能な'],
+    ['impulse', '衝動'],
+    ['in a row', '連続して'],
+    ['in charge of', '〜を担当して'],
+    ['in contrast to', '〜とは対照的に'],
+    ['in danger of', '〜の危険があって'],
+    ['in demand', '需要がある'],
+    ['in effect', '事実上、効力があって'],
+    ['in exchange', '交換に'],
+    ['in fact', '実際には'],
+    ['in fashion', '流行して'],
+    ['in general', '一般に'],
+    ['in need of', '〜を必要として'],
+    ['in other words', '言い換えれば'],
+    ['in place', '適切な場所に、用意されて'],
+    ['in practice', '実際には'],
+    ['in response', '応えて、反応して'],
+    ['in shape', '体調が良くて'],
+    ['in short', '要するに'],
+    ['in some way', '何らかの形で'],
+    ['in stock', '在庫があって'],
+    ['in terms of', '〜の点で'],
+    ['in the meantime', 'その間に'],
+    ['in time', '間に合って'],
+    ['in touch', '連絡を取り合って'],
+    ['in tough', '連絡を取り合って'],
+    ['in trouble', '困って、面倒に巻き込まれて'],
+    ['in turn', '順番に、その結果'],
+    ['in vain', 'むだに'],
+    ['incident', '出来事、事件'],
+    ['inclined', '傾いている、〜する傾向がある'],
+    ['inconvenience', '不便、不都合'],
+    ['increasingly', 'ますます'],
+    ['incredible', '信じられない'],
+    ['indigenous', '先住の、固有の'],
+    ['indoor', '屋内の'],
+    ['induce', '引き起こす、説得してさせる'],
+    ['industrialize', '工業化する'],
+    ['inevitable', '避けられない'],
+    ['infant', '乳児'],
+    ['inferior', '劣った'],
+    ['infrastructure', '社会基盤'],
+    ['inhabitant', '住民'],
+    ['initial', '最初の、頭文字'],
+    ['injection', '注射'],
+    ['innocently', '無邪気に、無実に'],
+    ['insect', '昆虫'],
+    ['inside', '内側に、内部'],
+    ['insight', '洞察'],
+    ['insist', '強く主張する'],
+    ['inspire', '鼓舞する、ひらめきを与える'],
+    ['instant', '即座の、瞬間'],
+    ['institution', '制度、機関'],
+    ['instruct', '指示する、教える'],
+    ['insurance', '保険'],
+    ['integrate', '統合する'],
+    ['intelligence', '知能、知性'],
+    ['intensive', '集中的な'],
+    ['interfere', '干渉する、妨げる'],
+    ['interrupt', '中断する'],
+    ['intimate', '親密な'],
+    ['intuition', '直感'],
+    ['invade', '侵略する'],
+    ['invent', '発明する'],
+    ['invention', '発明'],
+    ['investigate', '調査する'],
+    ['investigator', '調査員'],
+    ['investment', '投資'],
+    ['invisible', '目に見えない'],
+    ['irrelevant', '無関係な'],
+    ['irrigation', '灌漑'],
+    ['irritate', 'いら立たせる'],
+    ['isolation', '孤立'],
+    ['jealously', '嫉妬して'],
+    ['justify', '正当化する'],
+    ['keep up', '維持する、遅れない'],
+    ['kindergarten', '幼稚園'],
+    ['knee', 'ひざ'],
+    ['laptop', 'ノートパソコン'],
+    ['large amount of', '大量の'],
+    ['lately', '最近'],
+    ['latest', '最新の'],
+    ['laundry', '洗濯、洗濯物'],
+    ['lawyer', '弁護士'],
+    ['layer', '層'],
+    ['lazy', '怠けた'],
+    ['leak', '漏れる、漏れ'],
+    ['leap', '跳ぶ'],
+    ['legal', '法律の、合法の'],
+    ['leisurely', 'のんびりした'],
+    ['lessen', '減らす'],
+    ['liberty', '自由'],
+    ['limb', '手足'],
+    ['liquid', '液体'],
+    ['literally', '文字どおりに'],
+    ['litter', 'ごみを捨てる、ごみ'],
+    ['live on', '〜で暮らす、食べて生きる'],
+    ['load', '積み荷、積む'],
+    ['location', '場所、位置'],
+    ['log', '丸太、記録'],
+    ['logic', '論理'],
+    ['logical', '論理的な'],
+    ['look forward to', '〜を楽しみに待つ'],
+    ['look into', '調べる'],
+    ['look over', 'ざっと目を通す'],
+    ['look through', '目を通す、見抜く'],
+    ['look up to', '尊敬する'],
+    ['lord', '君主、主'],
+    ['low-income', '低所得の'],
+    ['lung', '肺'],
+    ['magnificent', '壮大な、見事な'],
+    ['major', '主要な、専攻'],
+    ['make fun of', '〜をからかう'],
+    ['make sense', '意味をなす'],
+    ['make up', '作り上げる、仲直りする'],
+    ['maker', '製造者'],
+    ['mammal', '哺乳類'],
+    ['manipulate', '操作する'],
+    ['market', '市場'],
+    ['massive', '巨大な'],
+    ['master', '主人、習得する'],
+    ['masterpiece', '傑作'],
+    ['mature', '成熟した'],
+    ['means', '手段'],
+    ['medical', '医学の、医療の'],
+    ['medieval', '中世の'],
+    ['memory loss', '記憶喪失'],
+    ['migrate', '移住する'],
+    ['mildly', '穏やかに、軽く'],
+    ['mindful', '注意して、意識して'],
+    ['mineral', '鉱物'],
+    ['minimum', '最小限'],
+    ['ministry', '省、聖職'],
+    ['minority', '少数派'],
+    ['modest', '控えめな'],
+    ['molecule', '分子'],
+    ['motive', '動機'],
+    ['mummy', 'ミイラ'],
+    ['mutual', '相互の'],
+    ['mystery', '謎'],
+    ['myth', '神話'],
+    ['nap', 'うたた寝する、昼寝'],
+    ['navy', '海軍'],
+    ['neat', 'きちんとした、すっきりした'],
+    ['needlessly', '不必要に'],
+    ['neglect', '無視する、怠る'],
+    ['neighbor', '隣人'],
+    ['nerve', '神経、度胸'],
+    ['nervous', '緊張した、不安な'],
+    ['newly', '新たに、最近'],
+    ['no longer', 'もはや〜ない'],
+    ['nod', 'うなずく'],
+    ['numerous', '多数の'],
+    ['nursery school', '保育園'],
+    ['nutrition', '栄養'],
+    ['obey', '従う'],
+    ['objection', '反対、異議'],
+    ['objectively', '客観的に'],
+    ['obligation', '義務'],
+    ['obscure', '不明瞭な、無名の'],
+    ['observer', '観察者'],
+    ['obsession', '取りつかれた考え、執着'],
+    ['obstacle', '障害'],
+    ['occasion', '場合、機会'],
+    ['odd', '奇妙な、奇数の'],
+    ['off duty', '勤務時間外で'],
+    ['offensive', '攻撃的な、不快な'],
+    ['on demand', '要求があれば、需要に応じて'],
+    ['on duty', '勤務中で'],
+    ['on schedule', '予定どおりに'],
+    ['on the run', '逃亡中で'],
+    ['once', '一度、かつて'],
+    ['opposite', '反対の、向かい側'],
+    ['optimistic', '楽観的な'],
+    ['organ', '臓器、器官、オルガン'],
+    ['organic', '有機の'],
+    ['originate', '始まる、起こる'],
+    ['out of breath', '息を切らして'],
+    ['out of date', '時代遅れの'],
+    ['out of place', '場違いの'],
+    ['out of stock', '在庫切れで'],
+    ['out of use', '使われていない'],
+    ['output', '生産高、出力'],
+    ['outstanding', '傑出した、未払いの'],
+    ['overwhelm', '圧倒する'],
+    ['overwhelming', '圧倒的な'],
+    ['owe', '借りている、恩義がある'],
+    ['oxygen', '酸素'],
+    ['painful', '苦痛な、痛い'],
+    ['parallel', '平行な'],
+    ['parliament', '議会'],
+    ['participant', '参加者'],
+    ['participate', '参加する'],
+    ['particle', '粒子'],
+    ['partnership', '提携、共同関係'],
+    ['party', '政党、会、当事者'],
+    ['pass out', '気絶する、配る'],
+    ['passive', '受け身の、消極的な'],
+    ['pastime', '娯楽、気晴らし'],
+    ['patience', '忍耐'],
+    ['payment', '支払い'],
+    ['peaceful', '平和な、穏やかな'],
+    ['peacefully', '平和に、穏やかに'],
+    ['peculiar', '奇妙な、独特の'],
+    ['pedestrian', '歩行者'],
+    ['peel', '皮をむく、皮'],
+    ['penetrate', '貫く、浸透する'],
+    ['perception', '認識、知覚'],
+    ['permanent', '永久の'],
+    ['permanently', '永久に'],
+    ['persist in', '〜をやり続ける'],
+    ['perspective', '見方、観点'],
+    ['persuasion', '説得'],
+    ['pile', '積み重ねる、山'],
+    ['pioneer', '先駆者'],
+    ['pit', '穴、くぼみ'],
+    ['plain', '明白な、質素な'],
+    ['plant', '植物、工場'],
+    ['play a role in', '〜に役割を果たす'],
+    ['plot', '筋書き、陰謀'],
+    ['poison', '毒'],
+    ['popularity', '人気'],
+    ['portion', '部分、一人前'],
+    ['pose', '提起する、姿勢'],
+    ['positive', '前向きな、肯定的な'],
+    ['postpone', '延期する'],
+    ['practically', '実際には、ほとんど'],
+    ['pray', '祈る'],
+    ['precede', '先行する'],
+    ['precious', '貴重な'],
+    ['precise', '正確な'],
+    ['precisely', '正確に、まさに'],
+    ['predator', '捕食者'],
+    ['preference', '好み、優先'],
+    ['prejudice', '偏見'],
+    ['preserved', '保存された'],
+    ['prey', '獲物'],
+    ['price', '価格'],
+    ['principal', '主要な、校長'],
+    ['privilege', '特権'],
+    ['prize', '賞'],
+    ['proceed', '進む、続ける'],
+    ['product', '製品'],
+    ['profession', '職業、専門職'],
+    ['profound', '深い、重大な'],
+    ['prohibit', '禁止する'],
+    ['prolong', '長引かせる'],
+    ['pronunciation', '発音'],
+    ['properly', '適切に'],
+    ['protein', 'たんぱく質'],
+    ['protest', '抗議する、抗議'],
+    ['protocol', '規約、儀礼'],
+    ['provided that', '〜という条件で'],
+    ['provoke', '引き起こす、怒らせる'],
+    ['psychology', '心理学'],
+    ['publicity', '宣伝、世間の注目'],
+    ['publisher', '出版社、出版者'],
+    ['pull down', '引き下ろす、取り壊す'],
+    ['pull off', 'やり遂げる、引き離す'],
+    ['punishment', '罰'],
+    ['pupil', '生徒、瞳'],
+    ['pursuit', '追求'],
+    ['put away', '片づける、しまう'],
+    ['put off', '延期する'],
+    ['put together', '組み立てる'],
+    ['put up with', '〜を我慢する'],
+    ['quantity', '量'],
+    ['quarrel', '口論する、口論'],
+    ['racial', '人種の'],
+    ['rating', '評価、格付け'],
+    ['raw', '生の、未加工の'],
+    ['ray', '光線'],
+    ['react to', '〜に反応する'],
+    ['rear', '後部、育てる'],
+    ['reasonable', '妥当な、分別のある'],
+    ['recognition', '認識、評価'],
+    ['refer to', '〜を指す、参照する'],
+    ['reference', '言及、参考'],
+    ['refrain from', '〜を控える'],
+    ['refuge', '避難所'],
+    ['refund', '払い戻しする、払い戻し'],
+    ['regardless', 'それにもかかわらず'],
+    ['regime', '政権、体制'],
+    ['regional', '地域の'],
+    ['reinforce', '強化する'],
+    ['relative', '親族、相対的な'],
+    ['relatively', '比較的'],
+    ['relevant to', '〜に関連した'],
+    ['reliable', '信頼できる'],
+    ['relief', '安心、救援'],
+    ['relieve', '和らげる'],
+    ['rely', '頼る'],
+    ['remote', '遠く離れた'],
+    ['renew', '更新する'],
+    ['republic', '共和国'],
+    ['researcher', '研究者'],
+    ['reservation', '予約、留保'],
+    ['resign', '辞職する'],
+    ['resolve', '解決する、決意する'],
+    ['restrain', '抑える'],
+    ['result in', '〜という結果になる'],
+    ['retail', '小売り'],
+    ['retain', '保持する'],
+    ['retrieve', '取り戻す'],
+    ['reuse', '再利用する'],
+    ['reveal', '明らかにする'],
+    ['revenge', '復讐'],
+    ['revise', '改訂する、見直す'],
+    ['rid', '取り除く'],
+    ['ridiculous', 'ばかげた'],
+    ['ritual', '儀式'],
+    ['roast', '焼く、焼いた'],
+    ['rude', '失礼な'],
+    ['rug', '敷物'],
+    ['rule out', '除外する'],
+    ['rumor', 'うわさ'],
+    ['run away', '逃げる'],
+    ['sacrifice', '犠牲、犠牲にする'],
+    ['salty', '塩辛い'],
+    ['sanitation', '衛生'],
+    ['satisfactory', '満足のいく'],
+    ['savage', '野蛮な'],
+    ['scar', '傷跡'],
+    ['scarce', '乏しい'],
+    ['scatter', 'まき散らす'],
+    ['scholar', '学者'],
+    ['scholarship', '奨学金、学識'],
+    ['scientist', '科学者'],
+    ['seat', '席、座らせる'],
+    ['secondhand', '中古の、又聞きの'],
+    ['see in', '見送る、迎え入れる'],
+    ['seed', '種'],
+    ['select', '選ぶ、えり抜きの'],
+    ['senate', '上院、元老院'],
+    ['separation', '分離、別れ'],
+    ['servant', '使用人'],
+    ['settle down', '落ち着く、定住する'],
+    ['sewage', '下水'],
+    ['shame', '恥'],
+    ['shed', '流す、脱ぎ捨てる'],
+    ['shit', 'くそ、ひどいもの'],
+    ['show up', '現れる'],
+    ['shrink', '縮む'],
+    ['similarity', '類似点'],
+    ['sincere', '誠実な'],
+    ['sincerely', '心から、敬具'],
+    ['sit up', '起き上がる'],
+    ['site', '場所、用地'],
+    ['slavery', '奴隷制度'],
+    ['smart', '賢い、しゃれた'],
+    ['snap', 'ぽきっと折る、ぱちんと音'],
+    ['sneeze', 'くしゃみをする'],
+    ['soak', '浸す、ずぶぬれにする'],
+    ['soar', '急上昇する、舞い上がる'],
+    ['socially', '社会的に'],
+    ['sole', '唯一の、足の裏'],
+    ['sorrow', '悲しみ'],
+    ['souvenir', 'みやげ'],
+    ['sparkle', 'きらめく'],
+    ['speaking of', '〜と言えば'],
+    ['specialize in', '〜を専門にする'],
+    ['species', '種、種類'],
+    ['sphere', '球体、領域'],
+    ['spiritual', '精神的な、宗教的な'],
+    ['spiritually', '精神的に'],
+    ['spoil', '台無しにする、甘やかす'],
+    ['spouse', '配偶者'],
+    ['spur', '拍車をかける、刺激する'],
+    ['stand still', 'じっと立っている'],
+    ['stand up', '立ち上がる'],
+    ['stare at', '〜をじっと見つめる'],
+    ['starve', '飢える'],
+    ['stay up', '起きている'],
+    ['steadily', '着実に'],
+    ['steady', '安定した'],
+    ['stem', '茎、幹'],
+    ['stern', '厳格な'],
+    ['stiff', '硬い、堅苦しい'],
+    ['strengthen', '強化する'],
+    ['stretch', '伸ばす、広がる'],
+    ['strict', '厳しい'],
+    ['struggle', 'もがく、奮闘する'],
+    ['struggle with', '〜と格闘する'],
+    ['stubborn', '頑固な'],
+    ['subsequent', 'その後の'],
+    ['substitute', '代わりのもの、代える'],
+    ['subtle', '微妙な'],
+    ['suburb', '郊外'],
+    ['succeed', '成功する、継承する'],
+    ['success', '成功'],
+    ['sue', '訴える'],
+    ['suggestion', '提案'],
+    ['summon', '呼び出す'],
+    ['supervisor', '監督者'],
+    ['supplement', '補う、補足'],
+    ['supporter', '支持者'],
+    ['suppress', '抑える、鎮圧する'],
+    ['supreme', '最高の'],
+    ['sure', '確かな、もちろん'],
+    ['survive', '生き残る'],
+    ['suspend', '中断する、つるす'],
+    ['suspicious', '疑わしい、怪しい'],
+    ['swallow', '飲み込む'],
+    ['sweep', '掃く'],
+    ['take a for granted', 'Aを当然だと思う'],
+    ['take care', '気をつける、世話をする'],
+    ['take down', '取り外す、書き留める'],
+    ['tale', '物語'],
+    ['talent', '才能'],
+    ['tame', '飼いならされた、飼いならす'],
+    ['tap', '軽くたたく、蛇口'],
+    ['technical', '技術の、専門的な'],
+    ['telescope', '望遠鏡'],
+    ['terribly', 'ひどく、とても'],
+    ['thermometer', '温度計'],
+    ['think over', 'よく考える'],
+    ['thorough', '徹底的な'],
+    ['though', '〜だけれども'],
+    ['thrust', '押し込む、突き'],
+    ['tide', '潮'],
+    ['tidy', 'きちんとした、片づける'],
+    ['tip', '先端、助言、チップ'],
+    ['to start with', 'まず第一に'],
+    ['toll', '通行料、被害数'],
+    ['tough', 'たくましい、難しい'],
+    ['tourism', '観光'],
+    ['toxic', '有毒な'],
+    ['traffic', '交通'],
+    ['traffic jam', '交通渋滞'],
+    ['tragedy', '悲劇'],
+    ['trait', '特徴、特性'],
+    ['transaction', '取引'],
+    ['translation', '翻訳'],
+    ['transport', '輸送する、輸送'],
+    ['transportation', '輸送、交通機関'],
+    ['treasure', '宝物'],
+    ['tremble', '震える'],
+    ['tremendous', 'とてつもない、すばらしい'],
+    ['trivial', 'ささいな'],
+    ['troop', '軍隊、部隊'],
+    ['tropical', '熱帯の'],
+    ['tuition', '授業料'],
+    ['tumor', '腫瘍'],
+    ['turn in', '提出する、寝る'],
+    ['twin', '双子の一人'],
+    ['twist', 'ねじる、ひねり'],
+    ['ugly', '醜い'],
+    ['ultimate', '究極の、最終の'],
+    ['uncomfortable', '居心地の悪い、不快な'],
+    ['under way', '進行中で'],
+    ['undergo', '経験する、受ける'],
+    ['undertake', '引き受ける'],
+    ['unexpected', '予想外の'],
+    ['unlikely', 'ありそうにない'],
+    ['unpleasant', '不快な'],
+    ['unusual', '普通でない'],
+    ['unusually', '異常に'],
+    ['urge', '強く促す、衝動'],
+    ['use up', '使い果たす'],
+    ['utilize', '利用する'],
+    ['utter', '発する、まったくの'],
+    ['vaccine', 'ワクチン'],
+    ['vain', 'むだな、うぬぼれた'],
+    ['vanish', '消える'],
+    ['vending machine', '自動販売機'],
+    ['verbal', '言葉の、口頭の'],
+    ['vessel', '船、容器'],
+    ['vice', '悪徳、副〜'],
+    ['virtue', '美徳'],
+    ['visually', '視覚的に'],
+    ['vivid', '鮮やかな、生き生きした'],
+    ['vocabulary', '語彙'],
+    ['voluntarily', '自発的に'],
+    ['vow', '誓う、誓い'],
+    ['voyage', '航海'],
+    ['wage', '賃金'],
+    ['wait for', '〜を待つ'],
+    ['wan', '青白い'],
+    ['warm', '暖かい、暖める'],
+    ['watch out', '気をつける'],
+    ['weigh', '重さを量る'],
+    ['welcome', '歓迎する、歓迎'],
+    ['welfare', '福祉'],
+    ['what is worse', 'さらに悪いことに'],
+    ['whereas', '一方で、〜だが'],
+    ['wherever', '〜するところならどこでも'],
+    ['whistle', '口笛を吹く、笛'],
+    ['willing', '進んでする気がある'],
+    ['with luck', '運がよければ'],
+    ['within reach', '手の届く範囲に'],
+    ['withstand', '耐える'],
+    ['worry', '心配する、心配'],
+    ['worthy of', '〜に値する'],
+    ['wrap', '包む'],
+    ['wrong', '間違った、悪い'],
+    ['yell', '叫ぶ']
+]);
+
+const GRADE2_MEANING_LOOKUP = new Map(
+    [
+        ...GRADE2_ADDITIONAL_MEANINGS.entries(),
+        ...VOCAB_GRADE5,
+        ...VOCAB_GRADE4,
+        ...VOCAB_GRADE3,
+        ...VOCAB_GRADE_PRE2,
+        ...VOCAB_GRADE_PRE1,
+        ...VOCAB_GRADE1,
+        ...LEGACY_GRADE2_VOCAB
+    ].map((entry) => {
+        if (Array.isArray(entry)) {
+            const [word, meaning] = entry;
+            return [normalizeVocabKey(word), meaning];
+        }
+
+        const { word, meaning } = entry;
+        return [normalizeVocabKey(word), meaning];
+    })
+);
+
+// 既存データに意味がない語は、一覧を先に使えるよう暫定表示を入れる。
+export const VOCAB_GRADE2 = GRADE2_WORD_LIST.map((word) => ({
+    word,
+    meaning: GRADE2_MEANING_LOOKUP.get(normalizeVocabKey(word)) || `${word}（意味未設定）`
+}));
 
 // ==============================
 // レベル別ルックアップ
