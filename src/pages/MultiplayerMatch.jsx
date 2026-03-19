@@ -20,7 +20,7 @@ import {
     calculateDrawRatingChange,
     DEFAULT_RATING
 } from '../utils/ratingUtils';
-import { resolveWinnerUid } from '../utils/matchUtils';
+import { resolveWinnerUid, summarizeAnswers } from '../utils/matchUtils';
 import { addWrongQuestion } from '../utils/reviewUtils';
 import './MultiplayerMatch.css';
 
@@ -92,6 +92,57 @@ const getOpponentStatusMeta = (opponent, myQuestionIndex, showFeedback) => {
         detail: '相手も回答中です。',
         tone: 'ok'
     };
+};
+
+const getLeadMeta = (myScore, opponentScore) => {
+    const gap = myScore - opponentScore;
+
+    if (gap >= 2) {
+        return {
+            label: `${gap}問リード`,
+            detail: 'このまま押し切ろう',
+            tone: 'lead'
+        };
+    }
+
+    if (gap === 1) {
+        return {
+            label: 'わずかにリード',
+            detail: '焦らず次の1問へ',
+            tone: 'lead'
+        };
+    }
+
+    if (gap === 0) {
+        return {
+            label: '接戦',
+            detail: '次の1問が勝負どころ',
+            tone: 'neutral'
+        };
+    }
+
+    return {
+        label: `${Math.abs(gap)}問ビハインド`,
+        detail: 'まだ巻き返せます',
+        tone: 'chase'
+    };
+};
+
+const getFinishReasonLabel = (finishReason, isSolo) => {
+    if (isSolo) {
+        return 'ソロチャレンジ完了';
+    }
+
+    switch (finishReason) {
+        case 'completed':
+            return '目標正解数に到達';
+        case 'questions_exhausted':
+            return '規定問題を消化';
+        case 'opponent_left':
+            return '相手の退出で終了';
+        default:
+            return '対戦終了';
+    }
 };
 
 const MultiplayerMatch = ({ stats, updateStats }) => {
@@ -705,8 +756,15 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         const question = roomData.questions[myQuestionIndex];
         const opponent = getOpponent();
         const opponentStatus = !isSolo ? getOpponentStatusMeta(opponent, myQuestionIndex, showFeedback) : null;
+        const myRoomPlayer = getMyPlayerFromRoom();
         const opScore = opponent?.score || 0;
         const totalQuestions = roomData.questions.length;
+        const currentQuestionLabel = `${Math.min(myQuestionIndex + 1, totalQuestions)} / ${totalQuestions}`;
+        const targetHint = isSolo
+            ? `残り ${Math.max(totalQuestions - myQuestionIndex - 1, 0)} 問`
+            : `あと ${Math.max(TARGET_CORRECT - myScore, 0)} 問で勝利`;
+        const leadMeta = !isSolo ? getLeadMeta(myScore, opScore) : null;
+        const mySummary = summarizeAnswers(myRoomPlayer?.answers || []);
 
         // 進行度の計算 (%)
         // ソロモード時は「全問題数」に対する進捗、対戦モード時は「目標正解数」に対する進捗
@@ -766,6 +824,24 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
 
                     {/* 問題とタイマー（中央） */}
                     <div className="mp-question-container">
+                        <div className="mp-question-meta-row">
+                            <div className="mp-question-pill mp-question-pill-primary">
+                                第{currentQuestionLabel}問
+                            </div>
+                            <div className="mp-question-pill">
+                                {targetHint}
+                            </div>
+                            {!isSolo && (
+                                <div className={`mp-question-pill mp-question-pill-${leadMeta.tone}`}>
+                                    {leadMeta.label}
+                                </div>
+                            )}
+                            {isSolo && (
+                                <div className="mp-question-pill mp-question-pill-neutral">
+                                    正答率 {mySummary.accuracy}%
+                                </div>
+                            )}
+                        </div>
                         <div className="mp-question-card">
                             <div className="mp-question-word">{question.word}</div>
                             <p className="mp-question-hint">この単語の意味は？</p>
@@ -881,6 +957,9 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         const opScore = opponent?.score || 0;
         const totalQuestions = roomData.questions.length;
         const winnerUid = roomData.winnerUid ?? resolveWinnerUid(roomData, TARGET_CORRECT);
+        const mySummary = summarizeAnswers(myPlayerRoom?.answers || []);
+        const opponentSummary = summarizeAnswers(opponent?.answers || []);
+        const finishReasonLabel = getFinishReasonLabel(roomData.finishReason, isSolo);
 
         // 勝敗判定
         let resultClass = 'mp-result-draw';
@@ -930,67 +1009,96 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                     <div className="mp-result-panel">
                         <div className="mp-result-emoji">{resultEmoji}</div>
                         <h2 className="mp-result-text">{resultText}</h2>
+                        <div className="mp-result-detail">{finishReasonLabel}</div>
 
-                    <div className="mp-result-scores">
-                        <div className="mp-result-player mp-result-me">
-                            <div className="mp-result-player-name">{myDisplayName}</div>
-                            <div className="mp-result-player-score">
-                                {isSolo ? `${finalMyScore} / ${totalQuestions}` : finalMyScore}
-                            </div>
-                        </div>
-                        {!isSolo && (
-                            <>
-                                <div className="mp-result-vs">-</div>
-                                <div className="mp-result-player mp-result-op">
-                                    <div className="mp-result-player-name">{opponent?.displayName || '???'}</div>
-                                    <div className="mp-result-player-score">{opScore}</div>
+                        <div className="mp-result-scores">
+                            <div className="mp-result-player mp-result-me">
+                                <div className="mp-result-player-name">{myDisplayName}</div>
+                                <div className="mp-result-player-score">
+                                    {isSolo ? `${finalMyScore} / ${totalQuestions}` : finalMyScore}
                                 </div>
-                            </>
-                        )}
-                    </div>
-
-                    {/* レート変動表示 */}
-                    {resultNotice && (
-                        <div className="mp-result-notice">
-                            {resultNotice}
-                        </div>
-                    )}
-                    {ratingChange && !isSolo && (
-                        <div className="mp-rating-change-section">
-                            <div className="mp-rating-change-label">レート</div>
-                            <div className="mp-rating-change-row">
-                                <span className="mp-rating-old">{myRating}</span>
-                                <span className="mp-rating-arrow">→</span>
-                                <span className="mp-rating-new">{ratingChange.newRating}</span>
-                                <span className={`mp-rating-delta ${ratingChange.change >= 0 ? 'mp-delta-up' : 'mp-delta-down'}`}>
-                                    {ratingChange.change >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                                    {ratingChange.change >= 0 ? '+' : ''}{ratingChange.change}
-                                </span>
                             </div>
-                            {isLevelUp && (
-                                <div className="mp-level-up-banner">
-                                    🎉 レベルアップ！ 出題範囲が {newLevelInfo.emoji} {newLevelInfo.label} に上がりました！
+                            {!isSolo && (
+                                <>
+                                    <div className="mp-result-vs">-</div>
+                                    <div className="mp-result-player mp-result-op">
+                                        <div className="mp-result-player-name">{opponent?.displayName || '???'}</div>
+                                        <div className="mp-result-player-score">{opScore}</div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        <div className={`mp-result-summary-grid ${isSolo ? 'is-solo' : ''}`}>
+                            <div className="mp-result-summary-card">
+                                <div className="mp-result-summary-label">自分の正答率</div>
+                                <div className="mp-result-summary-value">{mySummary.accuracy}%</div>
+                                <div className="mp-result-summary-sub">{mySummary.correctCount} / {Math.max(mySummary.answeredCount, finalMyScore)} 正解</div>
+                            </div>
+                            <div className="mp-result-summary-card">
+                                <div className="mp-result-summary-label">{isSolo ? '回答数' : '相手の正答率'}</div>
+                                <div className="mp-result-summary-value">{isSolo ? `${mySummary.answeredCount}問` : `${opponentSummary.accuracy}%`}</div>
+                                <div className="mp-result-summary-sub">
+                                    {isSolo ? `全${totalQuestions}問中` : `${opponentSummary.correctCount} / ${Math.max(opponentSummary.answeredCount, opScore)} 正解`}
+                                </div>
+                            </div>
+                            {!isSolo && (
+                                <div className="mp-result-summary-card">
+                                    <div className="mp-result-summary-label">勝敗の差</div>
+                                    <div className="mp-result-summary-value">{Math.abs(finalMyScore - opScore)}問差</div>
+                                    <div className="mp-result-summary-sub">
+                                        {finalMyScore === opScore
+                                            ? '最後まで接戦でした'
+                                            : finalMyScore > opScore
+                                                ? '先行を守り切りました'
+                                                : '次は追い上げましょう'}
+                                    </div>
                                 </div>
                             )}
                         </div>
-                    )}
 
-                    <div className="mp-result-actions">
-                        <button className="mp-rematch-btn" onClick={() => {
-                            if (unsubscribeRef.current) {
-                                unsubscribeRef.current();
-                                unsubscribeRef.current = null;
-                            }
-                            resetMatchState();
-                            setPrevLevelLabel(null);
-                            setPhase('init');
-                        }}>
-                            もう一度対戦する
-                        </button>
-                        <button className="mp-home-btn" onClick={() => navigate('/home')}>
-                            ホームに戻る
-                        </button>
-                    </div>
+                        {/* レート変動表示 */}
+                        {resultNotice && (
+                            <div className="mp-result-notice">
+                                {resultNotice}
+                            </div>
+                        )}
+                        {ratingChange && !isSolo && (
+                            <div className="mp-rating-change-section">
+                                <div className="mp-rating-change-label">レート</div>
+                                <div className="mp-rating-change-row">
+                                    <span className="mp-rating-old">{myRating}</span>
+                                    <span className="mp-rating-arrow">→</span>
+                                    <span className="mp-rating-new">{ratingChange.newRating}</span>
+                                    <span className={`mp-rating-delta ${ratingChange.change >= 0 ? 'mp-delta-up' : 'mp-delta-down'}`}>
+                                        {ratingChange.change >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                                        {ratingChange.change >= 0 ? '+' : ''}{ratingChange.change}
+                                    </span>
+                                </div>
+                                {isLevelUp && (
+                                    <div className="mp-level-up-banner">
+                                        🎉 レベルアップ！ 出題範囲が {newLevelInfo.emoji} {newLevelInfo.label} に上がりました！
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="mp-result-actions">
+                            <button className="mp-rematch-btn" onClick={() => {
+                                if (unsubscribeRef.current) {
+                                    unsubscribeRef.current();
+                                    unsubscribeRef.current = null;
+                                }
+                                resetMatchState();
+                                setPrevLevelLabel(null);
+                                setPhase('init');
+                            }}>
+                                もう一度対戦する
+                            </button>
+                            <button className="mp-home-btn" onClick={() => navigate('/home')}>
+                                ホームに戻る
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

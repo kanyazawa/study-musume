@@ -26,6 +26,20 @@ export function getNthCorrectAnswerTimestamp(answers = [], targetCorrect = 10) {
     return correctAnswers[targetCorrect - 1]?.timestamp ?? null;
 }
 
+export function summarizeAnswers(answers = []) {
+    const answeredCount = answers.length;
+    const correctCount = answers.filter((answer) => answer?.isCorrect).length;
+    const accuracy = answeredCount > 0
+        ? Math.round((correctCount / answeredCount) * 100)
+        : 0;
+
+    return {
+        answeredCount,
+        correctCount,
+        accuracy,
+    };
+}
+
 export function resolveWinnerUid(roomData, targetCorrect = 10) {
     const player1 = roomData?.player1;
     const player2 = roomData?.player2;

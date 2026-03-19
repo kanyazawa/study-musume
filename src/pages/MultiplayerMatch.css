@@ -617,6 +617,48 @@
     position: relative;
 }
 
+.mp-question-meta-row {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+.mp-question-pill {
+    background: rgba(10, 16, 36, 0.72);
+    color: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    backdrop-filter: blur(10px);
+}
+
+.mp-question-pill-primary {
+    background: linear-gradient(135deg, rgba(241, 39, 17, 0.82), rgba(245, 175, 25, 0.82));
+    border-color: rgba(255, 236, 179, 0.32);
+}
+
+.mp-question-pill-lead {
+    background: rgba(17, 153, 142, 0.78);
+    border-color: rgba(56, 239, 125, 0.24);
+}
+
+.mp-question-pill-chase {
+    background: rgba(255, 75, 43, 0.76);
+    border-color: rgba(255, 145, 114, 0.3);
+}
+
+.mp-question-pill-neutral {
+    background: rgba(78, 94, 162, 0.76);
+    border-color: rgba(190, 201, 255, 0.22);
+}
+
 .mp-question-card {
     background: #ffffff; /* 完全な白背景 */
     border-radius: 20px;
@@ -1033,6 +1075,49 @@
 .mp-result-detail {
     font-size: 0.95rem;
     color: rgba(255, 255, 255, 0.6);
+    margin-top: -6px;
+    margin-bottom: 14px;
+}
+
+.mp-result-summary-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+    margin-bottom: 14px;
+}
+
+.mp-result-summary-grid.is-solo {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mp-result-summary-card {
+    min-width: 0;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    padding: 14px 16px;
+    text-align: center;
+}
+
+.mp-result-summary-label {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.68);
+    margin-bottom: 6px;
+}
+
+.mp-result-summary-value {
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: white;
+    margin-bottom: 4px;
+}
+
+.mp-result-summary-sub {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.72);
+    line-height: 1.45;
 }
 
 .mp-result-actions {
@@ -1114,6 +1199,11 @@
 
     .mp-result-player-score {
         font-size: 2.4rem;
+    }
+
+    .mp-result-summary-grid,
+    .mp-result-summary-grid.is-solo {
+        grid-template-columns: 1fr;
     }
 }
 

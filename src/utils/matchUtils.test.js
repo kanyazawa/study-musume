@@ -3,6 +3,7 @@ import {
     buildQuestionOptions,
     getNthCorrectAnswerTimestamp,
     resolveWinnerUid,
+    summarizeAnswers,
     shuffleArray,
 } from './matchUtils';
 
@@ -37,6 +38,18 @@ describe('matchUtils', () => {
         ], 2);
 
         expect(timestamp).toBe(30);
+    });
+
+    it('summarizes answered questions and rounds accuracy', () => {
+        expect(summarizeAnswers([
+            { isCorrect: true },
+            { isCorrect: false },
+            { isCorrect: true },
+        ])).toEqual({
+            answeredCount: 3,
+            correctCount: 2,
+            accuracy: 67,
+        });
     });
 
     it('prefers the player who reached the target score first when scores tie', () => {
