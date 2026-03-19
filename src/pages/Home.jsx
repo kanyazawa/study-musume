@@ -14,6 +14,7 @@ import RenHappy from '../assets/images/ren_happy.png';
 import RenAngry from '../assets/images/ren_angry.png';
 // Footer removed
 import MenuModal from '../components/MenuModal';
+import NoaChatBox from '../components/NoaChatBox';
 import LoginBonusModal from '../components/LoginBonusModal';
 
 // Utils
@@ -254,6 +255,8 @@ const Home = ({ stats, updateStats }) => {
                         <span>🏆 ランキング</span>
                     </button>
                 </div>
+
+                <NoaChatBox stats={stats} />
             </div>
 
             {/* Footer removed */}
