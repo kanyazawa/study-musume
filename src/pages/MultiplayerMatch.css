@@ -214,6 +214,78 @@
     color: rgba(255, 255, 255, 0.5);
 }
 
+.mp-matching-status-card,
+.mp-error-panel,
+.mp-result-notice {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(10px);
+}
+
+.mp-matching-status-card {
+    width: 100%;
+    max-width: 360px;
+    border-radius: 18px;
+    padding: 16px 18px;
+    text-align: center;
+}
+
+.mp-matching-status-title {
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: #ffd26f;
+    margin-bottom: 6px;
+}
+
+.mp-matching-status-body {
+    font-size: 0.92rem;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.5;
+}
+
+.mp-error-panel {
+    width: 100%;
+    max-width: 380px;
+    border-radius: 24px;
+    padding: 28px 24px;
+    text-align: center;
+}
+
+.mp-error-icon {
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+
+.mp-error-panel h2 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.mp-error-panel p {
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.6;
+    margin-bottom: 18px;
+}
+
+.mp-error-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.mp-result-notice {
+    width: 100%;
+    max-width: 320px;
+    margin: 0 0 14px;
+    border-radius: 14px;
+    padding: 12px 16px;
+    text-align: center;
+    font-size: 0.92rem;
+    color: rgba(255, 255, 255, 0.88);
+}
+
 .mp-cancel-btn {
     background: rgba(255, 255, 255, 0.1);
     color: white;
@@ -274,6 +346,15 @@
     height: 100%;
     object-fit: cover;
     object-position: top;
+}
+
+.mp-avatar-fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-size: 1.5rem;
 }
 
 .mp-vs-name {
@@ -442,6 +523,47 @@
     padding: 4px 12px;
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.mp-opponent-status {
+    width: 100%;
+    border-radius: 14px;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: left;
+}
+
+.mp-opponent-status-label {
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.mp-opponent-status-detail {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.82);
+    line-height: 1.35;
+}
+
+.mp-status-ok {
+    background: rgba(56, 239, 125, 0.14);
+    border: 1px solid rgba(56, 239, 125, 0.24);
+}
+
+.mp-status-wait {
+    background: rgba(255, 210, 111, 0.14);
+    border: 1px solid rgba(255, 210, 111, 0.28);
+}
+
+.mp-status-warn {
+    background: rgba(255, 107, 107, 0.15);
+    border: 1px solid rgba(255, 107, 107, 0.28);
+}
+
+.mp-status-neutral {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.16);
 }
 
 /* Progress Bars */
@@ -700,6 +822,42 @@
     z-index: 100;
     pointer-events: none;
     background: radial-gradient(circle, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 70%);
+}
+
+.mp-connection-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 90;
+    pointer-events: none;
+    background: rgba(7, 10, 25, 0.32);
+}
+
+.mp-connection-card {
+    width: min(88vw, 320px);
+    background: rgba(11, 16, 36, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(12px);
+    border-radius: 20px;
+    padding: 18px 18px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+}
+
+.mp-connection-title {
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.mp-connection-text {
+    font-size: 0.86rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.76);
 }
 
 .mp-feedback-card {
