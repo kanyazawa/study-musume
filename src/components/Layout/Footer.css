@@ -7,7 +7,7 @@
     /* Extra padding bottom for safe area */
     border-top: 1px solid #ddd;
     position: absolute;
-    bottom: 0;
+    bottom: -10px;
     width: 100%;
     left: 0;
     z-index: 100;

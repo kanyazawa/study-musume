@@ -1,29 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Home.css';
-// Images
-import CharacterMain from '../assets/images/character_new.png';
-import CharacterRen from '../assets/images/character_ren.png';
-import CharacterCasual from '../assets/images/character_casual_v9.png';
-import CharacterGym from '../assets/images/character_gym.jpg';
-import CharacterCasualGray from '../assets/images/character_casual_gray_hoodie.jpg';
-import CharacterCasualBlack from '../assets/images/character_casual_hoodie.png';
-import NoaHappy from '../assets/images/noah_happy.png';
-import NoaAngry from '../assets/images/noah_angry.png';
-import RenHappy from '../assets/images/ren_happy.png';
-import RenAngry from '../assets/images/ren_angry.png';
 // Footer removed
+import CharacterStage from '../components/character/CharacterStage';
 import MenuModal from '../components/MenuModal';
-import NoaChatBox from '../components/NoaChatBox';
 import LoginBonusModal from '../components/LoginBonusModal';
+import NoaChatBox from '../components/NoaChatBox';
 
 // Utils
 import { getAffectionLevel, getAffectionProgress, getHomeReaction } from '../utils/affectionUtils';
-import { getSkinFilter, getBackgroundStyle } from '../utils/cosmeticUtils';
+import { resolveCharacterRenderer } from '../utils/characterRenderer';
+import { getBackgroundStyle } from '../utils/cosmeticUtils';
+import { createHomePose } from '../utils/characterPoseUtils';
 import { updateMissionsOnInteract } from '../utils/missionUtils';
 import { checkForNewAchievements } from '../utils/achievementUtils';
 import { ACHIEVEMENTS } from '../data/achievements';
 import { processLoginBonus } from '../utils/loginBonusUtils';
+import { getLastStudyTopic } from '../data/studyData';
+import { getLatestNoaAssistantMessage } from '../utils/chatHistory';
 
 const Home = ({ stats, updateStats }) => {
     // Default stats if not provided (fallback)
@@ -44,6 +38,8 @@ const Home = ({ stats, updateStats }) => {
     const [emotion, setEmotion] = useState('normal');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [loginBonusData, setLoginBonusData] = useState(null);
+    const [isTalkAnimating, setIsTalkAnimating] = useState(false);
+    const talkAnimationTimerRef = useRef(null);
 
     // Get equipped title
     const selectedTitle = stats?.selectedTitle;
@@ -52,40 +48,60 @@ const Home = ({ stats, updateStats }) => {
     // スキン画像のマッピング
     // キャラクターIDに基づいて切り替え (デフォルトは 'noah')
     const characterId = stats.characterId || 'noah';
+    const preferredRenderer = stats?.characterRenderer;
 
-    // Ren (Male) placeholder
-    const renImages = {
-        'default': CharacterRen,
-        'happy': RenHappy,
-        'serious': RenAngry,
-        'normal': CharacterRen,
-    };
+    const isVrmMode = characterId === 'noah' && localStorage.getItem('characterMode') === '3d';
 
-    const noahImages = {
-        'default': CharacterMain,
-        'skin_casual': CharacterCasual,
-        'skin_gym': CharacterGym,
-        'skin_casual_gray_hoodie': CharacterCasualGray,
-        'skin_casual_hoodie': CharacterCasualBlack,
-        'happy': NoaHappy,
-        'serious': NoaAngry,
-        'normal': CharacterMain,
-    };
-
-    const skinImages = characterId === 'ren' ? renImages : noahImages;
-
-    // 装備中のスキン・背景の取得
-    const baseSkinImage = skinImages[equippedSkin] || skinImages['default'];
-    const currentSkinImage = skinImages[emotion] || baseSkinImage;
-    const currentSkinFilter = getSkinFilter(equippedSkin);
     const currentBgStyle = getBackgroundStyle(equippedBackground);
+    const homePose = createHomePose({ emotion, text: speech }, { speaking: isTalkAnimating });
+    const renderer = resolveCharacterRenderer({
+        preferredRenderer,
+        characterId,
+        skinId: equippedSkin,
+        canUseVrm: isVrmMode,
+    });
 
     // 好感度レベルを取得
     const affectionLevelInfo = getAffectionLevel(affection);
     const affectionProgress = getAffectionProgress(affection);
+    const examDate = stats?.examDate || '';
+
+    const getCountdownDisplay = () => {
+        if (!examDate) {
+            return { value: '--', suffix: '日', title: '入試日未設定' };
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const target = new Date(`${examDate}T00:00:00`);
+        if (Number.isNaN(target.getTime())) {
+            return { value: '--', suffix: '日', title: '日付エラー' };
+        }
+
+        const diffMs = target.getTime() - today.getTime();
+        const remainingDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+        if (remainingDays < 0) {
+            return { value: '終了', suffix: '', title: '入試日通過' };
+        }
+
+        if (remainingDays === 0) {
+            return { value: '今日', suffix: '', title: '入試当日' };
+        }
+
+        return { value: remainingDays, suffix: '日', title: '入試まで' };
+    };
+
+    const countdownDisplay = getCountdownDisplay();
 
     // Random speech on mount and click (好感度レベルに応じて)
     const talk = () => {
+        if (talkAnimationTimerRef.current) {
+            clearTimeout(talkAnimationTimerRef.current);
+        }
+
+        setIsTalkAnimating(true);
         const reaction = getHomeReaction({
             affection,
             tp,
@@ -96,11 +112,37 @@ const Home = ({ stats, updateStats }) => {
         setSpeech(reaction.text);
         setEmotion(reaction.emotion || 'normal');
 
+        talkAnimationTimerRef.current = setTimeout(() => {
+            setIsTalkAnimating(false);
+        }, 480);
+
         // Update mission progress for character interaction
         updateMissionsOnInteract();
     };
 
+    const syncSpeechWithNoaReply = (replyText) => {
+        const nextSpeech = String(replyText || '').trim();
+        if (!nextSpeech) return;
+
+        setSpeech(nextSpeech);
+        setEmotion('normal');
+        setIsTalkAnimating(false);
+
+        if (talkAnimationTimerRef.current) {
+            clearTimeout(talkAnimationTimerRef.current);
+            talkAnimationTimerRef.current = null;
+        }
+    };
+
     useEffect(() => {
+        const topicName = getLastStudyTopic()?.topicName || 'default';
+        const latestReply = getLatestNoaAssistantMessage(topicName);
+
+        if (latestReply) {
+            syncSpeechWithNoaReply(latestReply);
+            return;
+        }
+
         talk();
     }, [affectionLevelInfo.level]);
 
@@ -117,6 +159,14 @@ const Home = ({ stats, updateStats }) => {
             }
         }
     }, []);
+
+    useEffect(() => (
+        () => {
+            if (talkAnimationTimerRef.current) {
+                clearTimeout(talkAnimationTimerRef.current);
+            }
+        }
+    ), []);
 
     // Calculate TP percentage
     const tpPercent = Math.min((tp / maxTp) * 100, 100);
@@ -210,21 +260,30 @@ const Home = ({ stats, updateStats }) => {
                 {equippedBackground === 'default' && <div className="room-background"></div>}
 
                 {/* Countdown (Floating) */}
-                <div className="countdown-floating">
-                    <div className="countdown-title">入試まで</div>
+                <div className="countdown-floating" onClick={() => navigate('/goal')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && navigate('/goal')}>
+                    <div className="countdown-title">{countdownDisplay.title}</div>
                     <div className="countdown-days">
-                        <span className="days-num">14</span>
-                        <span className="days-label">日</span>
+                        <span className="days-num">{countdownDisplay.value}</span>
+                        {countdownDisplay.suffix && <span className="days-label">{countdownDisplay.suffix}</span>}
                     </div>
                 </div>
 
                 {/* Character Figure */}
-                <div className="character-figure" onClick={talk}>
-                    <img
-                        src={currentSkinImage}
-                        alt="Character"
-                        className="char-image"
-                        style={{ filter: emotion === 'normal' ? currentSkinFilter : 'none' }}
+                <div
+                    className={`character-figure ${isVrmMode ? 'is-vrm' : ''}`}
+                    onClick={talk}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && talk()}
+                >
+                    <CharacterStage
+                        characterId={characterId}
+                        renderer={renderer}
+                        skinId={equippedSkin}
+                        scene="home"
+                        pose={homePose}
+                        className="vrm-home"
+                        imageClassName={`char-image ${isTalkAnimating ? 'talk-burst' : ''}`}
                     />
 
                     {/* Speech Bubble */}
@@ -256,7 +315,7 @@ const Home = ({ stats, updateStats }) => {
                     </button>
                 </div>
 
-                <NoaChatBox stats={stats} />
+                <NoaChatBox stats={stats} compact onAssistantReply={syncSpeechWithNoaReply} />
             </div>
 
             {/* Footer removed */}

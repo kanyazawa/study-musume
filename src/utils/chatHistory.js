@@ -60,3 +60,16 @@ export const clearNoaChatMessages = (topicKey) => {
     delete store[key];
     writeStore(store);
 };
+
+export const getLatestNoaAssistantMessage = (topicKey, fallbackMessages = []) => {
+    const messages = getNoaChatMessages(topicKey, fallbackMessages);
+
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+        const message = messages[index];
+        if (message?.role === 'assistant' && message?.content) {
+            return message.content;
+        }
+    }
+
+    return '';
+};

@@ -640,7 +640,7 @@
 
 .speech-bubble {
     position: absolute;
-    bottom: 30%; /* ％指定でキャラの頭付近に安定させる */
+    bottom: 34%; /* 少し上へ寄せて全体の重心を上げる */
     left: 50%;
     transform: translateX(-50%);
     background: rgba(255, 255, 255, 0.98);
@@ -860,7 +860,7 @@
 /* Action Area - Centered row at bottom */
 .action-area {
     position: absolute;
-    bottom: 130px;
+    bottom: 228px;
     right: 0;
     left: 0;
     width: 100%;
@@ -1031,7 +1031,7 @@
 /* Mobile Responsive */
 @media (max-width: 480px) {
     .action-area {
-        bottom: 120px;
+        bottom: 218px;
         gap: 12px;
     }
 

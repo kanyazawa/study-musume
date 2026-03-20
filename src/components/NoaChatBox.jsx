@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { LoaderCircle, MessageCircle, RefreshCcw, SendHorizontal, Volume2, X } from 'lucide-react';
+import { LoaderCircle, RefreshCcw, SendHorizontal, Volume2, X } from 'lucide-react';
 import './NoaChatBox.css';
 import { getLastStudyTopic } from '../data/studyData';
 import { clearNoaChatMessages, getNoaChatMessages, saveNoaChatMessages } from '../utils/chatHistory';
@@ -71,8 +71,8 @@ const formatChatError = (errorMessage, endpoint) => {
 const buildStarterMessage = (topicName) => ({
     role: 'assistant',
     content: topicName
-        ? `${topicName}で詰まったところ、短く一緒に整理するわ。1つずつ聞きなさい。`
-        : '勉強で詰まったところを、短く一緒に整理するわ。気になるところを聞きなさい。',
+        ? `さっきの${topicName}でも、それ以外でも、気になることがあるなら話しなさい。少しくらいなら雑談にも付き合ってあげるわ。`
+        : '気になることがあるなら、順番に話しなさい。勉強でも雑談でも、ちゃんと聞いてあげるわ。',
 });
 
 const buildTopicMeta = () => {
@@ -167,7 +167,7 @@ const requestNoaReply = async (payload) => {
     throw lastError;
 };
 
-const NoaChatBox = ({ stats, embedded = false, onClose = null }) => {
+const NoaChatBox = ({ stats, embedded = false, compact = false, onClose = null, onAssistantReply = null }) => {
     const topicMeta = useMemo(() => buildTopicMeta(), []);
     const starterMessages = useMemo(() => [buildStarterMessage(topicMeta.label)], [topicMeta.label]);
     const [isOpen, setIsOpen] = useState(false);
@@ -186,6 +186,18 @@ const NoaChatBox = ({ stats, embedded = false, onClose = null }) => {
         if (!isOpen) return;
         messageEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }, [isOpen, messages, isLoading]);
+
+    useEffect(() => {
+        if (typeof onAssistantReply !== 'function' || messages.length === 0) return;
+
+        const latestAssistantMessage = [...messages]
+            .reverse()
+            .find((message) => message?.role === 'assistant' && message?.content);
+
+        if (latestAssistantMessage) {
+            onAssistantReply(latestAssistantMessage.content);
+        }
+    }, [messages, onAssistantReply]);
 
     const persistMessages = (nextMessages) => {
         const saved = saveNoaChatMessages(topicMeta.key, nextMessages);
@@ -254,16 +266,39 @@ const NoaChatBox = ({ stats, embedded = false, onClose = null }) => {
     };
 
     const isPanelVisible = embedded || isOpen;
+    const isCompact = compact && !embedded;
 
     return (
-        <div className={`noa-chat-shell ${embedded ? 'is-embedded' : ''}`}>
-            {isPanelVisible ? (
-                <section className={`noa-chat-panel ${embedded ? 'is-embedded' : ''}`} aria-label="ノア">
+        <div className={`noa-chat-shell ${embedded ? 'is-embedded' : ''} ${isCompact ? 'is-compact' : ''}`}>
+            {isCompact ? (
+                <section className="noa-chat-bar" aria-label="ノアに話しかける">
+                    {error && <p className="noa-chat-error is-compact">{error}</p>}
+
+                    <form className="noa-chat-bar-form" onSubmit={handleSubmit}>
+                        <label className="noa-chat-bar-label" htmlFor="noa-chat-input-compact">
+                            ノアに話しかける
+                        </label>
+                        <div className="noa-chat-bar-row">
+                            <textarea
+                                id="noa-chat-input-compact"
+                                className="noa-chat-input is-compact"
+                                value={input}
+                                onChange={(event) => setInput(event.target.value.slice(0, MAX_INPUT_LENGTH))}
+                                placeholder="ノアに聞きたいことを書く"
+                                rows={1}
+                            />
+                            <button type="submit" className="noa-chat-submit is-compact" disabled={isLoading || !clipText(input)}>
+                                {isLoading ? <LoaderCircle size={16} className="noa-chat-spinner" /> : <SendHorizontal size={16} />}
+                                <span>{isLoading ? '考え中' : '話す'}</span>
+                            </button>
+                        </div>
+                    </form>
+                </section>
+            ) : isPanelVisible ? (
+                <section className={`noa-chat-panel ${embedded ? 'is-embedded' : ''}`} aria-label="ノアと話す">
                     <header className="noa-chat-header">
-                        <div>
-                            <div className="noa-chat-badge">NOA CHAT</div>
+                        <div className="noa-chat-heading">
                             <h2 className="noa-chat-title">ノア</h2>
-                            <p className="noa-chat-topic">最近の勉強: {topicMeta.label}</p>
                         </div>
                         <div className="noa-chat-actions">
                             <button type="button" className="noa-chat-icon-btn" onClick={handleReset} aria-label="会話をリセット">
@@ -282,7 +317,7 @@ const NoaChatBox = ({ stats, embedded = false, onClose = null }) => {
                                 className={`noa-chat-message ${message.role === 'user' ? 'is-user' : 'is-assistant'}`}
                             >
                                 <div className="noa-chat-message-meta">
-                                    <span>{message.role === 'user' ? 'あなた' : 'ノア'}</span>
+                                    <span>{message.role === 'user' ? 'あなたが聞いたこと' : 'ノア'}</span>
                                     {message.role === 'assistant' && (
                                         <button
                                             type="button"
@@ -313,31 +348,26 @@ const NoaChatBox = ({ stats, embedded = false, onClose = null }) => {
 
                     <form className="noa-chat-form" onSubmit={handleSubmit}>
                         <label className="noa-chat-label" htmlFor="noa-chat-input">
-                            むずかしかったところを1つだけ聞く
+                            ノアに話しかける
                         </label>
                         <textarea
                             id="noa-chat-input"
                             className="noa-chat-input"
                             value={input}
                             onChange={(event) => setInput(event.target.value.slice(0, MAX_INPUT_LENGTH))}
-                            placeholder="例: the と a の違いってどう覚えればいい？"
+                            placeholder="例: さっきのところもう一回教えて / 今日はちょっと疲れた / 少し話そ"
                             rows={3}
                         />
                         <div className="noa-chat-form-footer">
                             <span className="noa-chat-counter">{input.length}/{MAX_INPUT_LENGTH}</span>
                             <button type="submit" className="noa-chat-submit" disabled={isLoading || !clipText(input)}>
                                 <SendHorizontal size={16} />
-                                <span>送る</span>
+                                <span>話す</span>
                             </button>
                         </div>
                     </form>
                 </section>
-            ) : (
-                <button type="button" className="noa-chat-launcher" onClick={() => setIsOpen(true)}>
-                    <MessageCircle size={18} />
-                    <span>ノア</span>
-                </button>
-            )}
+            ) : null}
         </div>
     );
 };
