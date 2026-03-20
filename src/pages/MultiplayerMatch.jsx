@@ -1,9 +1,12 @@
+/* eslint-disable react-hooks/preserve-manual-memoization */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Swords, Clock, Loader2, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowLeft, Swords, Clock, Loader2, TrendingUp, TrendingDown, Volume2 } from 'lucide-react';
 import { getCurrentUser, getUserProfile } from '../firebase/auth';
 import {
     findOrCreateRoom,
+    joinFriendRoom,
+    requestFriendRematch,
     subscribeToRoom,
     submitAnswer,
     leaveRoom,
@@ -18,10 +21,20 @@ import {
     getNextLevelInfo,
     calculateRatingChange,
     calculateDrawRatingChange,
+    LEVEL_THRESHOLDS,
     DEFAULT_RATING
 } from '../utils/ratingUtils';
-import { resolveWinnerUid, summarizeAnswers } from '../utils/matchUtils';
+import {
+    getBattleModeLabel,
+    normalizeBattleMode,
+    normalizeTargetCorrect,
+    resolveWinnerUid,
+    summarizeAnswers,
+} from '../utils/matchUtils';
 import { addWrongQuestion } from '../utils/reviewUtils';
+import { useSound } from '../contexts/SoundContext';
+import { getTtsSettings } from '../utils/ttsSettings';
+import { speakWithPreferredTts } from '../utils/voicevoxUtils';
 import './MultiplayerMatch.css';
 
 // Background & Character Images
@@ -60,38 +73,10 @@ const getPlayerAvatarSrc = (player, fallbackCharacterId = 'noah', fallbackSkin =
 const ANSWER_TIME_LIMIT = 10; // 1問あたりの制限時間（秒）
 const WRONG_ANSWER_DELAY = 1200; // 不正解時に正解を表示する時間（ms）
 const MATCHING_TIMEOUT_MS = 30000;
+const LISTENING_REPLAY_LIMIT = 1;
 
-const getOpponentStatusMeta = (opponent, myQuestionIndex, showFeedback) => {
-    if (!opponent) {
-        return {
-            label: '再接続待ち',
-            detail: '相手の接続を確認しています。しばらくすると終了判定されます。',
-            tone: 'warn'
-        };
-    }
-
-    const answeredCount = opponent.answers?.length || 0;
-    if (answeredCount < myQuestionIndex) {
-        return {
-            label: '相手待ち',
-            detail: 'こちらが先行しています。相手の回答を待っています。',
-            tone: 'wait'
-        };
-    }
-
-    if (showFeedback) {
-        return {
-            label: '回答判定中',
-            detail: '次の問題へ進むまで少し待ってください。',
-            tone: 'neutral'
-        };
-    }
-
-    return {
-        label: '対戦中',
-        detail: '相手も回答中です。',
-        tone: 'ok'
-    };
+const getLevelMeta = (level) => {
+    return LEVEL_THRESHOLDS.find((threshold) => threshold.level === level) || LEVEL_THRESHOLDS[0];
 };
 
 const getLeadMeta = (myScore, opponentScore) => {
@@ -145,12 +130,65 @@ const getFinishReasonLabel = (finishReason, isSolo) => {
     }
 };
 
+const getChainMeta = (streak) => {
+    if (streak < 2) return null;
+
+    if (streak === 2) {
+        return {
+            label: '2 CHAIN',
+            callout: 'いいね！',
+            voiceText: 'いいね！',
+            tone: 'good',
+            pitchBoost: 0.04,
+            rateBoost: 0.05,
+        };
+    }
+
+    if (streak === 3) {
+        return {
+            label: '3 CHAIN',
+            callout: 'ナイス！',
+            voiceText: 'ナイス！',
+            tone: 'great',
+            pitchBoost: 0.08,
+            rateBoost: 0.08,
+        };
+    }
+
+    if (streak === 4) {
+        return {
+            label: '4 CHAIN',
+            callout: 'すごい！',
+            voiceText: 'すごい！',
+            tone: 'amazing',
+            pitchBoost: 0.12,
+            rateBoost: 0.1,
+        };
+    }
+
+    return {
+        label: `${streak} CHAIN`,
+        callout: 'とまらない！',
+        voiceText: 'とまらない！',
+        tone: 'fever',
+        pitchBoost: 0.16,
+        rateBoost: 0.12,
+    };
+};
+
 const MultiplayerMatch = ({ stats, updateStats }) => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { isMuted, playSE } = useSound();
     const searchParams = new URLSearchParams(location.search);
     const isSolo = searchParams.get('mode') === 'solo';
     const queryLevel = searchParams.get('level');
+    const directRoomId = searchParams.get('room');
+    const friendNameParam = searchParams.get('friendName');
+    const friendLevelParam = searchParams.get('battleLevel');
+    const friendTargetParam = searchParams.get('battleTarget');
+    const friendModeParam = searchParams.get('battleMode');
+    const isFriendMatch = Boolean(directRoomId) && !isSolo;
     
     // 自分のキャラ・背景情報 (フォールバックあり)
     const myCharacterId = stats?.characterId || 'noah';
@@ -174,16 +212,172 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const [prevLevelLabel, setPrevLevelLabel] = useState(null);
     const [failureState, setFailureState] = useState(null);
     const [resultNotice, setResultNotice] = useState(null);
+    const [isRematchLoading, setIsRematchLoading] = useState(false);
+    const [answerFx, setAnswerFx] = useState(null);
+    const [resultFx, setResultFx] = useState(null);
+    const [correctStreak, setCorrectStreak] = useState(0);
+    const [chainCallout, setChainCallout] = useState(null);
+    const [isPronouncingQuestion, setIsPronouncingQuestion] = useState(false);
+    const [pronunciationReplayCount, setPronunciationReplayCount] = useState(0);
 
     const unsubscribeRef = useRef(null);
     const timerIntervalRef = useRef(null);
     const feedbackTimeoutRef = useRef(null);
     const matchingTimeoutRef = useRef(null);
+    const autoStartAttemptedRef = useRef(false);
+    const answerFxTimeoutRef = useRef(null);
+    const resultFxTimeoutRef = useRef(null);
+    const resultFxPlayedRef = useRef(null);
+    const previousPhaseRef = useRef('init');
+    const audioContextRef = useRef(null);
+    const chainCalloutTimeoutRef = useRef(null);
+    const pronunciationRequestIdRef = useRef(0);
+
+    // レート関連の情報
+    const myRating = stats?.multiplayerRating || DEFAULT_RATING;
+    const myLevelInfo = getLevelFromRating(myRating);
+    const myRankInfo = getRankFromRating(myRating);
+    const nextLevelInfo = getNextLevelInfo(myRating);
+    const friendBattleLevelInfo = getLevelMeta(roomData?.level || friendLevelParam);
+    const matchTargetCorrect = normalizeTargetCorrect(roomData?.targetCorrect || friendTargetParam, TARGET_CORRECT);
+    const battleMode = normalizeBattleMode(roomData?.battleMode || friendModeParam);
+    const battleModeLabel = getBattleModeLabel(battleMode);
+    const isListeningBattle = isFriendMatch && battleMode === 'listening';
+    const canUseSpeechSynthesis = typeof window !== 'undefined' && 'speechSynthesis' in window;
+
+    const playUiTone = useCallback((frequency, durationMs, { type = 'sine', gain = 0.03, delayMs = 0 } = {}) => {
+        if (isMuted || typeof window === 'undefined') return;
+
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+
+        if (!audioContextRef.current) {
+            audioContextRef.current = new AudioContextClass();
+        }
+
+        const audioContext = audioContextRef.current;
+        if (!audioContext) return;
+
+        if (audioContext.state === 'suspended') {
+            audioContext.resume().catch(() => {});
+        }
+
+        const now = audioContext.currentTime + (delayMs / 1000);
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(frequency, now);
+        gainNode.gain.setValueAtTime(0.0001, now);
+        gainNode.gain.exponentialRampToValueAtTime(gain, now + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + (durationMs / 1000));
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        oscillator.start(now);
+        oscillator.stop(now + (durationMs / 1000) + 0.02);
+    }, [isMuted]);
+
+    const triggerAnswerFx = useCallback((type) => {
+        clearTimeout(answerFxTimeoutRef.current);
+        setAnswerFx(type);
+        answerFxTimeoutRef.current = setTimeout(() => {
+            setAnswerFx(null);
+        }, type === 'correct' ? 420 : 520);
+    }, []);
+
+    const clearChainCallout = useCallback(() => {
+        clearTimeout(chainCalloutTimeoutRef.current);
+        setChainCallout(null);
+    }, []);
+
+    const cancelQuestionPronunciation = useCallback(() => {
+        pronunciationRequestIdRef.current += 1;
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+        }
+        setIsPronouncingQuestion(false);
+    }, []);
+
+    const speakQuestionWord = useCallback((word, { isReplay = false } = {}) => {
+        if (!isListeningBattle || !canUseSpeechSynthesis || !word) return false;
+
+        const synth = window.speechSynthesis;
+        pronunciationRequestIdRef.current += 1;
+        const requestId = pronunciationRequestIdRef.current;
+        synth.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(word);
+        utterance.lang = 'en-US';
+        utterance.rate = isReplay ? 0.86 : 0.92;
+        utterance.pitch = 1;
+
+        const voices = synth.getVoices();
+        const preferredVoice = voices.find((voice) =>
+            /^en[-_]/i.test(voice.lang) &&
+            /(Aria|Jenny|Samantha|Google US English|Female)/i.test(voice.name)
+        ) || voices.find((voice) => /^en[-_]/i.test(voice.lang));
+
+        if (preferredVoice) {
+            utterance.voice = preferredVoice;
+        }
+
+        const clearSpeaking = () => {
+            if (pronunciationRequestIdRef.current !== requestId) return;
+            setIsPronouncingQuestion(false);
+        };
+
+        utterance.onstart = () => {
+            if (pronunciationRequestIdRef.current !== requestId) return;
+            setIsPronouncingQuestion(true);
+        };
+        utterance.onend = clearSpeaking;
+        utterance.onerror = clearSpeaking;
+
+        synth.speak(utterance);
+        return true;
+    }, [canUseSpeechSynthesis, isListeningBattle]);
+
+    const triggerChainCallout = useCallback((streak) => {
+        const meta = getChainMeta(streak);
+        if (!meta) return;
+
+        clearTimeout(chainCalloutTimeoutRef.current);
+        setChainCallout({
+            count: streak,
+            label: meta.label,
+            callout: meta.callout,
+            tone: meta.tone,
+        });
+        chainCalloutTimeoutRef.current = setTimeout(() => {
+            setChainCallout(null);
+        }, 950);
+
+        if (isMuted || typeof window === 'undefined' || !('speechSynthesis' in window)) {
+            return;
+        }
+
+        const ttsSettings = getTtsSettings();
+        if (ttsSettings.enabled === false) {
+            return;
+        }
+
+        void speakWithPreferredTts(meta.voiceText, {
+            ...ttsSettings,
+            preferredSpeaker: ttsSettings.battleSpeaker || ttsSettings.preferredSpeaker,
+            browserPitch: Math.min(2, (ttsSettings.browserPitch ?? 1.2) + meta.pitchBoost),
+            browserRate: Math.min(1.35, (ttsSettings.browserRate ?? 1.0) + meta.rateBoost),
+        });
+    }, [isMuted]);
 
     const resetMatchState = useCallback(() => {
         clearInterval(timerIntervalRef.current);
         clearTimeout(feedbackTimeoutRef.current);
         clearTimeout(matchingTimeoutRef.current);
+        clearTimeout(answerFxTimeoutRef.current);
+        clearTimeout(resultFxTimeoutRef.current);
+        clearTimeout(chainCalloutTimeoutRef.current);
+        cancelQuestionPronunciation();
         setRoomId(null);
         setRoomData(null);
         setMyQuestionIndex(0);
@@ -195,7 +389,19 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         setRatingChange(null);
         setFailureState(null);
         setResultNotice(null);
-    }, []);
+        setIsRematchLoading(false);
+        setAnswerFx(null);
+        setResultFx(null);
+        setCorrectStreak(0);
+        setChainCallout(null);
+        setIsPronouncingQuestion(false);
+        setPronunciationReplayCount(0);
+        resultFxPlayedRef.current = null;
+    }, [cancelQuestionPronunciation]);
+
+    useEffect(() => {
+        autoStartAttemptedRef.current = false;
+    }, [directRoomId]);
 
     // 初期化: ユーザー確認
     useEffect(() => {
@@ -249,17 +455,17 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
 
             if (roomData.finishReason === 'opponent_left') {
                 setResultNotice('対戦相手が退出したため、対戦が終了しました。');
-            } else if (localMyScore < TARGET_CORRECT && opponentScore < TARGET_CORRECT) {
+            } else if (localMyScore < matchTargetCorrect && opponentScore < matchTargetCorrect) {
                 setResultNotice('規定問題を消化して対戦が終了しました。');
             } else {
                 setResultNotice(null);
             }
             setPhase('result');
         }
-    }, [roomData, phase, myUid]);
+    }, [roomData, phase, myUid, matchTargetCorrect]);
 
     useEffect(() => {
-        if (phase !== 'matching') return;
+        if (phase !== 'matching' || isFriendMatch) return;
 
         clearTimeout(matchingTimeoutRef.current);
         matchingTimeoutRef.current = setTimeout(async () => {
@@ -277,7 +483,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         }, MATCHING_TIMEOUT_MS);
 
         return () => clearTimeout(matchingTimeoutRef.current);
-    }, [phase, roomId, myUid, isSolo]);
+    }, [phase, roomId, myUid, isSolo, isFriendMatch]);
 
     // カウントダウン
     useEffect(() => {
@@ -303,8 +509,64 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             clearInterval(timerIntervalRef.current);
             clearTimeout(feedbackTimeoutRef.current);
             clearTimeout(matchingTimeoutRef.current);
+            clearTimeout(answerFxTimeoutRef.current);
+            clearTimeout(resultFxTimeoutRef.current);
+            clearTimeout(chainCalloutTimeoutRef.current);
+            cancelQuestionPronunciation();
+            if (audioContextRef.current?.state && audioContextRef.current.state !== 'closed') {
+                audioContextRef.current.close().catch(() => {});
+            }
         };
-    }, []);
+    }, [cancelQuestionPronunciation]);
+
+    useEffect(() => {
+        if (phase === 'playing') return;
+        clearChainCallout();
+        cancelQuestionPronunciation();
+    }, [phase, clearChainCallout, cancelQuestionPronunciation]);
+
+    useEffect(() => {
+        if (!isListeningBattle || phase !== 'playing' || !roomData?.questions?.length) return;
+        const question = roomData.questions[myQuestionIndex];
+        if (!question?.word) return;
+
+        setPronunciationReplayCount(0);
+        speakQuestionWord(question.word);
+    }, [isListeningBattle, phase, roomData, myQuestionIndex, speakQuestionWord]);
+
+    useEffect(() => {
+        if (phase === 'countdown' && countdown > 0) {
+            playUiTone(420 + ((4 - countdown) * 90), 120, { type: 'triangle', gain: 0.025 });
+        }
+
+        if (previousPhaseRef.current === 'countdown' && phase === 'playing') {
+            playSE('se_correct');
+            playUiTone(880, 180, { type: 'sine', gain: 0.03 });
+        }
+
+        previousPhaseRef.current = phase;
+    }, [countdown, phase, playSE, playUiTone]);
+
+    useEffect(() => {
+        if (phase !== 'result' || !roomData || resultFxPlayedRef.current === roomData.id) return;
+
+        resultFxPlayedRef.current = roomData.id;
+        setResultFx(null);
+
+        const opponent = roomData.player1?.uid === myUid ? roomData.player2 : roomData.player1;
+        const winnerUid = roomData.winnerUid ?? resolveWinnerUid(roomData, matchTargetCorrect);
+        const didWin = isSolo || winnerUid === myUid || (!winnerUid && (myScore > (opponent?.score || 0)));
+
+        if (didWin) {
+            setResultFx('victory');
+            playSE('gacha');
+            playUiTone(784, 150, { type: 'triangle', gain: 0.03 });
+            playUiTone(1046, 220, { type: 'triangle', gain: 0.028, delayMs: 120 });
+            resultFxTimeoutRef.current = setTimeout(() => {
+                setResultFx(null);
+            }, 1800);
+        }
+    }, [phase, roomData, myUid, myScore, isSolo, matchTargetCorrect, playSE, playUiTone]);
 
     // 次の問題へ進む（ローカル管理）
     const goToNextQuestion = useCallback(async (wasCorrect) => {
@@ -312,7 +574,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         const nextIndex = myQuestionIndex + 1;
 
         // 対戦モード：正解数が目標に達したか判定
-        if (!isSolo && newScore >= TARGET_CORRECT) {
+        if (!isSolo && newScore >= matchTargetCorrect) {
             clearInterval(timerIntervalRef.current);
             setMyScore(newScore);
             await markFinished(roomId, myUid, 'completed');
@@ -335,13 +597,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         setSelectedAnswer(null);
         setShowFeedback(false);
         setTimer(ANSWER_TIME_LIMIT);
-    }, [isSolo, myQuestionIndex, roomId, myUid, myScore, roomData]);
-
-    // レート関連の情報
-    const myRating = stats?.multiplayerRating || DEFAULT_RATING;
-    const myLevelInfo = getLevelFromRating(myRating);
-    const myRankInfo = getRankFromRating(myRating);
-    const nextLevelInfo = getNextLevelInfo(myRating);
+    }, [isSolo, matchTargetCorrect, myQuestionIndex, roomId, myUid, myScore, roomData]);
 
     useEffect(() => {
         if (phase !== 'result' || !roomData || ratingChange !== null || !updateStats) return;
@@ -352,8 +608,12 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             return;
         }
 
+        if (isFriendMatch) {
+            return;
+        }
+
         const opponent = roomData.player1.uid === myUid ? roomData.player2 : roomData.player1;
-        const winnerUid = roomData.winnerUid ?? resolveWinnerUid(roomData, TARGET_CORRECT);
+        const winnerUid = roomData.winnerUid ?? resolveWinnerUid(roomData, matchTargetCorrect);
         const didWin = winnerUid === null ? null : winnerUid === myUid;
         const opRating = opponent?.rating || DEFAULT_RATING;
         const result = didWin === null
@@ -362,7 +622,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
 
         setRatingChange(result);
         updateStats({ multiplayerRating: result.newRating });
-    }, [phase, roomData, ratingChange, updateStats, isSolo, myUid, myRating]);
+    }, [phase, roomData, ratingChange, updateStats, isSolo, isFriendMatch, myUid, myRating, matchTargetCorrect]);
 
     const queueAdvance = useCallback((wasCorrect, delayMs, submitPromise = Promise.resolve()) => {
         clearTimeout(feedbackTimeoutRef.current);
@@ -380,7 +640,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     }, [goToNextQuestion]);
 
     // マッチング開始
-    const startMatching = async () => {
+    const startMatching = useCallback(async () => {
         if (!myUid) return;
         if (unsubscribeRef.current) {
             unsubscribeRef.current();
@@ -391,6 +651,41 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         setPhase('matching');
         setError(null);
         setPrevLevelLabel(myLevelInfo.label);
+
+        if (isFriendMatch) {
+            setRoomId(directRoomId);
+
+            const unsub = subscribeToRoom(directRoomId, (data) => {
+                if (!data) {
+                    setFailureState({
+                        title: '招待が見つかりません',
+                        message: 'フレンド対戦の招待ルームが見つかりませんでした。もう一度招待を送り直してください。',
+                    });
+                    setPhase('error');
+                    return;
+                }
+                setRoomData(data);
+            });
+            unsubscribeRef.current = unsub;
+
+            const joinResult = await joinFriendRoom(
+                directRoomId,
+                myUid,
+                myDisplayName || 'Player',
+                myCharacterId,
+                myEquippedSkin,
+                myRating,
+            );
+
+            if (!joinResult.success) {
+                setFailureState({
+                    title: 'フレンド対戦に参加できませんでした',
+                    message: joinResult.error || '招待の状態を確認してから、もう一度お試しください。',
+                });
+                setPhase('error');
+            }
+            return;
+        }
 
         if (isSolo) {
             // ソロモードの場合はFirestore通信をスキップして即座に遊ぶ
@@ -445,7 +740,27 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             setError('マッチングに失敗しました。もう一度お試しください。');
             setPhase('init');
         }
-    };
+    }, [
+        directRoomId,
+        isFriendMatch,
+        isSolo,
+        myCharacterId,
+        myDisplayName,
+        myEquippedSkin,
+        myLevelInfo.label,
+        myLevelInfo.level,
+        myRating,
+        myUid,
+        resetMatchState,
+        queryLevel,
+    ]);
+
+    useEffect(() => {
+        if (!isFriendMatch || !myUid || phase !== 'init' || autoStartAttemptedRef.current) return;
+
+        autoStartAttemptedRef.current = true;
+        void startMatching();
+    }, [isFriendMatch, myUid, phase, startMatching]);
 
     // 解答選択
     const handleAnswer = useCallback(async (answer) => {
@@ -454,6 +769,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         const question = roomData.questions[myQuestionIndex];
         const isCorrect = answer === question.correctAnswer;
 
+        cancelQuestionPronunciation();
         setSelectedAnswer(answer);
         setShowFeedback(true);
         clearInterval(timerIntervalRef.current);
@@ -463,9 +779,18 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             : Promise.resolve();
 
         if (isCorrect) {
+            const nextStreak = correctStreak + 1;
+            triggerAnswerFx('correct');
+            playSE('se_correct');
+            setCorrectStreak(nextStreak);
+            triggerChainCallout(nextStreak);
             setMyScore(prev => prev + 1);
             queueAdvance(true, 1000, submitPromise);
         } else {
+            setCorrectStreak(0);
+            clearChainCallout();
+            triggerAnswerFx('wrong');
+            playUiTone(180, 180, { type: 'sawtooth', gain: 0.022 });
             addWrongQuestion({
                 subject: '英単語バトル',
                 questionId: question.word,
@@ -476,18 +801,23 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             });
             queueAdvance(false, WRONG_ANSWER_DELAY, submitPromise);
         }
-    }, [selectedAnswer, roomData, myUid, showFeedback, isSolo, roomId, myQuestionIndex, queueAdvance]);
+    }, [selectedAnswer, roomData, myUid, showFeedback, isSolo, roomId, myQuestionIndex, correctStreak, playSE, playUiTone, queueAdvance, triggerAnswerFx, triggerChainCallout, clearChainCallout, cancelQuestionPronunciation]);
 
     // 「わからない」：正解を見せて不正解扱いで次へ
     const handleSkip = useCallback(() => {
         if (selectedAnswer !== null || !roomData || !myUid) return;
         const question = roomData.questions[myQuestionIndex];
+        setCorrectStreak(0);
+        clearChainCallout();
+        cancelQuestionPronunciation();
         setSelectedAnswer('__skip__');
         setShowFeedback(true);
         clearInterval(timerIntervalRef.current);
         const submitPromise = !isSolo
             ? submitAnswer(roomId, myUid, myQuestionIndex, '__skip__', false)
             : Promise.resolve();
+        triggerAnswerFx('wrong');
+        playUiTone(165, 220, { type: 'sawtooth', gain: 0.02 });
         addWrongQuestion({
             subject: '英単語バトル',
             questionId: question.word,
@@ -497,14 +827,30 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             options: question.options
         });
         queueAdvance(false, WRONG_ANSWER_DELAY, submitPromise);
-    }, [selectedAnswer, roomData, myUid, isSolo, roomId, myQuestionIndex, queueAdvance]);
+    }, [selectedAnswer, roomData, myUid, isSolo, roomId, myQuestionIndex, playUiTone, queueAdvance, triggerAnswerFx, clearChainCallout, cancelQuestionPronunciation]);
+
+    const handleReplayPronunciation = useCallback(() => {
+        if (!isListeningBattle || !roomData || selectedAnswer !== null) return;
+        if (pronunciationReplayCount >= LISTENING_REPLAY_LIMIT) return;
+
+        const question = roomData.questions[myQuestionIndex];
+        if (!question?.word) return;
+
+        setPronunciationReplayCount((prev) => prev + 1);
+        speakQuestionWord(question.word, { isReplay: true });
+    }, [isListeningBattle, roomData, selectedAnswer, pronunciationReplayCount, myQuestionIndex, speakQuestionWord]);
 
     // タイムアップ
     const handleTimeUp = useCallback(() => {
         if (selectedAnswer !== null || !roomData || !myUid) return;
 
+        setCorrectStreak(0);
+        clearChainCallout();
+        cancelQuestionPronunciation();
         setSelectedAnswer('__timeout__');
         setShowFeedback(true);
+        triggerAnswerFx('wrong');
+        playUiTone(140, 260, { type: 'sawtooth', gain: 0.02 });
 
         const submitPromise = !isSolo
             ? submitAnswer(roomId, myUid, myQuestionIndex, '__timeout__', false)
@@ -521,7 +867,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         });
 
         queueAdvance(false, WRONG_ANSWER_DELAY, submitPromise);
-    }, [selectedAnswer, roomData, myUid, isSolo, roomId, myQuestionIndex, queueAdvance]);
+    }, [selectedAnswer, roomData, myUid, isSolo, roomId, myQuestionIndex, playUiTone, queueAdvance, triggerAnswerFx, clearChainCallout, cancelQuestionPronunciation]);
 
     // 問題タイマー（問題が変わるたびにリセット）
     useEffect(() => {
@@ -545,21 +891,105 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
 
     // 退出
     const handleLeave = async () => {
+        cancelQuestionPronunciation();
         clearTimeout(matchingTimeoutRef.current);
         if (unsubscribeRef.current) {
             unsubscribeRef.current();
             unsubscribeRef.current = null;
         }
         if (roomId && !isSolo) await leaveRoom(roomId, myUid);
-        navigate('/home');
+        navigate(isFriendMatch ? '/friends' : '/home');
     };
 
     // プレイ中の途中終了（結果画面へ）
     const handleEndQuiz = () => {
+        cancelQuestionPronunciation();
         clearInterval(timerIntervalRef.current);
         clearTimeout(feedbackTimeoutRef.current);
         setPhase('result');
     };
+
+    const resetToInit = useCallback(() => {
+        if (unsubscribeRef.current) {
+            unsubscribeRef.current();
+            unsubscribeRef.current = null;
+        }
+        resetMatchState();
+        setPrevLevelLabel(null);
+        setPhase('init');
+    }, [resetMatchState]);
+
+    const handleFriendRematch = useCallback(async () => {
+        if (!isFriendMatch || isSolo || !roomData || !myUid) return;
+
+        const opponent = roomData.player1?.uid === myUid ? roomData.player2 : roomData.player1;
+        if (!opponent?.uid) {
+            setResultNotice('再戦相手の情報が見つかりませんでした。');
+            return;
+        }
+
+        setIsRematchLoading(true);
+        setResultNotice(null);
+
+        const nextLevel = roomData.rematchLevel || roomData.level || friendLevelParam || myLevelInfo.level;
+        const nextTarget = normalizeTargetCorrect(
+            roomData.rematchTargetCorrect || roomData.targetCorrect || friendTargetParam,
+            matchTargetCorrect,
+        );
+        const nextBattleMode = normalizeBattleMode(
+            roomData.rematchBattleMode || roomData.battleMode || friendModeParam,
+            battleMode,
+        );
+        const result = roomData.rematchRoomId
+            ? {
+                success: true,
+                roomId: roomData.rematchRoomId,
+                level: nextLevel,
+                targetCorrect: nextTarget,
+                battleMode: nextBattleMode,
+            }
+            : await requestFriendRematch(
+                roomData.id || roomId,
+                myUid,
+                myDisplayName || 'Player',
+                myCharacterId,
+                myEquippedSkin,
+                ratingChange?.newRating || myRating,
+                nextLevel,
+                nextTarget,
+                nextBattleMode,
+            );
+
+        if (!result.success || !result.roomId) {
+            setIsRematchLoading(false);
+            setResultNotice(result.error || '再戦の準備に失敗しました。');
+            return;
+        }
+
+        resetToInit();
+        navigate(
+            `/multiplayer-match?room=${result.roomId}&friendName=${encodeURIComponent(opponent.displayName || '')}&battleLevel=${encodeURIComponent(result.level || nextLevel)}&battleTarget=${normalizeTargetCorrect(result.targetCorrect, nextTarget)}&battleMode=${encodeURIComponent(normalizeBattleMode(result.battleMode || nextBattleMode))}`,
+        );
+    }, [
+        battleMode,
+        friendLevelParam,
+        friendModeParam,
+        friendTargetParam,
+        isFriendMatch,
+        isSolo,
+        matchTargetCorrect,
+        myCharacterId,
+        myDisplayName,
+        myEquippedSkin,
+        myLevelInfo.level,
+        myRating,
+        myUid,
+        navigate,
+        ratingChange?.newRating,
+        resetToInit,
+        roomId,
+        roomData,
+    ]);
 
     // ヘルパー: プレイヤー情報取得
     const getOpponent = () => {
@@ -628,9 +1058,9 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                         <div className="mp-title-icon">⚔️</div>
                         <h2>{isSolo ? '英単語 早押しクイズ (ソロ)' : '英単語 早押しクイズ'}</h2>
                         <p>{isSolo ? '英単語の知識を試そう！' : 'フレンドやライバルと英単語の知識で対決！'}<br />
-                            {isSolo ? '限界まで挑戦！出題される単語に次々答えていこう！' : `先に${TARGET_CORRECT}問正解した方の勝ち！`}</p>
+                            {isSolo ? '限界まで挑戦！出題される単語に次々答えていこう！' : `先に${matchTargetCorrect}問正解した方の勝ち！`}</p>
                         <div className="mp-rules">
-                            <div className="mp-rule-item">🎯 {isSolo ? '限界まで挑戦' : `${TARGET_CORRECT}問正解で勝利`}</div>
+                            <div className="mp-rule-item">🎯 {isSolo ? '限界まで挑戦' : `${matchTargetCorrect}問正解で勝利`}</div>
                             <div className="mp-rule-item">⏱️ 1問{ANSWER_TIME_LIMIT}秒</div>
                             <div className="mp-rule-item">❌ 誤答ペナルティ有</div>
                         </div>
@@ -647,6 +1077,28 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
 
     // マッチング中
     if (phase === 'matching') {
+        const waitingForName = roomData?.invitedDisplayName || friendNameParam || 'フレンド';
+        const matchingTitle = isFriendMatch
+            ? roomData?.player1?.uid === myUid
+                ? `${waitingForName} の参加を待っています...`
+                : 'フレンド対戦に参加しています...'
+            : '対戦相手を探しています...';
+        const matchingText = isFriendMatch
+            ? roomData?.player1?.uid === myUid
+                ? `${battleModeLabel}・${friendBattleLevelInfo.label}で招待を送信しました`
+                : `${battleModeLabel}・${friendBattleLevelInfo.label}の招待ルームに接続中...`
+            : 'マッチング中...';
+        const matchingHint = isFriendMatch
+            ? roomData?.player1?.uid === myUid
+                ? `${battleModeLabel}・${friendBattleLevelInfo.label}・${matchTargetCorrect}問先取で対戦が始まります`
+                : '相手の準備が整うまで少しお待ちください'
+            : '対戦相手が見つかるまでお待ちください';
+        const matchingStatusBody = isFriendMatch
+            ? roomData?.player1?.uid === myUid
+                ? `この画面を開いたまま待機できます。キャンセルすると${battleModeLabel}・${friendBattleLevelInfo.label}・${matchTargetCorrect}問先取の招待は取り消されます。`
+                : `参加が完了すると${battleModeLabel}・${friendBattleLevelInfo.label}・${matchTargetCorrect}問先取の対戦へ自動で進みます。`
+            : '30秒以内に相手が見つからない場合は自動で待機を終了します。';
+
         return (
             <div className="mp-screen">
                 {renderBackground()}
@@ -654,17 +1106,17 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                     <button className="mp-back-btn" onClick={handleLeave}>
                         <ArrowLeft size={24} />
                     </button>
-                    <h1>対戦相手を探しています...</h1>
+                    <h1>{matchingTitle}</h1>
                 </div>
                 <div className="mp-matching-content">
                     <div className="mp-matching-spinner">
                         <Loader2 className="mp-spin" size={64} />
                     </div>
-                    <p className="mp-matching-text">マッチング中...</p>
-                    <p className="mp-matching-hint">対戦相手が見つかるまでお待ちください</p>
+                    <p className="mp-matching-text">{matchingText}</p>
+                    <p className="mp-matching-hint">{matchingHint}</p>
                     <div className="mp-matching-status-card">
-                        <div className="mp-matching-status-title">待機の目安</div>
-                        <div className="mp-matching-status-body">30秒以内に相手が見つからない場合は自動で待機を終了します。</div>
+                        <div className="mp-matching-status-title">{isFriendMatch ? 'フレンド対戦' : '待機の目安'}</div>
+                        <div className="mp-matching-status-body">{matchingStatusBody}</div>
                     </div>
                     <button className="mp-cancel-btn" onClick={handleLeave}>
                         キャンセル
@@ -679,7 +1131,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             <div className="mp-screen">
                 {renderBackground()}
                 <div className="mp-header">
-                    <button className="mp-back-btn" onClick={() => navigate('/home')}>
+                    <button className="mp-back-btn" onClick={() => navigate(isFriendMatch ? '/friends' : '/home')}>
                         <ArrowLeft size={24} />
                     </button>
                     <h1>対戦を開始できませんでした</h1>
@@ -697,8 +1149,8 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                             }}>
                                 もう一度試す
                             </button>
-                            <button className="mp-cancel-btn" onClick={() => navigate('/home')}>
-                                ホームに戻る
+                            <button className="mp-cancel-btn" onClick={() => navigate(isFriendMatch ? '/friends' : '/home')}>
+                                {isFriendMatch ? 'フレンド一覧に戻る' : 'ホームに戻る'}
                             </button>
                         </div>
                     </div>
@@ -711,7 +1163,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     if (phase === 'countdown') {
         const opponent = getOpponent();
         return (
-            <div className="mp-screen">
+            <div className="mp-screen mp-countdown-screen">
                 {renderBackground()}
                 <div className="mp-countdown-content">
                     <div className="mp-vs-display">
@@ -733,7 +1185,12 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                             </>
                         )}
                     </div>
-                    <div className="mp-countdown-number">{countdown}</div>
+                    <div className="mp-countdown-rings" key={`rings-${countdown}`} aria-hidden="true">
+                        <span />
+                        <span />
+                        <span />
+                    </div>
+                    <div className="mp-countdown-number" key={`count-${countdown}`}>{countdown}</div>
                     <p className="mp-countdown-text">対戦スタート！</p>
                 </div>
             </div>
@@ -755,14 +1212,13 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
 
         const question = roomData.questions[myQuestionIndex];
         const opponent = getOpponent();
-        const opponentStatus = !isSolo ? getOpponentStatusMeta(opponent, myQuestionIndex, showFeedback) : null;
         const myRoomPlayer = getMyPlayerFromRoom();
         const opScore = opponent?.score || 0;
         const totalQuestions = roomData.questions.length;
         const currentQuestionLabel = `${Math.min(myQuestionIndex + 1, totalQuestions)} / ${totalQuestions}`;
         const targetHint = isSolo
             ? `残り ${Math.max(totalQuestions - myQuestionIndex - 1, 0)} 問`
-            : `あと ${Math.max(TARGET_CORRECT - myScore, 0)} 問で勝利`;
+            : `あと ${Math.max(matchTargetCorrect - myScore, 0)} 問で勝利`;
         const leadMeta = !isSolo ? getLeadMeta(myScore, opScore) : null;
         const mySummary = summarizeAnswers(myRoomPlayer?.answers || []);
 
@@ -770,13 +1226,14 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         // ソロモード時は「全問題数」に対する進捗、対戦モード時は「目標正解数」に対する進捗
         const myProgressPercent = isSolo 
             ? Math.min(((myQuestionIndex + 1) / totalQuestions) * 100, 100)
-            : Math.min((myScore / TARGET_CORRECT) * 100, 100);
+            : Math.min((myScore / matchTargetCorrect) * 100, 100);
             
-        const opProgressPercent = Math.min((opScore / TARGET_CORRECT) * 100, 100);
+        const opProgressPercent = Math.min((opScore / matchTargetCorrect) * 100, 100);
 
         return (
-            <div className="mp-screen mp-playing-screen">
+            <div className={`mp-screen mp-playing-screen ${answerFx ? `mp-answer-fx-${answerFx}` : ''}`}>
                 {renderBackground()}
+                {answerFx && <div className={`mp-answer-fx-overlay mp-answer-fx-overlay-${answerFx}`} aria-hidden="true" />}
                 
                 {/* 途中終了ボタン（ソロモード時） */}
                 {isSolo && (
@@ -808,11 +1265,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                                         </div>
                                         <div className="mp-status-name">{opponent?.displayName || '???'}</div>
                                     </div>
-                                    <div className="mp-status-score">{opScore} / {TARGET_CORRECT}</div>
-                                </div>
-                                <div className={`mp-opponent-status mp-status-${opponentStatus.tone}`}>
-                                    <span className="mp-opponent-status-label">{opponentStatus.label}</span>
-                                    <span className="mp-opponent-status-detail">{opponentStatus.detail}</span>
+                                    <div className="mp-status-score">{opScore} / {matchTargetCorrect}</div>
                                 </div>
                             </div>
                             <div className="mp-progress-bar-container">
@@ -824,10 +1277,21 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
 
                     {/* 問題とタイマー（中央） */}
                     <div className="mp-question-container">
+                        {chainCallout && (
+                            <div className={`mp-chain-callout mp-chain-callout-${chainCallout.tone}`} key={`chain-${chainCallout.count}`}>
+                                <div className="mp-chain-label">{chainCallout.label}</div>
+                                <div className="mp-chain-text">{chainCallout.callout}</div>
+                            </div>
+                        )}
                         <div className="mp-question-meta-row">
                             <div className="mp-question-pill mp-question-pill-primary">
                                 第{currentQuestionLabel}問
                             </div>
+                            {isFriendMatch && (
+                                <div className="mp-question-pill mp-question-pill-neutral">
+                                    {battleModeLabel}
+                                </div>
+                            )}
                             <div className="mp-question-pill">
                                 {targetHint}
                             </div>
@@ -842,9 +1306,36 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                                 </div>
                             )}
                         </div>
-                        <div className="mp-question-card">
-                            <div className="mp-question-word">{question.word}</div>
-                            <p className="mp-question-hint">この単語の意味は？</p>
+                        <div className={`mp-question-card ${isListeningBattle ? 'mp-question-card-listening' : ''}`}>
+                            {isListeningBattle && (
+                                <div className="mp-question-audio-row">
+                                    <div className={`mp-question-audio-status ${isPronouncingQuestion ? 'is-speaking' : ''}`}>
+                                        {isPronouncingQuestion ? '発音中...' : 'リスニング問題'}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="mp-pronounce-btn"
+                                        onClick={handleReplayPronunciation}
+                                        disabled={!canUseSpeechSynthesis || selectedAnswer !== null || pronunciationReplayCount >= LISTENING_REPLAY_LIMIT}
+                                    >
+                                        <Volume2 size={16} />
+                                        {pronunciationReplayCount >= LISTENING_REPLAY_LIMIT ? '聞き直し済み' : 'もう一回聞く'}
+                                    </button>
+                                </div>
+                            )}
+                            <div className={`mp-question-word ${isListeningBattle && !showFeedback ? 'is-hidden' : ''}`}>
+                                {isListeningBattle && !showFeedback ? 'Listen Carefully' : question.word}
+                            </div>
+                            <p className="mp-question-hint">
+                                {isListeningBattle
+                                    ? '聞こえた英単語の意味を選ぼう'
+                                    : 'この単語の意味は？'}
+                            </p>
+                            {isListeningBattle && !showFeedback && (
+                                <div className="mp-question-subhint">
+                                    単語のつづりは回答後に表示されます
+                                </div>
+                            )}
                         </div>
                         <div className="mp-timer-wrapper">
                             <div
@@ -908,23 +1399,19 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                                 </div>
                                 <div className="mp-status-name">{myDisplayName}</div>
                                 <div className="mp-status-score">
-                                    {isSolo ? `${myScore} / ${totalQuestions}` : `${myScore} / ${TARGET_CORRECT}`}
+                                    {isSolo ? `${myScore} / ${totalQuestions}` : `${myScore} / ${matchTargetCorrect}`}
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     {/* フィードバック表示 (画面全体の中央に大きく被せる) */}
-                    {showFeedback && (
+                    {showFeedback && selectedAnswer !== question.correctAnswer && (
                         <div className="mp-feedback-center">
                             {selectedAnswer === '__timeout__' ? (
                                 <div className="mp-feedback-card mp-fc-timeout">
                                     <h2>❌</h2>
                                     <p>正解: {question.correctAnswer}</p>
-                                </div>
-                            ) : selectedAnswer === question.correctAnswer ? (
-                                <div className="mp-feedback-card mp-fc-correct">
-                                    <h2>◯</h2>
                                 </div>
                             ) : (
                                 <div className="mp-feedback-card mp-fc-wrong">
@@ -956,10 +1443,16 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         const finalMyScore = Math.max(myPlayerRoom?.score || 0, myScore);
         const opScore = opponent?.score || 0;
         const totalQuestions = roomData.questions.length;
-        const winnerUid = roomData.winnerUid ?? resolveWinnerUid(roomData, TARGET_CORRECT);
+        const winnerUid = roomData.winnerUid ?? resolveWinnerUid(roomData, matchTargetCorrect);
         const mySummary = summarizeAnswers(myPlayerRoom?.answers || []);
         const opponentSummary = summarizeAnswers(opponent?.answers || []);
         const finishReasonLabel = getFinishReasonLabel(roomData.finishReason, isSolo);
+        const resultLevelInfo = getLevelMeta(roomData.level || friendLevelParam);
+        const hasRematchRoom = Boolean(roomData.rematchRoomId);
+        const rematchRequestedByMe = hasRematchRoom && roomData.rematchRequestedBy === myUid;
+        const rematchJoinLabel = hasRematchRoom && !rematchRequestedByMe
+            ? '再戦に参加'
+            : '同じ条件で再戦';
 
         // 勝敗判定
         let resultClass = 'mp-result-draw';
@@ -995,8 +1488,18 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         const isLevelUp = prevLevelLabel && newLevelInfo.label !== prevLevelLabel && ratingChange?.change > 0;
 
         return (
-            <div className="mp-screen">
+            <div className={`mp-screen ${resultFx ? `mp-result-fx-${resultFx}` : ''}`}>
                 {renderBackground()}
+                {resultFx === 'victory' && (
+                    <div className="mp-result-burst" aria-hidden="true">
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                    </div>
+                )}
                 <div className={`mp-result-content ${resultClass}`}>
                     
                     <div className="mp-result-character-bg">
@@ -1010,6 +1513,9 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                         <div className="mp-result-emoji">{resultEmoji}</div>
                         <h2 className="mp-result-text">{resultText}</h2>
                         <div className="mp-result-detail">{finishReasonLabel}</div>
+                        {isFriendMatch && (
+                            <div className="mp-result-detail">{battleModeLabel} / {resultLevelInfo.label} / {matchTargetCorrect}問先取</div>
+                        )}
 
                         <div className="mp-result-scores">
                             <div className="mp-result-player mp-result-me">
@@ -1063,6 +1569,11 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                                 {resultNotice}
                             </div>
                         )}
+                        {!resultNotice && isFriendMatch && hasRematchRoom && !rematchRequestedByMe && (
+                            <div className="mp-result-notice">
+                                相手が再戦ルームを用意しました。このまま続けて対戦できます。
+                            </div>
+                        )}
                         {ratingChange && !isSolo && (
                             <div className="mp-rating-change-section">
                                 <div className="mp-rating-change-label">レート</div>
@@ -1084,19 +1595,18 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                         )}
 
                         <div className="mp-result-actions">
-                            <button className="mp-rematch-btn" onClick={() => {
-                                if (unsubscribeRef.current) {
-                                    unsubscribeRef.current();
-                                    unsubscribeRef.current = null;
-                                }
-                                resetMatchState();
-                                setPrevLevelLabel(null);
-                                setPhase('init');
-                            }}>
-                                もう一度対戦する
-                            </button>
-                            <button className="mp-home-btn" onClick={() => navigate('/home')}>
-                                ホームに戻る
+                            {!isFriendMatch && (
+                                <button className="mp-rematch-btn" onClick={resetToInit}>
+                                    もう一度対戦する
+                                </button>
+                            )}
+                            {isFriendMatch && opponent?.uid && (
+                                <button className="mp-rematch-btn" onClick={handleFriendRematch} disabled={isRematchLoading}>
+                                    {isRematchLoading ? '再戦を準備中...' : rematchJoinLabel}
+                                </button>
+                            )}
+                            <button className="mp-home-btn" onClick={() => navigate(isFriendMatch ? '/friends' : '/home')}>
+                                {isFriendMatch ? 'フレンド一覧に戻る' : 'ホームに戻る'}
                             </button>
                         </div>
                     </div>

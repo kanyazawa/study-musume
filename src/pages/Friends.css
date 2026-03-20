@@ -162,6 +162,56 @@
     gap: 0.8rem;
 }
 
+.battle-settings-card {
+    background: rgba(255, 255, 255, 0.94);
+    border-radius: 16px;
+    padding: 1rem;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+}
+
+.battle-settings-header {
+    margin-bottom: 0.85rem;
+}
+
+.battle-settings-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #2d3748;
+}
+
+.battle-settings-note {
+    margin-top: 0.25rem;
+    font-size: 0.84rem;
+    color: #6b7280;
+}
+
+.battle-level-select {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    color: #4a5568;
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.battle-level-select select {
+    appearance: none;
+    width: 100%;
+    border: 1px solid rgba(102, 126, 234, 0.28);
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(255, 255, 255, 0.95));
+    color: #1f2937;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.battle-level-select select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.18);
+}
+
 .friend-card {
     background: white;
     padding: 1rem;
@@ -169,11 +219,18 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 1rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .friend-info {
     flex: 1;
+}
+
+.friend-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
 }
 
 .friend-name {
@@ -202,6 +259,29 @@
 
 .remove-btn:hover {
     background: #d32f2f;
+}
+
+.battle-btn {
+    background: linear-gradient(135deg, #ff8a00, #ff4d6d);
+    color: white;
+    border: none;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.battle-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(255, 77, 109, 0.25);
+}
+
+.battle-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 /* Search Section */
@@ -309,6 +389,19 @@
     gap: 0.8rem;
 }
 
+.invite-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.section-title {
+    color: white;
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+}
+
 .request-card {
     background: white;
     padding: 1rem;
@@ -316,8 +409,23 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+.invite-card {
+    background: rgba(255, 255, 255, 0.96);
+    padding: 1rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
 .request-info {
     margin-bottom: 0.8rem;
+}
+
+.invite-card .request-info {
+    margin-bottom: 0;
 }
 
 .request-name {
@@ -331,6 +439,24 @@
     color: #999;
     font-family: 'Courier New', monospace;
     margin-top: 0.2rem;
+}
+
+.invite-level-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 0.45rem;
+    padding: 0.28rem 0.65rem;
+    border-radius: 999px;
+    background: rgba(102, 126, 234, 0.12);
+    color: #4c51bf;
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+.invite-badges {
+    display: flex;
+    gap: 0.45rem;
+    flex-wrap: wrap;
 }
 
 .request-actions {
@@ -356,6 +482,29 @@
 .accept-btn {
     background: #4caf50;
     color: white;
+}
+
+.join-battle-btn {
+    background: linear-gradient(135deg, #667eea, #5a67d8);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.2rem;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.join-battle-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(90, 103, 216, 0.25);
+}
+
+.join-battle-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 .accept-btn:hover {

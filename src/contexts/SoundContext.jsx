@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { getDownloadURL, ref as storageRef } from 'firebase/storage';
+import { isFirebaseConfigured, storage } from '../firebase/config';
 
 // BGM Imports
 import bgmTrack from '../assets/audio/after_school_sunbeams.mp3';
@@ -7,6 +9,47 @@ const SoundContext = createContext();
 const INITIAL_VOLUME = 0.3;
 
 export const useSound = () => useContext(SoundContext);
+
+const audioPathCache = new Map();
+
+const isAbsoluteUrl = (value) => /^https?:\/\//i.test(value);
+
+const resolveAudioSource = async (filename, { defaultExtension = '.mp3' } = {}) => {
+    const normalized = String(filename || '').trim();
+    if (!normalized) return '';
+
+    if (audioPathCache.has(normalized)) {
+        return audioPathCache.get(normalized);
+    }
+
+    if (isAbsoluteUrl(normalized)) {
+        audioPathCache.set(normalized, normalized);
+        return normalized;
+    }
+
+    if (normalized.startsWith('gs://')) {
+        if (!isFirebaseConfigured || !storage) {
+            throw new Error('Firebase Storage is not configured');
+        }
+        const url = await getDownloadURL(storageRef(storage, normalized));
+        audioPathCache.set(normalized, url);
+        return url;
+    }
+
+    if (normalized.startsWith('storage:')) {
+        if (!isFirebaseConfigured || !storage) {
+            throw new Error('Firebase Storage is not configured');
+        }
+        const storagePath = normalized.slice('storage:'.length).replace(/^\/+/, '');
+        const url = await getDownloadURL(storageRef(storage, storagePath));
+        audioPathCache.set(normalized, url);
+        return url;
+    }
+
+    const localPath = normalized.includes('.') ? `/audio/${normalized}` : `/audio/${normalized}${defaultExtension}`;
+    audioPathCache.set(normalized, localPath);
+    return localPath;
+};
 
 export const SoundProvider = ({ children }) => {
     // State
@@ -93,20 +136,26 @@ export const SoundProvider = ({ children }) => {
     const playSE = (filename) => {
         if (!filename || isMuted) return;
 
-        // Add extension if missing
-        const path = filename.includes('.') ? `/audio/${filename}` : `/audio/${filename}.mp3`;
-
-        const audio = new Audio(path);
-        audio.volume = seVolume;
-        audio.play().catch(e => console.warn(`Failed to play SE: ${filename}`, e));
+        resolveAudioSource(filename)
+            .then((path) => {
+                const audio = new Audio(path);
+                audio.volume = seVolume;
+                return audio.play();
+            })
+            .catch(e => console.warn(`Failed to play SE: ${filename}`, e));
     };
 
     // Play Voice (from public/audio)
-    const playVoice = (filename) => {
+    const playVoice = async (filename) => {
         if (!filename || isMuted) return Promise.resolve(false);
 
-        // Add extension if missing
-        const path = filename.includes('.') ? `/audio/${filename}` : `/audio/${filename}.mp3`;
+        let path = '';
+        try {
+            path = await resolveAudioSource(filename);
+        } catch (error) {
+            console.warn(`Failed to resolve Voice: ${filename}`, error);
+            return false;
+        }
 
         return new Promise((resolve) => {
             const audio = new Audio(path);

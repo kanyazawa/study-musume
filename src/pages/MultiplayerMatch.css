@@ -313,6 +313,8 @@
     align-items: center;
     justify-content: center;
     gap: 30px;
+    position: relative;
+    overflow: hidden;
 }
 
 .mp-vs-display {
@@ -383,6 +385,8 @@
 }
 
 .mp-countdown-number {
+    position: relative;
+    z-index: 1;
     font-size: 8rem;
     font-weight: 900;
     background: linear-gradient(135deg, #ffd700, #ff6b6b);
@@ -399,6 +403,44 @@
     100% { transform: scale(1); opacity: 1; }
 }
 
+.mp-countdown-rings {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.mp-countdown-rings span {
+    position: absolute;
+    border-radius: 999px;
+    border: 2px solid rgba(255, 215, 0, 0.3);
+    animation: mp-count-ring 0.9s ease-out forwards;
+}
+
+.mp-countdown-rings span:nth-child(1) {
+    width: 120px;
+    height: 120px;
+}
+
+.mp-countdown-rings span:nth-child(2) {
+    width: 180px;
+    height: 180px;
+    animation-delay: 0.08s;
+}
+
+.mp-countdown-rings span:nth-child(3) {
+    width: 240px;
+    height: 240px;
+    animation-delay: 0.16s;
+}
+
+@keyframes mp-count-ring {
+    0% { transform: scale(0.5); opacity: 0.65; }
+    100% { transform: scale(1.25); opacity: 0; }
+}
+
 .mp-countdown-text {
     font-size: 1.2rem;
     font-weight: 700;
@@ -411,6 +453,57 @@
 .mp-playing-screen {
     position: relative;
     overflow: hidden; /* 背景キャラがはみ出ないように */
+}
+
+.mp-answer-fx-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 12;
+    opacity: 0;
+}
+
+.mp-answer-fx-correct .mp-question-card,
+.mp-answer-fx-correct .mp-feedback-card {
+    animation: mp-correct-pop 0.35s ease;
+}
+
+.mp-answer-fx-overlay-correct {
+    background:
+        radial-gradient(circle at center, rgba(255, 221, 87, 0.26) 0%, rgba(255, 221, 87, 0) 58%),
+        linear-gradient(180deg, rgba(56, 239, 125, 0.18), rgba(56, 239, 125, 0));
+    animation: mp-overlay-fade 0.4s ease forwards;
+}
+
+.mp-answer-fx-wrong {
+    animation: mp-wrong-shake 0.38s ease;
+}
+
+.mp-answer-fx-overlay-wrong {
+    background:
+        radial-gradient(circle at center, rgba(255, 107, 107, 0.2) 0%, rgba(255, 107, 107, 0) 55%),
+        linear-gradient(180deg, rgba(255, 107, 107, 0.14), rgba(255, 107, 107, 0));
+    animation: mp-overlay-fade 0.5s ease forwards;
+}
+
+@keyframes mp-overlay-fade {
+    0% { opacity: 0; }
+    25% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+@keyframes mp-correct-pop {
+    0% { transform: scale(0.98); }
+    40% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+@keyframes mp-wrong-shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(5px); }
 }
 
 /* キャラクター：画面最上部から絶対配置 */
@@ -525,47 +618,6 @@
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.mp-opponent-status {
-    width: 100%;
-    border-radius: 14px;
-    padding: 8px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    text-align: left;
-}
-
-.mp-opponent-status-label {
-    font-size: 0.82rem;
-    font-weight: 800;
-}
-
-.mp-opponent-status-detail {
-    font-size: 0.78rem;
-    color: rgba(255, 255, 255, 0.82);
-    line-height: 1.35;
-}
-
-.mp-status-ok {
-    background: rgba(56, 239, 125, 0.14);
-    border: 1px solid rgba(56, 239, 125, 0.24);
-}
-
-.mp-status-wait {
-    background: rgba(255, 210, 111, 0.14);
-    border: 1px solid rgba(255, 210, 111, 0.28);
-}
-
-.mp-status-warn {
-    background: rgba(255, 107, 107, 0.15);
-    border: 1px solid rgba(255, 107, 107, 0.28);
-}
-
-.mp-status-neutral {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-}
-
 /* Progress Bars */
 .mp-progress-bar-container {
     width: 100%;
@@ -615,6 +667,71 @@
     align-items: center;
     z-index: 15;
     position: relative;
+}
+
+.mp-chain-callout {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 180px;
+    padding: 10px 16px 12px;
+    border-radius: 20px;
+    text-align: center;
+    pointer-events: none;
+    z-index: 18;
+    box-shadow: 0 18px 40px rgba(7, 11, 28, 0.28);
+    animation: mp-chain-pop 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.mp-chain-callout-good {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.94), rgba(16, 185, 129, 0.94));
+}
+
+.mp-chain-callout-great {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.94), rgba(14, 165, 233, 0.94));
+}
+
+.mp-chain-callout-amazing {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.96), rgba(245, 158, 11, 0.96));
+}
+
+.mp-chain-callout-fever {
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.96), rgba(168, 85, 247, 0.96));
+}
+
+.mp-chain-label {
+    font-size: 0.74rem;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+    color: rgba(255, 255, 255, 0.76);
+}
+
+.mp-chain-text {
+    margin-top: 4px;
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #ffffff;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+
+@keyframes mp-chain-pop {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(10px) scale(0.9);
+    }
+    18% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-4px) scale(1.04);
+    }
+    72% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-8px) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-18px) scale(0.98);
+    }
 }
 
 .mp-question-meta-row {
@@ -671,6 +788,61 @@
     animation: mp-card-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+.mp-question-card-listening {
+    background:
+        radial-gradient(circle at top, rgba(125, 211, 252, 0.22), rgba(255, 255, 255, 0) 52%),
+        #ffffff;
+}
+
+.mp-question-audio-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.mp-question-audio-status {
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: #2563eb;
+    background: rgba(37, 99, 235, 0.1);
+    border-radius: 999px;
+    padding: 7px 12px;
+}
+
+.mp-question-audio-status.is-speaking {
+    color: #0f766e;
+    background: rgba(15, 118, 110, 0.12);
+}
+
+.mp-pronounce-btn {
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #0f172a, #1d4ed8);
+    color: #ffffff;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(29, 78, 216, 0.18);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.mp-pronounce-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(29, 78, 216, 0.24);
+}
+
+.mp-pronounce-btn:disabled {
+    opacity: 0.48;
+    cursor: default;
+    box-shadow: none;
+}
+
 @keyframes mp-card-pop {
     0% { transform: scale(0.9); opacity: 0; }
     100% { transform: scale(1); opacity: 1; }
@@ -685,10 +857,23 @@
     margin-bottom: 4px;
 }
 
+.mp-question-word.is-hidden {
+    font-size: 2rem;
+    letter-spacing: 0.08em;
+    color: #1d4ed8;
+}
+
 .mp-question-hint {
     font-size: 0.95rem;
     color: #555555; /* 濃いグレーの文字 */
     font-weight: 600;
+}
+
+.mp-question-subhint {
+    margin-top: 8px;
+    font-size: 0.84rem;
+    color: #64748b;
+    font-weight: 700;
 }
 
 /* Question Timer */
@@ -823,9 +1008,18 @@
 .mp-option-correct {
     background: linear-gradient(135deg, #11998e, #38ef7d) !important;
     border-color: #fff !important;
-    box-shadow: 0 4px 0 #0f7a71, 0 0 10px rgba(56, 239, 125, 0.3) !important;
+    box-shadow:
+        0 4px 0 #0f7a71,
+        0 0 0 3px rgba(255, 255, 255, 0.42),
+        0 12px 24px rgba(17, 153, 142, 0.24) !important;
     transform: translateY(4px);
-    animation: mp-correct-fadein 0.3s ease;
+    animation: mp-correct-bounce 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mp-option-correct .mp-option-text {
+    color: #ffffff;
+    text-shadow: 0 1px 0 rgba(7, 77, 61, 0.35);
+    animation: mp-correct-text-pop 0.32s ease;
 }
 
 .mp-option-wrong {
@@ -836,9 +1030,16 @@
     animation: mp-wrong-shake 0.3s ease;
 }
 
-@keyframes mp-correct-fadein {
-    0% { transform: translateY(4px); filter: brightness(1.2); }
-    100% { transform: translateY(4px); filter: brightness(1); }
+@keyframes mp-correct-bounce {
+    0% { transform: translateY(4px) scale(0.96); filter: brightness(1.12); }
+    45% { transform: translateY(1px) scale(1.03); filter: brightness(1.04); }
+    100% { transform: translateY(4px) scale(1); filter: brightness(1); }
+}
+
+@keyframes mp-correct-text-pop {
+    0% { transform: scale(0.96); }
+    45% { transform: scale(1.06); }
+    100% { transform: scale(1); }
 }
 
 .mp-option-disabled {
@@ -927,10 +1128,6 @@
     color: #333;
 }
 
-.mp-fc-correct h2 {
-    color: #ef4444; /* シンプルな赤色の◯ */
-}
-
 .mp-fc-wrong h2, .mp-fc-timeout h2 {
     color: #3b82f6; /* シンプルな青色の❌ */
 }
@@ -951,6 +1148,39 @@
     justify-content: center;
     padding: 30px;
     gap: 20px;
+}
+
+.mp-result-burst {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.mp-result-burst span {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #ffd700, #ff8a00);
+    box-shadow: 0 0 14px rgba(255, 215, 0, 0.55);
+    animation: mp-burst-shot 1.3s ease-out forwards;
+}
+
+.mp-result-burst span:nth-child(1) { --tx: 0px; --ty: -180px; }
+.mp-result-burst span:nth-child(2) { --tx: 150px; --ty: -110px; animation-delay: 0.04s; }
+.mp-result-burst span:nth-child(3) { --tx: 180px; --ty: 25px; animation-delay: 0.08s; }
+.mp-result-burst span:nth-child(4) { --tx: 0px; --ty: 180px; animation-delay: 0.12s; }
+.mp-result-burst span:nth-child(5) { --tx: -170px; --ty: 90px; animation-delay: 0.16s; }
+.mp-result-burst span:nth-child(6) { --tx: -145px; --ty: -120px; animation-delay: 0.2s; }
+
+@keyframes mp-burst-shot {
+    0% { transform: translate(0, 0) scale(0.4); opacity: 0; }
+    18% { opacity: 1; }
+    100% { transform: translate(var(--tx), var(--ty)) scale(1.1); opacity: 0; }
 }
 
 /* Result Characters */
@@ -1144,6 +1374,13 @@
 
 .mp-rematch-btn:hover {
     transform: translateY(-3px);
+}
+
+.mp-rematch-btn:disabled,
+.mp-home-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
 }
 
 .mp-home-btn {

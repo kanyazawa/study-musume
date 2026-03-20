@@ -3,17 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import './StoryReader.css';
 
 import { getEpisodeById } from '../data/storyData';
-import VrmViewer from '../components/VrmViewer';
-import { getSkinFilter } from '../utils/cosmeticUtils';
-
-// Images
-import CharacterMain from '../assets/images/character_new.png';
-import CharacterCasual from '../assets/images/character_casual_v9.png';
-import CharacterCasualFall from '../assets/images/noa_casual_fall.png';
-import CharacterGym from '../assets/images/character_gym.jpg';
-import CharacterCasualGray from '../assets/images/character_casual_gray_hoodie.jpg';
-import CharacterCasualBlack from '../assets/images/character_casual_hoodie.png';
-import CharacterRen from '../assets/images/character_ren.png';
+import CharacterStage from '../components/character/CharacterStage';
+import { resolveCharacterRenderer } from '../utils/characterRenderer';
+import { createStoryPose } from '../utils/characterPoseUtils';
 
 const StoryReader = ({ stats }) => {
     const { episodeId } = useParams();
@@ -52,29 +44,19 @@ const StoryReader = ({ stats }) => {
     // --- キャラクター表示ロジック ---
     const characterId = stats?.characterId || 'noah';
     const isRen = characterId === 'ren';
-
-    const noahImages = {
-        'default': CharacterMain,
-        'skin_casual': CharacterCasual,
-        'skin_casual_fall': CharacterCasualFall,
-        'skin_gym': CharacterGym,
-        'skin_casual_gray_hoodie': CharacterCasualGray,
-        'skin_casual_hoodie': CharacterCasualBlack
-    };
-    const renImages = {
-        'default': CharacterRen,
-        'skin_casual': CharacterRen,
-        'skin_casual_fall': CharacterRen
-    };
-    
-    const skinImages = isRen ? renImages : noahImages;
-    const currentSkinImage = skinImages[stats?.equippedSkin] || skinImages['default'];
-    const currentSkinFilter = getSkinFilter(stats?.equippedSkin);
     const use3D = localStorage.getItem('characterMode') === '3d';
+    const preferredRenderer = stats?.characterRenderer;
 
     // スピーカーの名前を置き換え（レンを選んでいる場合）
     const displaySpeaker = (scene.speaker === 'ノア' && isRen) ? 'レン' : scene.speaker;
     const isCharacterSpeaking = displaySpeaker === 'ノア' || displaySpeaker === 'レン' || displaySpeaker === 'あなた';
+    const storyPose = createStoryPose(scene, { speaking: displaySpeaker === 'ノア' || displaySpeaker === 'レン' });
+    const renderer = resolveCharacterRenderer({
+        preferredRenderer,
+        characterId,
+        skinId: stats?.equippedSkin || 'default',
+        canUseVrm: use3D && characterId === 'noah',
+    });
 
     return (
         <div className="story-reader" onClick={handleNext}>
@@ -86,16 +68,16 @@ const StoryReader = ({ stats }) => {
             {/* キャラクター画像 */}
             {isCharacterSpeaking && (
                 <div className="story-character">
-                    {use3D && characterId === 'noah' ? (
-                        <VrmViewer emotion="normal" className="vrm-story" />
-                    ) : (
-                        <img 
-                            src={isRen ? CharacterRen : currentSkinImage} 
-                            alt={displaySpeaker} 
-                            className="character-image" 
-                            style={{ filter: currentSkinFilter }}
-                        />
-                    )}
+                    <CharacterStage
+                        characterId={characterId}
+                        renderer={renderer}
+                        skinId={stats?.equippedSkin || 'default'}
+                        scene="story"
+                        pose={storyPose}
+                        className="vrm-story"
+                        imageClassName="character-image"
+                        alt={displaySpeaker}
+                    />
                 </div>
             )}
 

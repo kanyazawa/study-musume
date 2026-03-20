@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 const firebaseDefaults = {
     apiKey: "AIzaSyDZYfUIcr9r6U3jL_zn85NgQuNdLAyW7tI",
@@ -43,6 +44,7 @@ if (!isFirebaseConfigured) {
 let app = null;
 let auth = null;
 let db = null;
+let storage = null;
 let googleProvider = null;
 
 if (isFirebaseConfigured && authDomain) {
@@ -58,11 +60,12 @@ if (isFirebaseConfigured && authDomain) {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
+    storage = getStorage(app);
     googleProvider = new GoogleAuthProvider();
 } else if (firebaseEnv.authDomain) {
     console.warn("Firebase auth domain is configured, but Firebase startup was skipped because other env vars are missing.");
 }
 
-export { app, auth, db, googleProvider };
+export { app, auth, db, storage, googleProvider };
 
 export default app;

@@ -1,8 +1,31 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { getLive2DModelConfig } from '../../utils/live2dModelRegistry';
-import { ensureLive2DSdk, probeAssetUrl, resolveLive2DStatusMessage } from '../../utils/live2dRuntime';
+import {
+    TYRANO_RUNTIME,
+    destroyTyranoManager,
+    ensureLive2DSdk,
+    ensureTyranoManager,
+    getTyranoManagerSnapshot,
+    mountTyranoCanvas,
+    probeAssetUrl,
+    resizeTyranoCanvas,
+    resolveLive2DStatusMessage,
+} from '../../utils/live2dRuntime';
 
 const warnedKeys = new Set();
+
+const createTyranoModelParams = ({ characterId, skinId, modelConfig, onFinishLoad }) => ({
+    name: `prototype_${characterId}_${skinId}`.replace(/[^a-zA-Z0-9_]/g, '_'),
+    model_id: modelConfig.modelName || modelConfig.modelId || characterId,
+    idle: modelConfig.idleMotion || 'Idle',
+    visible: 'true',
+    breath: 'true',
+    lip: 'true',
+    x: String(modelConfig.stage?.x ?? 0),
+    y: String(modelConfig.stage?.y ?? 0),
+    scale: String(modelConfig.stage?.scale ?? 1.8),
+    onFinishLoad,
+});
 
 const Live2DViewer = ({
     characterId = 'noah',
@@ -12,9 +35,15 @@ const Live2DViewer = ({
     fallback = null,
 }) => {
     const rootRef = useRef(null);
-    const modelConfig = getLive2DModelConfig(characterId, skinId);
+    const managerRef = useRef(null);
+    const modelNameRef = useRef('');
+    const readyTimerRef = useRef(null);
+    const modelConfigRef = React.useRef(null);
+    modelConfigRef.current = getLive2DModelConfig(characterId, skinId);
+    const modelConfig = modelConfigRef.current;
     const [status, setStatus] = useState(() => (modelConfig ? 'checking' : 'missing-config'));
     const [statusDetail, setStatusDetail] = useState('');
+    const [runtimeDebug, setRuntimeDebug] = useState(null);
     const statusMessage = useMemo(() => resolveLive2DStatusMessage(status, statusDetail), [status, statusDetail]);
 
     useEffect(() => {
@@ -26,6 +55,11 @@ const Live2DViewer = ({
             }
             setStatus('missing-config');
             setStatusDetail('');
+            return undefined;
+        }
+
+        const rootElement = rootRef.current;
+        if (!rootElement) {
             return undefined;
         }
 
@@ -57,51 +91,205 @@ const Live2DViewer = ({
                         return;
                     }
                 }
-
-                try {
-                    await ensureLive2DSdk(modelConfig.sdkScripts);
-                } catch (error) {
-                    if (!cancelled) {
-                        setStatus('sdk-load-failed');
-                        setStatusDetail(error instanceof Error ? error.message : String(error));
-                    }
-                    return;
-                }
             }
 
-            if (!cancelled) {
-                setStatus('ready');
+            try {
+                if (modelConfig.runtime === TYRANO_RUNTIME) {
+                    destroyTyranoManager();
+
+                    const canvas = mountTyranoCanvas(rootElement);
+                    resizeTyranoCanvas(canvas, rootElement);
+
+                    const manager = await ensureTyranoManager({
+                        sdkScripts: modelConfig.sdkScripts,
+                        resourcesPath: modelConfig.resourcesPath,
+                        canvas,
+                    });
+
+                    if (cancelled) {
+                        destroyTyranoManager();
+                        return;
+                    }
+
+                    managerRef.current = manager;
+                    setStatus('loading-model');
+
+                    const modelParams = createTyranoModelParams({
+                        characterId,
+                        skinId,
+                        modelConfig,
+                        onFinishLoad: () => {
+                            if (cancelled) {
+                                return;
+                            }
+
+                            setStatus('ready');
+                            setStatusDetail('');
+                            setRuntimeDebug(getTyranoManagerSnapshot(managerRef.current, modelNameRef.current));
+                        },
+                    });
+
+                    modelNameRef.current = modelParams.name;
+                    manager.addModel(modelParams);
+                    setStatus('loading-model');
+                    setStatusDetail(modelConfig.sourceLabel || modelConfig.modelId || '');
+
+                    window.clearTimeout(readyTimerRef.current);
+                    readyTimerRef.current = window.setTimeout(() => {
+                        if (!cancelled) {
+                            const snapshot = getTyranoManagerSnapshot(managerRef.current, modelNameRef.current);
+                            setRuntimeDebug(snapshot);
+                            if (snapshot?.modelState === 22) {
+                                setStatus('ready');
+                                setStatusDetail('');
+                            }
+                        }
+                    }, 1200);
+                    return;
+                }
+
+                await ensureLive2DSdk(modelConfig.sdkScripts);
+                if (!cancelled) {
+                    setStatus('ready');
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    setStatus(modelConfig.runtime === TYRANO_RUNTIME ? 'init-failed' : 'sdk-load-failed');
+                    setStatusDetail(error instanceof Error ? error.message : String(error));
+                }
             }
         };
 
         initialize();
 
-        // Placeholder hook point for future Cubism SDK initialization.
-        const rootElement = rootRef.current;
-        if (!rootElement) return undefined;
-
-        rootElement.dataset.live2dModel = modelConfig.modelId || `${characterId}:${skinId}`;
-        if (modelConfig.modelJson) {
-            rootElement.dataset.live2dModelJson = modelConfig.modelJson;
-        }
-        rootElement.dataset.live2dEmotion = pose.expression || pose.emotion || 'normal';
-
         return () => {
             cancelled = true;
-            delete rootElement.dataset.live2dModel;
-            delete rootElement.dataset.live2dModelJson;
-            delete rootElement.dataset.live2dEmotion;
+
+            const manager = managerRef.current;
+            const modelName = modelNameRef.current;
+            if (manager && modelName && typeof manager.setLipValue === 'function') {
+                try {
+                    manager.setLipValue(modelName, 0);
+                } catch {
+                    // Ignore teardown race conditions in prototype mode.
+                }
+            }
+
+            managerRef.current = null;
+            modelNameRef.current = '';
+            setRuntimeDebug(null);
+            window.clearTimeout(readyTimerRef.current);
+            destroyTyranoManager();
         };
-    }, [characterId, skinId, modelConfig, pose.emotion, pose.expression]);
+    // modelConfig は LIVE2D_MODEL_REGISTRY の固定参照なので characterId/skinId のみで十分
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [characterId, skinId]);
+
+    useEffect(() => {
+        const rootElement = rootRef.current;
+        if (!rootElement || modelConfig?.runtime !== TYRANO_RUNTIME) {
+            return undefined;
+        }
+
+        const resize = () => {
+            const canvas = rootElement.querySelector('canvas') || document.getElementById('live2d_canvas_tyrano');
+            if (canvas) {
+                resizeTyranoCanvas(canvas, rootElement);
+            }
+        };
+
+        resize();
+
+
+        if (typeof ResizeObserver === 'undefined') {
+            window.addEventListener('resize', resize);
+            return () => window.removeEventListener('resize', resize);
+        }
+
+        const observer = new ResizeObserver(resize);
+        observer.observe(rootElement);
+        window.addEventListener('resize', resize);
+
+        return () => {
+            observer.disconnect();
+            window.removeEventListener('resize', resize);
+        };
+    }, [modelConfig?.runtime, status]);
+
+    useEffect(() => {
+        const manager = managerRef.current;
+        const modelName = modelNameRef.current;
+
+        if (!manager || !modelName || status !== 'ready' || modelConfig?.runtime !== TYRANO_RUNTIME) {
+            return undefined;
+        }
+
+        if (!pose.speaking) {
+            manager.setLipValue?.(modelName, 0);
+            return undefined;
+        }
+
+        const tick = () => {
+            const nextValue = 0.2 + (Math.random() * 0.8);
+            manager.setLipValue?.(modelName, nextValue);
+        };
+
+        tick();
+        const intervalId = window.setInterval(tick, 90);
+
+        return () => {
+            window.clearInterval(intervalId);
+            manager.setLipValue?.(modelName, 0);
+        };
+    }, [modelConfig?.runtime, pose.speaking, pose.text, status]);
+
+    useEffect(() => {
+        if (modelConfig?.runtime !== TYRANO_RUNTIME) {
+            return undefined;
+        }
+
+        const updateSnapshot = () => {
+            setRuntimeDebug(getTyranoManagerSnapshot(managerRef.current, modelNameRef.current));
+        };
+
+        updateSnapshot();
+        const intervalId = window.setInterval(updateSnapshot, 400);
+
+        return () => window.clearInterval(intervalId);
+    }, [modelConfig?.runtime, status]);
 
     if (!modelConfig) {
         return fallback;
     }
 
-    if (status !== 'ready') {
-        return (
-            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                {fallback}
+    return (
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            {!['loading-model', 'ready'].includes(status) && (
+                <div style={{ position: 'absolute', inset: 0 }}>
+                    {fallback}
+                </div>
+            )}
+            <div
+                ref={rootRef}
+                className={className}
+                data-character-id={characterId}
+                data-skin-id={skinId}
+                data-live2d-ready={status === 'ready' ? 'true' : 'false'}
+                style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 1,
+                    overflow: 'visible',
+                    transform: 'none',
+                    opacity: ['loading-model', 'ready'].includes(status) ? 1 : 0,
+                }}
+            />
+            {(status !== 'ready' || runtimeDebug) && (
                 <div
                     style={{
                         position: 'absolute',
@@ -124,19 +312,14 @@ const Live2DViewer = ({
                             {statusDetail}
                         </span>
                     )}
+                    {runtimeDebug && (
+                        <span style={{ display: 'block', marginTop: '6px', color: 'rgba(255,255,255,0.75)' }}>
+                            {`canvas ${runtimeDebug.canvasWidth}x${runtimeDebug.canvasHeight} / GL ${runtimeDebug.hasGl ? 'ok' : 'ng'} / model ${runtimeDebug.modelStateLabel}`}
+                        </span>
+                    )}
                 </div>
-            </div>
-        );
-    }
-
-    return (
-        <div
-            ref={rootRef}
-            className={className}
-            data-character-id={characterId}
-            data-skin-id={skinId}
-            data-live2d-ready="false"
-        />
+            )}
+        </div>
     );
 };
 

@@ -23,6 +23,8 @@ import AchievementModal from './AchievementModal';
 import NotificationSettings from './NotificationSettings';
 import { useSound } from '../contexts/SoundContext';
 import TtsSettingsModal from './TtsSettingsModal';
+import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
+import { resolveCharacterRenderer } from '../utils/characterRenderer';
 
 
 const MENU_ITEMS = [
@@ -48,6 +50,18 @@ const MenuModal = ({ onClose, stats, updateStats }) => {
     const [showNotifications, setShowNotifications] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [showTtsSettings, setShowTtsSettings] = useState(false);
+    const characterId = stats?.characterId || 'noah';
+    const skinId = stats?.equippedSkin || 'default';
+    const preferredRenderer = stats?.characterRenderer || 'auto';
+    const characterQuality = stats?.characterQuality || 'high';
+    const canUseVrm = characterId === 'noah';
+    const hasLive2D = hasLive2DModelConfig(characterId, skinId);
+    const resolvedRenderer = resolveCharacterRenderer({
+        preferredRenderer,
+        characterId,
+        skinId,
+        canUseVrm,
+    });
 
     const handleMenuClick = (itemId) => {
         if (itemId === 'titles') {
@@ -80,6 +94,22 @@ const MenuModal = ({ onClose, stats, updateStats }) => {
 
     const SettingsPanel = () => {
         const { isMuted, volume, toggleMute, changeVolume } = useSound();
+        const rendererOptions = [
+            { value: 'auto', label: '自動', description: 'Live2D試作があれば優先し、なければ既存表示を使います。' },
+            { value: 'live2d', label: 'Live2D', description: 'モデルが未配置なら自動で他の表示にフォールバックします。' },
+            { value: 'vrm', label: 'VRM', description: 'ノアの3D表示を優先します。' },
+            { value: 'image', label: '画像', description: 'もっとも軽い表示です。' },
+        ];
+        const qualityOptions = [
+            { value: 'high', label: '高', description: '演出を優先します。' },
+            { value: 'medium', label: '中', description: '品質と軽さのバランスです。' },
+            { value: 'low', label: '低', description: '軽さを優先します。' },
+        ];
+
+        const updateCharacterSetting = (updates) => {
+            if (!updateStats) return;
+            updateStats(updates);
+        };
 
         return (
             <div className="menu-modal-overlay" onClick={() => setShowSettings(false)}>
@@ -138,6 +168,51 @@ const MenuModal = ({ onClose, stats, updateStats }) => {
                                 </span>
                                 TTSエンジン設定を開く
                             </button>
+                        </div>
+                        <div className="settings-section" style={{ marginTop: '24px' }}>
+                            <h3>キャラ表示設定</h3>
+                            <p style={{ color: '#555', lineHeight: 1.6, marginTop: '10px' }}>
+                                現在の解決結果: <strong>{resolvedRenderer.toUpperCase()}</strong>
+                            </p>
+                            <p style={{ color: '#777', lineHeight: 1.6, marginTop: '6px', fontSize: '13px' }}>
+                                Live2Dモデル: {hasLive2D ? '検出済み' : '未配置'}
+                                {' / '}
+                                VRM利用: {canUseVrm ? '可能' : '未対応'}
+                            </p>
+                            <div className="settings-option-grid">
+                                {rendererOptions.map((option) => (
+                                    <button
+                                        key={option.value}
+                                        type="button"
+                                        className={`settings-choice-card ${preferredRenderer === option.value ? 'selected' : ''}`}
+                                        onClick={() => updateCharacterSetting({ characterRenderer: option.value })}
+                                    >
+                                        <strong>{option.label}</strong>
+                                        <span>{option.description}</span>
+                                    </button>
+                                ))}
+                            </div>
+                            {!hasLive2D && preferredRenderer === 'live2d' && (
+                                <p className="settings-inline-note">
+                                    Live2Dモデルがまだ未配置のため、現在は既存表示へフォールバックします。
+                                </p>
+                            )}
+                        </div>
+                        <div className="settings-section" style={{ marginTop: '24px' }}>
+                            <h3>キャラ品質</h3>
+                            <div className="settings-option-grid compact">
+                                {qualityOptions.map((option) => (
+                                    <button
+                                        key={option.value}
+                                        type="button"
+                                        className={`settings-choice-card ${characterQuality === option.value ? 'selected' : ''}`}
+                                        onClick={() => updateCharacterSetting({ characterQuality: option.value })}
+                                    >
+                                        <strong>{option.label}</strong>
+                                        <span>{option.description}</span>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
                     <div className="menu-footer">

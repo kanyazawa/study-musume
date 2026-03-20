@@ -35,7 +35,7 @@ const CharacterStage = ({
                     characterId={characterId}
                     skinId={skinId}
                     pose={pose}
-                    className={className || imageClassName}
+                    className={[className, imageClassName].filter(Boolean).join(' ')}
                     fallback={imageFallback}
                 />
             </Suspense>

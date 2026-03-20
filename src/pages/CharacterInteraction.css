@@ -176,13 +176,23 @@
     left: 0;
     width: 100%;
     height: 85%;
-    /* Match Home */
     display: flex;
     justify-content: center;
     align-items: flex-end;
     pointer-events: none;
     transition: transform 0.3s;
     transform-origin: bottom center;
+}
+
+.character-figure.is-live2d {
+    width: min(100%, 460px);
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.character-figure.is-live2d > * {
+    width: 100%;
+    height: 100%;
 }
 
 .char-image {
@@ -198,6 +208,10 @@
 
 .character-figure.receiving {
     transform: scale(1.05);
+}
+
+.character-figure.is-live2d.receiving {
+    transform: translateX(-50%) scale(1.05);
 }
 
 /* Gift Effect Overlay */

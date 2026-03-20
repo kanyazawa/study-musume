@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Volume2 } from 'lucide-react';
 import './Dialogue.css';
@@ -14,52 +14,17 @@ import { saveStudyCompletion } from '../firebase/sync';
 import { getCurrentUser } from '../firebase/auth';
 import { convertTone } from '../utils/toneUtils';
 import { getQuizReaction } from '../utils/affectionUtils';
+import CharacterStage from '../components/character/CharacterStage';
 import { parseCsvTable } from '../utils/csvUtils';
+import { resolveCharacterRenderer } from '../utils/characterRenderer';
+import { createDialoguePose } from '../utils/characterPoseUtils';
 import { getTtsSettings, TTS_ENGINES } from '../utils/ttsSettings';
 
-// Images
-import CharacterNew from '../assets/images/character_new.png';
-import CharacterUser from '../assets/images/character_user.png';
-import CharacterRen from '../assets/images/character_ren.png'; // Ren Image
 import BgClassroom from '../assets/images/bg_classroom.png';
-
-// Emotional Variations
-import NoaHappy from '../assets/images/noah_happy.png';
-import NoaNormal from '../assets/images/noah_normal.png';
-import NoaAngry from '../assets/images/noah_angry.png';
-import RenNormal from '../assets/images/ren_normal.png';
-import RenAngry from '../assets/images/ren_angry.png';
-import RenHappy from '../assets/images/ren_happy.png';
 
 import { useSound } from '../contexts/SoundContext';
 
-const VrmViewer = lazy(() => import('../components/VrmViewer'));
 const IS_LITE_DEPLOY = import.meta.env.VITE_LITE_DEPLOY === 'true';
-
-const CHARACTER_IMAGES = {
-    'main': NoaNormal,
-    'new': CharacterNew,
-    'tsundere': NoaNormal,
-    'user': CharacterUser,
-    'default': NoaNormal,
-    // Emotion mapping
-    'happy': NoaHappy,
-    'normal': NoaNormal,
-    'angry': NoaAngry,
-    'serious': NoaNormal, // Fallback for serious
-    'smile': NoaHappy     // Fallback for smile
-};
-
-const REN_IMAGES = {
-    'default': RenNormal,
-    'main': RenNormal,
-    'new': RenNormal,
-    'happy': RenHappy,
-    'normal': RenNormal,
-    'angry': RenAngry,
-    'serious': RenNormal, // Fallback for serious
-    'smile': RenHappy     // Fallback for smile
-};
 
 const Dialogue = ({ stats, updateStats }) => {
     const [searchParams] = useSearchParams();
@@ -72,7 +37,6 @@ const Dialogue = ({ stats, updateStats }) => {
     const characterId = stats?.characterId || 'noah';
     const isRen = characterId === 'ren';
     const characterName = isRen ? 'レン' : 'ノア';
-    const currentImages = isRen ? REN_IMAGES : CHARACTER_IMAGES;
 
     const [line, setLine] = useState(null);
     const [scenarioData, setScenarioData] = useState([]);
@@ -88,6 +52,13 @@ const Dialogue = ({ stats, updateStats }) => {
     const [use3D, setUse3D] = useState(() => {
         const saved = localStorage.getItem('characterMode');
         return !IS_LITE_DEPLOY && saved === '3d';
+    });
+    const preferredRenderer = stats?.characterRenderer;
+    const renderer = resolveCharacterRenderer({
+        preferredRenderer,
+        characterId,
+        skinId: stats?.equippedSkin || 'default',
+        canUseVrm: !IS_LITE_DEPLOY && use3D,
     });
 
     const toggleCharacterMode = useCallback((e) => {
@@ -969,6 +940,10 @@ const Dialogue = ({ stats, updateStats }) => {
     if (!line) return <div className="dialogue-screen"><div className="dialogue-box"><div className="dialogue-text">データがありません</div></div></div>;
 
     const isQuiz = line.speaker === 'Quiz';
+    const dialoguePose = createDialoguePose(line, {
+        speaking: vrmSpeaking,
+        text: vrmText,
+    });
 
     // Background Logic
     const getBackgroundImage = (bgId) => {
@@ -1034,28 +1009,15 @@ const Dialogue = ({ stats, updateStats }) => {
             <div
                 className="character-figure"
             >
-                {use3D ? (
-                    <Suspense fallback={null}>
-                        <VrmViewer
-                            emotion={line.expression || line.emotion || 'normal'}
-                            text={vrmText}
-                            isSpeaking={vrmSpeaking}
-                            className={`vrm-dialogue ${(line.graph || line.study_image) ? 'with-board' : ''}`}
-                        />
-                    </Suspense>
-                ) : (
-                    <img
-                        src={
-                            line?.expression && currentImages[line.expression]
-                                ? currentImages[line.expression]
-                                : line?.emotion && currentImages[line.emotion]
-                                    ? currentImages[line.emotion]
-                                    : currentImages['normal'] || currentImages['default']
-                        }
-                        alt="Character"
-                        className={`char-image-dialogue ${line.effect === 'shake' ? 'effect-shake' : ''} ${(line.graph || line.study_image) ? 'with-board' : ''}`}
-                    />
-                )}
+                <CharacterStage
+                    characterId={characterId}
+                    renderer={renderer}
+                    skinId={stats?.equippedSkin || 'default'}
+                    scene="dialogue"
+                    pose={dialoguePose}
+                    className={`vrm-dialogue ${(line.graph || line.study_image) ? 'with-board' : ''}`}
+                    imageClassName={`char-image-dialogue ${line.effect === 'shake' ? 'effect-shake' : ''} ${(line.graph || line.study_image) ? 'with-board' : ''}`}
+                />
             </div>
 
             <div className="dialogue-box">

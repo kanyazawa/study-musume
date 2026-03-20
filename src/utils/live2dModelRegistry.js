@@ -1,6 +1,24 @@
 const LIVE2D_MODEL_REGISTRY = {
     noah: {
-        default: null,
+        default: {
+            modelId: 'free-witch-prototype',
+            modelJson: '/live2d/models/free-witch/%E9%AD%94%E5%A5%B3/%E9%AD%94%E5%A5%B3.model3.json',
+            sdkScripts: [
+                '/live2d/sdk/tyrano/polyfill.min.js',
+                '/live2d/sdk/tyrano/live2dcubismcore.min.js',
+                '/live2d/sdk/tyrano/driver-index.js',
+            ],
+            runtime: 'tyrano-v4',
+            resourcesPath: '/live2d/models/free-witch/',
+            modelName: '魔女',
+            idleMotion: 'Idle',
+            stage: {
+                x: 0,
+                y: -0.8,
+                scale: 8.5,
+            },
+            sourceLabel: 'Free Witch Prototype',
+        },
     },
     ren: {
         default: null,

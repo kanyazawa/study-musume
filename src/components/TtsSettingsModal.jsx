@@ -233,6 +233,28 @@ const TtsSettingsModal = ({ onClose }) => {
                                             : '話者一覧を取得できませんでした'}
                             </div>
                         </label>
+                        <label className="tts-field">
+                            <span>対戦ボイス話者</span>
+                            <select
+                                value={settings.battleSpeaker}
+                                onChange={(e) => handleChange('battleSpeaker', e.target.value)}
+                                disabled={selectedEngine === TTS_ENGINES.BROWSER}
+                            >
+                                <option value="">通常話者を使う</option>
+                                {speakerOptions.map((speaker) => (
+                                    <option key={`battle-${speaker.engine}-${speaker.styleId}`} value={String(speaker.styleId)}>
+                                        {speaker.displayName}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="tts-inline-help">
+                                {selectedEngine === TTS_ENGINES.BROWSER
+                                    ? 'ブラウザTTS利用時は対戦話者を分けられません'
+                                    : settings.battleSpeaker
+                                        ? '対戦中の連鎖ボイスだけこの話者で再生します'
+                                        : '未設定なら通常の優先話者をそのまま使います'}
+                            </div>
+                        </label>
                     </div>
 
                     <div className="tts-slider-section">

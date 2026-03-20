@@ -1,3 +1,25 @@
+export const FRIEND_MATCH_TARGET_OPTIONS = [5, 10, 15, 20];
+export const FRIEND_MATCH_MODE_OPTIONS = ['classic', 'listening'];
+
+export function normalizeBattleMode(mode, fallback = 'classic') {
+    const normalized = String(mode || '').trim().toLowerCase();
+    return FRIEND_MATCH_MODE_OPTIONS.includes(normalized) ? normalized : fallback;
+}
+
+export function getBattleModeLabel(mode) {
+    return normalizeBattleMode(mode) === 'listening' ? 'リスニング' : '通常';
+}
+
+export function normalizeTargetCorrect(targetCorrect, fallback = 10) {
+    const parsed = Number(targetCorrect);
+
+    if (FRIEND_MATCH_TARGET_OPTIONS.includes(parsed)) {
+        return parsed;
+    }
+
+    return fallback;
+}
+
 export function shuffleArray(items) {
     const cloned = [...items];
 

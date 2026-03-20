@@ -1,34 +1,24 @@
-import React, { Suspense, lazy, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Shirt, Image as ImageIcon, Gift, MessageCircle } from 'lucide-react';
 import './CharacterInteraction.css';
 import './Dialogue.css'; // Reuse dialogue styles for consistency
 import CharacterSelect from '../components/CharacterSelect';
 import NoaChatBox from '../components/NoaChatBox';
-
-// Images
-import CharacterMain from '../assets/images/character_new.png';
-import CharacterCasual from '../assets/images/character_casual_v9.png';
-import CharacterCasualFall from '../assets/images/noa_casual_fall.png';
-import CharacterGym from '../assets/images/character_gym.jpg';
-import CharacterCasualGray from '../assets/images/character_casual_gray_hoodie.jpg';
-import CharacterCasualBlack from '../assets/images/character_casual_hoodie.png';
-import CharacterRen from '../assets/images/character_ren.png'; // Added Ren
-// Using happy image for smile reaction
-import NoaHappy from '../assets/images/noah_happy.png';
-import RenHappy from '../assets/images/ren_happy.png';
+import CharacterStage from '../components/character/CharacterStage';
 
 // Utils
 import { getGiftReaction } from '../utils/affectionUtils';
-import { getSkinFilter, getBackgroundStyle, getOwnedSkins, getOwnedBackgrounds } from '../utils/cosmeticUtils';
+import { resolveCharacterRenderer } from '../utils/characterRenderer';
+import { getBackgroundStyle, getOwnedSkins, getOwnedBackgrounds } from '../utils/cosmeticUtils';
+import { createGiftPose, normalizeCharacterEmotion } from '../utils/characterPoseUtils';
 import { filterInventoryByType, removeFromInventory } from '../utils/itemUtils';
 
-const VrmViewer = lazy(() => import('../components/VrmViewer'));
 const IS_LITE_DEPLOY = import.meta.env.VITE_LITE_DEPLOY === 'true';
 
 const CharacterInteraction = ({ stats, updateStats }) => {
     const navigate = useNavigate();
-    const [mode, setMode] = useState('main'); // main, gift, costume, bg
+    const [mode, setMode] = useState('main'); // main, gift, costume, bg, chat
     const [expression, setExpression] = useState('normal'); // normal, smile
     const [showCharSelect, setShowCharSelect] = useState(false);
     const [giftReaction, setGiftReaction] = useState(null);
@@ -52,38 +42,28 @@ const CharacterInteraction = ({ stats, updateStats }) => {
         updateStats({ equippedBackground: bgId });
     };
 
-    // スキン画像のマッピング
-    // Noah (Female)
-    const noahImages = {
-        'default': CharacterMain,
-        'skin_casual': CharacterCasual,
-        'skin_casual_fall': CharacterCasualFall,
-        'skin_gym': CharacterGym,
-        'skin_casual_gray_hoodie': CharacterCasualGray,
-        'skin_casual_hoodie': CharacterCasualBlack
-    };
-
-    // Ren (Male)
-    const renImages = {
-        'default': CharacterRen, // Import CharacterRen at top
-        'skin_casual': CharacterRen, // Fallback for now
-        'skin_casual_fall': CharacterRen
-    };
-
     const characterId = stats.characterId || 'noah';
-    const skinImages = characterId === 'ren' ? renImages : noahImages;
-
-    // Use utility or map to get skin image
-    const currentSkinImage = skinImages[stats.equippedSkin] || skinImages['default'];
-
-    // Override if smiling
-    let displayImage = currentSkinImage;
-    if (expression === 'smile') {
-        displayImage = characterId === 'ren' ? RenHappy : NoaHappy;
-    }
-
-    const currentSkinFilter = getSkinFilter(stats.equippedSkin);
     const currentBgStyle = getBackgroundStyle(stats.equippedBackground);
+    const preferredRenderer = stats?.characterRenderer;
+    const renderer = resolveCharacterRenderer({
+        preferredRenderer,
+        characterId,
+        skinId: stats.equippedSkin || 'default',
+        canUseVrm: stats.characterId === 'noah' && !IS_LITE_DEPLOY && localStorage.getItem('characterMode') === '3d',
+    });
+    const interactionPose = giftReaction
+        ? createGiftPose(giftReaction)
+        : {
+            emotion: normalizeCharacterEmotion(expression),
+            expression: normalizeCharacterEmotion(expression),
+            intensity: expression === 'smile' ? 0.8 : 0.4,
+            motion: null,
+            idle: 'gentle',
+            gaze: 'camera',
+            speaking: false,
+            text: '',
+            effect: '',
+        };
 
     // Filter Gifts
     const giftItems = filterInventoryByType(stats.inventory, 'gift');
@@ -150,22 +130,16 @@ const CharacterInteraction = ({ stats, updateStats }) => {
             )}
 
             {/* Character Figure (Same position as Home) */}
-            <div className={`character-figure ${givingItem ? 'receiving' : ''}`} onClick={() => setShowCharSelect(true)}>
-                {stats.characterId === 'noah' && !IS_LITE_DEPLOY && localStorage.getItem('characterMode') === '3d' ? (
-                    <Suspense fallback={null}>
-                        <VrmViewer
-                            emotion={expression}
-                            className="vrm-interaction"
-                        />
-                    </Suspense>
-                ) : (
-                    <img
-                        src={displayImage}
-                        alt="Character"
-                        className="char-image"
-                        style={{ filter: expression !== 'smile' ? currentSkinFilter : 'none' }}
-                    />
-                )}
+            <div className={`character-figure ${givingItem ? 'receiving' : ''} ${renderer === 'live2d' ? 'is-live2d' : ''}`} onClick={() => setShowCharSelect(true)}>
+                <CharacterStage
+                    characterId={characterId}
+                    renderer={renderer}
+                    skinId={stats.equippedSkin || 'default'}
+                    scene="interaction"
+                    pose={interactionPose}
+                    className="vrm-interaction"
+                    imageClassName="char-image"
+                />
             </div>
 
             {/* Bottom Control Panel (Study Scene Style) */}

@@ -47,7 +47,7 @@ const AppRoutes = ({ stats, updateStats, onLoginSuccess, currentUser }) => (
         path="/login"
         element={currentUser ? <Navigate to="/home" replace /> : <Login onLoginSuccess={onLoginSuccess} />}
       />
-      <Route path="/friends" element={<Friends />} />
+      <Route path="/friends" element={<Friends stats={stats} />} />
       <Route path="/ranking" element={<Ranking />} />
       <Route path="/character-select" element={<CharacterSelectPage updateStats={updateStats} />} />
       <Route

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, UserPlus, Search, Check, X } from 'lucide-react';
 import { getCurrentUser } from '../firebase/auth';
@@ -12,21 +12,57 @@ import {
     removeFriend
 } from '../firebase/friends';
 import { getUserProfile } from '../firebase/auth';
+import { createFriendRoom, subscribeToFriendInvites } from '../firebase/matching';
+import {
+    FRIEND_MATCH_MODE_OPTIONS,
+    FRIEND_MATCH_TARGET_OPTIONS,
+    getBattleModeLabel,
+    normalizeBattleMode,
+    normalizeTargetCorrect,
+} from '../utils/matchUtils';
+import { DEFAULT_RATING, getLevelFromRating, LEVEL_THRESHOLDS } from '../utils/ratingUtils';
 import './Friends.css';
 
-const Friends = () => {
+const Friends = ({ stats }) => {
     const navigate = useNavigate();
+    const defaultBattleLevel = getLevelFromRating(stats?.multiplayerRating || DEFAULT_RATING).level;
     const [currentUser, setCurrentUser] = useState(null);
     const [myFriendCode, setMyFriendCode] = useState('');
+    const [myDisplayName, setMyDisplayName] = useState('');
     const [searchCode, setSearchCode] = useState('');
     const [searchResult, setSearchResult] = useState(null);
     const [friends, setFriends] = useState([]);
     const [pendingRequests, setPendingRequests] = useState([]);
+    const [battleInvites, setBattleInvites] = useState([]);
+    const [selectedBattleLevel, setSelectedBattleLevel] = useState(defaultBattleLevel);
+    const [selectedTargetCorrect, setSelectedTargetCorrect] = useState(10);
+    const [selectedBattleMode, setSelectedBattleMode] = useState('classic');
     const [activeTab, setActiveTab] = useState('friends'); // friends, search, requests
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
 
-    async function loadUserData(uid) {
+    useEffect(() => {
+        setSelectedBattleLevel(defaultBattleLevel);
+    }, [defaultBattleLevel]);
+
+    const getLevelLabel = useCallback((level) => {
+        return LEVEL_THRESHOLDS.find((threshold) => threshold.level === level)?.label || '英検5級';
+    }, []);
+
+    const getTargetCorrectLabel = useCallback((targetCorrect) => {
+        return `${normalizeTargetCorrect(targetCorrect)}問先取`;
+    }, []);
+
+    const getBattleModeBadgeLabel = useCallback((battleMode) => {
+        return getBattleModeLabel(battleMode);
+    }, []);
+
+    const showMessage = useCallback((text, type) => {
+        setMessage({ text, type });
+        setTimeout(() => setMessage(null), 3000);
+    }, []);
+
+    const loadUserData = useCallback(async (uid) => {
         setLoading(true);
         const [profileResult, friendsResult, requestsResult] = await Promise.all([
             getUserProfile(uid),
@@ -36,6 +72,7 @@ const Friends = () => {
 
         if (profileResult.success) {
             setMyFriendCode(profileResult.data.friendCode || '');
+            setMyDisplayName(profileResult.data.displayName || '');
         } else {
             showMessage(profileResult.error || 'プロフィールの取得に失敗しました', 'error');
         }
@@ -53,7 +90,7 @@ const Friends = () => {
         }
 
         setLoading(false);
-    }
+    }, [showMessage]);
 
     useEffect(() => {
         const user = getCurrentUser();
@@ -63,7 +100,15 @@ const Friends = () => {
         }
         setCurrentUser(user);
         loadUserData(user.uid);
-    }, [navigate]);
+
+        const unsubscribeInvites = subscribeToFriendInvites(user.uid, (invites) => {
+            setBattleInvites(invites);
+        });
+
+        return () => {
+            unsubscribeInvites?.();
+        };
+    }, [navigate, loadUserData]);
 
     const handleSearch = async () => {
         if (!searchCode.trim()) {
@@ -141,9 +186,37 @@ const Friends = () => {
         setLoading(false);
     };
 
-    const showMessage = (text, type) => {
-        setMessage({ text, type });
-        setTimeout(() => setMessage(null), 3000);
+    const handleChallengeFriend = async (friend) => {
+        if (!currentUser) return;
+
+        setLoading(true);
+        const battleLevelLabel = getLevelLabel(selectedBattleLevel);
+        const battleTargetLabel = getTargetCorrectLabel(selectedTargetCorrect);
+        const battleModeLabel = getBattleModeBadgeLabel(selectedBattleMode);
+        const result = await createFriendRoom(
+            currentUser.uid,
+            myDisplayName || currentUser.displayName || 'Player',
+            friend.id,
+            friend.displayName || '',
+            stats?.characterId || 'noah',
+            stats?.equippedSkin || 'default',
+            stats?.multiplayerRating,
+            selectedBattleLevel,
+            selectedTargetCorrect,
+            selectedBattleMode,
+        );
+
+        if (result.success) {
+            showMessage(`${friend.displayName} さんに${battleModeLabel}・${battleLevelLabel}・${battleTargetLabel}で対戦を申し込みました！`, 'success');
+            navigate(`/multiplayer-match?room=${result.roomId}&friendName=${encodeURIComponent(friend.displayName || '')}&battleLevel=${encodeURIComponent(selectedBattleLevel)}&battleTarget=${selectedTargetCorrect}&battleMode=${encodeURIComponent(selectedBattleMode)}`);
+        } else {
+            showMessage(result.error || '対戦の招待に失敗しました', 'error');
+        }
+        setLoading(false);
+    };
+
+    const handleJoinInvite = (invite) => {
+        navigate(`/multiplayer-match?room=${invite.id}&friendName=${encodeURIComponent(invite.player1?.displayName || '')}&battleLevel=${encodeURIComponent(invite.level || defaultBattleLevel)}&battleTarget=${normalizeTargetCorrect(invite.targetCorrect)}&battleMode=${encodeURIComponent(normalizeBattleMode(invite.battleMode))}`);
     };
 
     const copyFriendCode = async () => {
@@ -164,7 +237,7 @@ const Friends = () => {
                 document.body.removeChild(input);
             }
             showMessage('フレンドコードをコピーしました！', 'success');
-        } catch (error) {
+        } catch {
             showMessage('コピーに失敗しました。長押しで選択してください', 'error');
         }
     };
@@ -216,7 +289,7 @@ const Friends = () => {
                     onClick={() => setActiveTab('requests')}
                 >
                     <UserPlus size={18} />
-                    申請 {pendingRequests.length > 0 && `(${pendingRequests.length})`}
+                    申請・招待 {(pendingRequests.length + battleInvites.length) > 0 && `(${pendingRequests.length + battleInvites.length})`}
                 </button>
             </div>
 
@@ -231,6 +304,55 @@ const Friends = () => {
             <div className="friends-content">
                 {activeTab === 'friends' && (
                     <div className="friends-list">
+                        <div className="battle-settings-card">
+                            <div className="battle-settings-header">
+                                <div className="battle-settings-title">フレンド対戦の級</div>
+                                <div className="battle-settings-note">招待した側の設定で出題級が決まります</div>
+                            </div>
+                            <label className="battle-level-select">
+                                <span>出題する級</span>
+                                <select
+                                    value={selectedBattleLevel}
+                                    onChange={(e) => setSelectedBattleLevel(e.target.value)}
+                                    disabled={loading}
+                                >
+                                    {LEVEL_THRESHOLDS.map((level) => (
+                                        <option key={level.level} value={level.level}>
+                                            {level.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            <label className="battle-level-select">
+                                <span>勝利条件</span>
+                                <select
+                                    value={selectedTargetCorrect}
+                                    onChange={(e) => setSelectedTargetCorrect(Number(e.target.value))}
+                                    disabled={loading}
+                                >
+                                    {FRIEND_MATCH_TARGET_OPTIONS.map((target) => (
+                                        <option key={target} value={target}>
+                                            {target}問先取
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            <label className="battle-level-select">
+                                <span>対戦形式</span>
+                                <select
+                                    value={selectedBattleMode}
+                                    onChange={(e) => setSelectedBattleMode(normalizeBattleMode(e.target.value))}
+                                    disabled={loading}
+                                >
+                                    {FRIEND_MATCH_MODE_OPTIONS.map((mode) => (
+                                        <option key={mode} value={mode}>
+                                            {getBattleModeBadgeLabel(mode)}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                        </div>
+
                         {friends.length === 0 ? (
                             <div className="empty-state">
                                 <Users size={48} />
@@ -244,12 +366,21 @@ const Friends = () => {
                                         <div className="friend-name">{friend.displayName}</div>
                                         <div className="friend-code">{friend.friendCode}</div>
                                     </div>
-                                    <button
-                                        className="remove-btn"
-                                        onClick={() => handleRemoveFriend(friend.friendshipId)}
-                                    >
-                                        削除
-                                    </button>
+                                    <div className="friend-actions">
+                                        <button
+                                            className="battle-btn"
+                                            onClick={() => handleChallengeFriend(friend)}
+                                            disabled={loading}
+                                        >
+                                            対戦する
+                                        </button>
+                                        <button
+                                            className="remove-btn"
+                                            onClick={() => handleRemoveFriend(friend.friendshipId)}
+                                        >
+                                            削除
+                                        </button>
+                                    </div>
                                 </div>
                             ))
                         )}
@@ -298,10 +429,36 @@ const Friends = () => {
 
                 {activeTab === 'requests' && (
                     <div className="requests-list">
-                        {pendingRequests.length === 0 ? (
+                        {battleInvites.length > 0 && (
+                            <div className="invite-group">
+                                <div className="section-title">対戦招待</div>
+                                {battleInvites.map(invite => (
+                                    <div key={invite.id} className="invite-card">
+                                        <div className="request-info">
+                                            <div className="request-name">{invite.player1?.displayName || 'フレンド'}</div>
+                                            <div className="request-code">フレンド対戦に招待されています</div>
+                                            <div className="invite-badges">
+                                                <div className="invite-level-badge">{getBattleModeBadgeLabel(invite.battleMode)}</div>
+                                                <div className="invite-level-badge">{getLevelLabel(invite.level)}</div>
+                                                <div className="invite-level-badge">{getTargetCorrectLabel(invite.targetCorrect)}</div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            className="join-battle-btn"
+                                            onClick={() => handleJoinInvite(invite)}
+                                            disabled={loading}
+                                        >
+                                            対戦に参加
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {pendingRequests.length === 0 && battleInvites.length === 0 ? (
                             <div className="empty-state">
                                 <UserPlus size={48} />
-                                <p>フレンド申請はありません</p>
+                                <p>フレンド申請や対戦招待はありません</p>
                             </div>
                         ) : (
                             pendingRequests.map(request => (

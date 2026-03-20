@@ -25,9 +25,12 @@ export const getDefaultStats = () => ({
     characterName: 'さくら',
     selectedIcon: 'default',
     unlockedIcons: ['default'],
+    examDate: '',
     // キャラクター選択
     characterId: 'noah', // default: 'noah'
     hasSelectedCharacter: false, // 初回選択が完了しているか
+    characterRenderer: 'auto',
+    characterQuality: 'high',
     // ログインボーナス
     hasReceivedWelcomeBonus: true,
     lastLoginDate: null,

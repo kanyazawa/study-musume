@@ -328,6 +328,42 @@ export const speakWithBrowserTts = (text, { pitch = 1.3, rate = 1.0, isMale = fa
     window.speechSynthesis.speak(utterance);
 };
 
+export const speakWithPreferredTts = async (text, settings = getTtsSettings()) => {
+    if (!text || settings?.enabled === false) return false;
+
+    const engineOrder = settings.engine === TTS_ENGINES.AUTO
+        ? [TTS_ENGINES.AIVIS, TTS_ENGINES.VOICEVOX, TTS_ENGINES.BROWSER]
+        : [settings.engine];
+
+    for (const engine of engineOrder) {
+        if (engine === TTS_ENGINES.BROWSER) {
+            speakWithBrowserTts(text, {
+                pitch: settings.browserPitch,
+                rate: settings.browserRate,
+            });
+            return true;
+        }
+
+        const baseUrl = getEngineBaseUrl(engine, settings);
+        const available = await isEngineAvailable(engine, baseUrl);
+        if (!available) continue;
+
+        const speakerId = await resolveSpeakerIdForEngine(engine, settings.preferredSpeaker, {
+            baseUrl,
+        });
+        const success = await speakWithEngine(engine, text, speakerId, { baseUrl });
+        if (success) {
+            return true;
+        }
+    }
+
+    speakWithBrowserTts(text, {
+        pitch: settings.browserPitch,
+        rate: settings.browserRate,
+    });
+    return true;
+};
+
 export const speak = async (text, speakerId = VOICEVOX_SPEAKERS.ZUNDAMON) => {
     const isNativePlatform = Capacitor.isNativePlatform();
     let success = false;

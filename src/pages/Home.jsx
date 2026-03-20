@@ -270,7 +270,7 @@ const Home = ({ stats, updateStats }) => {
 
                 {/* Character Figure */}
                 <div
-                    className={`character-figure ${isVrmMode ? 'is-vrm' : ''}`}
+                    className={`character-figure ${isVrmMode ? 'is-vrm' : ''} ${renderer === 'live2d' ? 'is-live2d' : ''}`}
                     onClick={talk}
                     role="button"
                     tabIndex={0}

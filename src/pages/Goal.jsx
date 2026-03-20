@@ -1,43 +1,119 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Plus, Trash2, Check, Save } from 'lucide-react';
 import './Goal.css';
 
-const Goal = () => {
+const safeRead = (key, fallback = null) => {
+    try {
+        const value = localStorage.getItem(key);
+        return value ?? fallback;
+    } catch (error) {
+        console.error(`Failed to read localStorage key "${key}":`, error);
+        return fallback;
+    }
+};
+
+const normalizeTodos = (value) => {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value
+        .filter((todo) => todo && typeof todo === 'object')
+        .map((todo, index) => ({
+            id: typeof todo.id === 'number' ? todo.id : Date.now() + index,
+            text: typeof todo.text === 'string' ? todo.text : '',
+            completed: Boolean(todo.completed)
+        }))
+        .filter((todo) => todo.text.trim().length > 0);
+};
+
+const Goal = ({ stats, updateStats }) => {
     const navigate = useNavigate();
     const [mainGoal, setMainGoal] = useState('');
     const [todoInput, setTodoInput] = useState('');
     const [todos, setTodos] = useState([]);
+    const [examDate, setExamDate] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
 
     // Load from Local Storage on mount
     useEffect(() => {
-        const savedMainGoal = localStorage.getItem('uma_main_goal');
-        const savedTodos = JSON.parse(localStorage.getItem('uma_todos') || '[]');
+        const savedMainGoal = safeRead('uma_main_goal', '');
+        const savedTodosRaw = safeRead('uma_todos', '[]');
 
-        if (savedMainGoal) setMainGoal(savedMainGoal);
-        if (savedTodos) setTodos(savedTodos);
+        if (savedMainGoal) {
+            setMainGoal(savedMainGoal);
+        }
+
+        try {
+            setTodos(normalizeTodos(JSON.parse(savedTodosRaw || '[]')));
+        } catch (error) {
+            console.error('Failed to parse saved todos:', error);
+            setTodos([]);
+            setErrorMessage('保存済みタスクの読み込みに失敗したため、タスク一覧を初期化しました。');
+            try {
+                localStorage.removeItem('uma_todos');
+            } catch (removeError) {
+                console.error('Failed to clear broken todo data:', removeError);
+            }
+        }
     }, []);
+
+    useEffect(() => {
+        setExamDate(stats?.examDate || '');
+    }, [stats?.examDate]);
 
     // Save to Local Storage whenever data changes
     const saveGoal = () => {
-        localStorage.setItem('uma_main_goal', mainGoal);
-        alert('目標を保存しました！');
+        try {
+            localStorage.setItem('uma_main_goal', mainGoal);
+            setErrorMessage('');
+            alert('目標を保存しました！');
+        } catch (error) {
+            console.error('Failed to save goal:', error);
+            setErrorMessage('目標の保存に失敗しました。');
+        }
     };
 
     const saveTodos = (newTodos) => {
-        setTodos(newTodos);
-        localStorage.setItem('uma_todos', JSON.stringify(newTodos));
+        const normalizedTodos = normalizeTodos(newTodos);
+        try {
+            localStorage.setItem('uma_todos', JSON.stringify(normalizedTodos));
+            setTodos(normalizedTodos);
+            setErrorMessage('');
+            return true;
+        } catch (error) {
+            console.error('Failed to save todos:', error);
+            setErrorMessage('タスクの保存に失敗しました。');
+            return false;
+        }
+    };
+
+    const saveExamDate = () => {
+        if (!updateStats) return;
+        try {
+            updateStats({ examDate });
+            setErrorMessage('');
+            alert('入試日を保存しました！');
+        } catch (error) {
+            console.error('Failed to save exam date:', error);
+            setErrorMessage('入試日の保存に失敗しました。');
+        }
     };
 
     const addTodo = () => {
-        if (!todoInput.trim()) return;
+        const trimmedInput = todoInput.trim();
+        if (!trimmedInput) return;
+
         const newTodo = {
             id: Date.now(),
-            text: todoInput,
+            text: trimmedInput,
             completed: false
         };
-        saveTodos([...todos, newTodo]);
-        setTodoInput('');
+        const saved = saveTodos([...todos, newTodo]);
+        if (saved) {
+            setTodoInput('');
+        }
     };
 
     const toggleTodo = (id) => {
@@ -62,6 +138,8 @@ const Goal = () => {
             </div>
 
             <div className="goal-content">
+                {errorMessage && <p className="empty-msg">{errorMessage}</p>}
+
                 {/* Main Goal Section */}
                 <div className="section-card main-goal-section">
                     <h3>🏆 最終目標</h3>
@@ -74,6 +152,21 @@ const Goal = () => {
                             rows={3}
                         />
                         <button className="save-btn" onClick={saveGoal}>
+                            <Save size={18} /> 保存
+                        </button>
+                    </div>
+                </div>
+
+                <div className="section-card main-goal-section">
+                    <h3>📅 入試日</h3>
+                    <div className="input-group">
+                        <input
+                            className="main-goal-input"
+                            type="date"
+                            value={examDate}
+                            onChange={(e) => setExamDate(e.target.value)}
+                        />
+                        <button className="save-btn" onClick={saveExamDate}>
                             <Save size={18} /> 保存
                         </button>
                     </div>
@@ -97,7 +190,7 @@ const Goal = () => {
                     </div>
 
                     <ul className="todo-list">
-                        {todos.length === 0 && <p className="empty-msg">タスクはまだありません。</p>}
+                        {todos.length === 0 && <li className="empty-msg">タスクはまだありません。</li>}
                         {todos.map(todo => (
                             <li key={todo.id} className={`todo-item ${todo.completed ? 'completed' : ''}`}>
                                 <div className="todo-checkbox" onClick={() => toggleTodo(todo.id)}>

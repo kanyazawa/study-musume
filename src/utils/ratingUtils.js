@@ -15,6 +15,9 @@ export const LEVEL_THRESHOLDS = [
     { minRating: 1200, level: 'grade4',    label: '英検4級', emoji: '🔵', color: '#2196F3' },
     { minRating: 1500, level: 'grade3',    label: '英検3級', emoji: '🟣', color: '#9C27B0' },
     { minRating: 1800, level: 'grade_pre2', label: '英検準2級', emoji: '🔴', color: '#F44336' },
+    { minRating: 2100, level: 'grade2',    label: '英検2級', emoji: '🟠', color: '#FB8C00' },
+    { minRating: 2400, level: 'grade_pre1', label: '英検準1級', emoji: '🟡', color: '#FBC02D' },
+    { minRating: 2700, level: 'grade1',    label: '英検1級', emoji: '⚫', color: '#424242' },
 ];
 
 /**

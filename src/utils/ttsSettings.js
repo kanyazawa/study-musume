@@ -15,6 +15,7 @@ export const DEFAULT_TTS_SETTINGS = {
     browserPitch: 1.2,
     browserRate: 1.0,
     preferredSpeaker: '',
+    battleSpeaker: '',
 };
 
 const clampNumber = (value, fallback, min, max) => {
@@ -35,6 +36,7 @@ export const normalizeTtsSettings = (settings = {}) => ({
     browserPitch: clampNumber(settings.browserPitch, DEFAULT_TTS_SETTINGS.browserPitch, 0.5, 2),
     browserRate: clampNumber(settings.browserRate, DEFAULT_TTS_SETTINGS.browserRate, 0.5, 2),
     preferredSpeaker: typeof settings.preferredSpeaker === 'string' ? settings.preferredSpeaker.trim() : '',
+    battleSpeaker: typeof settings.battleSpeaker === 'string' ? settings.battleSpeaker.trim() : '',
 });
 
 export const getTtsSettings = () => {

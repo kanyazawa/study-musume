@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
     buildQuestionOptions,
+    FRIEND_MATCH_MODE_OPTIONS,
+    FRIEND_MATCH_TARGET_OPTIONS,
+    getBattleModeLabel,
     getNthCorrectAnswerTimestamp,
+    normalizeBattleMode,
+    normalizeTargetCorrect,
     resolveWinnerUid,
     summarizeAnswers,
     shuffleArray,
@@ -50,6 +55,19 @@ describe('matchUtils', () => {
             correctCount: 2,
             accuracy: 67,
         });
+    });
+
+    it('normalizes friend target settings to supported values', () => {
+        expect(FRIEND_MATCH_TARGET_OPTIONS).toEqual([5, 10, 15, 20]);
+        expect(normalizeTargetCorrect('15')).toBe(15);
+        expect(normalizeTargetCorrect(99)).toBe(10);
+    });
+
+    it('normalizes friend battle modes and returns labels', () => {
+        expect(FRIEND_MATCH_MODE_OPTIONS).toEqual(['classic', 'listening']);
+        expect(normalizeBattleMode('listening')).toBe('listening');
+        expect(normalizeBattleMode('ranked')).toBe('classic');
+        expect(getBattleModeLabel('listening')).toBe('リスニング');
     });
 
     it('prefers the player who reached the target score first when scores tie', () => {
