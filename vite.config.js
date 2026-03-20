@@ -5,7 +5,8 @@ import { fileURLToPath } from 'url'
 import fs from 'fs/promises'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const liteDeploy = process.env.VITE_LITE_DEPLOY === 'true'
+const isCloudflareBuild = process.env.CF_PAGES === '1' || process.env.WORKERS_CI === '1'
+const liteDeploy = process.env.VITE_LITE_DEPLOY === 'true' || isCloudflareBuild
 
 const pruneHeavyStaticAssets = () => ({
   name: 'prune-heavy-static-assets',
@@ -26,6 +27,9 @@ const pruneHeavyStaticAssets = () => ({
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), pruneHeavyStaticAssets()],
+  define: {
+    'import.meta.env.VITE_LITE_DEPLOY': JSON.stringify(liteDeploy ? 'true' : 'false'),
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
