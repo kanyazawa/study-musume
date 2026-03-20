@@ -1,8 +1,13 @@
 .noa-chat-shell {
     position: absolute;
     left: 18px;
-    bottom: 110px;
+    top: clamp(230px, 34vh, 320px);
     z-index: 35;
+}
+
+.noa-chat-shell.is-embedded {
+    position: static;
+    width: 100%;
 }
 
 .noa-chat-launcher {
@@ -32,6 +37,17 @@
         radial-gradient(circle at top left, rgba(122, 198, 255, 0.18), transparent 48%);
     box-shadow: 0 22px 50px rgba(16, 52, 85, 0.24);
     backdrop-filter: blur(14px);
+}
+
+.noa-chat-panel.is-embedded {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
 }
 
 .noa-chat-header {
@@ -235,7 +251,7 @@
 @media (max-width: 480px) {
     .noa-chat-shell {
         left: 12px;
-        bottom: 118px;
+        top: clamp(250px, 38vh, 360px);
         right: auto;
     }
 

@@ -4,6 +4,7 @@ import { ArrowLeft, Shirt, Image as ImageIcon, Gift, MessageCircle } from 'lucid
 import './CharacterInteraction.css';
 import './Dialogue.css'; // Reuse dialogue styles for consistency
 import CharacterSelect from '../components/CharacterSelect';
+import NoaChatBox from '../components/NoaChatBox';
 
 // Images
 import CharacterMain from '../assets/images/character_new.png';
@@ -175,7 +176,7 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                             <Shirt size={24} />
                             <span>衣装</span>
                         </button>
-                        <button className="ci-btn" onClick={() => navigate('/dialogue?topic=start&type=talk')}>
+                        <button className="ci-btn" onClick={() => setMode('chat')}>
                             <MessageCircle size={24} />
                             <span>話す</span>
                         </button>
@@ -212,6 +213,16 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                                 ))
                             )}
                         </div>
+                    </div>
+                )}
+
+                {mode === 'chat' && (
+                    <div className="ci-chat-panel">
+                        <NoaChatBox
+                            stats={stats}
+                            embedded
+                            onClose={() => setMode('main')}
+                        />
                     </div>
                 )}
 

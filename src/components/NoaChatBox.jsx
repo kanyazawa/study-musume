@@ -111,7 +111,7 @@ const requestNoaReply = async (payload) => {
     throw lastError;
 };
 
-const NoaChatBox = ({ stats }) => {
+const NoaChatBox = ({ stats, embedded = false, onClose = null }) => {
     const topicMeta = useMemo(() => buildTopicMeta(), []);
     const starterMessages = useMemo(() => [buildStarterMessage(topicMeta.label)], [topicMeta.label]);
     const [isOpen, setIsOpen] = useState(false);
@@ -189,10 +189,20 @@ const NoaChatBox = ({ stats }) => {
         }
     };
 
+    const handleClose = () => {
+        if (embedded) {
+            onClose?.();
+            return;
+        }
+        setIsOpen(false);
+    };
+
+    const isPanelVisible = embedded || isOpen;
+
     return (
-        <div className="noa-chat-shell">
-            {isOpen ? (
-                <section className="noa-chat-panel" aria-label="ノアに質問">
+        <div className={`noa-chat-shell ${embedded ? 'is-embedded' : ''}`}>
+            {isPanelVisible ? (
+                <section className={`noa-chat-panel ${embedded ? 'is-embedded' : ''}`} aria-label="ノアに質問">
                     <header className="noa-chat-header">
                         <div>
                             <div className="noa-chat-badge">NOA CHAT</div>
@@ -203,7 +213,7 @@ const NoaChatBox = ({ stats }) => {
                             <button type="button" className="noa-chat-icon-btn" onClick={handleReset} aria-label="会話をリセット">
                                 <RefreshCcw size={16} />
                             </button>
-                            <button type="button" className="noa-chat-icon-btn" onClick={() => setIsOpen(false)} aria-label="閉じる">
+                            <button type="button" className="noa-chat-icon-btn" onClick={handleClose} aria-label="閉じる">
                                 <X size={18} />
                             </button>
                         </div>

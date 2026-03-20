@@ -85,6 +85,10 @@
     flex-direction: column;
 }
 
+.ci-chat-panel {
+    width: 100%;
+}
+
 .ci-panel-header {
     display: flex;
     justify-content: space-between;
