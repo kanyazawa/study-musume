@@ -95,7 +95,10 @@ const requestNoaReply = async (payload) => {
                 : {};
 
             if (!response.ok) {
-                throw new Error(responseBody.error || 'ノアへの接続に失敗したわ。少し時間を置いて試して。');
+                throw new Error(
+                    responseBody.error
+                    || `ノアへの接続に失敗したわ。サーバー応答: ${response.status}`
+                );
             }
 
             if (responseBody.reply) {
