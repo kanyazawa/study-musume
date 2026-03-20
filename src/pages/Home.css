@@ -320,7 +320,7 @@
 
 .speech-bubble {
     position: absolute;
-    bottom: 140px;
+    bottom: 240px; /* 位置を上にずらした */
     left: 50%;
     transform: translateX(-50%);
     background: rgba(255, 255, 255, 0.98);
@@ -660,7 +660,7 @@
 
 .speech-bubble {
     position: absolute;
-    bottom: 36%; /* ノアの返答を少し上へ */
+    bottom: 45%; /* ノアの返答を少し上へ (位置を上にずらした) */
     left: 50%;
     transform: translateX(-50%);
     background: rgba(255, 255, 255, 0.98);
@@ -679,7 +679,7 @@
 }
 
 .character-figure.is-live2d .speech-bubble {
-    bottom: 30%;
+    bottom: 40%; /* 位置を上にずらした */
     width: min(78vw, 480px);
     max-width: calc(100vw - 32px);
 }
