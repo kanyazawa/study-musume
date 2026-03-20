@@ -258,11 +258,11 @@ const NoaChatBox = ({ stats, embedded = false, onClose = null }) => {
     return (
         <div className={`noa-chat-shell ${embedded ? 'is-embedded' : ''}`}>
             {isPanelVisible ? (
-                <section className={`noa-chat-panel ${embedded ? 'is-embedded' : ''}`} aria-label="ノアに質問">
+                <section className={`noa-chat-panel ${embedded ? 'is-embedded' : ''}`} aria-label="ノア">
                     <header className="noa-chat-header">
                         <div>
                             <div className="noa-chat-badge">NOA CHAT</div>
-                            <h2 className="noa-chat-title">ノアに質問</h2>
+                            <h2 className="noa-chat-title">ノア</h2>
                             <p className="noa-chat-topic">最近の勉強: {topicMeta.label}</p>
                         </div>
                         <div className="noa-chat-actions">
@@ -335,7 +335,7 @@ const NoaChatBox = ({ stats, embedded = false, onClose = null }) => {
             ) : (
                 <button type="button" className="noa-chat-launcher" onClick={() => setIsOpen(true)}>
                     <MessageCircle size={18} />
-                    <span>ノアに質問</span>
+                    <span>ノア</span>
                 </button>
             )}
         </div>
