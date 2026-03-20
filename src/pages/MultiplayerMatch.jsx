@@ -35,6 +35,9 @@ import { addWrongQuestion } from '../utils/reviewUtils';
 import { useSound } from '../contexts/SoundContext';
 import { getTtsSettings } from '../utils/ttsSettings';
 import { speakWithPreferredTts } from '../utils/voicevoxUtils';
+import CharacterStage from '../components/character/CharacterStage';
+import { resolveCharacterRenderer } from '../utils/characterRenderer';
+import { createHomePose } from '../utils/characterPoseUtils';
 import './MultiplayerMatch.css';
 
 // Background & Character Images
@@ -195,6 +198,16 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const myEquippedSkin = stats?.equippedSkin || 'default';
     const myEquippedBackground = stats?.equippedBackground || 'default';
     const currentBgStyle = getBackgroundStyle(myEquippedBackground);
+    
+    const preferredRenderer = stats?.characterRenderer;
+    const isVrmMode = myCharacterId === 'noah' && localStorage.getItem('characterMode') === '3d';
+    const renderer = resolveCharacterRenderer({
+        preferredRenderer,
+        characterId: myCharacterId,
+        skinId: myEquippedSkin,
+        canUseVrm: isVrmMode,
+    });
+    const matchPose = createHomePose({ emotion: 'normal', text: '' }, { speaking: false });
     
     const [phase, setPhase] = useState('init'); // init | matching | countdown | playing | result | error
     const [roomId, setRoomId] = useState(null);
@@ -1243,11 +1256,15 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                 )}
                 
                 {/* キャラクター（mp-playing-screenに対してabsolute配置） */}
-                <div className="mp-character-area">
-                    <img 
-                        className="mp-center-character" 
-                        src={getCharacterImage(myCharacterId, myEquippedSkin)} 
-                        alt="Character" 
+                <div className={`mp-character-area ${isVrmMode ? 'is-vrm' : ''} ${renderer === 'live2d' ? 'is-live2d' : ''}`}>
+                    <CharacterStage
+                        characterId={myCharacterId}
+                        renderer={renderer}
+                        skinId={myEquippedSkin}
+                        scene="match"
+                        pose={matchPose}
+                        className="vrm-match"
+                        imageClassName="mp-center-character"
                     />
                 </div>
                 
@@ -1502,10 +1519,17 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                 )}
                 <div className={`mp-result-content ${resultClass}`}>
                     
-                    <div className="mp-result-character-bg">
+                    <div className={`mp-result-character-bg ${isVrmMode ? 'is-vrm' : ''} ${renderer === 'live2d' ? 'is-live2d' : ''}`}>
                         {(isSolo || finalMyScore >= opScore) && (
-                            <img className="mp-result-char-img mp-result-char-me" 
-                                 src={getCharacterImage(myCharacterId, myEquippedSkin)} alt="Me Win" />
+                            <CharacterStage
+                                characterId={myCharacterId}
+                                renderer={renderer}
+                                skinId={myEquippedSkin}
+                                scene="match-result"
+                                pose={matchPose}
+                                className="vrm-match-result"
+                                imageClassName="mp-result-char-img mp-result-char-me"
+                            />
                         )}
                     </div>
                     
