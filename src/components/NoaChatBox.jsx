@@ -34,6 +34,40 @@ const getChatEndpoints = () => {
 
 const clipText = (value, maxLength = MAX_INPUT_LENGTH) => String(value || '').trim().slice(0, maxLength);
 
+const formatChatError = (errorMessage, endpoint) => {
+    const message = String(errorMessage || '').trim();
+
+    if (!message) {
+        return '今はうまくつながらないわ。少し時間を置いて試しなさい。';
+    }
+
+    if (message.includes('GEMINI_API_KEY or OPENAI_API_KEY is not set on the server')) {
+        return 'AIの鍵がまだ設定されていないみたい。Cloudflare の Variables and Secrets を確認しなさい。';
+    }
+
+    if (message.includes('OPENAI_API_KEY is not set on the server')) {
+        return 'OpenAI の鍵がまだ設定されていないみたい。Cloudflare の Variables and Secrets を確認しなさい。';
+    }
+
+    if (message.includes('GEMINI_API_KEY')) {
+        return 'Gemini の設定がまだ反映されていないみたい。Cloudflare で保存してから再デプロイしなさい。';
+    }
+
+    if (message.includes('quota') || message.includes('billing')) {
+        return 'API の利用上限に当たっているみたい。課金設定か残高を確認しなさい。';
+    }
+
+    if (message.includes('Method not allowed')) {
+        return `接続先は見つかっているけど、呼び方が合っていないわ。再デプロイしてからもう一度試しなさい。 (${endpoint})`;
+    }
+
+    if (message.includes('404')) {
+        return `AI 用の接続先がまだ反映されていないみたい。再デプロイして更新を待ちなさい。 (${endpoint})`;
+    }
+
+    return message;
+};
+
 const buildStarterMessage = (topicName) => ({
     role: 'assistant',
     content: topicName
@@ -113,8 +147,10 @@ const requestNoaReply = async (payload) => {
 
             if (!response.ok) {
                 throw new Error(
-                    responseBody.error
-                    || `ノアへの接続に失敗したわ。サーバー応答: ${response.status} (${endpoint})`
+                    formatChatError(
+                        responseBody.error || `サーバー応答: ${response.status}`,
+                        endpoint
+                    )
                 );
             }
 
