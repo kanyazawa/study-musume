@@ -1,5 +1,9 @@
 const DEFAULT_OPENAI_MODEL = 'gpt-5-nano';
-const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash-lite-preview-09-2025';
+const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash-lite';
+const GEMINI_MODEL_ALIASES = {
+    'gemini-2.5-flash-lite-preview-09-2025': 'gemini-2.5-flash-lite',
+    'models/gemini-2.5-flash-lite-preview-09-2025': 'gemini-2.5-flash-lite',
+};
 const MAX_HISTORY_MESSAGES = 6;
 
 const sanitizeText = (value, maxLength = 320) => String(value || '')
@@ -85,7 +89,9 @@ const extractGeminiText = (payload) => {
 
 const normalizeGeminiModel = (model) => {
     if (!model) return DEFAULT_GEMINI_MODEL;
-    return model.startsWith('models/') ? model.slice('models/'.length) : model;
+
+    const normalized = model.startsWith('models/') ? model.slice('models/'.length) : model;
+    return GEMINI_MODEL_ALIASES[normalized] || normalized;
 };
 
 const callGeminiChat = async ({
