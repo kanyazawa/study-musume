@@ -13,7 +13,11 @@ import {
 } from '../utils/voicevoxUtils';
 
 const MAX_INPUT_LENGTH = 240;
-const CHAT_ENDPOINTS = ['/api/chat', '/.netlify/functions/chat'];
+const CHAT_ENDPOINTS = [
+    '/api/chat',
+    'https://study-musume.hide20080422.workers.dev/api/chat',
+    '/.netlify/functions/chat',
+];
 
 const clipText = (value, maxLength = MAX_INPUT_LENGTH) => String(value || '').trim().slice(0, maxLength);
 
