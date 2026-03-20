@@ -15,8 +15,10 @@ export const onRequestPost = async (context) => {
     }
 
     const result = await createNoaChatResponse({
-        apiKey: context.env.OPENAI_API_KEY,
-        model: context.env.OPENAI_CHAT_MODEL || undefined,
+        geminiApiKey: context.env.GEMINI_API_KEY,
+        geminiModel: context.env.GEMINI_CHAT_MODEL || undefined,
+        openAiApiKey: context.env.OPENAI_API_KEY,
+        openAiModel: context.env.OPENAI_CHAT_MODEL || undefined,
         body,
     });
 

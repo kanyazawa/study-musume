@@ -38,8 +38,10 @@ export default {
             }
 
             const result = await createNoaChatResponse({
-                apiKey: env.OPENAI_API_KEY,
-                model: env.OPENAI_CHAT_MODEL || undefined,
+                geminiApiKey: env.GEMINI_API_KEY,
+                geminiModel: env.GEMINI_CHAT_MODEL || undefined,
+                openAiApiKey: env.OPENAI_API_KEY,
+                openAiModel: env.OPENAI_CHAT_MODEL || undefined,
                 body,
             });
 

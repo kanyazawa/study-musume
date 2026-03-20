@@ -24,8 +24,10 @@ export async function handler(event) {
     }
 
     const result = await createNoaChatResponse({
-        apiKey: process.env.OPENAI_API_KEY,
-        model: process.env.OPENAI_CHAT_MODEL || undefined,
+        geminiApiKey: process.env.GEMINI_API_KEY,
+        geminiModel: process.env.GEMINI_CHAT_MODEL || undefined,
+        openAiApiKey: process.env.OPENAI_API_KEY,
+        openAiModel: process.env.OPENAI_CHAT_MODEL || undefined,
         body,
     });
 
