@@ -25,10 +25,6 @@ const getChatEndpoints = () => {
         return ['/api/chat', CLOUDFLARE_CHAT_ENDPOINT, '/.netlify/functions/chat'];
     }
 
-    if (hostname.includes('netlify.app')) {
-        return ['/.netlify/functions/chat', CLOUDFLARE_CHAT_ENDPOINT, '/api/chat'];
-    }
-
     return [CLOUDFLARE_CHAT_ENDPOINT, '/api/chat', '/.netlify/functions/chat'];
 };
 
