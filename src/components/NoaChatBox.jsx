@@ -13,11 +13,24 @@ import {
 } from '../utils/voicevoxUtils';
 
 const MAX_INPUT_LENGTH = 240;
-const CHAT_ENDPOINTS = [
-    '/api/chat',
-    'https://study-musume.hide20080422.workers.dev/api/chat',
-    '/.netlify/functions/chat',
-];
+const CLOUDFLARE_CHAT_ENDPOINT = 'https://study-musume.hide20080422.workers.dev/api/chat';
+
+const getChatEndpoints = () => {
+    if (typeof window === 'undefined') {
+        return [CLOUDFLARE_CHAT_ENDPOINT, '/api/chat', '/.netlify/functions/chat'];
+    }
+
+    const hostname = window.location.hostname || '';
+    if (hostname.endsWith('.workers.dev')) {
+        return ['/api/chat', CLOUDFLARE_CHAT_ENDPOINT, '/.netlify/functions/chat'];
+    }
+
+    if (hostname.includes('netlify.app')) {
+        return ['/.netlify/functions/chat', CLOUDFLARE_CHAT_ENDPOINT, '/api/chat'];
+    }
+
+    return [CLOUDFLARE_CHAT_ENDPOINT, '/api/chat', '/.netlify/functions/chat'];
+};
 
 const clipText = (value, maxLength = MAX_INPUT_LENGTH) => String(value || '').trim().slice(0, maxLength);
 
@@ -83,7 +96,7 @@ const speakReplyWithSettings = async (text) => {
 const requestNoaReply = async (payload) => {
     let lastError = new Error('ノアへの接続に失敗したわ。');
 
-    for (const endpoint of CHAT_ENDPOINTS) {
+    for (const endpoint of getChatEndpoints()) {
         try {
             const response = await fetch(endpoint, {
                 method: 'POST',
@@ -101,7 +114,7 @@ const requestNoaReply = async (payload) => {
             if (!response.ok) {
                 throw new Error(
                     responseBody.error
-                    || `ノアへの接続に失敗したわ。サーバー応答: ${response.status}`
+                    || `ノアへの接続に失敗したわ。サーバー応答: ${response.status} (${endpoint})`
                 );
             }
 
@@ -109,7 +122,7 @@ const requestNoaReply = async (payload) => {
                 return responseBody;
             }
 
-            throw new Error('ノアの返事を受け取れなかったわ。');
+            throw new Error(`ノアの返事を受け取れなかったわ。 (${endpoint})`);
         } catch (error) {
             lastError = error instanceof Error ? error : new Error('ノアへの接続に失敗したわ。');
         }

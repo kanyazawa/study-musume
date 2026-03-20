@@ -3,6 +3,7 @@ import { createNoaChatResponse } from '../functions/_shared/chatService.js';
 const JSON_HEADERS = {
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store',
+    'Access-Control-Allow-Origin': '*',
 };
 
 const buildJsonResponse = (body, status = 200) => new Response(JSON.stringify(body), {
