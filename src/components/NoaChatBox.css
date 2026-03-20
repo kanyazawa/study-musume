@@ -14,28 +14,24 @@
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    padding: 14px 18px;
-    border: 3px solid rgba(255, 255, 255, 0.92);
+    padding: 13px 18px;
+    border: 2px solid rgba(255, 255, 255, 0.95);
     border-radius: 999px;
-    background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(244, 250, 255, 0.95)),
-        linear-gradient(135deg, #3aaed8, #78c1f3);
-    box-shadow: 0 12px 30px rgba(37, 94, 138, 0.18);
-    color: #114466;
-    font-size: 0.98rem;
+    background: linear-gradient(180deg, #18c55f, #0ea64e);
+    box-shadow: 0 16px 34px rgba(13, 123, 57, 0.28);
+    color: #ffffff;
+    font-size: 0.96rem;
     font-weight: 800;
     cursor: pointer;
 }
 
 .noa-chat-panel {
     width: min(92vw, 360px);
-    padding: 14px;
+    overflow: hidden;
     border-radius: 26px;
-    border: 3px solid rgba(255, 255, 255, 0.94);
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 252, 255, 0.96)),
-        radial-gradient(circle at top left, rgba(122, 198, 255, 0.18), transparent 48%);
-    box-shadow: 0 22px 50px rgba(16, 52, 85, 0.24);
+    border: 1px solid rgba(20, 24, 31, 0.08);
+    background: #f2f3f5;
+    box-shadow: 0 24px 54px rgba(18, 24, 31, 0.24);
     backdrop-filter: blur(14px);
 }
 
@@ -55,14 +51,16 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 12px;
+    padding: 16px 16px 14px;
+    background: linear-gradient(180deg, #18c55f, #13b457);
+    color: #ffffff;
 }
 
 .noa-chat-badge {
     display: inline-flex;
     padding: 4px 9px;
     border-radius: 999px;
-    background: linear-gradient(135deg, #67c7f5, #4ba3d3);
+    background: rgba(255, 255, 255, 0.2);
     color: white;
     font-size: 0.65rem;
     font-weight: 900;
@@ -71,14 +69,14 @@
 
 .noa-chat-title {
     margin: 8px 0 2px;
-    color: #17324a;
+    color: #ffffff;
     font-size: 1.2rem;
     line-height: 1.1;
 }
 
 .noa-chat-topic {
     margin: 0;
-    color: #59758d;
+    color: rgba(255, 255, 255, 0.85);
     font-size: 0.8rem;
     line-height: 1.4;
 }
@@ -93,8 +91,8 @@
     height: 34px;
     border: none;
     border-radius: 50%;
-    background: rgba(18, 78, 115, 0.08);
-    color: #1d5a82;
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -104,26 +102,33 @@
 .noa-chat-messages {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    max-height: 260px;
-    padding-right: 4px;
+    gap: 12px;
+    max-height: 300px;
+    padding: 16px;
     overflow-y: auto;
+    background:
+        linear-gradient(180deg, rgba(234, 238, 241, 0.92), rgba(242, 243, 245, 0.96)),
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.7), transparent 44%);
 }
 
 .noa-chat-message {
-    padding: 11px 12px;
+    max-width: 82%;
+    padding: 10px 12px;
     border-radius: 18px;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    position: relative;
+    box-shadow: 0 8px 22px rgba(18, 24, 31, 0.08);
 }
 
 .noa-chat-message.is-assistant {
-    background: linear-gradient(135deg, rgba(104, 196, 244, 0.18), rgba(255, 255, 255, 0.92));
-    border: 1px solid rgba(78, 167, 214, 0.28);
+    align-self: flex-start;
+    background: #ffffff;
+    border-top-left-radius: 8px;
 }
 
 .noa-chat-message.is-user {
-    background: linear-gradient(135deg, rgba(255, 208, 224, 0.52), rgba(255, 255, 255, 0.95));
-    border: 1px solid rgba(232, 125, 166, 0.24);
+    align-self: flex-end;
+    background: linear-gradient(180deg, #a5f26d, #96ea5b);
+    border-top-right-radius: 8px;
 }
 
 .noa-chat-message-meta {
@@ -132,17 +137,45 @@
     justify-content: space-between;
     gap: 8px;
     margin-bottom: 6px;
-    color: #45637b;
-    font-size: 0.74rem;
+    color: #5b6470;
+    font-size: 0.72rem;
     font-weight: 700;
+}
+
+.noa-chat-message.is-user .noa-chat-message-meta {
+    color: #29511e;
 }
 
 .noa-chat-message p {
     margin: 0;
-    color: #22384d;
+    color: #1c232d;
     font-size: 0.92rem;
     line-height: 1.55;
     white-space: pre-wrap;
+}
+
+.noa-chat-message.is-assistant::before {
+    content: '';
+    position: absolute;
+    left: -7px;
+    top: 12px;
+    width: 14px;
+    height: 14px;
+    background: #ffffff;
+    border-bottom-right-radius: 11px;
+    transform: rotate(16deg);
+}
+
+.noa-chat-message.is-user::before {
+    content: '';
+    position: absolute;
+    right: -7px;
+    top: 12px;
+    width: 14px;
+    height: 14px;
+    background: #9bee61;
+    border-bottom-left-radius: 11px;
+    transform: rotate(-16deg);
 }
 
 .noa-chat-voice-btn {
@@ -152,8 +185,8 @@
     border: none;
     border-radius: 999px;
     padding: 5px 8px;
-    background: rgba(255, 255, 255, 0.86);
-    color: #2b6288;
+    background: rgba(18, 197, 95, 0.12);
+    color: #128a46;
     font-size: 0.72rem;
     font-weight: 800;
     cursor: pointer;
@@ -163,7 +196,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #4e6d84;
+    color: #5a6470;
     font-size: 0.84rem;
     padding: 6px 2px 0;
 }
@@ -173,34 +206,37 @@
 }
 
 .noa-chat-error {
-    margin: 10px 2px 0;
+    margin: 0 16px 12px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: #fff0f4;
     color: #b53a63;
     font-size: 0.8rem;
     line-height: 1.45;
 }
 
 .noa-chat-form {
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid rgba(92, 128, 155, 0.18);
+    padding: 14px 16px 16px;
+    background: #ffffff;
+    border-top: 1px solid rgba(93, 99, 111, 0.1);
 }
 
 .noa-chat-label {
     display: block;
     margin-bottom: 7px;
-    color: #4d6a82;
-    font-size: 0.78rem;
+    color: #596270;
+    font-size: 0.76rem;
     font-weight: 700;
 }
 
 .noa-chat-input {
     width: 100%;
     resize: none;
-    border: 1px solid rgba(86, 146, 184, 0.24);
-    border-radius: 16px;
-    padding: 12px 13px;
-    background: rgba(255, 255, 255, 0.96);
-    color: #19344a;
+    border: 1px solid rgba(122, 129, 141, 0.18);
+    border-radius: 20px;
+    padding: 12px 15px;
+    background: #f5f6f8;
+    color: #1d242f;
     font: inherit;
     line-height: 1.5;
 }
@@ -214,7 +250,7 @@
 }
 
 .noa-chat-counter {
-    color: #6c879d;
+    color: #7b8592;
     font-size: 0.76rem;
 }
 
@@ -222,14 +258,14 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 14px;
+    padding: 10px 16px;
     border: none;
     border-radius: 999px;
-    background: linear-gradient(135deg, #3098cf, #2fb9c9);
+    background: linear-gradient(180deg, #18c55f, #11ab51);
     color: white;
     font-weight: 800;
     cursor: pointer;
-    box-shadow: 0 8px 20px rgba(48, 152, 207, 0.28);
+    box-shadow: 0 10px 22px rgba(15, 166, 78, 0.22);
 }
 
 .noa-chat-submit:disabled,
