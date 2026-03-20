@@ -20,6 +20,10 @@ const pruneHeavyStaticAssets = () => ({
       path.resolve(__dirname, 'dist/gacha_animation (2).mp4'),
     ]
 
+    if (isCloudflareBuild) {
+      targets.push(path.resolve(__dirname, 'dist/_redirects'))
+    }
+
     await Promise.all(targets.map((target) => fs.rm(target, { recursive: true, force: true })))
   },
 })
