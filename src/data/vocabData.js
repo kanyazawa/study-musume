@@ -1,3 +1,6 @@
+import { CUSTOM_VOCAB_GRADE5 } from './customGrade5Vocab';
+import { CUSTOM_VOCAB_GRADE4 } from './customGrade4Vocab';
+import { CUSTOM_VOCAB_GRADE3 } from './customGrade3Vocab';
 import { CUSTOM_VOCAB_GRADE_PRE1 } from './customPre1Vocab';
 
 /**
@@ -13,7 +16,7 @@ import { CUSTOM_VOCAB_GRADE_PRE1 } from './customPre1Vocab';
 // ==============================
 // 英検5級 (中学初級 / 基礎単語)
 // ==============================
-export const VOCAB_GRADE5 = [
+const LEGACY_GRADE5_VOCAB = [
     { word: 'apple', meaning: 'りんご' },
     { word: 'book', meaning: '本' },
     { word: 'cat', meaning: '猫' },
@@ -205,7 +208,7 @@ export const VOCAB_GRADE5 = [
 // ==============================
 // 英検4級 (中学中級)
 // ==============================
-export const VOCAB_GRADE4 = [
+const LEGACY_GRADE4_VOCAB = [
     { word: 'agree', meaning: '同意する' },
     { word: 'arrive', meaning: '到着する' },
     { word: 'believe', meaning: '信じる' },
@@ -374,7 +377,7 @@ export const VOCAB_GRADE4 = [
 // ==============================
 // 英検3級 (中学卒業程度)
 // ==============================
-export const VOCAB_GRADE3 = [
+const LEGACY_GRADE3_VOCAB = [
     { word: 'accept', meaning: '受け入れる' },
     { word: 'achieve', meaning: '達成する' },
     { word: 'affect', meaning: '影響する' },
@@ -2052,6 +2055,33 @@ const LEGACY_GRADE2_VOCAB = [
     { word: 'conscious', meaning: '意識している' },
     { word: 'consequence', meaning: '結果' }
 ];
+
+export const VOCAB_GRADE3 = Array.from(
+    new Map(
+        [...LEGACY_GRADE3_VOCAB, ...CUSTOM_VOCAB_GRADE3].map((entry) => [
+            entry.word.toLowerCase(),
+            entry
+        ])
+    ).values()
+);
+
+export const VOCAB_GRADE4 = Array.from(
+    new Map(
+        [...LEGACY_GRADE4_VOCAB, ...CUSTOM_VOCAB_GRADE4].map((entry) => [
+            entry.word.toLowerCase(),
+            entry
+        ])
+    ).values()
+);
+
+export const VOCAB_GRADE5 = Array.from(
+    new Map(
+        [...LEGACY_GRADE5_VOCAB, ...CUSTOM_VOCAB_GRADE5].map((entry) => [
+            entry.word.toLowerCase(),
+            entry
+        ])
+    ).values()
+);
 
 const GRADE2_WORD_LIST = `
 Arctic
