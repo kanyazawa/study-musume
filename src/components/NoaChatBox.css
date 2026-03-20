@@ -1,7 +1,7 @@
 .noa-chat-shell {
     position: absolute;
     left: 18px;
-    bottom: 18px;
+    top: 132px;
     z-index: 35;
 }
 
@@ -235,16 +235,15 @@
 @media (max-width: 480px) {
     .noa-chat-shell {
         left: 12px;
-        right: 12px;
-        bottom: 14px;
+        top: 148px;
+        right: auto;
     }
 
     .noa-chat-panel {
-        width: 100%;
+        width: min(86vw, 320px);
     }
 
     .noa-chat-launcher {
-        width: 100%;
         justify-content: center;
     }
 }
