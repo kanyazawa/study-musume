@@ -134,48 +134,47 @@ const getFinishReasonLabel = (finishReason, isSolo) => {
 };
 
 const getChainMeta = (streak) => {
-    if (streak < 2) return null;
+    if (streak < 1) return null;
+
+    if (streak === 1) {
+        return {
+            label: null,
+            voiceSrc: '/audio/tts-generated/chains/chains-chain1-まお-888753760.mp3',
+        };
+    }
 
     if (streak === 2) {
         return {
             label: '2 CHAIN',
-            callout: 'いいね！',
-            voiceText: 'いいね！',
+            callout: 'やあ！',
+            voiceSrc: '/audio/tts-generated/chains/chains-chain2-まお-888753760.mp3',
             tone: 'good',
-            pitchBoost: 0.04,
-            rateBoost: 0.05,
         };
     }
 
     if (streak === 3) {
         return {
             label: '3 CHAIN',
-            callout: 'ナイス！',
-            voiceText: 'ナイス！',
+            callout: 'とう！',
+            voiceSrc: '/audio/tts-generated/chains/chains-chain3-まお-888753760.mp3',
             tone: 'great',
-            pitchBoost: 0.08,
-            rateBoost: 0.08,
         };
     }
 
     if (streak === 4) {
         return {
             label: '4 CHAIN',
-            callout: 'すごい！',
-            voiceText: 'すごい！',
+            callout: 'それ！',
+            voiceSrc: '/audio/tts-generated/chains/chains-chain4-まお-888753760.mp3',
             tone: 'amazing',
-            pitchBoost: 0.12,
-            rateBoost: 0.1,
         };
     }
 
     return {
         label: `${streak} CHAIN`,
-        callout: 'とまらない！',
-        voiceText: 'とまらない！',
+        callout: 'いくよ！',
+        voiceSrc: '/audio/tts-generated/chains/chains-chain5-まお-888753760.mp3',
         tone: 'fever',
-        pitchBoost: 0.16,
-        rateBoost: 0.12,
     };
 };
 
@@ -207,7 +206,6 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         skinId: myEquippedSkin,
         canUseVrm: isVrmMode,
     });
-    const matchPose = createHomePose({ emotion: 'normal', text: '' }, { speaking: false });
     
     const [phase, setPhase] = useState('init'); // init | matching | countdown | playing | result | error
     const [roomId, setRoomId] = useState(null);
@@ -231,7 +229,32 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const [correctStreak, setCorrectStreak] = useState(0);
     const [chainCallout, setChainCallout] = useState(null);
     const [isPronouncingQuestion, setIsPronouncingQuestion] = useState(false);
+    const [isCharacterSpeaking, setIsCharacterSpeaking] = useState(false);
     const [pronunciationReplayCount, setPronunciationReplayCount] = useState(0);
+
+    // matchPose は isCharacterSpeaking ステートを使ってリップシンクさせる
+    const matchPose = createHomePose({ emotion: 'normal', text: '' }, { speaking: isCharacterSpeaking });
+
+    // 連鎖ボイスを事前読み込みしておく（ラグ解消のため）
+    const chainAudioCacheRef = useRef({});
+    useEffect(() => {
+        const srcs = [1, 2, 3, 4, 5].map(n => {
+            const meta = getChainMeta(n);
+            return meta?.voiceSrc;
+        }).filter(Boolean);
+
+        const unique = [...new Set(srcs)];
+        unique.forEach(src => {
+            if (!chainAudioCacheRef.current[src]) {
+                const audio = new Audio(src);
+                audio.preload = 'auto';
+                audio.load();
+                chainAudioCacheRef.current[src] = audio;
+            }
+        });
+    }, []);
+
+    const chainLipIntervalRef = useRef(null);
 
     const unsubscribeRef = useRef(null);
     const timerIntervalRef = useRef(null);
@@ -355,18 +378,20 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         const meta = getChainMeta(streak);
         if (!meta) return;
 
-        clearTimeout(chainCalloutTimeoutRef.current);
-        setChainCallout({
-            count: streak,
-            label: meta.label,
-            callout: meta.callout,
-            tone: meta.tone,
-        });
-        chainCalloutTimeoutRef.current = setTimeout(() => {
-            setChainCallout(null);
-        }, 950);
+        if (meta.label) {
+            clearTimeout(chainCalloutTimeoutRef.current);
+            setChainCallout({
+                count: streak,
+                label: meta.label,
+                callout: meta.callout,
+                tone: meta.tone,
+            });
+            chainCalloutTimeoutRef.current = setTimeout(() => {
+                setChainCallout(null);
+            }, 950);
+        }
 
-        if (isMuted || typeof window === 'undefined' || !('speechSynthesis' in window)) {
+        if (isMuted || typeof window === 'undefined') {
             return;
         }
 
@@ -375,12 +400,63 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             return;
         }
 
-        void speakWithPreferredTts(meta.voiceText, {
-            ...ttsSettings,
-            preferredSpeaker: ttsSettings.battleSpeaker || ttsSettings.preferredSpeaker,
-            browserPitch: Math.min(2, (ttsSettings.browserPitch ?? 1.2) + meta.pitchBoost),
-            browserRate: Math.min(1.35, (ttsSettings.browserRate ?? 1.0) + meta.rateBoost),
-        });
+        if (meta.voiceSrc) {
+            // 前回のリップシンクインターバルをクリア
+            window.clearInterval(chainLipIntervalRef.current);
+
+            // プリロード済みキャッシュから取得、なければ新規作成
+            let audio = chainAudioCacheRef.current[meta.voiceSrc];
+            if (audio) {
+                // 連続再生に備えてリセット
+                audio.currentTime = 0;
+            } else {
+                audio = new window.Audio(meta.voiceSrc);
+                chainAudioCacheRef.current[meta.voiceSrc] = audio;
+            }
+            audio.volume = ttsSettings.volume !== undefined ? ttsSettings.volume : 0.8;
+
+            // Live2D の口を直接駆動する（React のステート更新ラグを回避）
+            const startLipSync = () => {
+                setIsCharacterSpeaking(true);
+                window.clearInterval(chainLipIntervalRef.current);
+                chainLipIntervalRef.current = window.setInterval(() => {
+                    try {
+                        const rawManager = window.__tyranolive2d_manager_instance__;
+                        const modelsContainer = rawManager?.lappdelegate?.lapplive2dmanager?._models;
+                        const lappModel = (typeof modelsContainer?.at === 'function')
+                            ? modelsContainer.at(0) : modelsContainer?.[0];
+                        const cubismModel = lappModel?._model;
+                        if (cubismModel && typeof cubismModel.setParameterValueById === 'function') {
+                            cubismModel.setParameterValueById('ParamMouthOpenY', 0.3 + Math.random() * 0.7);
+                        }
+                    } catch { /* ignore */ }
+                }, 60);
+            };
+
+            const stopLipSync = () => {
+                window.clearInterval(chainLipIntervalRef.current);
+                setIsCharacterSpeaking(false);
+                try {
+                    const rawManager = window.__tyranolive2d_manager_instance__;
+                    const modelsContainer = rawManager?.lappdelegate?.lapplive2dmanager?._models;
+                    const lappModel = (typeof modelsContainer?.at === 'function')
+                        ? modelsContainer.at(0) : modelsContainer?.[0];
+                    const cubismModel = lappModel?._model;
+                    if (cubismModel && typeof cubismModel.setParameterValueById === 'function') {
+                        cubismModel.setParameterValueById('ParamMouthOpenY', 0);
+                    }
+                } catch { /* ignore */ }
+            };
+
+            audio.onplay = startLipSync;
+            audio.onended = stopLipSync;
+            audio.onerror = stopLipSync;
+
+            audio.play().catch(err => {
+                console.error("Chain voice playback error:", err);
+                stopLipSync();
+            });
+        }
     }, [isMuted]);
 
     const resetMatchState = useCallback(() => {
@@ -390,6 +466,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         clearTimeout(answerFxTimeoutRef.current);
         clearTimeout(resultFxTimeoutRef.current);
         clearTimeout(chainCalloutTimeoutRef.current);
+        clearInterval(chainLipIntervalRef.current);
         cancelQuestionPronunciation();
         setRoomId(null);
         setRoomData(null);
@@ -408,6 +485,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         setCorrectStreak(0);
         setChainCallout(null);
         setIsPronouncingQuestion(false);
+        setIsCharacterSpeaking(false);
         setPronunciationReplayCount(0);
         resultFxPlayedRef.current = null;
     }, [cancelQuestionPronunciation]);
