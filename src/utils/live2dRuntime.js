@@ -3,6 +3,13 @@ const TYRANO_CANVAS_ID = 'live2d_canvas_tyrano';
 
 const TYRANO_RUNTIME = 'tyrano-v4';
 
+/**
+ * Live2D canvas を #root より手前（モバイル枠内）に載せるためのホスト。
+ * body 直下 + position:fixed だと .mobile-content の白背景より下に描画され、本番でキャラが見えなくなる。
+ */
+const getLive2dCanvasHost = () =>
+    document.querySelector('.mobile-content') || document.getElementById('root') || document.body;
+
 const getAbsoluteUrl = (url) => {
     try {
         return new URL(url, window.location.origin).toString();
@@ -100,17 +107,18 @@ export const mountTyranoCanvas = (container) => {
         return null;
     }
 
-    // SDK は document.getElementById(TYRANO_CANVAS_ID) で canvas を探すため
-    // React コンポーネントツリーの外（body直下）で管理し、クリーンアップで
-    // 削除されないようにする。CSS で container に重ねて表示する。
+    // SDK は document.getElementById(TYRANO_CANVAS_ID) で canvas を探す。
+    // アプリの #root / .mobile-content 内に載せ、z-index は UI（10〜）より下・背景より上。
+    const host = getLive2dCanvasHost();
     let canvas = document.getElementById(TYRANO_CANVAS_ID);
     if (!canvas) {
         canvas = document.createElement('canvas');
         canvas.id = TYRANO_CANVAS_ID;
-        canvas.style.position = 'fixed';
         canvas.style.pointerEvents = 'none';
-        canvas.style.zIndex = '1';
-        document.body.appendChild(canvas);
+        canvas.style.zIndex = '3';
+        host.appendChild(canvas);
+    } else if (canvas.parentElement !== host) {
+        host.appendChild(canvas);
     }
 
     // container 位置に合わせて canvas を重ねる
@@ -126,6 +134,9 @@ export const resizeTyranoCanvas = (canvas, container) => {
     }
 
     const rect = container.getBoundingClientRect();
+    const host = canvas.parentElement || document.body;
+    const hostRect = host.getBoundingClientRect();
+    const useViewportFixed = host === document.body;
 
     // 内部的な描画解像度（アスペクト比）は固定し、画面の縦横比が変わっても
     // Live2Dのプロジェクション（座標系）が崩れてキャラがずれないようにする
@@ -136,12 +147,20 @@ export const resizeTyranoCanvas = (canvas, container) => {
         canvas.setAttribute('data-resolution-set', 'true');
     }
 
-    // CSSでコンテナに合わせる。object-fit: cover と center 指定により、
-    // ウィンドウサイズが変わっても常にキャンバスがコンテナの真ん中に追従する。
     canvas.style.width = `${Math.max(1, Math.round(rect.width))}px`;
     canvas.style.height = `${Math.max(1, Math.round(rect.height))}px`;
-    canvas.style.left = `${rect.left}px`;
-    canvas.style.top = `${rect.top}px`;
+
+    if (useViewportFixed) {
+        // フォールバック: ホストが取れない環境では従来どおり viewport 固定
+        canvas.style.position = 'fixed';
+        canvas.style.left = `${Math.round(rect.left)}px`;
+        canvas.style.top = `${Math.round(rect.top)}px`;
+    } else {
+        // .mobile-content は position: relative。スクロール時も追従するよう host の scroll を加算
+        canvas.style.position = 'absolute';
+        canvas.style.left = `${Math.round(rect.left - hostRect.left + host.scrollLeft)}px`;
+        canvas.style.top = `${Math.round(rect.top - hostRect.top + host.scrollTop)}px`;
+    }
     canvas.style.objectFit = 'cover';
     canvas.style.objectPosition = 'center center';
 };
