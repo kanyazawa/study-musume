@@ -81,10 +81,10 @@ export const signInWithGoogle = async () => {
             };
         }
 
-        if (isMobileDevice() && (isStandaloneMode() || isInAppBrowser())) {
+        if (isMobileDevice() && isInAppBrowser()) {
             return {
                 success: false,
-                error: 'スマホのホーム画面アプリやアプリ内ブラウザではGoogleログインできません。SafariまたはChromeで直接開いてください。'
+                error: 'LINEやInstagramなどのアプリ内ブラウザではGoogleログインできません。標準のSafariまたはChromeで開き直してください。'
             };
         }
 
