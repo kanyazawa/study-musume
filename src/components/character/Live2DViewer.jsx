@@ -266,7 +266,12 @@ const Live2DViewer = ({
             if (isBlinking && Date.now() < blinkEnd) {
                 try {
                     const rawManager = window.__tyranolive2d_manager_instance__;
-                    const cubismModel = rawManager?.lappdelegate?.lapplive2dmanager?._models?.[0]?._model;
+                    const modelsContainer = rawManager?.lappdelegate?.lapplive2dmanager?._models;
+                    // CsmVector型は [0] ではなく .at(0) でアクセスする必要がある
+                    const lappModel = (typeof modelsContainer?.at === 'function')
+                        ? modelsContainer.at(0)
+                        : modelsContainer?.[0];
+                    const cubismModel = lappModel?._model;
                     if (cubismModel && typeof cubismModel.setParameterValueById === 'function') {
                         if (blinkMode === 'both' || blinkMode === 'left') {
                             cubismModel.setParameterValueById('ParamEyeLOpen', 0);

@@ -226,7 +226,7 @@ export const clearTyranoModels = (manager) => {
             } else if (model && typeof model.releaseModel === 'function') {
                 try {
                     model.releaseModel();
-                } catch(e) {}
+                } catch (e) { }
             }
         });
         live2dManager._models = [];
