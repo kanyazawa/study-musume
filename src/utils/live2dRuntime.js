@@ -254,6 +254,31 @@ export const clearTyranoModels = (manager) => {
 
 
 
+export const hideOldTyranoModels = (manager) => {
+    if (!manager) return;
+
+    if (manager.models) {
+        manager.models = {};
+    }
+
+    const live2dManager = manager.lappdelegate?.lapplive2dmanager;
+    if (!live2dManager || !live2dManager._models) return;
+
+    const models = live2dManager._models;
+    const isCsmVector = typeof models.getSize === 'function' && typeof models.at === 'function';
+    const count = isCsmVector ? models.getSize() : (models.length || 0);
+
+    for (let i = 0; i < count; i++) {
+        const model = isCsmVector ? models.at(i) : models[i];
+        if (model && model._modelMatrix) {
+            // スケールを0にして画面から物理的に消す（不透明度やクリア処理の代わり）
+            if (typeof model._modelMatrix.scale === 'function') {
+                model._modelMatrix.scale(0, 0);
+            }
+        }
+    }
+};
+
 export const resolveLive2DStatusMessage = (status, detail) => {
     switch (status) {
         case 'missing-config':

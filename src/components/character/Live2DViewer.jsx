@@ -10,6 +10,7 @@ import {
     probeAssetUrl,
     resizeTyranoCanvas,
     resolveLive2DStatusMessage,
+    hideOldTyranoModels,
 } from '../../utils/live2dRuntime';
 
 const warnedKeys = new Set();
@@ -128,16 +129,13 @@ const Live2DViewer = ({
 
                     modelNameRef.current = modelParams.name;
 
-                    // 古いモデルを破壊して二重描画を防ぐアプローチは本番環境のCsmVectorを壊すため、
-                    // すでに追加されている場合はそのまま再利用して addModel をスキップする。
-                    if (manager.models && manager.models[modelParams.name]) {
-                        setStatus('ready');
-                        setStatusDetail('');
-                    } else {
-                        manager.addModel(modelParams);
-                        setStatus('loading-model');
-                        setStatusDetail(modelConfig.sourceLabel || modelConfig.modelId || '');
-                    }
+                    // 本番環境の CsmVector を壊さずに二重描画を回避するため、
+                    // 古いモデルのスケールを 0 にして画面から透明化・除外する
+                    hideOldTyranoModels(manager);
+
+                    manager.addModel(modelParams);
+                    setStatus('loading-model');
+                    setStatusDetail(modelConfig.sourceLabel || modelConfig.modelId || '');
 
                     window.clearTimeout(readyTimerRef.current);
                     readyTimerRef.current = window.setTimeout(() => {
@@ -221,73 +219,21 @@ const Live2DViewer = ({
         };
     }, [modelConfig?.runtime, status]);
 
+    const poseRef = useRef(pose);
     useEffect(() => {
-        const manager = managerRef.current;
-        const modelName = modelNameRef.current;
+        poseRef.current = pose;
+    }, [pose]);
 
-        if (!manager || !modelName || status !== 'ready' || modelConfig?.runtime !== TYRANO_RUNTIME) {
-            return undefined;
-        }
-
-        if (!pose.speaking) {
-            manager.setLipValue?.(modelName, 0);
-            return undefined;
-        }
-
-        const tick = () => {
-            const nextValue = 0.2 + (Math.random() * 0.8);
-            manager.setLipValue?.(modelName, nextValue);
-        };
-
-        tick();
-        const intervalId = window.setInterval(tick, 90);
-
-        return () => {
-            window.clearInterval(intervalId);
-            manager.setLipValue?.(modelName, 0);
-        };
-    }, [modelConfig?.runtime, pose.speaking, pose.text, status]);
-
-    // 手動まばたき＆ウインクロジック（自動まばたきが機能しない環境向けの強制制御）
+    // リップシンク・まばたきを Live2D の内部レンダリングループに同期して適用する
     useEffect(() => {
         if (status !== 'ready' || modelConfig?.runtime !== TYRANO_RUNTIME) {
             return undefined;
         }
 
         let timeoutId;
-        let intervalId;
         let isBlinking = false;
         let blinkEnd = 0;
         let blinkMode = 'both'; // 'both', 'left', 'right'
-
-        // Live2Dの内部ループで毎フレームパラメータがリセットされる場合があるため、
-        // まばたき/ウインク中は高頻度で上書きし続ける
-        const forceEyeTick = () => {
-            if (isBlinking && Date.now() < blinkEnd) {
-                try {
-                    const rawManager = window.__tyranolive2d_manager_instance__;
-                    const modelsContainer = rawManager?.lappdelegate?.lapplive2dmanager?._models;
-                    // CsmVector型は [0] ではなく .at(0) でアクセスする必要がある
-                    const lappModel = (typeof modelsContainer?.at === 'function')
-                        ? modelsContainer.at(0)
-                        : modelsContainer?.[0];
-                    const cubismModel = lappModel?._model;
-                    if (cubismModel && typeof cubismModel.setParameterValueById === 'function') {
-                        if (blinkMode === 'both' || blinkMode === 'left') {
-                            cubismModel.setParameterValueById('ParamEyeLOpen', 0);
-                        }
-                        if (blinkMode === 'both' || blinkMode === 'right') {
-                            cubismModel.setParameterValueById('ParamEyeROpen', 0);
-                        }
-                    }
-                } catch (e) {
-                    // Ignore transient errors
-                }
-            }
-        };
-
-        // 16msごとに監視（60fps相当）
-        intervalId = window.setInterval(forceEyeTick, 16);
 
         const doBlink = () => {
             isBlinking = true;
@@ -315,9 +261,70 @@ const Live2DViewer = ({
         // 初回のまばたきをセット
         timeoutId = window.setTimeout(doBlink, Math.random() * 5000 + 2000);
 
+        let patchedModel = null;
+        let originalUpdate = null;
+
+        const tryPatch = () => {
+            try {
+                const rawManager = window.__tyranolive2d_manager_instance__;
+                const modelsContainer = rawManager?.lappdelegate?.lapplive2dmanager?._models;
+                const lappModel = (typeof modelsContainer?.at === 'function')
+                    ? modelsContainer.at(0)
+                    : modelsContainer?.[0];
+                const cubismModel = lappModel?._model;
+
+                if (cubismModel && typeof cubismModel.setParameterValueById === 'function') {
+                    if (!cubismModel._patchedForSync) {
+                        originalUpdate = cubismModel.update.bind(cubismModel);
+                        patchedModel = cubismModel;
+
+                        cubismModel.update = function () {
+                            // 1. 本来のアップデート処理（Idolモーションなどの適用が含まれる）を実行
+                            originalUpdate();
+
+                            // 2. モーション適用後のまばたきパラメータを上書き
+                            if (isBlinking && Date.now() < blinkEnd) {
+                                if (blinkMode === 'both' || blinkMode === 'left') {
+                                    this.setParameterValueById('ParamEyeLOpen', 0);
+                                }
+                                if (blinkMode === 'both' || blinkMode === 'right') {
+                                    this.setParameterValueById('ParamEyeROpen', 0);
+                                }
+                            }
+
+                            // 3. モーション適用後のリップシンクパラメータを上書き
+                            const currentPose = poseRef.current || {};
+                            if (currentPose.speaking) {
+                                // 毎フレームランダムな値を設定することで口を動かす
+                                const nextValue = 0.2 + (Math.random() * 0.8);
+                                this.setParameterValueById('ParamMouthOpenY', nextValue);
+                            } else {
+                                this.setParameterValueById('ParamMouthOpenY', 0);
+                            }
+                        };
+                        cubismModel._patchedForSync = true;
+                    }
+                }
+            } catch (e) {
+                // Ignore transient errors
+            }
+        };
+
+        // 継続的にモデルのロードを監視してパッチを当てる
+        const patchInterval = window.setInterval(tryPatch, 500);
+        tryPatch();
+
         return () => {
             window.clearTimeout(timeoutId);
-            window.clearInterval(intervalId);
+            window.clearInterval(patchInterval);
+            if (patchedModel && originalUpdate) {
+                try {
+                    patchedModel.update = originalUpdate;
+                    patchedModel._patchedForSync = false;
+                } catch {
+                    // Ignore teardown errors
+                }
+            }
         };
     }, [modelConfig?.runtime, status]);
 
