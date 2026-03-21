@@ -91,22 +91,18 @@ export const signInWithGoogle = async () => {
         const mobileBrowser = isMobileDevice();
         const isStandalone = isStandaloneMode();
 
-        // ホーム画面に追加されたアプリ（PWA）の場合は、リダイレクト後に別ブラウザが開いてしまう問題を避けるため、
-        // signInWithPopup を優先する。
+        // ホーム画面に追加されたアプリ（PWA standalone）では、
+        // signInWithPopup / signInWithRedirect ともにOS制約で失敗するため、
+        // システムブラウザでサイトを開いてログインしてもらう。
+        // ログイン後のセッションは IndexedDB 経由で PWA と共有される。
         if (isStandalone) {
-            console.log("Standalone mode detected, using popup sign-in...");
-            try {
-                let result = await signInWithPopup(auth, googleProvider);
-                const user = result.user;
-                await ensureUserDocument(user);
-                return { success: true, user };
-            } catch (popupError) {
-                console.error("Popup error in standalone:", popupError);
-                return { 
-                    success: false, 
-                    error: 'アプリ版でのログイン画面の表示に失敗しました。SafariやChromeから直接開いてログインをお試しください。' 
-                };
-            }
+            console.log("Standalone mode detected, opening system browser for login...");
+            const loginUrl = `${window.location.origin}/login?from=pwa`;
+            window.open(loginUrl, '_blank');
+            return {
+                success: false,
+                error: 'ブラウザが開きます。そちらでGoogleログインを完了した後、このアプリに戻ってください。（画面を再読み込みすればログイン状態が反映されます）'
+            };
         }
 
         // 通常のモバイルブラウザはポップアップがブロックされやすいため、最初からリダイレクト方式を使う
