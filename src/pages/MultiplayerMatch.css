@@ -509,7 +509,7 @@
 /* キャラクター：画面最上部から絶対配置 */
 .mp-character-area {
     position: absolute;
-    top: 8vh;
+    top: 2vh;
     left: 50%;
     transform: translateX(-50%);
     z-index: 1; /* 問題カード(z-index:15)の裏に入る */
@@ -517,7 +517,7 @@
 }
 
 .mp-center-character {
-    height: 90vh;
+    height: 82vh;
     width: auto;
     object-fit: contain;
     object-position: top;
@@ -549,7 +549,7 @@
 }
 
 .mp-bottom-status-wrapper {
-    padding-bottom: 24px;
+    padding-bottom: 8px;
 }
 
 .mp-status-info {
@@ -922,7 +922,7 @@
 }
 
 .mp-options-grid {
-    padding: 0 20px 20px;
+    padding: 0 20px 10px;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
@@ -944,7 +944,7 @@
     justify-content: center;
     align-items: center;
     transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
-    min-height: 90px;
+    min-height: 80px;
     box-shadow: 
         0 8px 0 rgba(0, 0, 0, 0.15), 
         inset 0 4px 6px rgba(255, 255, 255, 0.3);
@@ -1589,7 +1589,7 @@
    ============================== */
 .mp-character-area.is-live2d {
     width: min(100vw, 460px);
-    height: 85vh;
+    height: 70vh;
     display: flex;
     justify-content: center;
     align-items: flex-end;
