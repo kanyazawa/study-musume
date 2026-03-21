@@ -475,7 +475,7 @@
     animation: mp-overlay-fade 0.4s ease forwards;
 }
 
-.mp-answer-fx-wrong {
+.mp-answer-fx-wrong .mp-question-container {
     animation: mp-wrong-shake 0.38s ease;
 }
 
