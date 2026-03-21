@@ -89,8 +89,27 @@ export const signInWithGoogle = async () => {
         }
 
         const mobileBrowser = isMobileDevice();
+        const isStandalone = isStandaloneMode();
 
-        // モバイルブラウザはポップアップが失敗しやすいため、最初からリダイレクト方式を使う
+        // ホーム画面に追加されたアプリ（PWA）の場合は、リダイレクト後に別ブラウザが開いてしまう問題を避けるため、
+        // signInWithPopup を優先する。
+        if (isStandalone) {
+            console.log("Standalone mode detected, using popup sign-in...");
+            try {
+                let result = await signInWithPopup(auth, googleProvider);
+                const user = result.user;
+                await ensureUserDocument(user);
+                return { success: true, user };
+            } catch (popupError) {
+                console.error("Popup error in standalone:", popupError);
+                return { 
+                    success: false, 
+                    error: 'アプリ版でのログイン画面の表示に失敗しました。SafariやChromeから直接開いてログインをお試しください。' 
+                };
+            }
+        }
+
+        // 通常のモバイルブラウザはポップアップがブロックされやすいため、最初からリダイレクト方式を使う
         if (mobileBrowser) {
             console.log("Mobile browser detected, using redirect sign-in...");
             await signInWithRedirect(auth, googleProvider);
