@@ -415,37 +415,13 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             }
             audio.volume = ttsSettings.volume !== undefined ? ttsSettings.volume : 0.8;
 
-            // Live2D の口を直接駆動する（React のステート更新ラグを回避）
+            // Live2D の口を同期駆動する
             const startLipSync = () => {
                 setIsCharacterSpeaking(true);
-                window.clearInterval(chainLipIntervalRef.current);
-                chainLipIntervalRef.current = window.setInterval(() => {
-                    try {
-                        const rawManager = window.__tyranolive2d_manager_instance__;
-                        const modelsContainer = rawManager?.lappdelegate?.lapplive2dmanager?._models;
-                        const lappModel = (typeof modelsContainer?.at === 'function')
-                            ? modelsContainer.at(0) : modelsContainer?.[0];
-                        const cubismModel = lappModel?._model;
-                        if (cubismModel && typeof cubismModel.setParameterValueById === 'function') {
-                            cubismModel.setParameterValueById('ParamMouthOpenY', 0.3 + Math.random() * 0.7);
-                        }
-                    } catch { /* ignore */ }
-                }, 60);
             };
 
             const stopLipSync = () => {
-                window.clearInterval(chainLipIntervalRef.current);
                 setIsCharacterSpeaking(false);
-                try {
-                    const rawManager = window.__tyranolive2d_manager_instance__;
-                    const modelsContainer = rawManager?.lappdelegate?.lapplive2dmanager?._models;
-                    const lappModel = (typeof modelsContainer?.at === 'function')
-                        ? modelsContainer.at(0) : modelsContainer?.[0];
-                    const cubismModel = lappModel?._model;
-                    if (cubismModel && typeof cubismModel.setParameterValueById === 'function') {
-                        cubismModel.setParameterValueById('ParamMouthOpenY', 0);
-                    }
-                } catch { /* ignore */ }
             };
 
             audio.onplay = startLipSync;

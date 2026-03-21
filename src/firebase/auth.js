@@ -105,14 +105,8 @@ export const signInWithGoogle = async () => {
             };
         }
 
-        // 通常のモバイルブラウザはポップアップがブロックされやすいため、最初からリダイレクト方式を使う
-        if (mobileBrowser) {
-            console.log("Mobile browser detected, using redirect sign-in...");
-            await signInWithRedirect(auth, googleProvider);
-            return { success: true, redirect: true };
-        }
-
-        // PC: ポップアップを試行、ブロックされた場合はリダイレクトにフォールバック
+        // ポップアップを試行、ブロックされた場合はリダイレクトにフォールバック
+        // (Mobile Safariなどで redirect 方式がITPによって失敗するケースが多いため popup を優先する)
         let result;
         try {
             result = await signInWithPopup(auth, googleProvider);
