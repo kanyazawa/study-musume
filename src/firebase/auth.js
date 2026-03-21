@@ -90,24 +90,18 @@ export const signInWithGoogle = async () => {
 
         const mobileBrowser = isMobileDevice();
 
-        // 通常ブラウザではポップアップを試行
+        // モバイルブラウザはポップアップが失敗しやすいため、最初からリダイレクト方式を使う
+        if (mobileBrowser) {
+            console.log("Mobile browser detected, using redirect sign-in...");
+            await signInWithRedirect(auth, googleProvider);
+            return { success: true, redirect: true };
+        }
+
+        // PC: ポップアップを試行、ブロックされた場合はリダイレクトにフォールバック
         let result;
         try {
             result = await signInWithPopup(auth, googleProvider);
         } catch (popupError) {
-            // モバイルでは redirect 復帰が失敗しやすいため、まずは許可を促す
-            if (mobileBrowser && (
-                popupError.code === 'auth/popup-blocked' ||
-                popupError.code === 'auth/popup-closed-by-user' ||
-                popupError.code === 'auth/cancelled-popup-request'
-            )) {
-                return {
-                    success: false,
-                    error: 'スマホのSafari/Chromeでポップアップを許可して、もう一度ログインしてください。'
-                };
-            }
-
-            // PCではポップアップがブロックされた場合、リダイレクト方式にフォールバック
             if (popupError.code === 'auth/popup-blocked' ||
                 popupError.code === 'auth/popup-closed-by-user' ||
                 popupError.code === 'auth/cancelled-popup-request') {
