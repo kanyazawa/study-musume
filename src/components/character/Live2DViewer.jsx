@@ -10,7 +10,6 @@ import {
     probeAssetUrl,
     resizeTyranoCanvas,
     resolveLive2DStatusMessage,
-    clearTyranoModels,
 } from '../../utils/live2dRuntime';
 
 const warnedKeys = new Set();
@@ -114,20 +113,13 @@ const Live2DViewer = ({
                     }
 
                     managerRef.current = manager;
-                    setStatus('loading-model');
-
-                    // 古いモデルの残存による二重描画を防ぐため、追加前にすべてのモデルをクリアする
-                    clearTyranoModels(manager);
 
                     const modelParams = createTyranoModelParams({
                         characterId,
                         skinId,
                         modelConfig,
                         onFinishLoad: () => {
-                            if (cancelled) {
-                                return;
-                            }
-
+                            if (cancelled) return;
                             setStatus('ready');
                             setStatusDetail('');
                             setRuntimeDebug(getTyranoManagerSnapshot(managerRef.current, modelNameRef.current));
@@ -135,9 +127,17 @@ const Live2DViewer = ({
                     });
 
                     modelNameRef.current = modelParams.name;
-                    manager.addModel(modelParams);
-                    setStatus('loading-model');
-                    setStatusDetail(modelConfig.sourceLabel || modelConfig.modelId || '');
+
+                    // 古いモデルを破壊して二重描画を防ぐアプローチは本番環境のCsmVectorを壊すため、
+                    // すでに追加されている場合はそのまま再利用して addModel をスキップする。
+                    if (manager.models && manager.models[modelParams.name]) {
+                        setStatus('ready');
+                        setStatusDetail('');
+                    } else {
+                        manager.addModel(modelParams);
+                        setStatus('loading-model');
+                        setStatusDetail(modelConfig.sourceLabel || modelConfig.modelId || '');
+                    }
 
                     window.clearTimeout(readyTimerRef.current);
                     readyTimerRef.current = window.setTimeout(() => {
