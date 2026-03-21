@@ -10,6 +10,7 @@ import {
     probeAssetUrl,
     resizeTyranoCanvas,
     resolveLive2DStatusMessage,
+    clearTyranoModels,
 } from '../../utils/live2dRuntime';
 
 const warnedKeys = new Set();
@@ -20,6 +21,7 @@ const createTyranoModelParams = ({ characterId, skinId, modelConfig, onFinishLoa
     idle: modelConfig.idleMotion || 'Idle',
     visible: 'true',
     breath: 'true',
+    blink: 'true',
     lip: 'true',
     x: String(modelConfig.stage?.x ?? 0),
     y: String(modelConfig.stage?.y ?? 0),
@@ -113,6 +115,9 @@ const Live2DViewer = ({
 
                     managerRef.current = manager;
                     setStatus('loading-model');
+
+                    // 古いモデルの残存による二重描画を防ぐため、追加前にすべてのモデルをクリアする
+                    clearTyranoModels(manager);
 
                     const modelParams = createTyranoModelParams({
                         characterId,
@@ -242,6 +247,74 @@ const Live2DViewer = ({
             manager.setLipValue?.(modelName, 0);
         };
     }, [modelConfig?.runtime, pose.speaking, pose.text, status]);
+
+    // 手動まばたき＆ウインクロジック（自動まばたきが機能しない環境向けの強制制御）
+    useEffect(() => {
+        if (status !== 'ready' || modelConfig?.runtime !== TYRANO_RUNTIME) {
+            return undefined;
+        }
+
+        let timeoutId;
+        let intervalId;
+        let isBlinking = false;
+        let blinkEnd = 0;
+        let blinkMode = 'both'; // 'both', 'left', 'right'
+
+        // Live2Dの内部ループで毎フレームパラメータがリセットされる場合があるため、
+        // まばたき/ウインク中は高頻度で上書きし続ける
+        const forceEyeTick = () => {
+            if (isBlinking && Date.now() < blinkEnd) {
+                try {
+                    const rawManager = window.__tyranolive2d_manager_instance__;
+                    const cubismModel = rawManager?.lappdelegate?.lapplive2dmanager?._models?.[0]?._model;
+                    if (cubismModel && typeof cubismModel.setParameterValueById === 'function') {
+                        if (blinkMode === 'both' || blinkMode === 'left') {
+                            cubismModel.setParameterValueById('ParamEyeLOpen', 0);
+                        }
+                        if (blinkMode === 'both' || blinkMode === 'right') {
+                            cubismModel.setParameterValueById('ParamEyeROpen', 0);
+                        }
+                    }
+                } catch (e) {
+                    // Ignore transient errors
+                }
+            }
+        };
+
+        // 16msごとに監視（60fps相当）
+        intervalId = window.setInterval(forceEyeTick, 16);
+
+        const doBlink = () => {
+            isBlinking = true;
+            blinkEnd = Date.now() + 150; // 0.15秒間目を閉じる
+
+            // 約20%の確率でウインク（片目だけ閉じる）にする
+            const r = Math.random();
+            if (r < 0.1) {
+                blinkMode = 'left';
+            } else if (r < 0.2) {
+                blinkMode = 'right';
+            } else {
+                blinkMode = 'both';
+            }
+
+            window.setTimeout(() => {
+                isBlinking = false; // 目を開ける
+                blinkMode = 'both';
+            }, 150);
+
+            // 次のまばたきを2秒〜7秒後にセット
+            timeoutId = window.setTimeout(doBlink, Math.random() * 5000 + 2000);
+        };
+
+        // 初回のまばたきをセット
+        timeoutId = window.setTimeout(doBlink, Math.random() * 5000 + 2000);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+            window.clearInterval(intervalId);
+        };
+    }, [modelConfig?.runtime, status]);
 
     useEffect(() => {
         if (modelConfig?.runtime !== TYRANO_RUNTIME) {

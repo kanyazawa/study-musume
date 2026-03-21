@@ -207,6 +207,32 @@ export const destroyTyranoManager = () => {
     }
 };
 
+export const clearTyranoModels = (manager) => {
+    if (!manager) return;
+
+    if (manager.models) {
+        manager.models = {};
+    }
+
+    const live2dManager = manager.lappdelegate?.lapplive2dmanager;
+    if (live2dManager && Array.isArray(live2dManager._models)) {
+        live2dManager._models.forEach(model => {
+            if (model && typeof model.release === 'function') {
+                try {
+                    model.release();
+                } catch (e) {
+                    console.warn("Failed to release Live2D model", e);
+                }
+            } else if (model && typeof model.releaseModel === 'function') {
+                try {
+                    model.releaseModel();
+                } catch(e) {}
+            }
+        });
+        live2dManager._models = [];
+    }
+};
+
 
 
 export const resolveLive2DStatusMessage = (status, detail) => {
