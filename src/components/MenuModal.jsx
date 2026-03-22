@@ -54,13 +54,11 @@ const MenuModal = ({ onClose, stats, updateStats }) => {
     const skinId = stats?.equippedSkin || 'default';
     const preferredRenderer = stats?.characterRenderer || 'auto';
     const characterQuality = stats?.characterQuality || 'high';
-    const canUseVrm = characterId === 'noah';
     const hasLive2D = hasLive2DModelConfig(characterId, skinId);
     const resolvedRenderer = resolveCharacterRenderer({
         preferredRenderer,
         characterId,
         skinId,
-        canUseVrm,
     });
 
     const handleMenuClick = (itemId) => {
@@ -95,9 +93,8 @@ const MenuModal = ({ onClose, stats, updateStats }) => {
     const SettingsPanel = () => {
         const { isMuted, volume, toggleMute, changeVolume } = useSound();
         const rendererOptions = [
-            { value: 'auto', label: '自動', description: 'Live2D試作があれば優先し、なければ既存表示を使います。' },
+            { value: 'auto', label: '自動', description: 'Live2D試作があれば優先し、なければ画像表示を使います。' },
             { value: 'live2d', label: 'Live2D', description: 'モデルが未配置なら自動で他の表示にフォールバックします。' },
-            { value: 'vrm', label: 'VRM', description: 'ノアの3D表示を優先します。' },
             { value: 'image', label: '画像', description: 'もっとも軽い表示です。' },
         ];
         const qualityOptions = [
@@ -176,8 +173,6 @@ const MenuModal = ({ onClose, stats, updateStats }) => {
                             </p>
                             <p style={{ color: '#777', lineHeight: 1.6, marginTop: '6px', fontSize: '13px' }}>
                                 Live2Dモデル: {hasLive2D ? '検出済み' : '未配置'}
-                                {' / '}
-                                VRM利用: {canUseVrm ? '可能' : '未対応'}
                             </p>
                             <div className="settings-option-grid">
                                 {rendererOptions.map((option) => (

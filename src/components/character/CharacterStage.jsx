@@ -14,7 +14,7 @@ const CharacterStage = ({
     imageStyle,
     alt = 'Character',
 }) => {
-    const effectiveRenderer = renderer === 'vrm' ? 'image' : renderer;
+    const effectiveRenderer = renderer;
     const imageFallback = (
         <StaticCharacterImage
             characterId={characterId}

@@ -12,7 +12,7 @@
 
 export const convertTone = (text, characterId) => {
     if (!text) return "";
-    if (characterId === 'noah' || characterId === 'noah_3d') return text;
+    if (characterId === 'noah') return text;
     if (characterId === 'ren') return convertToRenTone(text);
     return text;
 };

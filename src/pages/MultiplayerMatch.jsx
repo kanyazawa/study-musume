@@ -204,12 +204,10 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const currentBgStyle = getBackgroundStyle(myEquippedBackground);
     
     const preferredRenderer = stats?.characterRenderer;
-    const isVrmMode = myCharacterId === 'noah' && localStorage.getItem('characterMode') === '3d';
     const renderer = resolveCharacterRenderer({
         preferredRenderer,
         characterId: myCharacterId,
         skinId: myEquippedSkin,
-        canUseVrm: isVrmMode,
     });
     
     const [phase, setPhase] = useState('init'); // init | matching | countdown | playing | result | error
@@ -1361,14 +1359,14 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                 )}
                 
                 {/* キャラクター（mp-playing-screenに対してabsolute配置） */}
-                <div className={`mp-character-area ${isVrmMode ? 'is-vrm' : ''} ${renderer === 'live2d' ? 'is-live2d' : ''}`}>
+                <div className={`mp-character-area ${renderer === 'live2d' ? 'is-live2d' : ''}`}>
                     <CharacterStage
                         characterId={myCharacterId}
                         renderer={renderer}
                         skinId={myEquippedSkin}
                         scene="match"
                         pose={matchPose}
-                        className="vrm-match"
+                        className="character-match"
                         imageClassName="mp-center-character"
                     />
                 </div>
@@ -1624,7 +1622,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                 )}
                 <div className={`mp-result-content ${resultClass}`}>
                     
-                    <div className={`mp-result-character-bg ${isVrmMode ? 'is-vrm' : ''} ${renderer === 'live2d' ? 'is-live2d' : ''}`}>
+                    <div className={`mp-result-character-bg ${renderer === 'live2d' ? 'is-live2d' : ''}`}>
                         {(isSolo || finalMyScore >= opScore) && (
                             <CharacterStage
                                 characterId={myCharacterId}
@@ -1632,7 +1630,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                                 skinId={myEquippedSkin}
                                 scene="match-result"
                                 pose={matchPose}
-                                className="vrm-match-result"
+                                className="character-match-result"
                                 imageClassName="mp-result-char-img mp-result-char-me"
                             />
                         )}

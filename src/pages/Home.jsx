@@ -50,15 +50,12 @@ const Home = ({ stats, updateStats }) => {
     const characterId = stats.characterId || 'noah';
     const preferredRenderer = stats?.characterRenderer;
 
-    const isVrmMode = characterId === 'noah' && localStorage.getItem('characterMode') === '3d';
-
     const currentBgStyle = getBackgroundStyle(equippedBackground);
     const homePose = createHomePose({ emotion, text: speech }, { speaking: isTalkAnimating });
     const renderer = resolveCharacterRenderer({
         preferredRenderer,
         characterId,
         skinId: equippedSkin,
-        canUseVrm: isVrmMode,
     });
 
     // 好感度レベルを取得
@@ -114,7 +111,7 @@ const Home = ({ stats, updateStats }) => {
 
         talkAnimationTimerRef.current = setTimeout(() => {
             setIsTalkAnimating(false);
-        }, 480);
+        }, Math.max(1500, reaction.text.length * 150));
 
         // Update mission progress for character interaction
         updateMissionsOnInteract();
@@ -126,12 +123,15 @@ const Home = ({ stats, updateStats }) => {
 
         setSpeech(nextSpeech);
         setEmotion('normal');
-        setIsTalkAnimating(false);
+        setIsTalkAnimating(true);
 
         if (talkAnimationTimerRef.current) {
             clearTimeout(talkAnimationTimerRef.current);
-            talkAnimationTimerRef.current = null;
         }
+
+        talkAnimationTimerRef.current = setTimeout(() => {
+            setIsTalkAnimating(false);
+        }, Math.max(1500, nextSpeech.length * 150));
     };
 
     useEffect(() => {
@@ -270,7 +270,7 @@ const Home = ({ stats, updateStats }) => {
 
                 {/* Character Figure */}
                 <div
-                    className={`character-figure ${isVrmMode ? 'is-vrm' : ''} ${renderer === 'live2d' ? 'is-live2d' : ''}`}
+                    className={`character-figure ${renderer === 'live2d' ? 'is-live2d' : ''}`}
                     onClick={talk}
                     role="button"
                     tabIndex={0}
@@ -282,7 +282,7 @@ const Home = ({ stats, updateStats }) => {
                         skinId={equippedSkin}
                         scene="home"
                         pose={homePose}
-                        className="vrm-home"
+                        className="character-home"
                         imageClassName={`char-image ${isTalkAnimating ? 'talk-burst' : ''}`}
                     />
 

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Volume2 } from 'lucide-react';
 import './Dialogue.css';
-import { estimateSpeechDuration } from '../utils/lipSync';
 import LoadingScreen from '../components/UI/LoadingScreen';
 import { speakWithBrowserTts, speakWithEngine, prefetchEngine, isEngineAvailable, VOICEVOX_SPEAKERS, preloadCommonPhrases, resolveSpeakerIdForEngine, shouldAutoSpeakLine } from '../utils/voicevoxUtils';
 import { saveStudySession } from '../utils/studyHistoryUtils';
@@ -45,31 +44,16 @@ const Dialogue = ({ stats, updateStats }) => {
     const [loading, setLoading] = useState(true);
     const [feedback, setFeedback] = useState(null); // 'correct' | 'incorrect'
     const [isSpeaking, setIsSpeaking] = useState(false); // Loading state for TTS
-    const [vrmSpeaking, setVrmSpeaking] = useState(false); // Lip sync state for VRM
-    const [vrmText, setVrmText] = useState(''); // Current text for lip sync
-    const vrmSpeakTimerRef = useRef(null);
+    const [characterSpeaking, setCharacterSpeaking] = useState(false);
+    const [characterSpeechText, setCharacterSpeechText] = useState('');
+    const characterSpeakTimerRef = useRef(null);
     const ttsAvailabilityRef = useRef({ aivis: false, voicevox: false });
-    const [use3D, setUse3D] = useState(() => {
-        const saved = localStorage.getItem('characterMode');
-        return !IS_LITE_DEPLOY && saved === '3d';
-    });
     const preferredRenderer = stats?.characterRenderer;
     const renderer = resolveCharacterRenderer({
         preferredRenderer,
         characterId,
         skinId: stats?.equippedSkin || 'default',
-        canUseVrm: !IS_LITE_DEPLOY && use3D,
     });
-
-    const toggleCharacterMode = useCallback((e) => {
-        e.stopPropagation();
-        if (IS_LITE_DEPLOY) return;
-        setUse3D(prev => {
-            const next = !prev;
-            localStorage.setItem('characterMode', next ? '3d' : '2d');
-            return next;
-        });
-    }, []);
 
     // Study session tracking
     const [sessionStartTime] = useState(Date.now());
@@ -393,6 +377,16 @@ const Dialogue = ({ stats, updateStats }) => {
         preloadCommonPhrases(VOICEVOX_SPEAKERS.METAN);
     }, []);
 
+    const stopCharacterSpeech = useCallback(() => {
+        if (characterSpeakTimerRef.current) {
+            clearTimeout(characterSpeakTimerRef.current);
+            characterSpeakTimerRef.current = null;
+        }
+
+        setCharacterSpeaking(false);
+        setIsSpeaking(false);
+    }, []);
+
     // Play Audio/Voice when line changes
     useEffect(() => {
         if (!line) return;
@@ -497,11 +491,8 @@ const Dialogue = ({ stats, updateStats }) => {
         } : firstLine;
 
         setLine(processedLine);
-
-        // Trigger VRM lip sync for first line
-        if (processedLine && processedLine.text) {
-            triggerVrmLipSync(processedLine.text);
-        }
+        setCharacterSpeechText(processedLine?.text || '');
+        stopCharacterSpeech();
     };
 
     // Get subject info from topic
@@ -574,11 +565,8 @@ const Dialogue = ({ stats, updateStats }) => {
             } : nextLine;
 
             setLine(processedLine);
-
-            // Trigger VRM lip sync for new line
-            if (processedLine && processedLine.text) {
-                triggerVrmLipSync(processedLine.text);
-            }
+            setCharacterSpeechText(processedLine?.text || '');
+            stopCharacterSpeech();
         }
     };
 
@@ -705,23 +693,6 @@ const Dialogue = ({ stats, updateStats }) => {
         navigate('/home');
     };
 
-    // Trigger VRM lip sync animation
-    const triggerVrmLipSync = useCallback((text) => {
-        // Clear previous timer
-        if (vrmSpeakTimerRef.current) {
-            clearTimeout(vrmSpeakTimerRef.current);
-        }
-
-        setVrmText(text);
-        setVrmSpeaking(true);
-
-        // Auto-stop after estimated duration
-        const duration = estimateSpeechDuration(text);
-        vrmSpeakTimerRef.current = setTimeout(() => {
-            setVrmSpeaking(false);
-        }, duration * 1000 + 200); // +200ms buffer
-    }, []);
-
     const resolveLineSpeakerId = useCallback(async (targetLine, chosenEngine, ttsSettings) => {
         const fallbackSpeakerId = isRen ? VOICEVOX_SPEAKERS.RITSU : VOICEVOX_SPEAKERS.METAN;
         const preferredSpeaker = targetLine?.tts_speaker || targetLine?.voicevox_speaker || targetLine?.speaker_id || ttsSettings.preferredSpeaker;
@@ -737,13 +708,26 @@ const Dialogue = ({ stats, updateStats }) => {
 
         const ttsSettings = getTtsSettings();
         if (!ttsSettings.enabled) return false;
+        setCharacterSpeechText(targetLine.text);
 
         const chosenEngine = ttsSettings.engine === TTS_ENGINES.AUTO
             ? (ttsAvailabilityRef.current.aivis ? TTS_ENGINES.AIVIS : ttsAvailabilityRef.current.voicevox ? TTS_ENGINES.VOICEVOX : TTS_ENGINES.BROWSER)
             : ttsSettings.engine;
 
+        const handleSpeechStart = () => {
+            setIsSpeaking(true);
+            setCharacterSpeaking(true);
+        };
+        const handleSpeechEnd = () => {
+            setIsSpeaking(false);
+            setCharacterSpeaking(false);
+        };
+
         if (targetLine.voice && !IS_LITE_DEPLOY) {
-            const played = await playVoice(targetLine.voice);
+            const played = await playVoice(targetLine.voice, {
+                onStart: handleSpeechStart,
+                onEnd: handleSpeechEnd,
+            });
             if (played) return true;
         }
 
@@ -752,6 +736,8 @@ const Dialogue = ({ stats, updateStats }) => {
         if (chosenEngine !== TTS_ENGINES.BROWSER) {
             const success = await speakWithEngine(chosenEngine, targetLine.text, speakerId, {
                 baseUrl: chosenEngine === TTS_ENGINES.AIVIS ? ttsSettings.aivisUrl : ttsSettings.voicevoxUrl,
+                onStart: handleSpeechStart,
+                onEnd: handleSpeechEnd,
             });
             if (success) return true;
         }
@@ -762,21 +748,17 @@ const Dialogue = ({ stats, updateStats }) => {
             pitch: Number.isFinite(pitchValue) ? pitchValue : (isRen ? 0.8 : ttsSettings.browserPitch),
             rate: Number.isFinite(rateValue) ? rateValue : ttsSettings.browserRate,
             isMale: isRen,
+            onStart: handleSpeechStart,
+            onEnd: handleSpeechEnd,
         });
         return true;
-    }, [isRen, playVoice, resolveLineSpeakerId]);
+    }, [IS_LITE_DEPLOY, isRen, playVoice, resolveLineSpeakerId]);
 
     const handleSpeak = async (e) => {
         e.stopPropagation(); // Prevent advancing dialogue
         if (!line || !line.text || isSpeaking) return;
 
-        setIsSpeaking(true);
-        // Trigger lip sync
-        triggerVrmLipSync(line.text);
-
         await speakLineWithPreferredAudio(line);
-
-        setIsSpeaking(false);
     };
 
     // Helper to get display name
@@ -791,9 +773,6 @@ const Dialogue = ({ stats, updateStats }) => {
 
         // 前の読み上げをキャンセル
         window.speechSynthesis.cancel();
-
-        // VRM lip sync 連動
-        triggerVrmLipSync(line.text);
 
         const ttsSettings = getTtsSettings();
         if (!ttsSettings.enabled) return;
@@ -823,8 +802,14 @@ const Dialogue = ({ stats, updateStats }) => {
 
         return () => {
             window.speechSynthesis.cancel();
+            stopCharacterSpeech();
         };
-    }, [currentIndex, currentScene, line, resolveLineSpeakerId, speakLineWithPreferredAudio, triggerVrmLipSync]);
+    }, [currentIndex, currentScene, line, resolveLineSpeakerId, speakLineWithPreferredAudio, stopCharacterSpeech]);
+
+    useEffect(() => () => {
+        window.speechSynthesis.cancel();
+        stopCharacterSpeech();
+    }, [stopCharacterSpeech]);
 
     // Quiz Selection Handler
     const handleQuizOption = (optionIndex, e) => {
@@ -941,8 +926,8 @@ const Dialogue = ({ stats, updateStats }) => {
 
     const isQuiz = line.speaker === 'Quiz';
     const dialoguePose = createDialoguePose(line, {
-        speaking: vrmSpeaking,
-        text: vrmText,
+        speaking: characterSpeaking,
+        text: characterSpeechText,
     });
 
     // Background Logic
@@ -995,17 +980,6 @@ const Dialogue = ({ stats, updateStats }) => {
                 </div>
             )}
 
-            {/* 2D/3D Toggle Button */}
-            {!IS_LITE_DEPLOY && (
-                <button
-                    className="char-mode-toggle"
-                    onClick={toggleCharacterMode}
-                    title={use3D ? '2Dモードに切替' : '3Dモードに切替'}
-                >
-                    {use3D ? '3D' : '2D'}
-                </button>
-            )}
-
             <div
                 className="character-figure"
             >
@@ -1015,7 +989,7 @@ const Dialogue = ({ stats, updateStats }) => {
                     skinId={stats?.equippedSkin || 'default'}
                     scene="dialogue"
                     pose={dialoguePose}
-                    className={`vrm-dialogue ${(line.graph || line.study_image) ? 'with-board' : ''}`}
+                    className={`character-dialogue ${(line.graph || line.study_image) ? 'with-board' : ''}`}
                     imageClassName={`char-image-dialogue ${line.effect === 'shake' ? 'effect-shake' : ''} ${(line.graph || line.study_image) ? 'with-board' : ''}`}
                 />
             </div>

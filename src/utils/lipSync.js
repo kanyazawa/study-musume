@@ -121,18 +121,6 @@ export const getCurrentVowel = (timeline, elapsed) => {
 };
 
 /**
- * VRM ExpressionManager用の母音名マッピング
- * VRM1.0の表情プリセット名に変換
- */
-export const VRM_VOWEL_MAP = {
-    'aa': 'aa',   // あ
-    'ih': 'ih',   // い
-    'ou': 'ou',   // う
-    'ee': 'ee',   // え
-    'oh': 'oh',   // お
-};
-
-/**
  * テキストの推定読み上げ時間を計算（秒）
  * @param {string} text
  * @returns {number}

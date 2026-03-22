@@ -14,8 +14,6 @@ import { getBackgroundStyle, getOwnedSkins, getOwnedBackgrounds } from '../utils
 import { createGiftPose, normalizeCharacterEmotion } from '../utils/characterPoseUtils';
 import { filterInventoryByType, removeFromInventory } from '../utils/itemUtils';
 
-const IS_LITE_DEPLOY = import.meta.env.VITE_LITE_DEPLOY === 'true';
-
 const CharacterInteraction = ({ stats, updateStats }) => {
     const navigate = useNavigate();
     const [mode, setMode] = useState('main'); // main, gift, costume, bg, chat
@@ -49,7 +47,6 @@ const CharacterInteraction = ({ stats, updateStats }) => {
         preferredRenderer,
         characterId,
         skinId: stats.equippedSkin || 'default',
-        canUseVrm: stats.characterId === 'noah' && !IS_LITE_DEPLOY && localStorage.getItem('characterMode') === '3d',
     });
     const interactionPose = giftReaction
         ? createGiftPose(giftReaction)
@@ -137,7 +134,7 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                     skinId={stats.equippedSkin || 'default'}
                     scene="interaction"
                     pose={interactionPose}
-                    className="vrm-interaction"
+                    className="character-interaction"
                     imageClassName="char-image"
                 />
             </div>

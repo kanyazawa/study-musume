@@ -44,7 +44,6 @@ const StoryReader = ({ stats }) => {
     // --- キャラクター表示ロジック ---
     const characterId = stats?.characterId || 'noah';
     const isRen = characterId === 'ren';
-    const use3D = localStorage.getItem('characterMode') === '3d';
     const preferredRenderer = stats?.characterRenderer;
 
     // スピーカーの名前を置き換え（レンを選んでいる場合）
@@ -55,7 +54,6 @@ const StoryReader = ({ stats }) => {
         preferredRenderer,
         characterId,
         skinId: stats?.equippedSkin || 'default',
-        canUseVrm: use3D && characterId === 'noah',
     });
 
     return (
@@ -74,7 +72,7 @@ const StoryReader = ({ stats }) => {
                         skinId={stats?.equippedSkin || 'default'}
                         scene="story"
                         pose={storyPose}
-                        className="vrm-story"
+                        className="character-story"
                         imageClassName="character-image"
                         alt={displaySpeaker}
                     />

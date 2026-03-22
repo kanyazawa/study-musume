@@ -19,17 +19,9 @@ const CharacterSelect = ({ onComplete }) => {
         // Start updates object
         const updates = {
             hasSelectedCharacter: true,
-            equippedSkin: 'default'
+            equippedSkin: 'default',
+            characterId: selectedId,
         };
-
-        // Determine characterId and characterMode
-        if (selectedId === 'noah_3d') {
-            updates.characterId = 'noah';
-            localStorage.setItem('characterMode', '3d');
-        } else {
-            updates.characterId = selectedId;
-            localStorage.setItem('characterMode', '2d');
-        }
 
         const currentStats = loadStats();
         const newStats = { ...currentStats, ...updates };
@@ -50,38 +42,10 @@ const CharacterSelect = ({ onComplete }) => {
                         <img src={NoahImg} alt="Noah" className="char-img" />
                     </div>
                     <div className="char-info">
-                        <h3>ノア (2D)</h3>
+                        <h3>ノア</h3>
                         <p className="char-desc">
                             勉強熱心で少しツンデレな女の子。<br />
-                            通常のかわいい2Dイラストモードです。
-                        </p>
-                    </div>
-                </div>
-
-                {/* Noah (3D) */}
-                <div
-                    className={`char-card ${selectedId === 'noah_3d' ? 'selected' : ''}`}
-                    onClick={() => handleSelect('noah_3d')}
-                >
-                    <div className="char-image-container" style={{ position: 'relative' }}>
-                        <img src={NoahImg} alt="Noah 3D" className="char-img" style={{ filter: 'hue-rotate(15deg) contrast(1.1)' }} />
-                        <div style={{
-                            position: 'absolute',
-                            bottom: '5px',
-                            right: '5px',
-                            background: 'rgba(0,0,0,0.7)',
-                            color: 'white',
-                            padding: '2px 5px',
-                            borderRadius: '4px',
-                            fontSize: '10px',
-                            fontWeight: 'bold'
-                        }}>3D</div>
-                    </div>
-                    <div className="char-info">
-                        <h3>ノア (3D)</h3>
-                        <p className="char-desc">
-                            動く3Dモデルのノア。<br />
-                            リップシンクや表情変化を楽しめます。
+                            いちばん軽い標準表示で使えます。
                         </p>
                     </div>
                 </div>

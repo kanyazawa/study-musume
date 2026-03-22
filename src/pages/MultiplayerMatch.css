@@ -1585,7 +1585,7 @@
 }
 
 /* ==============================
-   Live2D / VRM Overrides
+   Live2D Overrides
    ============================== */
 .mp-character-area.is-live2d {
     width: min(100vw, 460px);
