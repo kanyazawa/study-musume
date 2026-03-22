@@ -44,7 +44,8 @@
 .review-quiz-overlay {
     position: absolute;
     inset: 0;
-    z-index: 2;
+    pointer-events: none;
+    z-index: 4;
     background:
         linear-gradient(180deg, rgba(24, 18, 13, 0.62) 0%, rgba(24, 18, 13, 0.12) 30%, rgba(24, 18, 13, 0.45) 100%),
         radial-gradient(circle at top, rgba(255, 200, 102, 0.16), transparent 35%);
