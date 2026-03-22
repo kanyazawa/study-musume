@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { getLive2DModelConfig } from '../../utils/live2dModelRegistry';
+import { generateLipSyncTimeline, getCurrentVowel } from '../../utils/lipSync';
 import {
     TYRANO_RUNTIME,
     destroyTyranoManager,
     ensureLive2DSdk,
     ensureTyranoManager,
-    getTyranoManagerSnapshot,
     mountTyranoCanvas,
     probeAssetUrl,
     resizeTyranoCanvas,
@@ -14,6 +14,173 @@ import {
 } from '../../utils/live2dRuntime';
 
 const warnedKeys = new Set();
+const VOWEL_OPEN_MAP = {
+    aa: 0.72,
+    ih: 0.44,
+    ou: 0.6,
+    ee: 0.54,
+    oh: 0.66,
+};
+const FALLBACK_EYE_PARAM_NAMES = ['ParamEyeLOpen', 'ParamEyeROpen'];
+const FALLBACK_MOUTH_PARAM_NAMES = ['ParamMouthOpenY'];
+const FALLBACK_MOUTH_FORM_PARAM_NAMES = ['ParamMouthForm'];
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+const getEmotionAnimationProfile = (pose = {}) => {
+    const emotion = String(pose.emotion || pose.expression || 'normal').toLowerCase();
+    const intensity = clamp(typeof pose.intensity === 'number' ? pose.intensity : 0.5, 0, 1);
+    const profile = {
+        mouthScale: 1,
+        mouthFlutterScale: 1,
+        mouthLimit: 0.84,
+        mouthFollowIn: 0.5,
+        mouthFollowOut: 0.36,
+        mouthFormBase: 0.08,
+        mouthFormFlutterScale: 1,
+        blinkIntervalScale: 1,
+        blinkCloseScale: 1,
+        blinkHoldScale: 1,
+        blinkOpenScale: 1,
+        doubleBlinkChance: 0.38,
+    };
+
+    if (emotion === 'happy' || emotion === 'smile') {
+        profile.mouthScale = 1.08;
+        profile.mouthFlutterScale = 1.12;
+        profile.mouthFormBase = 0.15;
+        profile.mouthFormFlutterScale = 0.92;
+        profile.blinkIntervalScale = 0.88;
+        profile.doubleBlinkChance = 0.46;
+    } else if (emotion === 'shy' || emotion === 'relaxed') {
+        profile.mouthScale = 0.97;
+        profile.mouthFlutterScale = 1.08;
+        profile.mouthFormBase = 0.18;
+        profile.mouthFormFlutterScale = 0.98;
+        profile.blinkIntervalScale = 0.9;
+        profile.blinkHoldScale = 1.12;
+        profile.doubleBlinkChance = 0.5;
+    } else if (emotion === 'surprised') {
+        profile.mouthScale = 1.12;
+        profile.mouthFlutterScale = 0.92;
+        profile.mouthFormBase = 0.04;
+        profile.mouthFormFlutterScale = 0.55;
+        profile.mouthLimit = 0.9;
+        profile.blinkIntervalScale = 0.82;
+        profile.doubleBlinkChance = 0.2;
+    } else if (emotion === 'serious' || emotion === 'angry' || emotion === 'sad') {
+        profile.mouthScale = 0.9;
+        profile.mouthFlutterScale = 0.82;
+        profile.mouthFollowOut = 0.28;
+        profile.mouthFormBase = 0.02;
+        profile.mouthFormFlutterScale = 0.55;
+        profile.blinkIntervalScale = 1.14;
+        profile.blinkCloseScale = 1.08;
+        profile.doubleBlinkChance = 0.2;
+    }
+
+    const livelyBoost = 0.9 + (intensity * 0.18);
+    profile.mouthScale *= livelyBoost;
+    profile.mouthFlutterScale *= 0.94 + (intensity * 0.16);
+    profile.mouthLimit = clamp(profile.mouthLimit * (0.96 + intensity * 0.08), 0.72, 0.92);
+    profile.mouthFormBase = clamp(profile.mouthFormBase * (0.88 + intensity * 0.2), 0, 0.35);
+
+    return profile;
+};
+
+const getVectorSize = (vector) => {
+    if (!vector) {
+        return 0;
+    }
+    if (typeof vector.getSize === 'function') {
+        return vector.getSize();
+    }
+    return Array.isArray(vector) ? vector.length : 0;
+};
+
+const getVectorItem = (vector, index) => {
+    if (!vector) {
+        return null;
+    }
+    if (typeof vector.at === 'function') {
+        return vector.at(index);
+    }
+    return Array.isArray(vector) ? vector[index] : null;
+};
+
+const getCubismIdName = (id) => {
+    if (!id) {
+        return '';
+    }
+    if (typeof id === 'string') {
+        return id;
+    }
+    if (typeof id.getString === 'function') {
+        const value = id.getString();
+        if (typeof value === 'string') {
+            return value;
+        }
+        if (typeof value?.s === 'string') {
+            return value.s;
+        }
+    }
+    if (typeof id.s === 'string') {
+        return id.s;
+    }
+    if (typeof id._id?.s === 'string') {
+        return id._id.s;
+    }
+    return '';
+};
+
+const resolveParameterIds = (model, preferredIds, fallbackNames = []) => {
+    const resolvedIds = [];
+    const resolvedNames = new Set();
+    const fallbackNameSet = new Set(fallbackNames);
+
+    const pushId = (id) => {
+        if (!id) {
+            return;
+        }
+        const name = getCubismIdName(id);
+        const key = name || `anonymous_${resolvedIds.length}`;
+        if (resolvedNames.has(key)) {
+            return;
+        }
+        resolvedNames.add(key);
+        resolvedIds.push(id);
+    };
+
+    const preferredSize = getVectorSize(preferredIds);
+    for (let i = 0; i < preferredSize; i += 1) {
+        pushId(getVectorItem(preferredIds, i));
+    }
+
+    const modelParameterIds = model?._parameterIds;
+    const modelParameterCount = getVectorSize(modelParameterIds);
+    for (let i = 0; i < modelParameterCount; i += 1) {
+        const parameterId = getVectorItem(modelParameterIds, i);
+        const name = getCubismIdName(parameterId);
+        if (fallbackNameSet.has(name)) {
+            pushId(parameterId);
+        }
+    }
+
+    return resolvedIds;
+};
+
+const setParameterValues = (model, parameterIds, value) => {
+    if (!model?.setParameterValueById || !Array.isArray(parameterIds)) {
+        return;
+    }
+
+    parameterIds.forEach((parameterId) => {
+        try {
+            model.setParameterValueById(parameterId, value);
+        } catch {
+            // Ignore unsupported parameter writes on prototype runtime.
+        }
+    });
+};
 
 const createTyranoModelParams = ({ characterId, skinId, modelConfig, onFinishLoad }) => ({
     name: `prototype_${characterId}_${skinId}`.replace(/[^a-zA-Z0-9_]/g, '_'),
@@ -40,12 +207,15 @@ const Live2DViewer = ({
     const managerRef = useRef(null);
     const modelNameRef = useRef('');
     const readyTimerRef = useRef(null);
+    const lipSyncRef = useRef({ timeline: [], startedAt: 0, totalDuration: 0 });
+    const animationStateRef = useRef({ mouthValue: 0, mouthFormValue: 0 });
+    const poseRef = useRef(pose);
     const modelConfigRef = React.useRef(null);
     modelConfigRef.current = getLive2DModelConfig(characterId, skinId);
+    poseRef.current = pose;
     const modelConfig = modelConfigRef.current;
     const [status, setStatus] = useState(() => (modelConfig ? 'checking' : 'missing-config'));
     const [statusDetail, setStatusDetail] = useState('');
-    const [runtimeDebug, setRuntimeDebug] = useState(null);
     const statusMessage = useMemo(() => resolveLive2DStatusMessage(status, statusDetail), [status, statusDetail]);
 
     useEffect(() => {
@@ -123,7 +293,6 @@ const Live2DViewer = ({
                             if (cancelled) return;
                             setStatus('ready');
                             setStatusDetail('');
-                            setRuntimeDebug(getTyranoManagerSnapshot(managerRef.current, modelNameRef.current));
                         },
                     });
 
@@ -140,9 +309,11 @@ const Live2DViewer = ({
                     window.clearTimeout(readyTimerRef.current);
                     readyTimerRef.current = window.setTimeout(() => {
                         if (!cancelled) {
-                            const snapshot = getTyranoManagerSnapshot(managerRef.current, modelNameRef.current);
-                            setRuntimeDebug(snapshot);
-                            if (snapshot?.modelState === 22) {
+                            const modelMeta = managerRef.current?.models?.[modelNameRef.current];
+                            const model = typeof modelMeta?.index === 'number'
+                                ? managerRef.current?.lappdelegate?.lapplive2dmanager?.getModel(modelMeta.index)
+                                : null;
+                            if (model?._state === 22) {
                                 setStatus('ready');
                                 setStatusDetail('');
                             }
@@ -180,7 +351,6 @@ const Live2DViewer = ({
 
             managerRef.current = null;
             modelNameRef.current = '';
-            setRuntimeDebug(null);
             window.clearTimeout(readyTimerRef.current);
             destroyTyranoManager();
         };
@@ -219,10 +389,22 @@ const Live2DViewer = ({
         };
     }, [modelConfig?.runtime, status]);
 
-    const poseRef = useRef(pose);
     useEffect(() => {
-        poseRef.current = pose;
-    }, [pose]);
+        if (!pose?.speaking) {
+            lipSyncRef.current = { timeline: [], startedAt: 0, totalDuration: 0 };
+            animationStateRef.current.mouthValue = 0;
+            animationStateRef.current.mouthFormValue = 0;
+            return;
+        }
+
+        const timeline = generateLipSyncTimeline(pose.text || '');
+        const lastEntry = timeline[timeline.length - 1];
+        lipSyncRef.current = {
+            timeline,
+            startedAt: performance.now(),
+            totalDuration: lastEntry ? lastEntry.time + lastEntry.duration : 0,
+        };
+    }, [pose?.speaking, pose?.text]);
 
     // リップシンク・まばたきを Live2D の内部レンダリングループに同期して適用する
     useEffect(() => {
@@ -230,79 +412,144 @@ const Live2DViewer = ({
             return undefined;
         }
 
-        let timeoutId;
+        let blinkScheduleId;
+        let blinkResetId;
         let isBlinking = false;
-        let blinkEnd = 0;
-        let blinkMode = 'both'; // 'both', 'left', 'right'
+        let blinkStartedAt = 0;
+        let blinkCloseMs = 90;
+        let blinkHoldMs = 24;
+        let blinkOpenMs = 120;
 
-        const doBlink = () => {
-            isBlinking = true;
-            blinkEnd = Date.now() + 150; // 0.15秒間目を閉じる
+        const startBlink = (delayMs = 0, allowDoubleBlink = true) => {
+            blinkScheduleId = window.setTimeout(() => {
+                const profile = getEmotionAnimationProfile(poseRef.current);
+                blinkCloseMs = (58 + Math.random() * 22) * profile.blinkCloseScale;
+                blinkHoldMs = (18 + Math.random() * 20) * profile.blinkHoldScale;
+                blinkOpenMs = (125 + Math.random() * 55) * profile.blinkOpenScale;
+                isBlinking = true;
+                blinkStartedAt = performance.now();
+                const totalBlinkMs = blinkCloseMs + blinkHoldMs + blinkOpenMs;
 
-            // 約20%の確率でウインク（片目だけ閉じる）にする
-            const r = Math.random();
-            if (r < 0.1) {
-                blinkMode = 'left';
-            } else if (r < 0.2) {
-                blinkMode = 'right';
-            } else {
-                blinkMode = 'both';
-            }
-
-            window.setTimeout(() => {
-                isBlinking = false; // 目を開ける
-                blinkMode = 'both';
-            }, 150);
-
-            // 次のまばたきを2秒〜7秒後にセット
-            timeoutId = window.setTimeout(doBlink, Math.random() * 5000 + 2000);
+                blinkResetId = window.setTimeout(() => {
+                    isBlinking = false;
+                    if (allowDoubleBlink && Math.random() < profile.doubleBlinkChance) {
+                        startBlink(70 + Math.random() * 120, false);
+                        return;
+                    }
+                    startBlink((1600 + Math.random() * 2400) * profile.blinkIntervalScale, true);
+                }, totalBlinkMs);
+            }, delayMs);
         };
 
-        // 初回のまばたきをセット
-        timeoutId = window.setTimeout(doBlink, Math.random() * 5000 + 2000);
+        startBlink(1200 + Math.random() * 1600, true);
 
         let patchedModel = null;
         let originalUpdate = null;
+        let originalEyeBlink = null;
+        let originalLipSyncFlag = null;
+        let originalPmBlink = null;
+        let originalPmLip = null;
 
         const tryPatch = () => {
             try {
-                const rawManager = window.__tyranolive2d_manager_instance__;
-                const modelsContainer = rawManager?.lappdelegate?.lapplive2dmanager?._models;
-                const lappModel = (typeof modelsContainer?.at === 'function')
-                    ? modelsContainer.at(0)
-                    : modelsContainer?.[0];
+                const activeManager = managerRef.current || window.__tyranolive2d_manager_instance__;
+                const activeModelName = modelNameRef.current;
+                const activeModelMeta = activeManager?.models?.[activeModelName];
+                const live2dManager = activeManager?.lappdelegate?.lapplive2dmanager;
+                const modelIndex = typeof activeModelMeta?.index === 'number'
+                    ? activeModelMeta.index
+                    : null;
+                const modelsContainer = live2dManager?._models;
+                const fallbackIndex = Math.max(0, getVectorSize(modelsContainer) - 1);
+                const lappModel = modelIndex !== null && typeof live2dManager?.getModel === 'function'
+                    ? live2dManager.getModel(modelIndex)
+                    : getVectorItem(modelsContainer, fallbackIndex);
                 const cubismModel = lappModel?._model;
 
-                if (cubismModel && typeof cubismModel.setParameterValueById === 'function') {
-                    if (!cubismModel._patchedForSync) {
-                        originalUpdate = cubismModel.update.bind(cubismModel);
-                        patchedModel = cubismModel;
+                if (lappModel && cubismModel && typeof lappModel.update === 'function') {
+                    if (!lappModel._patchedForSync) {
+                        originalUpdate = lappModel.update.bind(lappModel);
+                        patchedModel = lappModel;
+                        originalEyeBlink = lappModel._eyeBlink;
+                        originalLipSyncFlag = lappModel._lipsync;
+                        originalPmBlink = lappModel.pm?.blink;
+                        originalPmLip = lappModel.pm?.lip;
 
-                        cubismModel.update = function () {
-                            // 1. 本来のアップデート処理（Idolモーションなどの適用が含まれる）を実行
+                        if (lappModel.pm) {
+                            lappModel.pm.blink = 'false';
+                            lappModel.pm.lip = 'false';
+                        }
+                        lappModel._eyeBlink = null;
+                        lappModel._lipsync = false;
+
+                        lappModel.update = function () {
                             originalUpdate();
 
-                            // 2. モーション適用後のまばたきパラメータを上書き
-                            if (isBlinking && Date.now() < blinkEnd) {
-                                if (blinkMode === 'both' || blinkMode === 'left') {
-                                    this.setParameterValueById('ParamEyeLOpen', 0);
-                                }
-                                if (blinkMode === 'both' || blinkMode === 'right') {
-                                    this.setParameterValueById('ParamEyeROpen', 0);
-                                }
-                            }
-
-                            // 3. モーション適用後のリップシンクパラメータを上書き
+                            const model = this._model;
                             const currentPose = poseRef.current || {};
-                            if (currentPose.speaking) {
-                                // 毎フレームランダムな値を設定することで口を動かす
-                                const nextValue = 0.2 + (Math.random() * 0.8);
-                                this.setParameterValueById('ParamMouthOpenY', nextValue);
-                            } else {
-                                this.setParameterValueById('ParamMouthOpenY', 0);
+                            const { timeline, startedAt, totalDuration } = lipSyncRef.current;
+                            const animationState = animationStateRef.current;
+                            const profile = getEmotionAnimationProfile(currentPose);
+                            const resolvedEyeIds = resolveParameterIds(model, this._eyeBlinkIds, FALLBACK_EYE_PARAM_NAMES);
+                            const resolvedLipIds = resolveParameterIds(model, this._lipSyncIds, FALLBACK_MOUTH_PARAM_NAMES);
+                            const resolvedMouthFormIds = resolveParameterIds(model, null, FALLBACK_MOUTH_FORM_PARAM_NAMES);
+
+                            if (model?.setParameterValueById) {
+                                let targetMouthValue = 0;
+                                let targetMouthFormValue = 0;
+
+                                if (currentPose.speaking && resolvedLipIds.length > 0) {
+                                    const elapsed = Math.max(0, (performance.now() - startedAt) / 1000);
+                                    const lookupTime = totalDuration > 0 ? (elapsed % totalDuration) : elapsed;
+                                    const vowel = timeline.length > 0 ? getCurrentVowel(timeline, lookupTime) : null;
+                                    const baseOpen = (vowel ? (VOWEL_OPEN_MAP[vowel] ?? 0.5) : 0.14) * profile.mouthScale;
+                                    const flutter = vowel
+                                        ? ((Math.sin(elapsed * 12.8) * 0.05) + (Math.sin(elapsed * 8.4 + 0.8) * 0.034)) * profile.mouthFlutterScale
+                                        : 0;
+                                    targetMouthValue = clamp(baseOpen + flutter, 0, profile.mouthLimit);
+                                    const mouthFormFlutter = vowel
+                                        ? ((Math.sin(elapsed * 4.4 + 0.3) + 1) * 0.025 * profile.mouthFormFlutterScale)
+                                        : 0;
+                                    targetMouthFormValue = clamp(profile.mouthFormBase + mouthFormFlutter, 0, 0.28);
+                                }
+
+                                const mouthFollowRate = targetMouthValue > animationState.mouthValue
+                                    ? profile.mouthFollowIn
+                                    : profile.mouthFollowOut;
+                                animationState.mouthValue += (targetMouthValue - animationState.mouthValue) * mouthFollowRate;
+                                const mouthValue = clamp(animationState.mouthValue, 0, profile.mouthLimit);
+                                setParameterValues(model, resolvedLipIds, mouthValue);
+
+                                const mouthFormFollowRate = targetMouthFormValue > animationState.mouthFormValue ? 0.2 : 0.15;
+                                animationState.mouthFormValue += (targetMouthFormValue - animationState.mouthFormValue) * mouthFormFollowRate;
+                                const mouthFormValue = clamp(animationState.mouthFormValue, 0, 0.28);
+                                setParameterValues(model, resolvedMouthFormIds, mouthFormValue);
+
+                                if (resolvedEyeIds.length > 0) {
+                                    let blinkValue = 1;
+
+                                    if (isBlinking) {
+                                        const elapsedMs = performance.now() - blinkStartedAt;
+                                        if (elapsedMs < blinkCloseMs) {
+                                            blinkValue = 1 - (elapsedMs / blinkCloseMs);
+                                        } else if (elapsedMs < blinkCloseMs + blinkHoldMs) {
+                                            blinkValue = 0;
+                                        } else {
+                                            const openElapsed = elapsedMs - blinkCloseMs - blinkHoldMs;
+                                            blinkValue = openElapsed / blinkOpenMs;
+                                        }
+                                        blinkValue = Math.max(0, Math.min(1, blinkValue));
+                                    }
+
+                                    setParameterValues(model, resolvedEyeIds, blinkValue);
+                                }
+
+                                if (typeof model.update === 'function') {
+                                    model.update();
+                                }
                             }
                         };
-                        cubismModel._patchedForSync = true;
+                        lappModel._patchedForSync = true;
                     }
                 }
             } catch (e) {
@@ -315,32 +562,24 @@ const Live2DViewer = ({
         tryPatch();
 
         return () => {
-            window.clearTimeout(timeoutId);
+            window.clearTimeout(blinkScheduleId);
+            window.clearTimeout(blinkResetId);
             window.clearInterval(patchInterval);
             if (patchedModel && originalUpdate) {
                 try {
                     patchedModel.update = originalUpdate;
+                    patchedModel._eyeBlink = originalEyeBlink;
+                    patchedModel._lipsync = originalLipSyncFlag;
+                    if (patchedModel.pm) {
+                        patchedModel.pm.blink = originalPmBlink;
+                        patchedModel.pm.lip = originalPmLip;
+                    }
                     patchedModel._patchedForSync = false;
                 } catch {
                     // Ignore teardown errors
                 }
             }
         };
-    }, [modelConfig?.runtime, status]);
-
-    useEffect(() => {
-        if (modelConfig?.runtime !== TYRANO_RUNTIME) {
-            return undefined;
-        }
-
-        const updateSnapshot = () => {
-            setRuntimeDebug(getTyranoManagerSnapshot(managerRef.current, modelNameRef.current));
-        };
-
-        updateSnapshot();
-        const intervalId = window.setInterval(updateSnapshot, 400);
-
-        return () => window.clearInterval(intervalId);
     }, [modelConfig?.runtime, status]);
 
     if (!modelConfig) {
@@ -374,7 +613,7 @@ const Live2DViewer = ({
                     opacity: ['loading-model', 'ready'].includes(status) ? 1 : 0,
                 }}
             />
-            {(status !== 'ready' || runtimeDebug) && (
+            {status !== 'ready' && (
                 <div
                     style={{
                         position: 'absolute',
@@ -395,11 +634,6 @@ const Live2DViewer = ({
                     {statusDetail && (
                         <span style={{ display: 'block', marginTop: '4px', color: 'rgba(255,255,255,0.75)' }}>
                             {statusDetail}
-                        </span>
-                    )}
-                    {runtimeDebug && (
-                        <span style={{ display: 'block', marginTop: '6px', color: 'rgba(255,255,255,0.75)' }}>
-                            {`canvas ${runtimeDebug.canvasWidth}x${runtimeDebug.canvasHeight} / GL ${runtimeDebug.hasGl ? 'ok' : 'ng'} / model ${runtimeDebug.modelStateLabel}`}
                         </span>
                     )}
                 </div>

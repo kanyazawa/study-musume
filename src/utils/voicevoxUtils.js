@@ -197,7 +197,7 @@ export const speakWithEngine = async (
     engine = TTS_ENGINES.VOICEVOX,
     text,
     speakerId = VOICEVOX_SPEAKERS.ZUNDAMON,
-    { baseUrl = getEngineBaseUrl(engine) } = {}
+    { baseUrl = getEngineBaseUrl(engine), onStart, onEnd } = {}
 ) => {
     try {
         if (!baseUrl) return false;
@@ -207,8 +207,22 @@ export const speakWithEngine = async (
             const audioBlob = audioCache.get(cacheKey);
             const audioUrl = URL.createObjectURL(audioBlob);
             const audio = new Audio(audioUrl);
-            audio.addEventListener('ended', () => URL.revokeObjectURL(audioUrl));
+            let started = false;
+            const handleStart = () => {
+                if (started) return;
+                started = true;
+                onStart?.();
+            };
+            const handleEnd = () => {
+                URL.revokeObjectURL(audioUrl);
+                onEnd?.();
+            };
+
+            audio.addEventListener('play', handleStart, { once: true });
+            audio.addEventListener('ended', handleEnd, { once: true });
+            audio.addEventListener('error', handleEnd, { once: true });
             await audio.play();
+            handleStart();
             return true;
         }
 
@@ -234,8 +248,22 @@ export const speakWithEngine = async (
 
         const audioUrl = URL.createObjectURL(audioBlob);
         const audio = new Audio(audioUrl);
-        audio.addEventListener('ended', () => URL.revokeObjectURL(audioUrl));
+        let started = false;
+        const handleStart = () => {
+            if (started) return;
+            started = true;
+            onStart?.();
+        };
+        const handleEnd = () => {
+            URL.revokeObjectURL(audioUrl);
+            onEnd?.();
+        };
+
+        audio.addEventListener('play', handleStart, { once: true });
+        audio.addEventListener('ended', handleEnd, { once: true });
+        audio.addEventListener('error', handleEnd, { once: true });
         await audio.play();
+        handleStart();
         return true;
     } catch (error) {
         console.warn(`${getEngineDisplayName(engine)} synthesis failed:`, error);
@@ -298,7 +326,7 @@ export const preloadCommonPhrases = async (speakerId = VOICEVOX_SPEAKERS.METAN) 
     }
 };
 
-export const speakWithBrowserTts = (text, { pitch = 1.3, rate = 1.0, isMale = false } = {}) => {
+export const speakWithBrowserTts = (text, { pitch = 1.3, rate = 1.0, isMale = false, onStart, onEnd } = {}) => {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'ja-JP';
     utterance.pitch = pitch;
@@ -324,8 +352,19 @@ export const speakWithBrowserTts = (text, { pitch = 1.3, rate = 1.0, isMale = fa
         utterance.voice = selectedVoice;
     }
 
+    utterance.onstart = () => {
+        onStart?.();
+    };
+    utterance.onend = () => {
+        onEnd?.();
+    };
+    utterance.onerror = () => {
+        onEnd?.();
+    };
+
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
+    return utterance;
 };
 
 export const speakWithPreferredTts = async (text, settings = getTtsSettings()) => {

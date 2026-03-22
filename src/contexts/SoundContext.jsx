@@ -146,7 +146,8 @@ export const SoundProvider = ({ children }) => {
     };
 
     // Play Voice (from public/audio)
-    const playVoice = async (filename) => {
+    const playVoice = async (filename, options = {}) => {
+        const { onStart, onEnd } = options;
         if (!filename || isMuted) return Promise.resolve(false);
 
         let path = '';
@@ -160,6 +161,17 @@ export const SoundProvider = ({ children }) => {
         return new Promise((resolve) => {
             const audio = new Audio(path);
             let settled = false;
+            let started = false;
+
+            const handleStart = () => {
+                if (started) return;
+                started = true;
+                onStart?.();
+            };
+
+            const handleEnd = () => {
+                onEnd?.();
+            };
 
             const finish = (played) => {
                 if (settled) return;
@@ -169,15 +181,22 @@ export const SoundProvider = ({ children }) => {
 
             audio.preload = 'none';
             audio.volume = seVolume || volume;
+            audio.addEventListener('play', handleStart, { once: true });
+            audio.addEventListener('ended', handleEnd, { once: true });
             audio.addEventListener('error', () => {
                 console.warn(`Failed to load Voice: ${filename}`);
+                handleEnd();
                 finish(false);
             }, { once: true });
 
             audio.play()
-                .then(() => finish(true))
+                .then(() => {
+                    handleStart();
+                    finish(true);
+                })
                 .catch((e) => {
                     console.warn(`Failed to play Voice: ${filename}`, e);
+                    handleEnd();
                     finish(false);
                 });
         });
