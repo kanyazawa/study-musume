@@ -322,6 +322,41 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         }, type === 'correct' ? 420 : 520);
     }, []);
 
+    const playChainVoiceClip = useCallback((voiceSrc, volume = 0.8) => {
+        if (isMuted || typeof window === 'undefined' || !voiceSrc) {
+            return;
+        }
+
+        window.clearInterval(chainLipIntervalRef.current);
+
+        let audio = chainAudioCacheRef.current[voiceSrc];
+        if (audio) {
+            audio.currentTime = 0;
+        } else {
+            audio = new window.Audio(voiceSrc);
+            chainAudioCacheRef.current[voiceSrc] = audio;
+        }
+
+        audio.volume = volume;
+
+        const startLipSync = () => {
+            setIsCharacterSpeaking(true);
+        };
+
+        const stopLipSync = () => {
+            setIsCharacterSpeaking(false);
+        };
+
+        audio.onplay = startLipSync;
+        audio.onended = stopLipSync;
+        audio.onerror = stopLipSync;
+
+        audio.play().catch((err) => {
+            console.error('Chain voice playback error:', err);
+            stopLipSync();
+        });
+    }, [isMuted]);
+
     const clearChainCallout = useCallback(() => {
         clearTimeout(chainCalloutTimeoutRef.current);
         setChainCallout(null);
@@ -400,40 +435,28 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             return;
         }
 
-        if (meta.voiceSrc) {
-            // 前回のリップシンクインターバルをクリア
-            window.clearInterval(chainLipIntervalRef.current);
-
-            // プリロード済みキャッシュから取得、なければ新規作成
-            let audio = chainAudioCacheRef.current[meta.voiceSrc];
-            if (audio) {
-                // 連続再生に備えてリセット
-                audio.currentTime = 0;
-            } else {
-                audio = new window.Audio(meta.voiceSrc);
-                chainAudioCacheRef.current[meta.voiceSrc] = audio;
-            }
-            audio.volume = ttsSettings.volume !== undefined ? ttsSettings.volume : 0.8;
-
-            // Live2D の口を同期駆動する
-            const startLipSync = () => {
-                setIsCharacterSpeaking(true);
-            };
-
-            const stopLipSync = () => {
-                setIsCharacterSpeaking(false);
-            };
-
-            audio.onplay = startLipSync;
-            audio.onended = stopLipSync;
-            audio.onerror = stopLipSync;
-
-            audio.play().catch(err => {
-                console.error("Chain voice playback error:", err);
-                stopLipSync();
+        const preferredBattleSpeaker = ttsSettings.battleSpeaker || ttsSettings.preferredSpeaker;
+        if (preferredBattleSpeaker) {
+            const battleVoiceText = meta.callout || '正解！';
+            void speakWithPreferredTts(battleVoiceText, {
+                ...ttsSettings,
+                preferredSpeaker: preferredBattleSpeaker,
+            }).then((success) => {
+                if (!success && meta.voiceSrc) {
+                    playChainVoiceClip(meta.voiceSrc, ttsSettings.volume !== undefined ? ttsSettings.volume : 0.8);
+                }
+            }).catch(() => {
+                if (meta.voiceSrc) {
+                    playChainVoiceClip(meta.voiceSrc, ttsSettings.volume !== undefined ? ttsSettings.volume : 0.8);
+                }
             });
+            return;
         }
-    }, [isMuted]);
+
+        if (meta.voiceSrc) {
+            playChainVoiceClip(meta.voiceSrc, ttsSettings.volume !== undefined ? ttsSettings.volume : 0.8);
+        }
+    }, [isMuted, playChainVoiceClip]);
 
     const resetMatchState = useCallback(() => {
         clearInterval(timerIntervalRef.current);
