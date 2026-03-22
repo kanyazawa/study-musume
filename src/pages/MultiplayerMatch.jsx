@@ -33,8 +33,8 @@ import {
 } from '../utils/matchUtils';
 import { addWrongQuestion } from '../utils/reviewUtils';
 import { useSound } from '../contexts/SoundContext';
-import { getTtsSettings } from '../utils/ttsSettings';
-import { speakWithPreferredTts } from '../utils/voicevoxUtils';
+import { getTtsSettings, TTS_ENGINES } from '../utils/ttsSettings';
+import { getEngineBaseUrl, isEngineAvailable, resolveSpeakerIdForEngine, speakWithEngine } from '../utils/voicevoxUtils';
 import CharacterStage from '../components/character/CharacterStage';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { createHomePose } from '../utils/characterPoseUtils';
@@ -357,6 +357,36 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         });
     }, [isMuted]);
 
+    const speakBattleVoice = useCallback(async (text, settings, speakerValue) => {
+        if (!text || !speakerValue) {
+            return false;
+        }
+
+        const engineOrder = settings.engine === TTS_ENGINES.AUTO
+            ? [TTS_ENGINES.AIVIS, TTS_ENGINES.VOICEVOX]
+            : [settings.engine];
+
+        for (const engine of engineOrder) {
+            if (engine === TTS_ENGINES.BROWSER) {
+                continue;
+            }
+
+            const baseUrl = getEngineBaseUrl(engine, settings);
+            const available = await isEngineAvailable(engine, baseUrl);
+            if (!available) {
+                continue;
+            }
+
+            const speakerId = await resolveSpeakerIdForEngine(engine, speakerValue, { baseUrl });
+            const success = await speakWithEngine(engine, text, speakerId, { baseUrl });
+            if (success) {
+                return true;
+            }
+        }
+
+        return false;
+    }, []);
+
     const clearChainCallout = useCallback(() => {
         clearTimeout(chainCalloutTimeoutRef.current);
         setChainCallout(null);
@@ -431,17 +461,10 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         }
 
         const ttsSettings = getTtsSettings();
-        if (ttsSettings.enabled === false) {
-            return;
-        }
-
         const preferredBattleSpeaker = ttsSettings.battleSpeaker || ttsSettings.preferredSpeaker;
-        if (preferredBattleSpeaker) {
+        if (ttsSettings.enabled !== false && preferredBattleSpeaker) {
             const battleVoiceText = meta.callout || '正解！';
-            void speakWithPreferredTts(battleVoiceText, {
-                ...ttsSettings,
-                preferredSpeaker: preferredBattleSpeaker,
-            }).then((success) => {
+            void speakBattleVoice(battleVoiceText, ttsSettings, preferredBattleSpeaker).then((success) => {
                 if (!success && meta.voiceSrc) {
                     playChainVoiceClip(meta.voiceSrc, ttsSettings.volume !== undefined ? ttsSettings.volume : 0.8);
                 }
@@ -456,7 +479,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         if (meta.voiceSrc) {
             playChainVoiceClip(meta.voiceSrc, ttsSettings.volume !== undefined ? ttsSettings.volume : 0.8);
         }
-    }, [isMuted, playChainVoiceClip]);
+    }, [isMuted, playChainVoiceClip, speakBattleVoice]);
 
     const resetMatchState = useCallback(() => {
         clearInterval(timerIntervalRef.current);
