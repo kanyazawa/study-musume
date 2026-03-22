@@ -48,6 +48,11 @@ import CharacterCasual from '../assets/images/character_casual_v9.png';
 import CharacterGym from '../assets/images/character_gym.jpg';
 import CharacterCasualGray from '../assets/images/character_casual_gray_hoodie.jpg';
 import CharacterCasualBlack from '../assets/images/character_casual_hoodie.png';
+import battleChain1Audio from '../assets/audio/chains/battle-chain-1.mp3';
+import battleChain2Audio from '../assets/audio/chains/battle-chain-2.mp3';
+import battleChain3Audio from '../assets/audio/chains/battle-chain-3.mp3';
+import battleChain4Audio from '../assets/audio/chains/battle-chain-4.mp3';
+import battleChain5Audio from '../assets/audio/chains/battle-chain-5.mp3';
 
 const noahImages = {
     'default': CharacterMain,
@@ -139,7 +144,7 @@ const getChainMeta = (streak) => {
     if (streak === 1) {
         return {
             label: null,
-            voiceSrc: '/audio/tts-generated/chains/chains-chain1-まお-888753760.mp3',
+            voiceSrc: battleChain1Audio,
         };
     }
 
@@ -147,7 +152,7 @@ const getChainMeta = (streak) => {
         return {
             label: '2 CHAIN',
             callout: 'やあ！',
-            voiceSrc: '/audio/tts-generated/chains/chains-chain2-まお-888753760.mp3',
+            voiceSrc: battleChain2Audio,
             tone: 'good',
         };
     }
@@ -156,7 +161,7 @@ const getChainMeta = (streak) => {
         return {
             label: '3 CHAIN',
             callout: 'とう！',
-            voiceSrc: '/audio/tts-generated/chains/chains-chain3-まお-888753760.mp3',
+            voiceSrc: battleChain3Audio,
             tone: 'great',
         };
     }
@@ -165,7 +170,7 @@ const getChainMeta = (streak) => {
         return {
             label: '4 CHAIN',
             callout: 'それ！',
-            voiceSrc: '/audio/tts-generated/chains/chains-chain4-まお-888753760.mp3',
+            voiceSrc: battleChain4Audio,
             tone: 'amazing',
         };
     }
@@ -173,7 +178,7 @@ const getChainMeta = (streak) => {
     return {
         label: `${streak} CHAIN`,
         callout: 'いくよ！',
-        voiceSrc: '/audio/tts-generated/chains/chains-chain5-まお-888753760.mp3',
+        voiceSrc: battleChain5Audio,
         tone: 'fever',
     };
 };
