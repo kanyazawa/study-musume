@@ -1,7 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import StaticCharacterImage from './StaticCharacterImage';
 
-const VrmViewer = lazy(() => import('../VrmViewer'));
 const Live2DViewer = lazy(() => import('./Live2DViewer'));
 
 const CharacterStage = ({
@@ -15,8 +14,7 @@ const CharacterStage = ({
     imageStyle,
     alt = 'Character',
 }) => {
-    const effectiveRenderer = renderer;
-    const vrmClassName = className || `vrm-${scene}`;
+    const effectiveRenderer = renderer === 'vrm' ? 'image' : renderer;
     const imageFallback = (
         <StaticCharacterImage
             characterId={characterId}
@@ -37,19 +35,6 @@ const CharacterStage = ({
                     pose={pose}
                     className={[className, imageClassName].filter(Boolean).join(' ')}
                     fallback={imageFallback}
-                />
-            </Suspense>
-        );
-    }
-
-    if (effectiveRenderer === 'vrm') {
-        return (
-            <Suspense fallback={null}>
-                <VrmViewer
-                    emotion={pose.expression || pose.emotion || 'normal'}
-                    text={pose.text || ''}
-                    isSpeaking={Boolean(pose.speaking)}
-                    className={vrmClassName}
                 />
             </Suspense>
         );
