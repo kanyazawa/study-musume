@@ -90,7 +90,7 @@ const buildTopicMeta = () => {
     }
 };
 
-const speakReplyWithSettings = async (text) => {
+const speakReplyWithSettings = async (text, { onStart, onEnd } = {}) => {
     const settings = getTtsSettings();
     if (!settings.enabled) return false;
 
@@ -103,6 +103,8 @@ const speakReplyWithSettings = async (text) => {
             speakWithBrowserTts(text, {
                 pitch: settings.browserPitch,
                 rate: settings.browserRate,
+                onStart,
+                onEnd,
             });
             return true;
         }
@@ -114,7 +116,7 @@ const speakReplyWithSettings = async (text) => {
         const speakerId = await resolveSpeakerIdForEngine(engine, settings.preferredSpeaker, {
             baseUrl,
         });
-        const success = await speakWithEngine(engine, text, speakerId, { baseUrl });
+        const success = await speakWithEngine(engine, text, speakerId, { baseUrl, onStart, onEnd });
         if (success) {
             return true;
         }
@@ -123,6 +125,8 @@ const speakReplyWithSettings = async (text) => {
     speakWithBrowserTts(text, {
         pitch: settings.browserPitch,
         rate: settings.browserRate,
+        onStart,
+        onEnd,
     });
     return true;
 };
@@ -167,7 +171,16 @@ const requestNoaReply = async (payload) => {
     throw lastError;
 };
 
-const NoaChatBox = ({ stats, embedded = false, compact = false, onClose = null, onAssistantReply = null }) => {
+const NoaChatBox = ({
+    stats,
+    embedded = false,
+    compact = false,
+    onClose = null,
+    onAssistantReply = null,
+    autoSpeakAssistant = false,
+    onAssistantSpeechStart = null,
+    onAssistantSpeechEnd = null,
+}) => {
     const topicMeta = useMemo(() => buildTopicMeta(), []);
     const starterMessages = useMemo(() => [buildStarterMessage(topicMeta.label)], [topicMeta.label]);
     const [isOpen, setIsOpen] = useState(false);
@@ -216,7 +229,10 @@ const NoaChatBox = ({ stats, embedded = false, compact = false, onClose = null, 
 
         setIsSpeaking(true);
         try {
-            await speakReplyWithSettings(text);
+            await speakReplyWithSettings(text, {
+                onStart: onAssistantSpeechStart,
+                onEnd: onAssistantSpeechEnd,
+            });
         } finally {
             setIsSpeaking(false);
         }
@@ -249,6 +265,17 @@ const NoaChatBox = ({ stats, embedded = false, compact = false, onClose = null, 
 
             const saved = saveNoaChatMessages(topicMeta.key, [...nextMessages, assistantMessage]);
             setMessages(saved);
+            if (autoSpeakAssistant) {
+                setIsSpeaking(true);
+                try {
+                    await speakReplyWithSettings(assistantMessage.content, {
+                        onStart: onAssistantSpeechStart,
+                        onEnd: onAssistantSpeechEnd,
+                    });
+                } finally {
+                    setIsSpeaking(false);
+                }
+            }
         } catch (requestError) {
             setMessages(nextMessages);
             setError(requestError.message || '今は返事できないみたい。Cloudflare Functions と API キーを確認して。');

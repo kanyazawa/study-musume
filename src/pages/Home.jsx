@@ -92,13 +92,25 @@ const Home = ({ stats, updateStats }) => {
 
     const countdownDisplay = getCountdownDisplay();
 
-    // Random speech on mount and click (好感度レベルに応じて)
-    const talk = () => {
+    const stopTalkAnimation = () => {
         if (talkAnimationTimerRef.current) {
             clearTimeout(talkAnimationTimerRef.current);
+            talkAnimationTimerRef.current = null;
         }
+        setIsTalkAnimating(false);
+    };
 
+    const startTimedTalkAnimation = (text) => {
+        stopTalkAnimation();
         setIsTalkAnimating(true);
+        talkAnimationTimerRef.current = setTimeout(() => {
+            setIsTalkAnimating(false);
+            talkAnimationTimerRef.current = null;
+        }, Math.max(1500, String(text || '').length * 150));
+    };
+
+    // Random speech on mount and click (好感度レベルに応じて)
+    const talk = () => {
         const reaction = getHomeReaction({
             affection,
             tp,
@@ -108,30 +120,23 @@ const Home = ({ stats, updateStats }) => {
         });
         setSpeech(reaction.text);
         setEmotion(reaction.emotion || 'normal');
-
-        talkAnimationTimerRef.current = setTimeout(() => {
-            setIsTalkAnimating(false);
-        }, Math.max(1500, reaction.text.length * 150));
+        startTimedTalkAnimation(reaction.text);
 
         // Update mission progress for character interaction
         updateMissionsOnInteract();
     };
 
-    const syncSpeechWithNoaReply = (replyText) => {
+    const syncSpeechWithNoaReply = (replyText, { animate = false } = {}) => {
         const nextSpeech = String(replyText || '').trim();
         if (!nextSpeech) return;
 
         setSpeech(nextSpeech);
         setEmotion('normal');
-        setIsTalkAnimating(true);
-
-        if (talkAnimationTimerRef.current) {
-            clearTimeout(talkAnimationTimerRef.current);
+        if (animate) {
+            startTimedTalkAnimation(nextSpeech);
+        } else {
+            stopTalkAnimation();
         }
-
-        talkAnimationTimerRef.current = setTimeout(() => {
-            setIsTalkAnimating(false);
-        }, Math.max(1500, nextSpeech.length * 150));
     };
 
     useEffect(() => {
@@ -139,7 +144,7 @@ const Home = ({ stats, updateStats }) => {
         const latestReply = getLatestNoaAssistantMessage(topicName);
 
         if (latestReply) {
-            syncSpeechWithNoaReply(latestReply);
+            syncSpeechWithNoaReply(latestReply, { animate: true });
             return;
         }
 
@@ -162,9 +167,7 @@ const Home = ({ stats, updateStats }) => {
 
     useEffect(() => (
         () => {
-            if (talkAnimationTimerRef.current) {
-                clearTimeout(talkAnimationTimerRef.current);
-            }
+            stopTalkAnimation();
         }
     ), []);
 
@@ -315,7 +318,19 @@ const Home = ({ stats, updateStats }) => {
                     </button>
                 </div>
 
-                <NoaChatBox stats={stats} compact onAssistantReply={syncSpeechWithNoaReply} />
+                <NoaChatBox
+                    stats={stats}
+                    compact
+                    autoSpeakAssistant
+                    onAssistantReply={syncSpeechWithNoaReply}
+                    onAssistantSpeechStart={() => {
+                        stopTalkAnimation();
+                        setIsTalkAnimating(true);
+                    }}
+                    onAssistantSpeechEnd={() => {
+                        setIsTalkAnimating(false);
+                    }}
+                />
             </div>
 
             {/* Footer removed */}
