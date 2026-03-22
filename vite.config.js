@@ -14,17 +14,22 @@ const pruneHeavyStaticAssets = () => ({
   async closeBundle() {
     if (!liteDeploy) return
 
-    const targets = [
-      path.resolve(__dirname, 'dist/audio/tts-generated'),
-      path.resolve(__dirname, 'dist/assets/VRoid.vrm'),
-      path.resolve(__dirname, 'dist/gacha_animation (2).mp4'),
-    ]
+    const ttsGeneratedDir = path.resolve(__dirname, 'dist/audio/tts-generated')
+    const gachaVideoPath = path.resolve(__dirname, 'dist/gacha_animation (2).mp4')
 
     if (isCloudflareBuild) {
-      targets.push(path.resolve(__dirname, 'dist/_redirects'))
+      const entries = await fs.readdir(ttsGeneratedDir, { withFileTypes: true }).catch(() => [])
+      await Promise.all(
+        entries
+          .filter((entry) => entry.name !== 'chains')
+          .map((entry) => fs.rm(path.join(ttsGeneratedDir, entry.name), { recursive: true, force: true }))
+      )
+      await fs.rm(path.resolve(__dirname, 'dist/_redirects'), { force: true })
+    } else {
+      await fs.rm(ttsGeneratedDir, { recursive: true, force: true })
     }
 
-    await Promise.all(targets.map((target) => fs.rm(target, { recursive: true, force: true })))
+    await fs.rm(gachaVideoPath, { recursive: true, force: true })
   },
 })
 
@@ -44,10 +49,6 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('@react-three') || id.includes('@pixiv/three-vrm') || id.includes('/three/')) {
-              return 'three-vrm'
-            }
-
             if (id.includes('/firebase/')) {
               return 'firebase'
             }
