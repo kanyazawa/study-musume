@@ -18,6 +18,7 @@ import { ACHIEVEMENTS } from '../data/achievements';
 import { processLoginBonus } from '../utils/loginBonusUtils';
 import { getLastStudyTopic } from '../data/studyData';
 import { getLatestNoaAssistantMessage } from '../utils/chatHistory';
+import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
 
 const Home = ({ stats, updateStats }) => {
     // Default stats if not provided (fallback)
@@ -49,11 +50,13 @@ const Home = ({ stats, updateStats }) => {
     // キャラクターIDに基づいて切り替え (デフォルトは 'noah')
     const characterId = stats.characterId || 'noah';
     const preferredRenderer = stats?.characterRenderer;
+    const hasHomeLive2D = hasLive2DModelConfig(characterId, equippedSkin);
+    const shouldRestoreHomeLive2D = preferredRenderer === 'image' && hasHomeLive2D;
 
     const currentBgStyle = getBackgroundStyle(equippedBackground);
     const homePose = createHomePose({ emotion, text: speech }, { speaking: isTalkAnimating });
     const renderer = resolveCharacterRenderer({
-        preferredRenderer,
+        preferredRenderer: shouldRestoreHomeLive2D ? 'auto' : preferredRenderer,
         characterId,
         skinId: equippedSkin,
     });
@@ -150,6 +153,14 @@ const Home = ({ stats, updateStats }) => {
 
         talk();
     }, [affectionLevelInfo.level]);
+
+    useEffect(() => {
+        if (!shouldRestoreHomeLive2D || !updateStats) {
+            return;
+        }
+
+        updateStats({ characterRenderer: 'auto' });
+    }, [shouldRestoreHomeLive2D, updateStats]);
 
     // Check achievements on mount (for initial achievements like "Welcome!")
     useEffect(() => {
