@@ -5,6 +5,7 @@
 
 import { Capacitor } from '@capacitor/core';
 import { getTtsSettings, TTS_ENGINES } from './ttsSettings';
+import { estimateSpeechDuration } from './lipSync';
 
 const DEFAULT_ENGINE_BASE_URLS = {
     [TTS_ENGINES.AIVIS]: 'http://127.0.0.1:10101',
