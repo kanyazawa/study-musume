@@ -3,8 +3,8 @@ import { loadStats, saveStats } from '../utils/saveUtils';
 import './CharacterSelect.css'; // We will create this CSS
 
 // Images
-import NoahImg from '../assets/images/noah_normal.png'; // Noah Normal
-import RenImg from '../assets/images/character_ren.png'; // Ren
+import NoahImg from '../assets/images/noah_normal.webp'; // Noah Normal
+import RenImg from '../assets/images/character_ren.webp'; // Ren
 
 const CharacterSelect = ({ onComplete }) => {
     const [selectedId, setSelectedId] = useState(null);

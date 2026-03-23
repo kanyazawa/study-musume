@@ -4,7 +4,7 @@ import { getReviewPriority, formatRelativeDate, formatReviewLevel, updateReviewR
 import CharacterStage from './character/CharacterStage';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { useSound } from '../contexts/SoundContext';
-import BgClassroom from '../assets/images/bg_classroom.png';
+import BgClassroom from '../assets/images/bg_classroom.webp';
 import battleChain1Audio from '../assets/audio/chains/battle-chain-1.mp3';
 import battleChain2Audio from '../assets/audio/chains/battle-chain-2.mp3';
 import battleChain3Audio from '../assets/audio/chains/battle-chain-3.mp3';

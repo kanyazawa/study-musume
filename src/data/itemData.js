@@ -203,7 +203,7 @@ export const ALL_ITEMS = [
         emoji: '🧥',
         probability: 2,
         description: 'ノアが普段着ているラフなパーカー姿。',
-        imageName: 'character_casual_v9.png'
+        imageName: 'character_casual_v9.webp'
     },
     {
         id: 'skin_casual_fall',
@@ -213,7 +213,7 @@ export const ALL_ITEMS = [
         emoji: '🍂',
         probability: 2,
         description: '季節感のあるおしゃれな秋コーデ。',
-        imageName: 'noa_casual_fall.png'
+        imageName: 'noa_casual_fall.webp'
     },
     {
         id: 'skin_summer',
@@ -315,7 +315,7 @@ export const ALL_ITEMS = [
         emoji: '🧥',
         probability: 4,
         description: 'グレーのパーカーとジーンズの私服姿。',
-        imageName: 'character_casual_gray_hoodie.jpg'
+        imageName: 'character_casual_gray_hoodie.webp'
     },
     {
         id: 'skin_casual_hoodie',
@@ -325,7 +325,7 @@ export const ALL_ITEMS = [
         emoji: '🧥',
         probability: 4,
         description: '黒いパーカーとジーンズのカジュアルな私服姿。',
-        imageName: 'character_casual_hoodie.png'
+        imageName: 'character_casual_hoodie.webp'
     },
     {
         id: 'skin_gym',
@@ -335,7 +335,7 @@ export const ALL_ITEMS = [
         emoji: '🏃‍♀️',
         probability: 4,
         description: '動きやすい体操服。体育の授業の後かな？',
-        imageName: 'character_gym.jpg'
+        imageName: 'character_gym.webp'
     },
     {
         id: 'skin_yukata',

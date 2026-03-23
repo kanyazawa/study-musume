@@ -41,13 +41,13 @@ import { createHomePose } from '../utils/characterPoseUtils';
 import './MultiplayerMatch.css';
 
 // Background & Character Images
-import BgClassroom from '../assets/images/bg_classroom.png';
-import CharacterMain from '../assets/images/character_new.png';
-import CharacterRen from '../assets/images/character_ren.png';
-import CharacterCasual from '../assets/images/character_casual_v9.png';
-import CharacterGym from '../assets/images/character_gym.jpg';
-import CharacterCasualGray from '../assets/images/character_casual_gray_hoodie.jpg';
-import CharacterCasualBlack from '../assets/images/character_casual_hoodie.png';
+import BgClassroom from '../assets/images/bg_classroom.webp';
+import CharacterMain from '../assets/images/character_new.webp';
+import CharacterRen from '../assets/images/character_ren.webp';
+import CharacterCasual from '../assets/images/character_casual_v9.webp';
+import CharacterGym from '../assets/images/character_gym.webp';
+import CharacterCasualGray from '../assets/images/character_casual_gray_hoodie.webp';
+import CharacterCasualBlack from '../assets/images/character_casual_hoodie.webp';
 import battleChain1Audio from '../assets/audio/chains/battle-chain-1.mp3';
 import battleChain2Audio from '../assets/audio/chains/battle-chain-2.mp3';
 import battleChain3Audio from '../assets/audio/chains/battle-chain-3.mp3';
@@ -523,23 +523,31 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     useEffect(() => {
         const user = getCurrentUser();
         if (!user) {
+            if (isSolo) {
+                setMyUid('guest-local');
+                setMyDisplayName(stats?.name || 'ゲスト');
+                return;
+            }
+
             navigate('/login');
             return;
         }
+
         setMyUid(user.uid);
 
         if (stats?.name) {
             setMyDisplayName(stats.name);
-        } else {
-            getUserProfile(user.uid).then(result => {
-                if (result.success) {
-                    setMyDisplayName(result.data.displayName || user.displayName || 'Player');
-                } else {
-                    setMyDisplayName(user.displayName || 'Player');
-                }
-            });
+            return;
         }
-    }, [navigate, stats?.name]);
+
+        getUserProfile(user.uid).then(result => {
+            if (result.success) {
+                setMyDisplayName(result.data.displayName || user.displayName || 'Player');
+            } else {
+                setMyDisplayName(user.displayName || 'Player');
+            }
+        });
+    }, [isSolo, navigate, stats?.name]);
 
     // ルームデータ更新時
     useEffect(() => {
@@ -880,7 +888,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
 
     // 解答選択
     const handleAnswer = useCallback(async (answer) => {
-        if (selectedAnswer !== null || !roomData || !myUid || showFeedback) return;
+        if (selectedAnswer !== null || !roomData || (!isSolo && !myUid) || showFeedback) return;
 
         const question = roomData.questions[myQuestionIndex];
         const isCorrect = answer === question.correctAnswer;
@@ -921,7 +929,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
 
     // 「わからない」：正解を見せて不正解扱いで次へ
     const handleSkip = useCallback(() => {
-        if (selectedAnswer !== null || !roomData || !myUid) return;
+        if (selectedAnswer !== null || !roomData || (!isSolo && !myUid)) return;
         const question = roomData.questions[myQuestionIndex];
         setCorrectStreak(0);
         clearChainCallout();
@@ -958,7 +966,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
 
     // タイムアップ
     const handleTimeUp = useCallback(() => {
-        if (selectedAnswer !== null || !roomData || !myUid) return;
+        if (selectedAnswer !== null || !roomData || (!isSolo && !myUid)) return;
 
         setCorrectStreak(0);
         clearChainCallout();

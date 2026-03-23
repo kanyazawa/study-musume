@@ -19,12 +19,12 @@ import {
     Radar
 } from 'recharts';
 import './Stats.css';
-import CharacterMain from '../assets/images/character_new.png';
-import CharacterCasual from '../assets/images/character_casual_v9.png';
-import CharacterGym from '../assets/images/character_gym.jpg';
-import CharacterCasualGray from '../assets/images/character_casual_gray_hoodie.jpg';
-import CharacterCasualBlack from '../assets/images/character_casual_hoodie.png';
-import CharacterRen from '../assets/images/character_ren.png';
+import CharacterMain from '../assets/images/character_new.webp';
+import CharacterCasual from '../assets/images/character_casual_v9.webp';
+import CharacterGym from '../assets/images/character_gym.webp';
+import CharacterCasualGray from '../assets/images/character_casual_gray_hoodie.webp';
+import CharacterCasualBlack from '../assets/images/character_casual_hoodie.webp';
+import CharacterRen from '../assets/images/character_ren.webp';
 import { getDailyStats, getUsedSubjects, getDailyAccuracy } from '../utils/studyHistoryUtils';
 import {
     calculateSubjectAccuracy,

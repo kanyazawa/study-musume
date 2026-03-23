@@ -16,7 +16,7 @@
     width: 100%;
     height: 100%;
     /* 学校の背景画像を設定 */
-    background-image: url('../assets/images/bg_classroom.png');
+    background-image: url('../assets/images/bg_classroom.webp');
     background-size: cover;
     background-position: center;
     filter: brightness(0.85);

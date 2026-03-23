@@ -19,7 +19,7 @@ import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { createDialoguePose } from '../utils/characterPoseUtils';
 import { getTtsSettings, TTS_ENGINES } from '../utils/ttsSettings';
 
-import BgClassroom from '../assets/images/bg_classroom.png';
+import BgClassroom from '../assets/images/bg_classroom.webp';
 
 import { useSound } from '../contexts/SoundContext';
 
