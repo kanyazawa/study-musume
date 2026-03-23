@@ -285,20 +285,24 @@ const Home = ({ stats, updateStats }) => {
                 {/* Character Figure */}
                 <div
                     className={`character-figure ${renderer === 'live2d' ? 'is-live2d' : ''}`}
-                    onClick={talk}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === 'Enter' && talk()}
                 >
-                    <CharacterStage
-                        characterId={characterId}
-                        renderer={renderer}
-                        skinId={equippedSkin}
-                        scene="home"
-                        pose={homePose}
-                        className="character-home"
-                        imageClassName={`char-image ${isTalkAnimating ? 'talk-burst' : ''}`}
-                    />
+                    <div
+                        className="character-touch-target"
+                        onClick={talk}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => e.key === 'Enter' && talk()}
+                    >
+                        <CharacterStage
+                            characterId={characterId}
+                            renderer={renderer}
+                            skinId={equippedSkin}
+                            scene="home"
+                            pose={homePose}
+                            className="character-home"
+                            imageClassName={`char-image ${isTalkAnimating ? 'talk-burst' : ''}`}
+                        />
+                    </div>
 
                     {/* Speech Bubble */}
                     <div className="speech-bubble">

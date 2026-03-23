@@ -306,6 +306,15 @@
     height: 100%;
 }
 
+.character-touch-target {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    cursor: pointer;
+}
+
 .char-image {
     height: 90%;
     width: auto;
@@ -314,7 +323,7 @@
     transition: transform 0.1s;
 }
 
-.character-figure:active .char-image {
+.character-touch-target:active .char-image {
     transform: scale(0.98);
 }
 
@@ -338,6 +347,7 @@
     align-items: center;
     justify-content: center;
     animation: slideUp 0.3s ease-out;
+    pointer-events: none;
 }
 
 /* 吹き出しの突起（上向き三角形） */
@@ -646,6 +656,15 @@
     height: 100%;
 }
 
+.character-touch-target {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    cursor: pointer;
+}
+
 .char-image {
     height: 90%;
     width: auto;
@@ -654,7 +673,7 @@
     transition: transform 0.1s;
 }
 
-.character-figure:active .char-image {
+.character-touch-target:active .char-image {
     transform: scale(0.98);
 }
 
@@ -676,6 +695,7 @@
     align-items: center;
     justify-content: center;
     animation: slideUp 0.3s ease-out;
+    pointer-events: none;
 }
 
 .character-figure.is-live2d .speech-bubble {
