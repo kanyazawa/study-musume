@@ -331,6 +331,12 @@ export const speakWithBrowserTts = (text, { pitch = 1.3, rate = 1.0, isMale = fa
     utterance.lang = 'ja-JP';
     utterance.pitch = pitch;
     utterance.rate = rate;
+    const estimatedDurationMs = Math.max(1400, estimateSpeechDuration(text) * 1000);
+    let started = false;
+    let finished = false;
+    let monitorId = null;
+    let fallbackId = null;
+    let startTime = 0;
 
     const voices = window.speechSynthesis.getVoices();
     const jaVoices = voices.filter((voice) => voice.lang.startsWith('ja'));
@@ -352,14 +358,60 @@ export const speakWithBrowserTts = (text, { pitch = 1.3, rate = 1.0, isMale = fa
         utterance.voice = selectedVoice;
     }
 
-    utterance.onstart = () => {
-        onStart?.();
+    const stopMonitoring = () => {
+        if (monitorId) {
+            window.clearInterval(monitorId);
+            monitorId = null;
+        }
+        if (fallbackId) {
+            window.clearTimeout(fallbackId);
+            fallbackId = null;
+        }
     };
-    utterance.onend = () => {
+
+    const finishSpeech = () => {
+        if (finished) return;
+        finished = true;
+        stopMonitoring();
         onEnd?.();
+    };
+
+    const startMonitoring = () => {
+        stopMonitoring();
+
+        monitorId = window.setInterval(() => {
+            if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+                finishSpeech();
+            }
+        }, 120);
+
+        fallbackId = window.setTimeout(() => {
+            finishSpeech();
+        }, estimatedDurationMs + 1200);
+    };
+
+    const handleStart = () => {
+        if (started) return;
+        started = true;
+        startTime = performance.now();
+        onStart?.();
+        startMonitoring();
+    };
+
+    utterance.onstart = handleStart;
+    utterance.onboundary = handleStart;
+    utterance.onend = () => {
+        const elapsedMs = startTime ? performance.now() - startTime : 0;
+        if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+            return;
+        }
+        if (started && elapsedMs < Math.min(estimatedDurationMs * 0.35, 700)) {
+            return;
+        }
+        finishSpeech();
     };
     utterance.onerror = () => {
-        onEnd?.();
+        finishSpeech();
     };
 
     window.speechSynthesis.cancel();
