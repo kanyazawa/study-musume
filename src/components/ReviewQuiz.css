@@ -999,6 +999,7 @@
     margin-top: auto;
     padding: 0;
     padding-bottom: 8px;
+    gap: 12px;
 }
 
 .review-answer-panel {
@@ -1014,6 +1015,9 @@
 .review-quiz-screen .mp-option-btn {
     background: linear-gradient(180deg, rgba(255, 252, 248, 0.98) 0%, rgba(255, 240, 220, 0.98) 100%);
     border-color: rgba(210, 174, 126, 0.6);
+    min-height: 68px;
+    padding: 16px 12px;
+    font-size: 1.08rem;
     box-shadow:
         0 8px 0 rgba(63, 43, 23, 0.16),
         0 16px 28px rgba(0, 0, 0, 0.18),
@@ -1085,5 +1089,16 @@
 
     .review-bottom-area {
         padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
+    }
+
+    .review-options-grid {
+        gap: 10px;
+    }
+
+    .review-quiz-screen .mp-option-btn {
+        min-height: 60px;
+        padding: 12px 10px;
+        font-size: 0.96rem;
+        border-radius: 18px;
     }
 }
