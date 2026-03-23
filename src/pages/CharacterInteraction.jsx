@@ -13,6 +13,7 @@ import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { getBackgroundStyle, getOwnedSkins, getOwnedBackgrounds } from '../utils/cosmeticUtils';
 import { createGiftPose, normalizeCharacterEmotion } from '../utils/characterPoseUtils';
 import { filterInventoryByType, removeFromInventory } from '../utils/itemUtils';
+import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
 
 const CharacterInteraction = ({ stats, updateStats }) => {
     const navigate = useNavigate();
@@ -45,8 +46,10 @@ const CharacterInteraction = ({ stats, updateStats }) => {
     const characterId = stats.characterId || 'noah';
     const currentBgStyle = getBackgroundStyle(stats.equippedBackground);
     const preferredRenderer = stats?.characterRenderer;
+    const hasInteractionLive2D = hasLive2DModelConfig(characterId, stats.equippedSkin || 'default');
+    const shouldForceInteractionLive2D = characterId === 'noah' && hasInteractionLive2D;
     const renderer = resolveCharacterRenderer({
-        preferredRenderer,
+        preferredRenderer: shouldForceInteractionLive2D ? 'live2d' : preferredRenderer,
         characterId,
         skinId: stats.equippedSkin || 'default',
     });
@@ -70,7 +73,16 @@ const CharacterInteraction = ({ stats, updateStats }) => {
         }
 
         setIsChatSpeaking(false);
+        setChatSpeechText('');
     }, [mode]);
+
+    useEffect(() => {
+        if (!shouldForceInteractionLive2D || !updateStats || preferredRenderer === 'live2d') {
+            return;
+        }
+
+        updateStats({ characterRenderer: 'live2d' });
+    }, [preferredRenderer, shouldForceInteractionLive2D, updateStats]);
 
     // Filter Gifts
     const giftItems = filterInventoryByType(stats.inventory, 'gift');
