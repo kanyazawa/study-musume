@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import './LoadingScreen.css';
 
 // Import local images directly
-import imgSleepy from '../../assets/images/loading/loading_sleepy.png';
-import imgSnack from '../../assets/images/loading/loading_snack.png';
-import imgPanic from '../../assets/images/loading/loading_panic.png';
-import imgOverload from '../../assets/images/loading/loading_overload.png';
+import imgSleepy from '../../assets/images/loading/loading_sleepy.webp';
+import imgSnack from '../../assets/images/loading/loading_snack.webp';
+import imgPanic from '../../assets/images/loading/loading_panic.webp';
+import imgOverload from '../../assets/images/loading/loading_overload.webp';
 
 const IMAGES = [
     { src: imgSleepy, alt: "ねむい..." },
