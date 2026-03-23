@@ -51,12 +51,12 @@ const Home = ({ stats, updateStats }) => {
     const characterId = stats.characterId || 'noah';
     const preferredRenderer = stats?.characterRenderer;
     const hasHomeLive2D = hasLive2DModelConfig(characterId, equippedSkin);
-    const shouldRestoreHomeLive2D = preferredRenderer === 'image' && hasHomeLive2D;
+    const shouldForceHomeLive2D = characterId === 'noah' && hasHomeLive2D;
 
     const currentBgStyle = getBackgroundStyle(equippedBackground);
     const homePose = createHomePose({ emotion, text: speech }, { speaking: isTalkAnimating });
     const renderer = resolveCharacterRenderer({
-        preferredRenderer: shouldRestoreHomeLive2D ? 'auto' : preferredRenderer,
+        preferredRenderer: shouldForceHomeLive2D ? 'live2d' : preferredRenderer,
         characterId,
         skinId: equippedSkin,
     });
@@ -155,12 +155,12 @@ const Home = ({ stats, updateStats }) => {
     }, [affectionLevelInfo.level]);
 
     useEffect(() => {
-        if (!shouldRestoreHomeLive2D || !updateStats) {
+        if (!shouldForceHomeLive2D || !updateStats || preferredRenderer === 'live2d') {
             return;
         }
 
-        updateStats({ characterRenderer: 'auto' });
-    }, [shouldRestoreHomeLive2D, updateStats]);
+        updateStats({ characterRenderer: 'live2d' });
+    }, [preferredRenderer, shouldForceHomeLive2D, updateStats]);
 
     // Check achievements on mount (for initial achievements like "Welcome!")
     useEffect(() => {
