@@ -1,14 +1,25 @@
-import React, { useState } from 'react';
-import { updateReviewResult } from '../utils/reviewUtils';
-import CharacterReview from '../assets/images/character_review_noah.png';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronLeft, Clock3, Flame, Target } from 'lucide-react';
+import { getReviewPriority, formatRelativeDate, formatReviewLevel, updateReviewResult } from '../utils/reviewUtils';
+import CharacterStage from './character/CharacterStage';
+import { resolveCharacterRenderer } from '../utils/characterRenderer';
+import { useSound } from '../contexts/SoundContext';
 import BgClassroom from '../assets/images/bg_classroom.png';
+import battleChain1Audio from '../assets/audio/chains/battle-chain-1.mp3';
+import battleChain2Audio from '../assets/audio/chains/battle-chain-2.mp3';
+import battleChain3Audio from '../assets/audio/chains/battle-chain-3.mp3';
+import battleChain4Audio from '../assets/audio/chains/battle-chain-4.mp3';
+import battleChain5Audio from '../assets/audio/chains/battle-chain-5.mp3';
+import '../pages/MultiplayerMatch.css';
 import './ReviewQuiz.css';
 
 /**
  * ReviewQuiz Component
  * 復習用のクイズコンポーネント
  */
-const ReviewQuiz = ({ questions, onComplete }) => {
+const ReviewQuiz = ({ questions, stats, onComplete }) => {
+    const { isMuted, playSE } = useSound();
+    const [sessionQuestions, setSessionQuestions] = useState(() => questions);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
     const [feedback, setFeedback] = useState(null); // 'correct' | 'incorrect'
@@ -16,12 +27,136 @@ const ReviewQuiz = ({ questions, onComplete }) => {
     const [isCompleted, setIsCompleted] = useState(false);
     const [inputValue, setInputValue] = useState('');
     const [showNextButton, setShowNextButton] = useState(false);
+    const [correctStreak, setCorrectStreak] = useState(0);
+    const chainAudioCacheRef = useRef({});
+    const audioContextRef = useRef(null);
 
-    const currentQuestion = questions[currentIndex];
-    const progress = ((currentIndex + 1) / questions.length) * 100;
+    const currentQuestion = sessionQuestions[currentIndex];
+    const accuracy = results.length ? Math.round((results.filter((result) => result.isCorrect).length / results.length) * 100) : 100;
+    const priority = getReviewPriority(currentQuestion.nextReviewDate);
+    const priorityLabel = {
+        urgent: '今すぐ復習',
+        soon: '近日中',
+        later: '余裕あり'
+    }[priority];
+    const sceneMood = feedback
+        ? feedback === 'correct'
+            ? 'success'
+            : 'mistake'
+        : currentQuestion.wrongCount >= 3
+            ? 'focus'
+            : priority === 'urgent'
+                ? 'urgent'
+                : 'calm';
+    const characterId = stats?.characterId || 'noah';
+    const skinId = stats?.equippedSkin || 'default';
+    const renderer = resolveCharacterRenderer({
+        preferredRenderer: stats?.characterRenderer,
+        characterId,
+        skinId,
+    });
+    const poseEmotion = feedback
+        ? feedback === 'correct'
+            ? 'happy'
+            : 'angry'
+        : currentQuestion.wrongCount >= 3
+            ? 'serious'
+            : priority === 'urgent'
+                ? 'surprised'
+                : 'relaxed';
+    const characterPose = {
+        emotion: poseEmotion,
+        expression: poseEmotion,
+        intensity: feedback
+            ? feedback === 'correct' ? 0.96 : 0.84
+            : currentQuestion.wrongCount >= 3 ? 0.76 : priority === 'urgent' ? 0.68 : 0.48,
+        motion: feedback === 'correct'
+            ? 'talk_soft'
+            : feedback === 'incorrect'
+                ? 'present_accept'
+                : priority === 'urgent'
+                    ? 'talk'
+                    : 'idle_home',
+        idle: 'gentle',
+        gaze: 'camera',
+        speaking: false,
+        text: '',
+        effect: feedback === 'correct' ? 'glow' : feedback === 'incorrect' ? 'shake' : '',
+    };
+    const getChainAudioSrc = useCallback((streak) => {
+        if (streak <= 1) return battleChain1Audio;
+        if (streak === 2) return battleChain2Audio;
+        if (streak === 3) return battleChain3Audio;
+        if (streak === 4) return battleChain4Audio;
+        return battleChain5Audio;
+    }, []);
+
+    useEffect(() => {
+        const sources = [1, 2, 3, 4, 5].map(getChainAudioSrc);
+        const uniqueSources = [...new Set(sources)];
+        uniqueSources.forEach((src) => {
+            if (!chainAudioCacheRef.current[src]) {
+                const audio = new Audio(src);
+                audio.preload = 'auto';
+                audio.load();
+                chainAudioCacheRef.current[src] = audio;
+            }
+        });
+    }, [getChainAudioSrc]);
+
+    const playUiTone = useCallback((frequency, durationMs, { type = 'sine', gain = 0.03, delayMs = 0 } = {}) => {
+        if (isMuted || typeof window === 'undefined') return;
+
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+
+        if (!audioContextRef.current) {
+            audioContextRef.current = new AudioContextClass();
+        }
+
+        const audioContext = audioContextRef.current;
+        if (!audioContext) return;
+
+        if (audioContext.state === 'suspended') {
+            audioContext.resume().catch(() => { });
+        }
+
+        const now = audioContext.currentTime + (delayMs / 1000);
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(frequency, now);
+        gainNode.gain.setValueAtTime(0.0001, now);
+        gainNode.gain.exponentialRampToValueAtTime(gain, now + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + (durationMs / 1000));
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        oscillator.start(now);
+        oscillator.stop(now + (durationMs / 1000) + 0.02);
+    }, [isMuted]);
+
+    const playChainVoiceClip = useCallback((streak) => {
+        if (isMuted || typeof window === 'undefined') return;
+
+        const voiceSrc = getChainAudioSrc(streak);
+        if (!voiceSrc) return;
+
+        let audio = chainAudioCacheRef.current[voiceSrc];
+        if (audio) {
+            audio.currentTime = 0;
+        } else {
+            audio = new window.Audio(voiceSrc);
+            chainAudioCacheRef.current[voiceSrc] = audio;
+        }
+
+        audio.volume = 0.75;
+        audio.play().catch(() => { });
+    }, [getChainAudioSrc, isMuted]);
 
     const handleNextQuestion = () => {
-        if (currentIndex + 1 < questions.length) {
+        if (currentIndex + 1 < sessionQuestions.length) {
             // Next question
             setCurrentIndex(prev => prev + 1);
             setSelectedAnswer(null);
@@ -53,6 +188,22 @@ const ReviewQuiz = ({ questions, onComplete }) => {
         }]);
 
         setFeedback(isCorrect ? 'correct' : 'incorrect');
+        setCorrectStreak((prev) => {
+            const nextStreak = isCorrect ? prev + 1 : 0;
+
+            if (isCorrect) {
+                playSE('se_correct');
+                playUiTone(880, 170, { type: 'sine', gain: 0.028 });
+                if (nextStreak >= 2) {
+                    playChainVoiceClip(Math.min(nextStreak, 5));
+                }
+            } else {
+                playUiTone(182, 180, { type: 'sawtooth', gain: 0.022 });
+                playUiTone(146, 240, { type: 'triangle', gain: 0.016, delayMs: 80 });
+            }
+
+            return nextStreak;
+        });
 
         // If it's a simple review (no options), show next button instead of auto-advance for incorrect answers
         // so user can see the correct answer
@@ -83,12 +234,34 @@ const ReviewQuiz = ({ questions, onComplete }) => {
         // Wait, handleAnswerSelect compares `answer === currentQuestion.correctAnswer`.
 
         // If user input matches, call with correctAnswer. If not, call with input value.
-        handleAnswerSelect(isCorrect ? currentQuestion.correctAnswer : inputValue);
+        handleAnswerSelect(isCorrect ? currentQuestion.correctAnswer : inputValue.trim());
     };
 
     const correctCount = results.filter(r => r.isCorrect).length;
+    const incorrectRetryQuestions = useMemo(() => {
+        const wrongIds = new Set(results.filter((result) => !result.isCorrect).map((result) => result.questionId));
+        return sessionQuestions.filter((question) => wrongIds.has(question.id));
+    }, [results, sessionQuestions]);
+
+    const restartQuiz = (nextQuestions) => {
+        setSessionQuestions(nextQuestions);
+        setCurrentIndex(0);
+        setSelectedAnswer(null);
+        setFeedback(null);
+        setResults([]);
+        setIsCompleted(false);
+        setInputValue('');
+        setShowNextButton(false);
+        setCorrectStreak(0);
+    };
 
     if (isCompleted) {
+        const completionCoachMessage = correctCount === results.length
+            ? '完璧。今日はかなり仕上がってるよ。'
+            : correctCount >= results.length / 2
+                ? 'いい復習だったね。苦手がちゃんと見えてきたよ。'
+                : '今日は土台づくりの日。次の一周でかなり変わるよ。';
+
         return (
             <div className="review-quiz completion-screen">
                 <div className="completion-content">
@@ -110,6 +283,15 @@ const ReviewQuiz = ({ questions, onComplete }) => {
                             correctCount >= results.length / 2 ? 'よく頑張りました！' :
                                 '次はもっと頑張りましょう！'}
                     </p>
+                    <p className="completion-coach-message">{completionCoachMessage}</p>
+                    {incorrectRetryQuestions.length > 0 && (
+                        <button
+                            className="retry-incorrect-btn"
+                            onClick={() => restartQuiz(incorrectRetryQuestions)}
+                        >
+                            間違えた {incorrectRetryQuestions.length} 問だけもう一度
+                        </button>
+                    )}
                     <button className="finish-btn" onClick={() => onComplete(results)}>
                         復習リストに戻る
                     </button>
@@ -119,112 +301,153 @@ const ReviewQuiz = ({ questions, onComplete }) => {
     }
 
     return (
-        <div className="review-quiz-scene">
-            {/* Background */}
+        <div className={`mp-screen mp-playing-screen review-quiz-screen review-mood-${sceneMood}`}>
             <div
-                className="room-background"
-                style={{ backgroundImage: `url(${BgClassroom})` }}
-            ></div>
+                className="mp-background"
+                style={{ backgroundImage: `url(${BgClassroom})`, opacity: 0.72 }}
+            />
 
-            {/* Character */}
-            <div className="character-figure">
-                <img
-                    src={CharacterReview}
-                    alt="Character"
-                    className="char-image-dialogue"
+            <div className="review-topbar review-topbar-plain">
+                <button className="quiz-back-btn" onClick={() => onComplete(results)}>
+                    <ChevronLeft size={18} />
+                    戻る
+                </button>
+            </div>
+
+            <div className={`mp-character-area ${renderer === 'live2d' ? 'is-live2d' : ''}`}>
+                <CharacterStage
+                    characterId={characterId}
+                    renderer={renderer}
+                    skinId={skinId}
+                    scene="review"
+                    pose={characterPose}
+                    className="character-match review-character-stage"
+                    imageClassName="mp-center-character"
+                    alt="Review Character"
                 />
             </div>
 
-            {/* Feedback Overlay */}
-            {feedback && (
-                <div className={`feedback-overlay ${feedback}`}>
-                    {feedback === 'correct' ? '⭕ 正解！' : '❌ 残念...'}
-                </div>
-            )}
-
-            {/* Dialogue Box (Quiz Area) */}
-            <div className="dialogue-box review-box">
-                <div className="name-tag">
-                    Review Quiz ({currentIndex + 1} / {questions.length})
-                </div>
-
-                <div className="dialogue-content-area">
-                    <div className="quiz-subject-tag">{currentQuestion.subject}</div>
-                    <div className="quiz-question-text">
-                        {currentQuestion.questionText}
+            <div className="mp-playing-content-wrapper review-playing-content">
+                <div className="mp-question-container review-question-container">
+                    <div className="mp-question-meta-row">
+                        <div className="mp-question-pill mp-question-pill-primary">
+                            第{currentIndex + 1}問
+                        </div>
+                        <div className="mp-question-pill">
+                            あと {Math.max(sessionQuestions.length - currentIndex - 1, 0)} 問
+                        </div>
+                        <div className="mp-question-pill mp-question-pill-neutral">
+                            <Target size={14} />
+                            正答率 {accuracy}%
+                        </div>
+                        <div className="mp-question-pill">
+                            <Clock3 size={14} />
+                            {priorityLabel}
+                        </div>
+                        <div className="mp-question-pill">
+                            {formatReviewLevel(currentQuestion.reviewLevel)}
+                        </div>
+                        <div className="mp-question-pill">
+                            <Flame size={14} />
+                            ミス {currentQuestion.wrongCount}回
+                        </div>
                     </div>
 
-                    {/* Answer Area */}
-                    <div className="quiz-options-container">
-                        {currentQuestion.options ? (
-                            /* Option Buttons */
-                            currentQuestion.options.map((option, index) => (
-                                <button
-                                    key={index}
-                                    className={`quiz-btn ${selectedAnswer === option ? 'selected' : ''
-                                        } ${feedback && option === currentQuestion.correctAnswer
-                                            ? 'correct-answer'
-                                            : ''
-                                        } ${feedback && selectedAnswer === option && !feedback.includes('correct')
-                                            ? 'wrong-answer'
-                                            : ''
-                                        }`}
-                                    onClick={() => handleAnswerSelect(option)}
-                                    disabled={feedback !== null}
-                                >
-                                    {index + 1}. {option}
-                                </button>
-                            ))
-                        ) : (
-                            /* Input Form for No Options */
-                            <div className="review-answer-input-container">
-                                {!feedback ? (
-                                    <form onSubmit={handleInputSubmit} className="quiz-input-form">
-                                        <input
-                                            type="text"
-                                            className="quiz-input-field"
-                                            value={inputValue}
-                                            onChange={(e) => setInputValue(e.target.value)}
-                                            placeholder="答えを入力してね"
-                                            autoFocus
-                                        />
-                                        <button type="submit" className="quiz-submit-btn" disabled={!inputValue.trim()}>
-                                            回答する
+                    <div className="mp-question-card review-question-card">
+                        <div className="review-question-subject">{currentQuestion.subject}</div>
+                        <div className="mp-question-word review-question-word">
+                            {currentQuestion.questionText}
+                        </div>
+                        <p className="mp-question-hint review-question-hint">
+                            {currentQuestion.options ? '正しい答えを選ぼう' : '答えを入力しよう'}
+                        </p>
+                        <div className="review-question-subhint">
+                            復習期限: {formatRelativeDate(currentQuestion.nextReviewDate)}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mp-bottom-area review-bottom-area">
+                    {currentQuestion.options ? (
+                        <>
+                            <div className="mp-options-grid review-options-grid">
+                                {currentQuestion.options.map((option, index) => {
+                                    let btnClass = 'mp-option-btn';
+                                    if (feedback) {
+                                        if (option === currentQuestion.correctAnswer) {
+                                            btnClass += ' mp-option-correct';
+                                        } else if (option === selectedAnswer && option !== currentQuestion.correctAnswer) {
+                                            btnClass += ' mp-option-wrong';
+                                        } else {
+                                            btnClass += ' mp-option-disabled';
+                                        }
+                                    }
+
+                                    return (
+                                        <button
+                                            key={index}
+                                            className={btnClass}
+                                            onClick={() => handleAnswerSelect(option)}
+                                            disabled={feedback !== null}
+                                        >
+                                            <span className="mp-option-text">{option}</span>
                                         </button>
-                                    </form>
-                                ) : (
-                                    <div className="review-answer-result">
-                                        <div className="answer-reveal">
-                                            <span className="label">正解:</span> {currentQuestion.correctAnswer}
-                                        </div>
-                                        <div className="user-answer-display">
-                                            <span className="label">あなたの回答:</span> {selectedAnswer}
-                                        </div>
-                                        {showNextButton && (
-                                            <button
-                                                className="quiz-next-btn"
-                                                onClick={handleNextQuestion}
-                                            >
-                                                次へ進む ➡
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
+                                    );
+                                })}
                             </div>
-                        )}
-                    </div>
+                            {feedback === 'incorrect' && (
+                                <div className="mp-feedback-center">
+                                    <div className="mp-feedback-card mp-fc-wrong">
+                                        <h2>❌</h2>
+                                        <p>正解: {currentQuestion.correctAnswer}</p>
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        <div className="review-answer-panel">
+                            {!feedback ? (
+                                <form onSubmit={handleInputSubmit} className="quiz-input-form">
+                                    <input
+                                        type="text"
+                                        className="quiz-input-field"
+                                        value={inputValue}
+                                        onChange={(e) => setInputValue(e.target.value)}
+                                        placeholder="答えを入力してね"
+                                        autoFocus
+                                    />
+                                    <button type="submit" className="quiz-submit-btn" disabled={!inputValue.trim()}>
+                                        回答する
+                                    </button>
+                                </form>
+                            ) : (
+                                <div className="review-answer-result">
+                                    <div className="answer-reveal">
+                                        <span className="label">正解:</span> {currentQuestion.correctAnswer}
+                                    </div>
+                                    <div className="user-answer-display">
+                                        <span className="label">あなたの回答:</span> {selectedAnswer}
+                                    </div>
+                                    {currentQuestion.userAnswer && (
+                                        <div className="past-answer-display">
+                                            <span className="label">前回の回答:</span> {currentQuestion.userAnswer}
+                                        </div>
+                                    )}
+                                    {showNextButton && (
+                                        <button
+                                            className="quiz-next-btn"
+                                            onClick={handleNextQuestion}
+                                        >
+                                            次へ進む
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
-            </div>
-
-            {/* Progress Bar (Integrated into box or top?) Let's put it at top of box */}
-            <div className="box-progress-bar">
-                <div
-                    className="box-progress-fill"
-                    style={{ width: `${progress}%` }}
-                />
             </div>
         </div>
-
     );
 };
 
