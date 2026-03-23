@@ -19,8 +19,11 @@ const LIVE2D_MODEL_REGISTRY = {
             },
             expressionMap: {
                 angry: 'sq',
+                happy: 'x',
+                smile: 'x',
                 sad: 'ku',
                 serious: 'h',
+                shy: 'x',
                 surprised: 'xx',
             },
             sourceLabel: 'Free Witch Prototype',
