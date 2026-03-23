@@ -17,7 +17,7 @@ const CLOUDFLARE_CHAT_ENDPOINT = 'https://study-musume.hide20080422.workers.dev/
 
 const getChatEndpoints = () => {
     if (typeof window === 'undefined') {
-        return [CLOUDFLARE_CHAT_ENDPOINT];
+        return ['/api/chat', CLOUDFLARE_CHAT_ENDPOINT];
     }
 
     const hostname = window.location.hostname || '';
@@ -25,11 +25,15 @@ const getChatEndpoints = () => {
         return ['/api/chat', '/.netlify/functions/chat', CLOUDFLARE_CHAT_ENDPOINT];
     }
 
+    if (hostname.endsWith('.netlify.app') || hostname.endsWith('.netlify.live')) {
+        return ['/.netlify/functions/chat', '/api/chat', CLOUDFLARE_CHAT_ENDPOINT];
+    }
+
     if (hostname.endsWith('.workers.dev')) {
         return ['/api/chat', CLOUDFLARE_CHAT_ENDPOINT];
     }
 
-    return [CLOUDFLARE_CHAT_ENDPOINT];
+    return ['/api/chat', CLOUDFLARE_CHAT_ENDPOINT];
 };
 
 const clipText = (value, maxLength = MAX_INPUT_LENGTH) => String(value || '').trim().slice(0, maxLength);
