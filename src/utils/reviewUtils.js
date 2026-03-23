@@ -165,6 +165,81 @@ export const getReviewPriority = (nextReviewDate) => {
     return 'later';                          // それ以降
 };
 
+/**
+ * 復習問題の優先スコアを計算
+ * 期限切れ・間違い回数・復習レベルの低さを優先する
+ * @param {Object} question - 復習問題
+ * @returns {number}
+ */
+export const getReviewUrgencyScore = (question) => {
+    const now = Date.now();
+    const overdueDays = Math.max(0, Math.floor((now - question.nextReviewDate) / (24 * 60 * 60 * 1000)));
+    const priorityWeight = {
+        urgent: 300,
+        soon: 160,
+        later: 40
+    }[getReviewPriority(question.nextReviewDate)] || 0;
+
+    return (
+        priorityWeight +
+        (overdueDays * 40) +
+        ((question.wrongCount || 0) * 18) +
+        (Math.max(0, 5 - (question.reviewLevel || 0)) * 12)
+    );
+};
+
+/**
+ * 復習向けに問題を並び替える
+ * @param {Array} questions - 問題リスト
+ * @returns {Array}
+ */
+export const sortReviewQuestions = (questions) => {
+    return [...questions].sort((a, b) => {
+        const scoreDiff = getReviewUrgencyScore(b) - getReviewUrgencyScore(a);
+        if (scoreDiff !== 0) return scoreDiff;
+
+        const dateDiff = a.nextReviewDate - b.nextReviewDate;
+        if (dateDiff !== 0) return dateDiff;
+
+        return (b.wrongCount || 0) - (a.wrongCount || 0);
+    });
+};
+
+/**
+ * 同じ科目が連続しすぎないように復習セッション順を作る
+ * 優先度を保ちつつ、可能なら科目を交互に出す
+ * @param {Array} questions - 問題リスト
+ * @returns {Array}
+ */
+export const buildReviewSessionOrder = (questions) => {
+    const sorted = sortReviewQuestions(questions);
+    const groups = sorted.reduce((acc, question) => {
+        if (!acc[question.subject]) acc[question.subject] = [];
+        acc[question.subject].push(question);
+        return acc;
+    }, {});
+
+    const ordered = [];
+    let lastSubject = null;
+
+    while (ordered.length < sorted.length) {
+        const candidateSubjects = Object.keys(groups)
+            .filter((subject) => groups[subject].length > 0)
+            .sort((a, b) => getReviewUrgencyScore(groups[b][0]) - getReviewUrgencyScore(groups[a][0]));
+
+        const nextSubject =
+            candidateSubjects.find((subject) => subject !== lastSubject) ||
+            candidateSubjects[0];
+
+        if (!nextSubject) break;
+
+        ordered.push(groups[nextSubject].shift());
+        lastSubject = nextSubject;
+    }
+
+    return ordered;
+};
+
 // ============================================
 // フィルタリング
 // ============================================

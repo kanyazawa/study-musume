@@ -26,6 +26,9 @@ const FALLBACK_MOUTH_PARAM_NAMES = ['ParamMouthOpenY'];
 const FALLBACK_MOUTH_FORM_PARAM_NAMES = ['ParamMouthForm'];
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
+const getPoseEmotionKey = (pose = {}) =>
+    String(pose.emotion || pose.expression || 'normal').trim().toLowerCase();
+
 const getEmotionAnimationProfile = (pose = {}) => {
     const emotion = String(pose.emotion || pose.expression || 'normal').toLowerCase();
     const intensity = clamp(typeof pose.intensity === 'number' ? pose.intensity : 0.5, 0, 1);
@@ -182,6 +185,47 @@ const setParameterValues = (model, parameterIds, value) => {
     });
 };
 
+const getActiveTyranoModel = (manager, modelName) => {
+    const activeManager = manager || window.__tyranolive2d_manager_instance__;
+    const activeModelMeta = activeManager?.models?.[modelName];
+    const live2dManager = activeManager?.lappdelegate?.lapplive2dmanager;
+    const modelIndex = typeof activeModelMeta?.index === 'number'
+        ? activeModelMeta.index
+        : null;
+    const modelsContainer = live2dManager?._models;
+    const fallbackIndex = Math.max(0, getVectorSize(modelsContainer) - 1);
+
+    if (modelIndex !== null && typeof live2dManager?.getModel === 'function') {
+        return live2dManager.getModel(modelIndex);
+    }
+
+    return getVectorItem(modelsContainer, fallbackIndex);
+};
+
+const clearActiveExpression = (model) => {
+    if (!model?._expressionManager) {
+        return;
+    }
+
+    try {
+        if (typeof model._expressionManager.stopAllMotions === 'function') {
+            model._expressionManager.stopAllMotions();
+        }
+    } catch {
+        // Ignore prototype runtime expression reset failures.
+    }
+};
+
+const resolveMappedExpression = (modelConfig, pose = {}) => {
+    const expressionMap = modelConfig?.expressionMap;
+    if (!expressionMap) {
+        return '';
+    }
+
+    const emotionKey = getPoseEmotionKey(pose);
+    return expressionMap[emotionKey] || '';
+};
+
 const createTyranoModelParams = ({ characterId, skinId, modelConfig, onFinishLoad }) => ({
     name: `prototype_${characterId}_${skinId}`.replace(/[^a-zA-Z0-9_]/g, '_'),
     model_id: modelConfig.modelName || modelConfig.modelId || characterId,
@@ -209,6 +253,7 @@ const Live2DViewer = ({
     const readyTimerRef = useRef(null);
     const lipSyncRef = useRef({ timeline: [], startedAt: 0, totalDuration: 0 });
     const animationStateRef = useRef({ mouthValue: 0, mouthFormValue: 0 });
+    const appliedExpressionRef = useRef('');
     const poseRef = useRef(pose);
     const modelConfigRef = React.useRef(null);
     modelConfigRef.current = getLive2DModelConfig(characterId, skinId);
@@ -351,6 +396,7 @@ const Live2DViewer = ({
 
             managerRef.current = null;
             modelNameRef.current = '';
+            appliedExpressionRef.current = '';
             window.clearTimeout(readyTimerRef.current);
             destroyTyranoManager();
         };
@@ -406,6 +452,65 @@ const Live2DViewer = ({
         };
     }, [pose?.speaking, pose?.text]);
 
+    useEffect(() => {
+        if (status !== 'ready' || modelConfig?.runtime !== TYRANO_RUNTIME) {
+            return undefined;
+        }
+
+        let cancelled = false;
+
+        const applyExpression = () => {
+            if (cancelled) {
+                return true;
+            }
+
+            const manager = managerRef.current || window.__tyranolive2d_manager_instance__;
+            const modelName = modelNameRef.current;
+            if (!manager || !modelName) {
+                return false;
+            }
+
+            const model = getActiveTyranoModel(manager, modelName);
+            if (!model) {
+                return false;
+            }
+
+            const nextExpression = resolveMappedExpression(modelConfig, poseRef.current);
+            if (appliedExpressionRef.current === nextExpression) {
+                return true;
+            }
+
+            if (!nextExpression) {
+                clearActiveExpression(model);
+                appliedExpressionRef.current = '';
+                return true;
+            }
+
+            if (typeof manager.setExpression === 'function') {
+                manager.setExpression(modelName, nextExpression);
+                appliedExpressionRef.current = nextExpression;
+                return true;
+            }
+
+            return false;
+        };
+
+        if (applyExpression()) {
+            return undefined;
+        }
+
+        const retryId = window.setInterval(() => {
+            if (applyExpression()) {
+                window.clearInterval(retryId);
+            }
+        }, 250);
+
+        return () => {
+            cancelled = true;
+            window.clearInterval(retryId);
+        };
+    }, [status, modelConfig, pose?.emotion, pose?.expression]);
+
     // リップシンク・まばたきを Live2D の内部レンダリングループに同期して適用する
     useEffect(() => {
         if (status !== 'ready' || modelConfig?.runtime !== TYRANO_RUNTIME) {
@@ -454,16 +559,7 @@ const Live2DViewer = ({
             try {
                 const activeManager = managerRef.current || window.__tyranolive2d_manager_instance__;
                 const activeModelName = modelNameRef.current;
-                const activeModelMeta = activeManager?.models?.[activeModelName];
-                const live2dManager = activeManager?.lappdelegate?.lapplive2dmanager;
-                const modelIndex = typeof activeModelMeta?.index === 'number'
-                    ? activeModelMeta.index
-                    : null;
-                const modelsContainer = live2dManager?._models;
-                const fallbackIndex = Math.max(0, getVectorSize(modelsContainer) - 1);
-                const lappModel = modelIndex !== null && typeof live2dManager?.getModel === 'function'
-                    ? live2dManager.getModel(modelIndex)
-                    : getVectorItem(modelsContainer, fallbackIndex);
+                const lappModel = getActiveTyranoModel(activeManager, activeModelName);
                 const cubismModel = lappModel?._model;
 
                 if (lappModel && cubismModel && typeof lappModel.update === 'function') {

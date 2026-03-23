@@ -17,6 +17,12 @@ const LIVE2D_MODEL_REGISTRY = {
                 y: -0.8,
                 scale: 8.5,
             },
+            expressionMap: {
+                angry: 'sq',
+                sad: 'ku',
+                serious: 'h',
+                surprised: 'xx',
+            },
             sourceLabel: 'Free Witch Prototype',
         },
     },
