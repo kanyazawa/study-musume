@@ -234,8 +234,8 @@ const NoaChatBox = ({
         setIsSpeaking(true);
         try {
             await speakReplyWithSettings(text, {
-                onStart: onAssistantSpeechStart,
-                onEnd: onAssistantSpeechEnd,
+                onStart: () => onAssistantSpeechStart?.(text),
+                onEnd: () => onAssistantSpeechEnd?.(text),
             });
         } finally {
             setIsSpeaking(false);
@@ -273,8 +273,8 @@ const NoaChatBox = ({
                 setIsSpeaking(true);
                 try {
                     await speakReplyWithSettings(assistantMessage.content, {
-                        onStart: onAssistantSpeechStart,
-                        onEnd: onAssistantSpeechEnd,
+                        onStart: () => onAssistantSpeechStart?.(assistantMessage.content),
+                        onEnd: () => onAssistantSpeechEnd?.(assistantMessage.content),
                     });
                 } finally {
                     setIsSpeaking(false);

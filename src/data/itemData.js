@@ -1,6 +1,6 @@
 // アイテムのマスターデータ
-import bgLibrary from '../assets/images/bg_library.png';
-import bgCafe from '../assets/images/bg_cafe.png';
+import bgLibrary from '../assets/images/bg_library.webp';
+import bgCafe from '../assets/images/bg_cafe.webp';
 
 export const ALL_ITEMS = [
     // === プレゼントアイテム（SSR） ===

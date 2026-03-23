@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Shirt, Image as ImageIcon, Gift, MessageCircle } from 'lucide-react';
 import './CharacterInteraction.css';
@@ -20,6 +20,8 @@ const CharacterInteraction = ({ stats, updateStats }) => {
     const [expression, setExpression] = useState('normal'); // normal, smile
     const [showCharSelect, setShowCharSelect] = useState(false);
     const [giftReaction, setGiftReaction] = useState(null);
+    const [chatSpeechText, setChatSpeechText] = useState('');
+    const [isChatSpeaking, setIsChatSpeaking] = useState(false);
 
     const handleCharSelectComplete = (newStats) => {
         if (updateStats) {
@@ -57,10 +59,18 @@ const CharacterInteraction = ({ stats, updateStats }) => {
             motion: null,
             idle: 'gentle',
             gaze: 'camera',
-            speaking: false,
-            text: '',
+            speaking: isChatSpeaking,
+            text: chatSpeechText,
             effect: '',
         };
+
+    useEffect(() => {
+        if (mode === 'chat') {
+            return;
+        }
+
+        setIsChatSpeaking(false);
+    }, [mode]);
 
     // Filter Gifts
     const giftItems = filterInventoryByType(stats.inventory, 'gift');
@@ -192,6 +202,17 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                         <NoaChatBox
                             stats={stats}
                             embedded
+                            autoSpeakAssistant
+                            onAssistantReply={(replyText) => {
+                                setChatSpeechText(String(replyText || '').trim());
+                            }}
+                            onAssistantSpeechStart={(replyText) => {
+                                setChatSpeechText(String(replyText || '').trim());
+                                setIsChatSpeaking(true);
+                            }}
+                            onAssistantSpeechEnd={() => {
+                                setIsChatSpeaking(false);
+                            }}
                             onClose={() => setMode('main')}
                         />
                     </div>
