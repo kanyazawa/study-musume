@@ -2,7 +2,6 @@ name = "study-musume"
 main = "./worker/index.js"
 compatibility_date = "2026-03-20"
 workers_dev = true
-pages_build_output_dir = "./dist"
 
 [assets]
 directory = "./dist"

@@ -2,6 +2,7 @@
 
 `study-musume.pages.dev` is safest to deploy from a clean export of `HEAD`, not from the current working tree.
 This repo is often dirty during active work, and Pages deploys have already failed on local-only assets that should not ship.
+The repo-level `wrangler.toml` is for the Worker app, so the deploy script rewrites the temporary workspace copy to a Pages-only config before upload.
 
 ## Run
 
@@ -15,8 +16,9 @@ pwsh -File scripts/deploy-cloudflare-pages.ps1
 2. Removes `public/audio/tts-generated`, which has caused Pages upload failures and is no longer needed for battle-chain audio.
 3. Removes `public/_redirects`, because it is a Netlify artifact and should not be deployed to Pages.
 4. Runs `npm run build` inside the clean workspace.
-5. Removes built `*.vrm` assets from `dist/assets`, because they have exceeded the deploy size limit.
-6. Deploys `dist/` with `wrangler pages deploy`.
+5. Replaces the temporary workspace `wrangler.toml` with a Pages-only config that includes the project name, so deploy does not inherit Worker-only bindings.
+6. Removes built `*.vrm` assets from `dist/assets`, because they have exceeded the deploy size limit.
+7. Deploys `dist/` with `wrangler pages deploy`.
 
 ## Notes
 
