@@ -33,3 +33,6 @@ capacitor.config.json
 
 # Local build caches
 .gradle-user/
+.deploy-head/
+.deploy-head.zip
+.deploy-head-zip/
