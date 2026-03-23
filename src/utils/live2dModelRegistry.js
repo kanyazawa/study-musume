@@ -5,7 +5,7 @@ const LIVE2D_MODEL_REGISTRY = {
             modelJson: '/live2d/models/free-witch/%E9%AD%94%E5%A5%B3/%E9%AD%94%E5%A5%B3.model3.json',
             sdkScripts: [
                 '/live2d/sdk/tyrano/polyfill.min.js',
-                '/live2d/sdk/tyrano/live2dcubismcore.min.js',
+                '/live2d/sdk/cubism-5-r.4/Core/live2dcubismcore.min.js',
                 '/live2d/sdk/tyrano/driver-index.js',
             ],
             runtime: 'tyrano-v4',
