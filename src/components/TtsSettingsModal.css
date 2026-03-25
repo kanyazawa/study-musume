@@ -1,3 +1,7 @@
+.tts-modal-overlay {
+    z-index: 2000;
+}
+
 .tts-settings-modal {
     background: linear-gradient(180deg, #14213d 0%, #0b132b 100%);
     border-radius: 22px;

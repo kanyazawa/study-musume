@@ -136,7 +136,7 @@ const TtsSettingsModal = ({ onClose }) => {
     };
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-overlay tts-modal-overlay" onClick={onClose}>
             <div className="tts-settings-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="tts-settings-header">
                     <div className="tts-header-title">
