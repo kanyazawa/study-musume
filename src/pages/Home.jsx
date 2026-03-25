@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Home.css';
 // Footer removed
@@ -202,7 +202,7 @@ const Home = ({ stats, updateStats }) => {
         updateMissionsOnInteract();
     };
 
-    const syncSpeechWithNoaReply = (replyText, { animate = false } = {}) => {
+    const syncSpeechWithNoaReply = useCallback((replyText, { animate = false } = {}) => {
         const nextSpeech = String(replyText || '').trim();
         if (!nextSpeech) return;
 
@@ -220,7 +220,7 @@ const Home = ({ stats, updateStats }) => {
         } else {
             stopTalkAnimation();
         }
-    };
+    }, [affectionLevelInfo.level, examDate, maxTp, tp]);
 
     useEffect(() => {
         const latestReply = getLatestNoaAssistantMessage('general');
