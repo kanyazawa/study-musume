@@ -395,10 +395,14 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
                                 })}
                             </div>
                             {feedback === 'incorrect' && (
-                                <div className="mp-feedback-center">
-                                    <div className="mp-feedback-card mp-fc-wrong">
-                                        <h2>❌</h2>
-                                        <p>正解: {currentQuestion.correctAnswer}</p>
+                                <div className="review-answer-panel review-answer-panel-inline">
+                                    <div className="review-answer-result">
+                                        <div className="answer-reveal">
+                                            <span className="label">正解:</span> {currentQuestion.correctAnswer}
+                                        </div>
+                                        <div className="user-answer-display">
+                                            <span className="label">あなたの回答:</span> {selectedAnswer}
+                                        </div>
                                     </div>
                                 </div>
                             )}

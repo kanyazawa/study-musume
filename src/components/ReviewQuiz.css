@@ -1047,6 +1047,10 @@
     box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
 }
 
+.review-answer-panel-inline {
+    margin-top: 12px;
+}
+
 .review-quiz-screen .mp-option-btn {
     background: linear-gradient(180deg, rgba(255, 252, 248, 0.98) 0%, rgba(255, 240, 220, 0.98) 100%);
     border-color: rgba(210, 174, 126, 0.6);
