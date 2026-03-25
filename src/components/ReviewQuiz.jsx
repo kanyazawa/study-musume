@@ -30,11 +30,6 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
     const [correctStreak, setCorrectStreak] = useState(0);
     const chainAudioCacheRef = useRef({});
     const audioContextRef = useRef(null);
-    const shouldPreferStaticCharacter = typeof window !== 'undefined' && (
-        (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches) ||
-        window.innerWidth <= 768 ||
-        (typeof navigator !== 'undefined' && Number(navigator.deviceMemory || 0) > 0 && Number(navigator.deviceMemory) <= 4)
-    );
 
     const currentQuestion = sessionQuestions[currentIndex];
     const accuracy = results.length ? Math.round((results.filter((result) => result.isCorrect).length / results.length) * 100) : 100;
@@ -56,7 +51,7 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
     const characterId = stats?.characterId || 'noah';
     const skinId = stats?.equippedSkin || 'default';
     const renderer = resolveCharacterRenderer({
-        preferredRenderer: shouldPreferStaticCharacter ? 'image' : stats?.characterRenderer,
+        preferredRenderer: stats?.characterRenderer,
         characterId,
         skinId,
     });
@@ -204,9 +199,8 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
             return nextStreak;
         });
 
-        // If it's a simple review (no options), show next button instead of auto-advance for incorrect answers
-        // so user can see the correct answer
-        if (!currentQuestion.options && !isCorrect) {
+        // Incorrect answers stay on screen until the player confirms, so the answer is readable.
+        if (!isCorrect) {
             setShowNextButton(true);
         } else {
             // Auto-advance after delay
@@ -366,7 +360,7 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
                     </div>
                 </div>
 
-                <div className="mp-bottom-area review-bottom-area">
+                <div className={`mp-bottom-area review-bottom-area ${feedback === 'incorrect' ? 'has-incorrect-feedback' : ''}`}>
                     {currentQuestion.options ? (
                         <>
                             <div className="mp-options-grid review-options-grid">
@@ -403,6 +397,14 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
                                         <div className="user-answer-display">
                                             <span className="label">あなたの回答:</span> {selectedAnswer}
                                         </div>
+                                        {showNextButton && (
+                                            <button
+                                                className="quiz-next-btn"
+                                                onClick={handleNextQuestion}
+                                            >
+                                                次へ進む
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             )}
