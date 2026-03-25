@@ -934,6 +934,11 @@
     z-index: 1;
 }
 
+.review-answer-panel-floating {
+    width: 100%;
+    max-width: 540px;
+}
+
 .review-question-card {
     width: 100%;
     max-width: 540px;
@@ -1010,6 +1015,7 @@
 
 .review-bottom-area.has-incorrect-feedback {
     gap: 10px;
+    justify-content: flex-start;
 }
 
 .review-options-grid {
@@ -1036,6 +1042,17 @@
 
 .review-answer-panel-inline {
     margin-top: 8px;
+}
+
+.review-next-action {
+    width: 100%;
+    max-width: 540px;
+    margin: 2px auto 0;
+}
+
+.review-next-btn-fixed {
+    display: block;
+    width: 100%;
 }
 
 .review-quiz-screen .mp-option-btn {

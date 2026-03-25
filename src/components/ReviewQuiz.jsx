@@ -10,6 +10,7 @@ import battleChain2Audio from '../assets/audio/chains/battle-chain-2.mp3';
 import battleChain3Audio from '../assets/audio/chains/battle-chain-3.mp3';
 import battleChain4Audio from '../assets/audio/chains/battle-chain-4.mp3';
 import battleChain5Audio from '../assets/audio/chains/battle-chain-5.mp3';
+import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
 import '../pages/MultiplayerMatch.css';
 import './ReviewQuiz.css';
 
@@ -50,11 +51,14 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
                 : 'calm';
     const characterId = stats?.characterId || 'noah';
     const skinId = stats?.equippedSkin || 'default';
+    const hasReviewLive2D = hasLive2DModelConfig(characterId, skinId);
+    const shouldForceReviewLive2D = characterId === 'noah' && hasReviewLive2D;
     const renderer = resolveCharacterRenderer({
-        preferredRenderer: stats?.characterRenderer,
+        preferredRenderer: shouldForceReviewLive2D ? 'live2d' : stats?.characterRenderer,
         characterId,
         skinId,
     });
+    const showIncorrectFeedback = Boolean(currentQuestion.options && feedback === 'incorrect');
     const poseEmotion = feedback
         ? feedback === 'correct'
             ? 'happy'
@@ -358,6 +362,26 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
                             復習期限: {formatRelativeDate(currentQuestion.nextReviewDate)}
                         </div>
                     </div>
+                    {showIncorrectFeedback && (
+                        <div className="review-answer-panel review-answer-panel-inline review-answer-panel-floating">
+                            <div className="review-answer-result">
+                                <div className="answer-reveal">
+                                    <span className="label">正解:</span> {currentQuestion.correctAnswer}
+                                </div>
+                                <div className="user-answer-display">
+                                    <span className="label">あなたの回答:</span> {selectedAnswer}
+                                </div>
+                                {showNextButton && (
+                                    <button
+                                        className="quiz-next-btn"
+                                        onClick={handleNextQuestion}
+                                    >
+                                        次へ進む
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className={`mp-bottom-area review-bottom-area ${feedback === 'incorrect' ? 'has-incorrect-feedback' : ''}`}>
@@ -388,24 +412,14 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
                                     );
                                 })}
                             </div>
-                            {feedback === 'incorrect' && (
-                                <div className="review-answer-panel review-answer-panel-inline">
-                                    <div className="review-answer-result">
-                                        <div className="answer-reveal">
-                                            <span className="label">正解:</span> {currentQuestion.correctAnswer}
-                                        </div>
-                                        <div className="user-answer-display">
-                                            <span className="label">あなたの回答:</span> {selectedAnswer}
-                                        </div>
-                                        {showNextButton && (
-                                            <button
-                                                className="quiz-next-btn"
-                                                onClick={handleNextQuestion}
-                                            >
-                                                次へ進む
-                                            </button>
-                                        )}
-                                    </div>
+                            {showIncorrectFeedback && showNextButton && (
+                                <div className="review-next-action">
+                                    <button
+                                        className="quiz-next-btn review-next-btn-fixed"
+                                        onClick={handleNextQuestion}
+                                    >
+                                        次へ進む
+                                    </button>
                                 </div>
                             )}
                         </>
