@@ -997,10 +997,11 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
 
         if (isCorrect) {
             const nextStreak = correctStreak + 1;
+            const nextPersistentEmotion = nextStreak >= 2 ? 'happy' : 'smile';
             triggerAnswerFx('correct');
             playSE('se_correct');
             setCorrectStreak(nextStreak);
-            setPersistentEmotion(null);
+            setPersistentEmotion(nextPersistentEmotion);
             triggerChainCallout(nextStreak);
             setMyScore(prev => prev + 1);
             queueAdvance(true, 1000, submitPromise);
