@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { LoaderCircle, RefreshCcw, SendHorizontal, Volume2, X } from 'lucide-react';
 import './NoaChatBox.css';
-import { getLastStudyTopic } from '../data/studyData';
 import { clearNoaChatMessages, getNoaChatMessages, saveNoaChatMessages } from '../utils/chatHistory';
 import { getTtsSettings, TTS_ENGINES } from '../utils/ttsSettings';
 import {
@@ -14,6 +13,7 @@ import {
 
 const MAX_INPUT_LENGTH = 240;
 const CLOUDFLARE_CHAT_ENDPOINT = 'https://study-musume.hide20080422.workers.dev/api/chat';
+const NOA_CHAT_HISTORY_KEY = 'general';
 
 const getChatEndpoints = () => {
     if (typeof window === 'undefined') {
@@ -72,25 +72,24 @@ const formatChatError = (errorMessage, endpoint) => {
     return message;
 };
 
-const buildStarterMessage = (topicName) => ({
+const buildStarterMessage = () => ({
     role: 'assistant',
-    content: topicName
-        ? `さっきの${topicName}でも、それ以外でも、気になることがあるなら話しなさい。少しくらいなら雑談にも付き合ってあげるわ。`
-        : '気になることがあるなら、順番に話しなさい。勉強でも雑談でも、ちゃんと聞いてあげるわ。',
+    content: '今日は普通に話してもいいわ。聞きたいことでも雑談でも、好きに振ってきなさい。',
 });
 
-const buildTopicMeta = () => {
+const getLastStudyTopicName = () => {
+    if (typeof window === 'undefined') {
+        return '';
+    }
+
     try {
-        const lastTopic = getLastStudyTopic();
-        return {
-            key: lastTopic?.topicName || 'default',
-            label: lastTopic?.topicName || '最近の勉強',
-        };
+        const raw = window.localStorage.getItem('lastStudyTopic');
+        if (!raw) return '';
+
+        const parsed = JSON.parse(raw);
+        return clipText(parsed?.topicName, 48);
     } catch {
-        return {
-            key: 'default',
-            label: '最近の勉強',
-        };
+        return '';
     }
 };
 
@@ -185,19 +184,19 @@ const NoaChatBox = ({
     onAssistantSpeechStart = null,
     onAssistantSpeechEnd = null,
 }) => {
-    const topicMeta = useMemo(() => buildTopicMeta(), []);
-    const starterMessages = useMemo(() => [buildStarterMessage(topicMeta.label)], [topicMeta.label]);
+    const lastStudyTopicName = useMemo(() => getLastStudyTopicName(), []);
+    const starterMessages = useMemo(() => [buildStarterMessage()], []);
     const [isOpen, setIsOpen] = useState(false);
     const [input, setInput] = useState('');
-    const [messages, setMessages] = useState(() => getNoaChatMessages(topicMeta.key, starterMessages));
+    const [messages, setMessages] = useState(() => getNoaChatMessages(NOA_CHAT_HISTORY_KEY, starterMessages));
     const [isLoading, setIsLoading] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [error, setError] = useState('');
     const messageEndRef = useRef(null);
 
     useEffect(() => {
-        setMessages(getNoaChatMessages(topicMeta.key, starterMessages));
-    }, [starterMessages, topicMeta.key]);
+        setMessages(getNoaChatMessages(NOA_CHAT_HISTORY_KEY, starterMessages));
+    }, [starterMessages]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -217,13 +216,13 @@ const NoaChatBox = ({
     }, [messages, onAssistantReply]);
 
     const persistMessages = (nextMessages) => {
-        const saved = saveNoaChatMessages(topicMeta.key, nextMessages);
+        const saved = saveNoaChatMessages(NOA_CHAT_HISTORY_KEY, nextMessages);
         setMessages(saved);
         return saved;
     };
 
     const handleReset = () => {
-        clearNoaChatMessages(topicMeta.key);
+        clearNoaChatMessages(NOA_CHAT_HISTORY_KEY);
         setMessages(starterMessages);
         setError('');
     };
@@ -257,7 +256,7 @@ const NoaChatBox = ({
         try {
             const payload = await requestNoaReply({
                 message: trimmed,
-                topic: topicMeta.label,
+                lastStudyTopic: lastStudyTopicName,
                 affection: stats?.affection || 0,
                 recentMessages: nextMessages,
             });
@@ -267,7 +266,7 @@ const NoaChatBox = ({
                 content: clipText(payload.reply, 320),
             };
 
-            const saved = saveNoaChatMessages(topicMeta.key, [...nextMessages, assistantMessage]);
+            const saved = saveNoaChatMessages(NOA_CHAT_HISTORY_KEY, [...nextMessages, assistantMessage]);
             setMessages(saved);
             if (autoSpeakAssistant) {
                 setIsSpeaking(true);

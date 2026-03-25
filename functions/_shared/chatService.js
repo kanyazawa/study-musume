@@ -4,9 +4,9 @@ const GEMINI_MODEL_ALIASES = {
     'gemini-2.5-flash-lite-preview-09-2025': 'gemini-2.5-flash-lite',
     'models/gemini-2.5-flash-lite-preview-09-2025': 'gemini-2.5-flash-lite',
 };
-const MAX_HISTORY_MESSAGES = 6;
+const MAX_HISTORY_MESSAGES = 4;
 
-const sanitizeText = (value, maxLength = 320) => String(value || '')
+const sanitizeText = (value, maxLength = 220) => String(value || '')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, maxLength);
@@ -20,7 +20,7 @@ const summarizeRecentMessages = (messages) => {
         .slice(-MAX_HISTORY_MESSAGES)
         .map((message) => {
             const role = message?.role === 'assistant' ? 'ノア' : 'ユーザー';
-            const content = sanitizeText(message?.content, 180);
+            const content = sanitizeText(message?.content, 120);
             return content ? `${role}: ${content}` : null;
         })
         .filter(Boolean)
@@ -28,32 +28,33 @@ const summarizeRecentMessages = (messages) => {
 };
 
 const buildPrompts = (body) => {
-    const message = sanitizeText(body?.message, 240);
-    const topic = sanitizeText(body?.topic, 80) || '最近の勉強';
+    const message = sanitizeText(body?.message, 160);
+    const lastStudyTopic = sanitizeText(body?.lastStudyTopic || body?.topic, 48);
     const affection = Number.isFinite(Number(body?.affection)) ? Number(body.affection) : 0;
     const recentMessages = summarizeRecentMessages(body?.recentMessages);
 
     const developerPrompt = [
         'あなたはStudy Musumeのノアです。',
         '中学生にもわかる、やさしい日本語で答えてください。',
-        'ユーザーとはチャットアプリ越しではなく、目の前でそのまま会話している想定です。',
-        'ノアは基本的に真面目で面倒見がよく、少しだけツンとした言い回しをします。',
-        '上から目線になりすぎず、「〜よ」「〜なさい」「〜してみなさい」くらいの軽いノアらしさに留めてください。',
-        '基本は勉強のサポート役ですが、日常の雑談や気分の話、ちょっとした相談も自然に受けてください。',
-        '勉強以外の話題でも、そっけなく切らずに会話として返してください。',
-        'ただし長い雑談を広げすぎず、短く返して必要なら勉強や体調の話にやさしく戻してください。',
-        '返答は2〜3文まで、短く具体的にしてください。',
-        '勉強の質問には優先して答え、必要なら例は1つだけ出してください。',
-        '断言できないことは推測で言い切らず、短く保留を伝えてください。',
-        '箇条書きや長い前置きは使わないでください。',
+        '目の前でそのまま会話している想定で、軽いツン要素はあっても感じよく返してください。',
+        '普通の会話相手として自然に答えてください。雑談、相談、感想、日常会話を歓迎してください。',
+        'ユーザーが勉強の話をしていないなら、無理に勉強へ話題を寄せないでください。',
+        '最近の学習トピックは参考情報です。ユーザーが触れた時だけ自然に使ってください。',
+        '返答は1〜2文を基本に、長くても3文まで。例は多くても1つだけです。',
+        '断言できないことは言い切らず、箇条書きや長い前置きは使わないでください。',
     ].join(' ');
 
-    const userPrompt = [
-        `最近の学習トピック: ${topic}`,
+    const userPromptSections = [
         `好感度: ${affection}`,
         `直近の会話:\n${recentMessages}`,
         `今回の質問: ${message}`,
-    ].join('\n\n');
+    ];
+
+    if (lastStudyTopic) {
+        userPromptSections.splice(1, 0, `参考情報: 最近の学習トピックは「${lastStudyTopic}」`);
+    }
+
+    const userPrompt = userPromptSections.join('\n\n');
 
     return {
         developerPrompt,
@@ -127,8 +128,8 @@ const callGeminiChat = async ({
                     },
                 ],
                 generationConfig: {
-                    maxOutputTokens: 180,
-                    temperature: 0.7,
+                    maxOutputTokens: 96,
+                    temperature: 0.55,
                 },
             }),
         }
@@ -144,7 +145,7 @@ const callGeminiChat = async ({
         };
     }
 
-    const reply = sanitizeText(extractGeminiText(payload), 320);
+    const reply = sanitizeText(extractGeminiText(payload), 220);
     if (!reply) {
         return {
             statusCode: 502,
@@ -179,7 +180,7 @@ const callOpenAiChat = async ({
         body: JSON.stringify({
             model,
             store: false,
-            max_output_tokens: 180,
+            max_output_tokens: 96,
             text: {
                 format: {
                     type: 'text',
@@ -218,7 +219,7 @@ const callOpenAiChat = async ({
         };
     }
 
-    const reply = sanitizeText(extractOpenAiText(payload), 320);
+    const reply = sanitizeText(extractOpenAiText(payload), 220);
     if (!reply) {
         return {
             statusCode: 502,
