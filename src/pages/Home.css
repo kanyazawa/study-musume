@@ -342,7 +342,7 @@
 
 .speech-bubble {
     position: absolute;
-    bottom: 260px; /* 顔にかぶりにくいよう少し上げる */
+    bottom: 236px; /* 顔にかぶりにくさを保ちつつ少し下げる */
     left: 50%;
     transform: translateX(-50%);
     background: rgba(255, 255, 255, 0.98);
@@ -704,7 +704,7 @@
     position: absolute;
     left: 24px;
     right: 24px;
-    bottom: 252px;
+    bottom: 228px;
     transform: none;
     background: rgba(255, 255, 255, 0.98);
     padding: 12px 20px;
@@ -726,7 +726,7 @@
 .character-figure.is-live2d .speech-bubble {
     left: 24px;
     right: 24px;
-    bottom: 252px;
+    bottom: 228px;
     transform: none;
     width: auto;
     max-width: calc(100% - 48px);
@@ -1114,7 +1114,7 @@
 
     .speech-bubble {
         left: 14px;
-        bottom: 308px;
+        bottom: 284px;
         transform: none;
         width: min(94vw, 600px);
         max-width: 560px;
@@ -1122,7 +1122,7 @@
 
     .character-figure.is-live2d .speech-bubble {
         left: 14px;
-        bottom: 308px;
+        bottom: 284px;
         transform: none;
         width: min(94vw, 580px);
         max-width: 540px;
