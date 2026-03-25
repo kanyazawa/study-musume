@@ -22,14 +22,21 @@ const VOWEL_OPEN_MAP = {
     oh: 0.66,
 };
 const FALLBACK_EYE_PARAM_NAMES = ['ParamEyeLOpen', 'ParamEyeROpen'];
+const FALLBACK_EYE_SMILE_PARAM_NAMES = ['ParamEyeLSmile', 'ParamEyeRSmile'];
+const FALLBACK_EYE_SQUINT_PARAM_NAMES = ['Param51', 'Param52'];
 const FALLBACK_MOUTH_PARAM_NAMES = ['ParamMouthOpenY'];
 const FALLBACK_MOUTH_FORM_PARAM_NAMES = ['ParamMouthForm'];
 const FALLBACK_BROW_Y_PARAM_NAMES = ['ParamBrowLY', 'ParamBrowRY'];
-const FALLBACK_BROW_ANGLE_PARAM_NAMES = ['ParamBrowLAngle', 'ParamBrowRAngle'];
+const FALLBACK_BROW_FORM_PARAM_NAMES = ['ParamBrowLForm', 'ParamBrowRForm'];
 const FALLBACK_ANGLE_X_PARAM_NAMES = ['ParamAngleX'];
 const FALLBACK_ANGLE_Y_PARAM_NAMES = ['ParamAngleY'];
 const FALLBACK_ANGLE_Z_PARAM_NAMES = ['ParamAngleZ'];
-const FALLBACK_CHEEK_PARAM_NAMES = ['ParamCheek'];
+const FALLBACK_ANGER_PARAM_NAMES = ['Param53'];
+const FALLBACK_MOUTH_X_PARAM_NAMES = ['Param20'];
+const FALLBACK_MOUTH_FUNNEL_PARAM_NAMES = ['Param45'];
+const FALLBACK_MOUTH_SHRUG_PARAM_NAMES = ['Param48'];
+const FALLBACK_MOUTH_WIDEN_PARAM_NAMES = ['Param49'];
+const FALLBACK_JAW_OPEN_PARAM_NAMES = ['Param50'];
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 const getPoseEmotionKey = (pose = {}) =>
@@ -201,43 +208,71 @@ const getEmotionParameterProfile = (pose = {}) => {
     if (emotion === 'happy' || emotion === 'smile') {
         return {
             browY: (0.22 + (intensity * 0.08)) * homeBoost,
-            browAngle: (0.08 + (intensity * 0.04)) * homeBoost,
+            browForm: -((0.32 + (intensity * 0.08)) * homeBoost),
             angleX: (2 + (intensity * 3)) * homeBoost,
             angleY: -1.4 * homeBoost,
             angleZ: 1.2 * homeBoost,
-            cheek: clamp((0.55 + (intensity * 0.18)) * homeBoost, 0, 1),
+            eyeSmile: clamp((0.62 + (intensity * 0.22)) * homeBoost, 0, 1),
+            eyeSquint: 0,
+            angry: 0,
+            mouthX: 0,
+            mouthFunnel: 0.12 + (intensity * 0.08),
+            mouthShrug: 0.08 + (intensity * 0.06),
+            mouthWiden: 0.42 + (intensity * 0.12),
+            jawOpen: 0.1 + (intensity * 0.05),
         };
     }
 
     if (emotion === 'angry' || emotion === 'serious' || emotion === 'sad') {
         return {
             browY: -((0.18 + (intensity * 0.1)) * homeBoost),
-            browAngle: -((0.1 + (intensity * 0.08)) * homeBoost),
+            browForm: 0.7 + (intensity * 0.18),
             angleX: -((2 + (intensity * 2)) * homeBoost),
             angleY: 1.2 * homeBoost,
             angleZ: -((1.2 + intensity) * homeBoost),
-            cheek: 0,
+            eyeSmile: 0,
+            eyeSquint: 0.28 + (intensity * 0.12),
+            angry: 0.7 + (intensity * 0.22),
+            mouthX: -(0.1 + (intensity * 0.05)),
+            mouthFunnel: 0.22 + (intensity * 0.1),
+            mouthShrug: 0.24 + (intensity * 0.1),
+            mouthWiden: 0.04,
+            jawOpen: 0.02,
         };
     }
 
     if (emotion === 'surprised') {
         return {
             browY: (0.28 + (intensity * 0.08)) * homeBoost,
-            browAngle: 0,
+            browForm: -0.18,
             angleX: 0,
             angleY: -((1.8 + intensity) * homeBoost),
             angleZ: 0,
-            cheek: clamp(0.12 * homeBoost, 0, 1),
+            eyeSmile: 0,
+            eyeSquint: 0,
+            angry: 0,
+            mouthX: 0,
+            mouthFunnel: 0.36 + (intensity * 0.1),
+            mouthShrug: 0.08,
+            mouthWiden: 0.08,
+            jawOpen: 0.35 + (intensity * 0.16),
         };
     }
 
     return {
         browY: 0,
-        browAngle: 0,
+        browForm: 0,
         angleX: 0,
         angleY: 0,
         angleZ: 0,
-        cheek: 0,
+        eyeSmile: 0,
+        eyeSquint: 0,
+        angry: 0,
+        mouthX: 0,
+        mouthFunnel: 0,
+        mouthShrug: 0,
+        mouthWiden: 0,
+        jawOpen: 0,
     };
 };
 
@@ -651,11 +686,18 @@ const Live2DViewer = ({
                             const resolvedLipIds = resolveParameterIds(model, this._lipSyncIds, FALLBACK_MOUTH_PARAM_NAMES);
                             const resolvedMouthFormIds = resolveParameterIds(model, null, FALLBACK_MOUTH_FORM_PARAM_NAMES);
                             const resolvedBrowYIds = resolveParameterIds(model, null, FALLBACK_BROW_Y_PARAM_NAMES);
-                            const resolvedBrowAngleIds = resolveParameterIds(model, null, FALLBACK_BROW_ANGLE_PARAM_NAMES);
+                            const resolvedEyeSmileIds = resolveParameterIds(model, null, FALLBACK_EYE_SMILE_PARAM_NAMES);
+                            const resolvedEyeSquintIds = resolveParameterIds(model, null, FALLBACK_EYE_SQUINT_PARAM_NAMES);
+                            const resolvedBrowFormIds = resolveParameterIds(model, null, FALLBACK_BROW_FORM_PARAM_NAMES);
                             const resolvedAngleXIds = resolveParameterIds(model, null, FALLBACK_ANGLE_X_PARAM_NAMES);
                             const resolvedAngleYIds = resolveParameterIds(model, null, FALLBACK_ANGLE_Y_PARAM_NAMES);
                             const resolvedAngleZIds = resolveParameterIds(model, null, FALLBACK_ANGLE_Z_PARAM_NAMES);
-                            const resolvedCheekIds = resolveParameterIds(model, null, FALLBACK_CHEEK_PARAM_NAMES);
+                            const resolvedAngryIds = resolveParameterIds(model, null, FALLBACK_ANGER_PARAM_NAMES);
+                            const resolvedMouthXIds = resolveParameterIds(model, null, FALLBACK_MOUTH_X_PARAM_NAMES);
+                            const resolvedMouthFunnelIds = resolveParameterIds(model, null, FALLBACK_MOUTH_FUNNEL_PARAM_NAMES);
+                            const resolvedMouthShrugIds = resolveParameterIds(model, null, FALLBACK_MOUTH_SHRUG_PARAM_NAMES);
+                            const resolvedMouthWidenIds = resolveParameterIds(model, null, FALLBACK_MOUTH_WIDEN_PARAM_NAMES);
+                            const resolvedJawOpenIds = resolveParameterIds(model, null, FALLBACK_JAW_OPEN_PARAM_NAMES);
 
                             if (model?.setParameterValueById) {
                                 let targetMouthValue = 0;
@@ -688,11 +730,18 @@ const Live2DViewer = ({
                                 const mouthFormValue = clamp(animationState.mouthFormValue, 0, 0.28);
                                 setParameterValues(model, resolvedMouthFormIds, mouthFormValue);
                                 setParameterValues(model, resolvedBrowYIds, emotionProfile.browY);
-                                setParameterValues(model, resolvedBrowAngleIds, emotionProfile.browAngle);
+                                setParameterValues(model, resolvedEyeSmileIds, emotionProfile.eyeSmile);
+                                setParameterValues(model, resolvedEyeSquintIds, emotionProfile.eyeSquint);
+                                setParameterValues(model, resolvedBrowFormIds, emotionProfile.browForm);
                                 setParameterValues(model, resolvedAngleXIds, emotionProfile.angleX);
                                 setParameterValues(model, resolvedAngleYIds, emotionProfile.angleY);
                                 setParameterValues(model, resolvedAngleZIds, emotionProfile.angleZ);
-                                setParameterValues(model, resolvedCheekIds, emotionProfile.cheek);
+                                setParameterValues(model, resolvedAngryIds, emotionProfile.angry);
+                                setParameterValues(model, resolvedMouthXIds, emotionProfile.mouthX);
+                                setParameterValues(model, resolvedMouthFunnelIds, emotionProfile.mouthFunnel);
+                                setParameterValues(model, resolvedMouthShrugIds, emotionProfile.mouthShrug);
+                                setParameterValues(model, resolvedMouthWidenIds, emotionProfile.mouthWiden);
+                                setParameterValues(model, resolvedJawOpenIds, emotionProfile.jawOpen);
 
                                 if (resolvedEyeIds.length > 0) {
                                     let blinkValue = 1;

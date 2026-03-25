@@ -19,6 +19,34 @@ import { processLoginBonus } from '../utils/loginBonusUtils';
 import { getLatestNoaAssistantMessage } from '../utils/chatHistory';
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
 
+const NEGATIVE_USER_INPUT_PATTERNS = [
+    '嫌い', 'きらい', 'バカ', 'ばか', '馬鹿', 'アホ', 'あほ', 'うざ', 'ウザ',
+    'きも', 'キモ', '最悪', 'むかつ', 'ムカつ', 'うるさい', '黙れ', 'だまれ',
+    '消えろ', 'しね', '死ね', 'クソ', 'くそ', 'ゴミ', '役立たず', '最低',
+];
+
+const POSITIVE_USER_INPUT_PATTERNS = [
+    '好き', 'すき', 'ありがとう', 'ありがと', 'ごめん', '応援', '助かる', 'えらい',
+    '偉い', 'すごい', '頑張', 'がんば', 'かわいい', '可愛い',
+];
+
+const inferEmotionFromUserInput = (text) => {
+    const normalizedText = String(text || '').trim().toLowerCase();
+    if (!normalizedText) {
+        return 'normal';
+    }
+
+    if (NEGATIVE_USER_INPUT_PATTERNS.some((pattern) => normalizedText.includes(pattern.toLowerCase()))) {
+        return 'angry';
+    }
+
+    if (POSITIVE_USER_INPUT_PATTERNS.some((pattern) => normalizedText.includes(pattern.toLowerCase()))) {
+        return 'happy';
+    }
+
+    return 'normal';
+};
+
 const inferHomeEmotion = ({ emotion, speech, tp, maxTp, affectionLevel, examDate }) => {
     if (emotion && emotion !== 'normal') {
         return emotion;
@@ -102,10 +130,12 @@ const Home = ({ stats, updateStats }) => {
     const navigate = useNavigate();
     const [speech, setSpeech] = useState("");
     const [emotion, setEmotion] = useState('normal');
+    const [userInputEmotion, setUserInputEmotion] = useState(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [loginBonusData, setLoginBonusData] = useState(null);
     const [isTalkAnimating, setIsTalkAnimating] = useState(false);
     const talkAnimationTimerRef = useRef(null);
+    const userInputEmotionTimerRef = useRef(null);
 
     // Get equipped title
     const selectedTitle = stats?.selectedTitle;
@@ -130,13 +160,13 @@ const Home = ({ stats, updateStats }) => {
     const affectionProgress = getAffectionProgress(affection);
     const examDate = stats?.examDate || '';
     const homeEmotion = useMemo(() => toVisibleHomeEmotion(inferHomeEmotion({
-        emotion,
+        emotion: userInputEmotion || emotion,
         speech,
         tp,
         maxTp,
         affectionLevel: affectionLevelInfo.level,
         examDate,
-    })), [affectionLevelInfo.level, emotion, examDate, maxTp, speech, tp]);
+    })), [affectionLevelInfo.level, emotion, examDate, maxTp, speech, tp, userInputEmotion]);
     const homePose = useMemo(() => createHomePose({ emotion: homeEmotion, text: speech }, { speaking: isTalkAnimating }), [homeEmotion, isTalkAnimating, speech]);
 
     const getCountdownDisplay = () => {
@@ -176,6 +206,24 @@ const Home = ({ stats, updateStats }) => {
         setIsTalkAnimating(false);
     };
 
+    const scheduleUserInputEmotion = useCallback((nextEmotion) => {
+        if (userInputEmotionTimerRef.current) {
+            clearTimeout(userInputEmotionTimerRef.current);
+            userInputEmotionTimerRef.current = null;
+        }
+
+        if (!nextEmotion || nextEmotion === 'normal') {
+            setUserInputEmotion(null);
+            return;
+        }
+
+        setUserInputEmotion(nextEmotion);
+        userInputEmotionTimerRef.current = setTimeout(() => {
+            setUserInputEmotion(null);
+            userInputEmotionTimerRef.current = null;
+        }, 3800);
+    }, []);
+
     const startTimedTalkAnimation = (text) => {
         stopTalkAnimation();
         setIsTalkAnimating(true);
@@ -201,6 +249,11 @@ const Home = ({ stats, updateStats }) => {
         // Update mission progress for character interaction
         updateMissionsOnInteract();
     };
+
+    const reactToUserMessage = useCallback((userText) => {
+        const inferredEmotion = toVisibleHomeEmotion(inferEmotionFromUserInput(userText));
+        scheduleUserInputEmotion(inferredEmotion);
+    }, [scheduleUserInputEmotion]);
 
     const syncSpeechWithNoaReply = useCallback((replyText, { animate = false } = {}) => {
         const nextSpeech = String(replyText || '').trim();
@@ -258,6 +311,10 @@ const Home = ({ stats, updateStats }) => {
     useEffect(() => (
         () => {
             stopTalkAnimation();
+            if (userInputEmotionTimerRef.current) {
+                clearTimeout(userInputEmotionTimerRef.current);
+                userInputEmotionTimerRef.current = null;
+            }
         }
     ), []);
 
@@ -417,6 +474,7 @@ const Home = ({ stats, updateStats }) => {
                     compact
                     autoSpeakAssistant
                     onAssistantReply={syncSpeechWithNoaReply}
+                    onUserMessage={reactToUserMessage}
                     onAssistantSpeechStart={() => {
                         stopTalkAnimation();
                         setIsTalkAnimating(true);

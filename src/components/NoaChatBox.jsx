@@ -183,6 +183,7 @@ const NoaChatBox = ({
     compact = false,
     onClose = null,
     onAssistantReply = null,
+    onUserMessage = null,
     autoSpeakAssistant = false,
     onAssistantSpeechStart = null,
     onAssistantSpeechEnd = null,
@@ -248,6 +249,8 @@ const NoaChatBox = ({
         event?.preventDefault?.();
         const trimmed = clipText(input);
         if (!trimmed || isLoading) return;
+
+        onUserMessage?.(trimmed);
 
         const userMessage = { role: 'user', content: trimmed };
         const nextMessages = [...messages, userMessage];
