@@ -19,6 +19,8 @@ import './ReviewQuiz.css';
  * 復習用のクイズコンポーネント
  */
 const ReviewQuiz = ({ questions, stats, onComplete }) => {
+    const CORRECT_ADVANCE_DELAY_MS = 900;
+    const INCORRECT_ADVANCE_DELAY_MS = 1600;
     const { isMuted, playSE } = useSound();
     const [sessionQuestions, setSessionQuestions] = useState(() => questions);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -31,6 +33,7 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
     const [correctStreak, setCorrectStreak] = useState(0);
     const chainAudioCacheRef = useRef({});
     const audioContextRef = useRef(null);
+    const nextQuestionTimerRef = useRef(null);
 
     const currentQuestion = sessionQuestions[currentIndex];
     const accuracy = results.length ? Math.round((results.filter((result) => result.isCorrect).length / results.length) * 100) : 100;
@@ -102,6 +105,15 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
         });
     }, [getChainAudioSrc]);
 
+    useEffect(() => (
+        () => {
+            if (nextQuestionTimerRef.current) {
+                clearTimeout(nextQuestionTimerRef.current);
+                nextQuestionTimerRef.current = null;
+            }
+        }
+    ), []);
+
     const playUiTone = useCallback((frequency, durationMs, { type = 'sine', gain = 0.03, delayMs = 0 } = {}) => {
         if (isMuted || typeof window === 'undefined') return;
 
@@ -154,6 +166,11 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
     }, [getChainAudioSrc, isMuted]);
 
     const handleNextQuestion = () => {
+        if (nextQuestionTimerRef.current) {
+            clearTimeout(nextQuestionTimerRef.current);
+            nextQuestionTimerRef.current = null;
+        }
+
         if (currentIndex + 1 < sessionQuestions.length) {
             // Next question
             setCurrentIndex(prev => prev + 1);
@@ -206,11 +223,14 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
         // Incorrect answers stay on screen until the player confirms, so the answer is readable.
         if (!isCorrect) {
             setShowNextButton(true);
+            nextQuestionTimerRef.current = setTimeout(() => {
+                handleNextQuestion();
+            }, INCORRECT_ADVANCE_DELAY_MS);
         } else {
             // Auto-advance after delay
-            setTimeout(() => {
+            nextQuestionTimerRef.current = setTimeout(() => {
                 handleNextQuestion();
-            }, 1500);
+            }, CORRECT_ADVANCE_DELAY_MS);
         }
     };
 
