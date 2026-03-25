@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Volume2 } from 'lucide-react';
 import './Dialogue.css';
 import LoadingScreen from '../components/UI/LoadingScreen';
-import { speakWithBrowserTts, speakWithEngine, prefetchEngine, isEngineAvailable, VOICEVOX_SPEAKERS, preloadCommonPhrases, resolveSpeakerIdForEngine, shouldAutoSpeakLine } from '../utils/voicevoxUtils';
+import { getEngineBaseUrl, speakWithBrowserTts, speakWithEngine, prefetchEngine, isEngineAvailable, VOICEVOX_SPEAKERS, preloadCommonPhrases, resolveSpeakerIdForEngine, shouldAutoSpeakLine } from '../utils/voicevoxUtils';
 import { saveStudySession } from '../utils/studyHistoryUtils';
 import { STUDY_TOPICS } from '../data/studyTopics';
 import { updateMissionsOnStudy } from '../utils/missionUtils';
@@ -47,7 +47,7 @@ const Dialogue = ({ stats, updateStats }) => {
     const [characterSpeaking, setCharacterSpeaking] = useState(false);
     const [characterSpeechText, setCharacterSpeechText] = useState('');
     const characterSpeakTimerRef = useRef(null);
-    const ttsAvailabilityRef = useRef({ aivis: false, voicevox: false });
+    const ttsAvailabilityRef = useRef({ elevenlabs: false, aivis: false, voicevox: false });
     const preferredRenderer = stats?.characterRenderer;
     const renderer = resolveCharacterRenderer({
         preferredRenderer,
@@ -64,10 +64,11 @@ const Dialogue = ({ stats, updateStats }) => {
     useEffect(() => {
         const settings = getTtsSettings();
         Promise.all([
+            isEngineAvailable(TTS_ENGINES.ELEVENLABS),
             isEngineAvailable(TTS_ENGINES.AIVIS, settings.aivisUrl),
             isEngineAvailable(TTS_ENGINES.VOICEVOX, settings.voicevoxUrl),
-        ]).then(([aivisAvailable, voicevoxAvailable]) => {
-            ttsAvailabilityRef.current = { aivis: aivisAvailable, voicevox: voicevoxAvailable };
+        ]).then(([elevenlabsAvailable, aivisAvailable, voicevoxAvailable]) => {
+            ttsAvailabilityRef.current = { elevenlabs: elevenlabsAvailable, aivis: aivisAvailable, voicevox: voicevoxAvailable };
             console.log('TTS engines available:', ttsAvailabilityRef.current);
         });
     }, []);
@@ -695,11 +696,16 @@ const Dialogue = ({ stats, updateStats }) => {
 
     const resolveLineSpeakerId = useCallback(async (targetLine, chosenEngine, ttsSettings) => {
         const fallbackSpeakerId = isRen ? VOICEVOX_SPEAKERS.RITSU : VOICEVOX_SPEAKERS.METAN;
-        const preferredSpeaker = targetLine?.tts_speaker || targetLine?.voicevox_speaker || targetLine?.speaker_id || ttsSettings.preferredSpeaker;
+        const preferredSpeaker = targetLine?.tts_speaker
+            || targetLine?.voicevox_speaker
+            || targetLine?.speaker_id
+            || (chosenEngine === TTS_ENGINES.ELEVENLABS
+                ? (ttsSettings.elevenlabsVoiceId || ttsSettings.preferredSpeaker)
+                : ttsSettings.preferredSpeaker);
 
         return resolveSpeakerIdForEngine(chosenEngine, preferredSpeaker, {
             fallbackSpeakerId,
-            baseUrl: chosenEngine === TTS_ENGINES.AIVIS ? ttsSettings.aivisUrl : ttsSettings.voicevoxUrl,
+            baseUrl: getEngineBaseUrl(chosenEngine, ttsSettings),
         });
     }, [isRen]);
 
@@ -711,7 +717,13 @@ const Dialogue = ({ stats, updateStats }) => {
         setCharacterSpeechText(targetLine.text);
 
         const chosenEngine = ttsSettings.engine === TTS_ENGINES.AUTO
-            ? (ttsAvailabilityRef.current.aivis ? TTS_ENGINES.AIVIS : ttsAvailabilityRef.current.voicevox ? TTS_ENGINES.VOICEVOX : TTS_ENGINES.BROWSER)
+            ? (ttsAvailabilityRef.current.elevenlabs
+                ? TTS_ENGINES.ELEVENLABS
+                : ttsAvailabilityRef.current.aivis
+                    ? TTS_ENGINES.AIVIS
+                    : ttsAvailabilityRef.current.voicevox
+                        ? TTS_ENGINES.VOICEVOX
+                        : TTS_ENGINES.BROWSER)
             : ttsSettings.engine;
 
         const handleSpeechStart = () => {
@@ -735,7 +747,7 @@ const Dialogue = ({ stats, updateStats }) => {
 
         if (chosenEngine !== TTS_ENGINES.BROWSER) {
             const success = await speakWithEngine(chosenEngine, targetLine.text, speakerId, {
-                baseUrl: chosenEngine === TTS_ENGINES.AIVIS ? ttsSettings.aivisUrl : ttsSettings.voicevoxUrl,
+                baseUrl: getEngineBaseUrl(chosenEngine, ttsSettings),
                 onStart: handleSpeechStart,
                 onEnd: handleSpeechEnd,
             });
@@ -767,7 +779,7 @@ const Dialogue = ({ stats, updateStats }) => {
         return speaker;
     };
 
-    // Auto-speak: VOICEVOXが使えるならそちら、そうでなければブラウザTTSで即再生
+    // Auto-speak: 利用可能なTTSを優先し、最後はブラウザTTSにフォールバック
     useEffect(() => {
         if (!shouldAutoSpeakLine(line)) return;
 
@@ -778,7 +790,13 @@ const Dialogue = ({ stats, updateStats }) => {
         if (!ttsSettings.enabled) return;
 
         const chosenEngine = ttsSettings.engine === TTS_ENGINES.AUTO
-            ? (ttsAvailabilityRef.current.aivis ? TTS_ENGINES.AIVIS : ttsAvailabilityRef.current.voicevox ? TTS_ENGINES.VOICEVOX : TTS_ENGINES.BROWSER)
+            ? (ttsAvailabilityRef.current.elevenlabs
+                ? TTS_ENGINES.ELEVENLABS
+                : ttsAvailabilityRef.current.aivis
+                    ? TTS_ENGINES.AIVIS
+                    : ttsAvailabilityRef.current.voicevox
+                        ? TTS_ENGINES.VOICEVOX
+                        : TTS_ENGINES.BROWSER)
             : ttsSettings.engine;
 
         const autoSpeak = async () => {
@@ -794,7 +812,7 @@ const Dialogue = ({ stats, updateStats }) => {
                 try {
                     const nextSpeakerId = await resolveLineSpeakerId(nextLine, chosenEngine, ttsSettings);
                     await prefetchEngine(chosenEngine, nextLine.text, nextSpeakerId, {
-                        baseUrl: chosenEngine === TTS_ENGINES.AIVIS ? ttsSettings.aivisUrl : ttsSettings.voicevoxUrl,
+                        baseUrl: getEngineBaseUrl(chosenEngine, ttsSettings),
                     });
                 } catch { /* ignore */ }
             });

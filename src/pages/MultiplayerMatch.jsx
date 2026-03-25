@@ -455,7 +455,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         }
 
         const engineOrder = settings.engine === TTS_ENGINES.AUTO
-            ? [TTS_ENGINES.AIVIS, TTS_ENGINES.VOICEVOX]
+            ? [TTS_ENGINES.ELEVENLABS, TTS_ENGINES.AIVIS, TTS_ENGINES.VOICEVOX]
             : [settings.engine];
 
         for (const engine of engineOrder) {
@@ -469,7 +469,10 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                 continue;
             }
 
-            const speakerId = await resolveSpeakerIdForEngine(engine, speakerValue, { baseUrl });
+            const resolvedSpeakerValue = engine === TTS_ENGINES.ELEVENLABS
+                ? settings.elevenlabsVoiceId || settings.preferredSpeaker
+                : speakerValue;
+            const speakerId = await resolveSpeakerIdForEngine(engine, resolvedSpeakerValue, { baseUrl });
             const success = await speakWithEngine(engine, text, speakerId, { baseUrl });
             if (success) {
                 return true;

@@ -2,6 +2,7 @@ const STORAGE_KEY = 'ttsSettings';
 
 export const TTS_ENGINES = {
     AUTO: 'auto',
+    ELEVENLABS: 'elevenlabs',
     AIVIS: 'aivis',
     VOICEVOX: 'voicevox',
     BROWSER: 'browser',
@@ -10,6 +11,8 @@ export const TTS_ENGINES = {
 export const DEFAULT_TTS_SETTINGS = {
     enabled: true,
     engine: TTS_ENGINES.AUTO,
+    elevenlabsVoiceId: '',
+    elevenlabsModelId: 'eleven_flash_v2_5',
     aivisUrl: 'http://127.0.0.1:10101',
     voicevoxUrl: 'http://127.0.0.1:50021',
     browserPitch: 1.2,
@@ -27,6 +30,12 @@ const clampNumber = (value, fallback, min, max) => {
 export const normalizeTtsSettings = (settings = {}) => ({
     enabled: settings.enabled !== false,
     engine: Object.values(TTS_ENGINES).includes(settings.engine) ? settings.engine : DEFAULT_TTS_SETTINGS.engine,
+    elevenlabsVoiceId: typeof settings.elevenlabsVoiceId === 'string'
+        ? settings.elevenlabsVoiceId.trim()
+        : DEFAULT_TTS_SETTINGS.elevenlabsVoiceId,
+    elevenlabsModelId: typeof settings.elevenlabsModelId === 'string' && settings.elevenlabsModelId.trim()
+        ? settings.elevenlabsModelId.trim()
+        : DEFAULT_TTS_SETTINGS.elevenlabsModelId,
     aivisUrl: typeof settings.aivisUrl === 'string' && settings.aivisUrl.trim()
         ? settings.aivisUrl.trim()
         : DEFAULT_TTS_SETTINGS.aivisUrl,

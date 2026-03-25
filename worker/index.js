@@ -1,4 +1,9 @@
 import { createNoaChatResponse } from '../functions/_shared/chatService.js';
+import {
+    createElevenLabsSpeechResponse,
+    createTtsHealthResponse,
+    createTtsOptionsResponse,
+} from '../functions/_shared/ttsService.js';
 
 const JSON_HEADERS = {
     'Content-Type': 'application/json; charset=utf-8',
@@ -46,6 +51,30 @@ export default {
             });
 
             return buildJsonResponse(result.body, result.statusCode);
+        }
+
+        if (url.pathname === '/api/tts') {
+            if (request.method === 'OPTIONS') {
+                return createTtsOptionsResponse();
+            }
+
+            if (request.method === 'GET') {
+                return createTtsHealthResponse(env);
+            }
+
+            if (request.method !== 'POST') {
+                return buildJsonResponse({ error: 'Method not allowed' }, 405);
+            }
+
+            const body = await request.json().catch(() => null);
+            if (!body) {
+                return buildJsonResponse({ error: 'Request body must be valid JSON' }, 400);
+            }
+
+            return createElevenLabsSpeechResponse({
+                env,
+                body,
+            });
         }
 
         return env.ASSETS.fetch(request);

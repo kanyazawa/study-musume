@@ -13,7 +13,8 @@ import {
 } from '../utils/voicevoxUtils';
 
 const ENGINE_OPTIONS = [
-    { value: TTS_ENGINES.AUTO, label: '自動判定', desc: 'AivisSpeech → VOICEVOX → ブラウザTTS の順で使います' },
+    { value: TTS_ENGINES.AUTO, label: '自動判定', desc: 'ElevenLabs → AivisSpeech → VOICEVOX → ブラウザTTS の順で使います' },
+    { value: TTS_ENGINES.ELEVENLABS, label: 'ElevenLabs', desc: '本番向け。サーバー経由で高速・高品質に再生します' },
     { value: TTS_ENGINES.AIVIS, label: 'AivisSpeech', desc: 'AivisSpeech Engine を優先して使います' },
     { value: TTS_ENGINES.VOICEVOX, label: 'VOICEVOX', desc: 'VOICEVOX Engine を優先して使います' },
     { value: TTS_ENGINES.BROWSER, label: 'ブラウザTTS', desc: '端末標準の読み上げだけを使います' },
@@ -23,7 +24,7 @@ const SAMPLE_TEXT = 'こんにちは。読み上げエンジンのテストで�
 
 const TtsSettingsModal = ({ onClose }) => {
     const [settings, setSettings] = useState(getTtsSettings());
-    const [available, setAvailable] = useState({ aivis: false, voicevox: false });
+    const [available, setAvailable] = useState({ elevenlabs: false, aivis: false, voicevox: false });
     const [loadingAvailability, setLoadingAvailability] = useState(true);
     const [speakerOptions, setSpeakerOptions] = useState([]);
     const [loadingSpeakers, setLoadingSpeakers] = useState(false);
@@ -31,7 +32,13 @@ const TtsSettingsModal = ({ onClose }) => {
     const [testMessage, setTestMessage] = useState('');
 
     const selectedEngine = settings.engine === TTS_ENGINES.AUTO
-        ? (available.aivis ? TTS_ENGINES.AIVIS : available.voicevox ? TTS_ENGINES.VOICEVOX : TTS_ENGINES.BROWSER)
+        ? (available.elevenlabs
+            ? TTS_ENGINES.ELEVENLABS
+            : available.aivis
+                ? TTS_ENGINES.AIVIS
+                : available.voicevox
+                    ? TTS_ENGINES.VOICEVOX
+                    : TTS_ENGINES.BROWSER)
         : settings.engine;
 
     const selectedEngineLabel = useMemo(
@@ -42,11 +49,12 @@ const TtsSettingsModal = ({ onClose }) => {
     useEffect(() => {
         const run = async () => {
             setLoadingAvailability(true);
-            const [aivisOk, voicevoxOk] = await Promise.all([
+            const [elevenlabsOk, aivisOk, voicevoxOk] = await Promise.all([
+                isEngineAvailable(TTS_ENGINES.ELEVENLABS),
                 isEngineAvailable(TTS_ENGINES.AIVIS, settings.aivisUrl),
                 isEngineAvailable(TTS_ENGINES.VOICEVOX, settings.voicevoxUrl),
             ]);
-            setAvailable({ aivis: aivisOk, voicevox: voicevoxOk });
+            setAvailable({ elevenlabs: elevenlabsOk, aivis: aivisOk, voicevox: voicevoxOk });
             setLoadingAvailability(false);
         };
         run();
@@ -54,7 +62,7 @@ const TtsSettingsModal = ({ onClose }) => {
 
     useEffect(() => {
         const engineForSpeakers = settings.engine === TTS_ENGINES.AUTO ? selectedEngine : settings.engine;
-        if (engineForSpeakers === TTS_ENGINES.BROWSER) {
+        if (engineForSpeakers === TTS_ENGINES.BROWSER || engineForSpeakers === TTS_ENGINES.ELEVENLABS) {
             setSpeakerOptions([]);
             return;
         }
@@ -105,7 +113,10 @@ const TtsSettingsModal = ({ onClose }) => {
             return;
         }
 
-        const preferredSpeakerId = await resolveSpeakerIdForEngine(selectedEngine, settings.preferredSpeaker, {
+        const preferredSpeakerValue = selectedEngine === TTS_ENGINES.ELEVENLABS
+            ? settings.elevenlabsVoiceId || settings.preferredSpeaker
+            : settings.preferredSpeaker;
+        const preferredSpeakerId = await resolveSpeakerIdForEngine(selectedEngine, preferredSpeakerValue, {
             baseUrl: getEngineBaseUrl(selectedEngine, settings),
         });
         const success = await speakWithEngine(selectedEngine, SAMPLE_TEXT, preferredSpeakerId, {
@@ -139,6 +150,10 @@ const TtsSettingsModal = ({ onClose }) => {
 
                 <div className="tts-settings-body">
                     <div className="tts-status-grid">
+                        <div className={`tts-status-card ${available.elevenlabs ? 'online' : 'offline'}`}>
+                            <div className="tts-status-name">ElevenLabs</div>
+                            <div className="tts-status-value">{loadingAvailability ? '確認中' : available.elevenlabs ? '接続OK' : '未設定'}</div>
+                        </div>
                         <div className={`tts-status-card ${available.aivis ? 'online' : 'offline'}`}>
                             <div className="tts-status-name">AivisSpeech</div>
                             <div className="tts-status-value">{loadingAvailability ? '確認中' : available.aivis ? '接続OK' : '未接続'}</div>
@@ -185,6 +200,31 @@ const TtsSettingsModal = ({ onClose }) => {
                         </div>
                     </div>
 
+                    <div className="tts-field-group">
+                        <label className="tts-field">
+                            <span>ElevenLabs Voice ID</span>
+                            <input
+                                value={settings.elevenlabsVoiceId}
+                                onChange={(e) => handleChange('elevenlabsVoiceId', e.target.value)}
+                                placeholder="21m00Tcm4TlvDq8ikWAM"
+                            />
+                            <div className="tts-inline-help">
+                                ここが空でも、サーバー側に `ELEVENLABS_VOICE_ID` を設定していれば再生できます
+                            </div>
+                        </label>
+                        <label className="tts-field">
+                            <span>ElevenLabs Model ID</span>
+                            <input
+                                value={settings.elevenlabsModelId}
+                                onChange={(e) => handleChange('elevenlabsModelId', e.target.value)}
+                                placeholder="eleven_flash_v2_5"
+                            />
+                            <div className="tts-inline-help">
+                                低遅延なら `eleven_flash_v2_5`、自然さ重視なら `eleven_turbo_v2_5`
+                            </div>
+                        </label>
+                    </div>
+
                     <div className="tts-url-grid">
                         <label className="tts-field">
                             <span>AivisSpeech URL</span>
@@ -205,7 +245,7 @@ const TtsSettingsModal = ({ onClose }) => {
                     </div>
 
                     <div className="tts-url-hint">
-                        AivisSpeech の標準URLは `http://127.0.0.1:10101`、VOICEVOX は `http://127.0.0.1:50021` です。
+                        ElevenLabs は `/api/tts` 経由で使います。AivisSpeech の標準URLは `http://127.0.0.1:10101`、VOICEVOX は `http://127.0.0.1:50021` です。
                     </div>
 
                     <div className="tts-field-group">
@@ -214,7 +254,7 @@ const TtsSettingsModal = ({ onClose }) => {
                             <select
                                 value={settings.preferredSpeaker}
                                 onChange={(e) => handleChange('preferredSpeaker', e.target.value)}
-                                disabled={selectedEngine === TTS_ENGINES.BROWSER}
+                                disabled={selectedEngine === TTS_ENGINES.BROWSER || selectedEngine === TTS_ENGINES.ELEVENLABS}
                             >
                                 <option value="">自動選択</option>
                                 {speakerOptions.map((speaker) => (
@@ -228,6 +268,8 @@ const TtsSettingsModal = ({ onClose }) => {
                                     ? '話者一覧を取得中...'
                                     : selectedEngine === TTS_ENGINES.BROWSER
                                         ? 'ブラウザTTS利用時は話者指定できません'
+                                        : selectedEngine === TTS_ENGINES.ELEVENLABS
+                                            ? 'ElevenLabs では上の Voice ID を使います'
                                         : speakerOptions.length > 0
                                             ? `${speakerOptions.length}件の話者が見つかりました`
                                             : '話者一覧を取得できませんでした'}
@@ -238,7 +280,7 @@ const TtsSettingsModal = ({ onClose }) => {
                             <select
                                 value={settings.battleSpeaker}
                                 onChange={(e) => handleChange('battleSpeaker', e.target.value)}
-                                disabled={selectedEngine === TTS_ENGINES.BROWSER}
+                                disabled={selectedEngine === TTS_ENGINES.BROWSER || selectedEngine === TTS_ENGINES.ELEVENLABS}
                             >
                                 <option value="">通常話者を使う</option>
                                 {speakerOptions.map((speaker) => (
@@ -250,9 +292,11 @@ const TtsSettingsModal = ({ onClose }) => {
                             <div className="tts-inline-help">
                                 {selectedEngine === TTS_ENGINES.BROWSER
                                     ? 'ブラウザTTS利用時は対戦話者を分けられません'
-                                    : settings.battleSpeaker
-                                        ? '対戦中の連鎖ボイスだけこの話者で再生します'
-                                        : '未設定なら通常の優先話者をそのまま使います'}
+                                    : selectedEngine === TTS_ENGINES.ELEVENLABS
+                                        ? 'ElevenLabs では通常音声と同じ Voice ID を使います'
+                                        : settings.battleSpeaker
+                                            ? '対戦中の連鎖ボイスだけこの話者で再生します'
+                                            : '未設定なら通常の優先話者をそのまま使います'}
                             </div>
                         </label>
                     </div>
