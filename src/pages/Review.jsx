@@ -16,8 +16,15 @@ import './Review.css';
 const ReviewQuiz = lazy(() => import('../components/ReviewQuiz'));
 const INITIAL_VISIBLE_QUESTIONS = 40;
 const VISIBLE_QUESTIONS_STEP = 40;
+const REVIEW_SESSION_SIZE = 5;
+const REVIEW_BASE_DIAMONDS = 8;
+const REVIEW_BASE_INTELLECT = 12;
+const REVIEW_PER_CORRECT_DIAMONDS = 2;
+const REVIEW_PER_CORRECT_INTELLECT = 5;
+const REVIEW_PERFECT_BONUS_DIAMONDS = 6;
+const REVIEW_PERFECT_BONUS_INTELLECT = 8;
 
-const Review = ({ stats }) => {
+const Review = ({ stats, updateStats }) => {
     const navigate = useNavigate();
     const [questions, setQuestions] = useState([]);
     const [filteredQuestions, setFilteredQuestions] = useState([]);
@@ -27,6 +34,7 @@ const Review = ({ stats }) => {
     const [isQuizMode, setIsQuizMode] = useState(false);
     const [quizQuestions, setQuizQuestions] = useState([]);
     const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_QUESTIONS);
+    const [lastSessionSummary, setLastSessionSummary] = useState(null);
 
     function loadReviewData() {
         const allQuestions = getReviewQuestions();
@@ -68,6 +76,27 @@ const Review = ({ stats }) => {
         setVisibleCount(INITIAL_VISIBLE_QUESTIONS);
     }, [selectedSubject, selectedPriority, questions]);
 
+    const getSessionRewards = (results = []) => {
+        const answeredCount = results.length;
+        const correctCount = results.filter((result) => result.isCorrect).length;
+        const perfectBonus = answeredCount > 0 && correctCount === answeredCount;
+        const sessionScale = answeredCount > 0 ? Math.max(0.35, answeredCount / REVIEW_SESSION_SIZE) : 0;
+
+        return {
+            answeredCount,
+            correctCount,
+            diamonds:
+                Math.round(REVIEW_BASE_DIAMONDS * sessionScale) +
+                (correctCount * REVIEW_PER_CORRECT_DIAMONDS) +
+                (perfectBonus ? REVIEW_PERFECT_BONUS_DIAMONDS : 0),
+            intellect:
+                Math.round(REVIEW_BASE_INTELLECT * sessionScale) +
+                (correctCount * REVIEW_PER_CORRECT_INTELLECT) +
+                (perfectBonus ? REVIEW_PERFECT_BONUS_INTELLECT : 0),
+            perfectBonus,
+        };
+    };
+
     const getPriorityBadge = (nextReviewDate) => {
         const priority = getReviewPriority(nextReviewDate);
         const badges = {
@@ -93,11 +122,24 @@ const Review = ({ stats }) => {
             ]
             : prioritizedQuestions;
 
-        setQuizQuestions(orderedQuestions);
+        setQuizQuestions(orderedQuestions.slice(0, REVIEW_SESSION_SIZE));
         setIsQuizMode(true);
     };
 
-    const handleQuizComplete = () => {
+    const handleQuizComplete = ({ results = [], completed = false } = {}) => {
+        if (completed && results.length > 0) {
+            const rewardSummary = getSessionRewards(results);
+
+            if (updateStats) {
+                updateStats({
+                    diamonds: (stats?.diamonds || 0) + rewardSummary.diamonds,
+                    intellect: (stats?.intellect || 0) + rewardSummary.intellect,
+                });
+            }
+
+            setLastSessionSummary(rewardSummary);
+        }
+
         setIsQuizMode(false);
         setQuizQuestions([]);
         loadReviewData();
@@ -108,9 +150,13 @@ const Review = ({ stats }) => {
     const topSubject = reviewStats
         ? Object.entries(reviewStats.bySubject || {}).sort((a, b) => b[1] - a[1])[0]
         : null;
-    const recommendedCount = selectedPriority === 'all'
-        ? (reviewStats?.due || 0) || filteredQuestions.length
-        : filteredQuestions.length;
+    const recommendedCount = Math.min(
+        REVIEW_SESSION_SIZE,
+        (selectedPriority === 'all'
+            ? (reviewStats?.due || 0) || filteredQuestions.length
+            : filteredQuestions.length) || REVIEW_SESSION_SIZE
+    );
+    const rewardPreview = getSessionRewards(new Array(recommendedCount).fill({ isCorrect: true }));
     const visibleQuestions = filteredQuestions.slice(0, visibleCount);
     const remainingQuestionCount = Math.max(filteredQuestions.length - visibleQuestions.length, 0);
 
@@ -123,6 +169,7 @@ const Review = ({ stats }) => {
                         key={quizQuestions.map((question) => question.id).join('-')}
                         questions={quizQuestions}
                         stats={stats}
+                        getRewardSummary={getSessionRewards}
                         onComplete={handleQuizComplete}
                     />
                 </Suspense>
@@ -157,8 +204,12 @@ const Review = ({ stats }) => {
                 </div>
                 <div className="review-hero-meta">
                     <div className="hero-chip">
-                        <span className="hero-chip-label">おすすめ</span>
-                        <strong>{recommendedCount}問</strong>
+                        <span className="hero-chip-label">おすすめセット</span>
+                        <strong>{recommendedCount}問で一区切り</strong>
+                    </div>
+                    <div className="hero-chip">
+                        <span className="hero-chip-label">完走報酬めやす</span>
+                        <strong>💎 {rewardPreview.diamonds} / 🧠 {rewardPreview.intellect}</strong>
                     </div>
                     {topSubject && (
                         <div className="hero-chip">
@@ -168,6 +219,29 @@ const Review = ({ stats }) => {
                     )}
                 </div>
             </section>
+
+            {lastSessionSummary && (
+                <section className="review-session-summary">
+                    <div className="review-session-summary-copy">
+                        <span className="hero-kicker">Session Clear</span>
+                        <h3>{lastSessionSummary.answeredCount}問でいったん区切り。</h3>
+                        <p>
+                            {lastSessionSummary.correctCount}問正解。
+                            {lastSessionSummary.perfectBonus ? ' パーフェクトボーナスも獲得したよ。' : ' ここでやめても十分前進。'}
+                        </p>
+                    </div>
+                    <div className="review-session-summary-rewards">
+                        <div className="hero-chip">
+                            <span className="hero-chip-label">獲得</span>
+                            <strong>💎 {lastSessionSummary.diamonds}</strong>
+                        </div>
+                        <div className="hero-chip">
+                            <span className="hero-chip-label">知力</span>
+                            <strong>🧠 {lastSessionSummary.intellect}</strong>
+                        </div>
+                    </div>
+                </section>
+            )}
 
             {/* 統計情報 */}
             {reviewStats && (
@@ -258,8 +332,8 @@ const Review = ({ stats }) => {
                                 表示中 {filteredQuestions.length} 問
                             </div>
                             <button className="start-review-btn-inline" onClick={() => startReview()}>
-                                復習を開始
-                                <span>{filteredQuestions.length}問</span>
+                                まず {Math.min(REVIEW_SESSION_SIZE, filteredQuestions.length)}問やる
+                                <span>一区切り</span>
                             </button>
                         </div>
 

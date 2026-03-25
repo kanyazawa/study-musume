@@ -79,6 +79,37 @@
     gap: 1rem;
 }
 
+.review-session-summary {
+    margin: 0 1rem 1rem;
+    padding: 1rem 1.05rem;
+    border-radius: 22px;
+    background: linear-gradient(135deg, rgba(255, 252, 244, 0.98), rgba(239, 248, 255, 0.95));
+    border: 1px solid rgba(120, 181, 255, 0.22);
+    box-shadow: 0 12px 30px rgba(66, 121, 191, 0.1);
+    display: grid;
+    gap: 0.9rem;
+}
+
+.review-session-summary-copy h3 {
+    margin: 0 0 0.4rem;
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: #26415e;
+}
+
+.review-session-summary-copy p {
+    margin: 0;
+    color: #5d6f84;
+    line-height: 1.65;
+    font-size: 0.93rem;
+}
+
+.review-session-summary-rewards {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
 .review-hero-copy h3 {
     margin: 0 0 0.5rem;
     font-size: 1.35rem;

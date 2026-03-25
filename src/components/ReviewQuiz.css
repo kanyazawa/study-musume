@@ -781,6 +781,24 @@
     font-weight: 700;
 }
 
+.completion-reward-row {
+    display: flex;
+    justify-content: center;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.completion-reward-chip {
+    padding: 0.7rem 1rem;
+    border-radius: 999px;
+    background: #fff4df;
+    color: #aa6a17;
+    border: 1px solid #f2d39f;
+    font-size: 0.94rem;
+    font-weight: 800;
+}
+
 .retry-incorrect-btn {
     width: 100%;
     padding: 14px 16px;

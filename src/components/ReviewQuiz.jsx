@@ -18,7 +18,7 @@ import './ReviewQuiz.css';
  * ReviewQuiz Component
  * 復習用のクイズコンポーネント
  */
-const ReviewQuiz = ({ questions, stats, onComplete }) => {
+const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
     const CORRECT_ADVANCE_DELAY_MS = 900;
     const INCORRECT_ADVANCE_DELAY_MS = 1600;
     const { isMuted, playSE } = useSound();
@@ -62,6 +62,7 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
         skinId,
     });
     const showIncorrectFeedback = Boolean(currentQuestion.options && feedback === 'incorrect');
+    const isChoiceQuestion = Boolean(currentQuestion.options);
     const poseEmotion = feedback
         ? feedback === 'correct'
             ? 'happy'
@@ -220,18 +221,13 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
             return nextStreak;
         });
 
-        // Incorrect answers stay on screen until the player confirms, so the answer is readable.
-        if (!isCorrect) {
+        if (!isCorrect && !isChoiceQuestion) {
             setShowNextButton(true);
-            nextQuestionTimerRef.current = setTimeout(() => {
-                handleNextQuestion();
-            }, INCORRECT_ADVANCE_DELAY_MS);
-        } else {
-            // Auto-advance after delay
-            nextQuestionTimerRef.current = setTimeout(() => {
-                handleNextQuestion();
-            }, CORRECT_ADVANCE_DELAY_MS);
         }
+
+        nextQuestionTimerRef.current = setTimeout(() => {
+            handleNextQuestion();
+        }, isCorrect ? CORRECT_ADVANCE_DELAY_MS : INCORRECT_ADVANCE_DELAY_MS);
     };
 
     const handleInputSubmit = (e) => {
@@ -278,6 +274,7 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
             : correctCount >= results.length / 2
                 ? 'いい復習だったね。苦手がちゃんと見えてきたよ。'
                 : '今日は土台づくりの日。次の一周でかなり変わるよ。';
+        const rewardSummary = typeof getRewardSummary === 'function' ? getRewardSummary(results) : null;
 
         return (
             <div className="review-quiz completion-screen">
@@ -301,6 +298,12 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
                                 '次はもっと頑張りましょう！'}
                     </p>
                     <p className="completion-coach-message">{completionCoachMessage}</p>
+                    {rewardSummary && rewardSummary.answeredCount > 0 && (
+                        <div className="completion-reward-row">
+                            <div className="completion-reward-chip">💎 +{rewardSummary.diamonds}</div>
+                            <div className="completion-reward-chip">🧠 +{rewardSummary.intellect}</div>
+                        </div>
+                    )}
                     {incorrectRetryQuestions.length > 0 && (
                         <button
                             className="retry-incorrect-btn"
@@ -309,7 +312,7 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
                             間違えた {incorrectRetryQuestions.length} 問だけもう一度
                         </button>
                     )}
-                    <button className="finish-btn" onClick={() => onComplete(results)}>
+                    <button className="finish-btn" onClick={() => onComplete({ results, completed: true })}>
                         復習リストに戻る
                     </button>
                 </div>
@@ -325,7 +328,7 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
             />
 
             <div className="review-topbar review-topbar-plain">
-                <button className="quiz-back-btn" onClick={() => onComplete(results)}>
+                <button className="quiz-back-btn" onClick={() => onComplete({ results, completed: false })}>
                     <ChevronLeft size={18} />
                     戻る
                 </button>
