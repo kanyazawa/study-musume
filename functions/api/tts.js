@@ -1,5 +1,5 @@
 import {
-    createElevenLabsSpeechResponse,
+    createDeepgramSpeechResponse,
     createTtsHealthResponse,
     createTtsOptionsResponse,
 } from '../_shared/ttsService.js';
@@ -36,7 +36,7 @@ export const onRequest = async (context) => {
         });
     }
 
-    return createElevenLabsSpeechResponse({
+    return createDeepgramSpeechResponse({
         env: context.env,
         body,
     });

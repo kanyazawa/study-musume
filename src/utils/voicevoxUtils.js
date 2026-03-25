@@ -1,6 +1,6 @@
 /**
  * TTS連携ユーティリティ
- * ElevenLabs / VOICEVOX / AivisSpeech / ブラウザTTS を扱う
+ * Deepgram / VOICEVOX / AivisSpeech / ブラウザTTS を扱う
  */
 
 import { Capacitor } from '@capacitor/core';
@@ -8,12 +8,19 @@ import { getTtsSettings, TTS_ENGINES } from './ttsSettings';
 import { estimateSpeechDuration } from './lipSync';
 
 const DEFAULT_ENGINE_BASE_URLS = {
-    [TTS_ENGINES.ELEVENLABS]: '/api/tts',
+    [TTS_ENGINES.DEEPGRAM]: '/api/tts',
     [TTS_ENGINES.AIVIS]: 'http://127.0.0.1:10101',
     [TTS_ENGINES.VOICEVOX]: 'http://127.0.0.1:50021',
 };
 
 const CLOUDFLARE_TTS_ENDPOINT = 'https://study-musume.hide20080422.workers.dev/api/tts';
+
+export const DEEPGRAM_VOICE_MODELS = [
+    'aura-2-thalia-en',
+    'aura-2-luna-en',
+    'aura-2-asteria-en',
+    'aura-2-stella-en',
+];
 
 export const VOICEVOX_SPEAKERS = {
     ZUNDAMON: 3,
@@ -41,35 +48,35 @@ const audioCache = new Map();
 const speakerListCache = new Map();
 const speakerListPromiseCache = new Map();
 
-const getElevenLabsEndpoints = () => {
+const getDeepgramEndpoints = () => {
     if (typeof window === 'undefined') {
-        return [DEFAULT_ENGINE_BASE_URLS[TTS_ENGINES.ELEVENLABS], CLOUDFLARE_TTS_ENDPOINT];
+        return [DEFAULT_ENGINE_BASE_URLS[TTS_ENGINES.DEEPGRAM], CLOUDFLARE_TTS_ENDPOINT];
     }
 
     const hostname = window.location.hostname || '';
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return [DEFAULT_ENGINE_BASE_URLS[TTS_ENGINES.ELEVENLABS], '/.netlify/functions/tts', CLOUDFLARE_TTS_ENDPOINT];
+        return [DEFAULT_ENGINE_BASE_URLS[TTS_ENGINES.DEEPGRAM], '/.netlify/functions/tts', CLOUDFLARE_TTS_ENDPOINT];
     }
 
     if (hostname.endsWith('.netlify.app') || hostname.endsWith('.netlify.live')) {
-        return ['/.netlify/functions/tts', DEFAULT_ENGINE_BASE_URLS[TTS_ENGINES.ELEVENLABS], CLOUDFLARE_TTS_ENDPOINT];
+        return ['/.netlify/functions/tts', DEFAULT_ENGINE_BASE_URLS[TTS_ENGINES.DEEPGRAM], CLOUDFLARE_TTS_ENDPOINT];
     }
 
-    return [DEFAULT_ENGINE_BASE_URLS[TTS_ENGINES.ELEVENLABS], CLOUDFLARE_TTS_ENDPOINT];
+    return [DEFAULT_ENGINE_BASE_URLS[TTS_ENGINES.DEEPGRAM], CLOUDFLARE_TTS_ENDPOINT];
 };
 
 const getUniqueValues = (values = []) => [...new Set(values.filter(Boolean))];
 
-const getElevenLabsVoiceId = (value, settings = getTtsSettings()) => {
+const getDeepgramVoiceModel = (value, settings = getTtsSettings()) => {
     if (typeof value === 'string' && value.trim()) {
         return value.trim();
     }
 
-    if (typeof settings?.elevenlabsVoiceId === 'string' && settings.elevenlabsVoiceId.trim()) {
-        return settings.elevenlabsVoiceId.trim();
+    if (typeof settings?.deepgramVoiceModel === 'string' && settings.deepgramVoiceModel.trim()) {
+        return settings.deepgramVoiceModel.trim();
     }
 
-    return '';
+    return DEEPGRAM_VOICE_MODELS[0];
 };
 
 const normalizeSpeakerKey = (value) => String(value || '')
@@ -112,7 +119,7 @@ export const resolveVoicevoxSpeakerId = (value, fallbackSpeakerId = VOICEVOX_SPE
 };
 
 export const getEngineDisplayName = (engine) => {
-    if (engine === TTS_ENGINES.ELEVENLABS) return 'ElevenLabs';
+    if (engine === TTS_ENGINES.DEEPGRAM) return 'Deepgram';
     if (engine === TTS_ENGINES.AIVIS) return 'AivisSpeech';
     if (engine === TTS_ENGINES.VOICEVOX) return 'VOICEVOX';
     if (engine === TTS_ENGINES.BROWSER) return 'ブラウザTTS';
@@ -120,8 +127,8 @@ export const getEngineDisplayName = (engine) => {
 };
 
 export const getEngineBaseUrl = (engine, settings = getTtsSettings()) => {
-    if (engine === TTS_ENGINES.ELEVENLABS) {
-        return DEFAULT_ENGINE_BASE_URLS[TTS_ENGINES.ELEVENLABS];
+    if (engine === TTS_ENGINES.DEEPGRAM) {
+        return DEFAULT_ENGINE_BASE_URLS[TTS_ENGINES.DEEPGRAM];
     }
     if (engine === TTS_ENGINES.AIVIS) {
         return settings.aivisUrl || DEFAULT_ENGINE_BASE_URLS[TTS_ENGINES.AIVIS];
@@ -133,17 +140,15 @@ export const getEngineBaseUrl = (engine, settings = getTtsSettings()) => {
 };
 
 export const isEngineAvailable = async (engine = TTS_ENGINES.VOICEVOX, baseUrl = getEngineBaseUrl(engine)) => {
-    if (engine === TTS_ENGINES.ELEVENLABS) {
-        const endpoints = getUniqueValues([baseUrl, ...getElevenLabsEndpoints()]);
+    if (engine === TTS_ENGINES.DEEPGRAM) {
+        const endpoints = getUniqueValues([baseUrl, ...getDeepgramEndpoints()]);
         for (const endpoint of endpoints) {
             try {
                 const response = await fetch(endpoint, { method: 'GET' });
                 if (!response.ok) continue;
 
                 const data = await response.json().catch(() => null);
-                if (data?.ok) {
-                    return true;
-                }
+                if (data?.ok) return true;
             } catch {
                 // try next endpoint
             }
@@ -165,7 +170,7 @@ export const isVoicevoxAvailable = async () => isEngineAvailable(TTS_ENGINES.VOI
 const createCacheKey = (engine, text, speakerId, baseUrl) => `${engine}_${baseUrl}_${text}_${speakerId}`;
 
 export const fetchEngineSpeakers = async (engine = TTS_ENGINES.VOICEVOX, baseUrl = getEngineBaseUrl(engine)) => {
-    if (!baseUrl || engine === TTS_ENGINES.BROWSER || engine === TTS_ENGINES.ELEVENLABS) return [];
+    if (!baseUrl || engine === TTS_ENGINES.BROWSER || engine === TTS_ENGINES.DEEPGRAM) return [];
 
     const cacheKey = `${engine}:${baseUrl}`;
     if (speakerListCache.has(cacheKey)) {
@@ -209,8 +214,8 @@ export const resolveSpeakerIdForEngine = async (
     value,
     { fallbackSpeakerId, baseUrl = getEngineBaseUrl(engine) } = {}
 ) => {
-    if (engine === TTS_ENGINES.ELEVENLABS) {
-        return getElevenLabsVoiceId(value) || fallbackSpeakerId;
+    if (engine === TTS_ENGINES.DEEPGRAM) {
+        return getDeepgramVoiceModel(value);
     }
 
     const resolvedId = resolveVoicevoxSpeakerId(value, undefined);
@@ -261,17 +266,15 @@ export const speakWithEngine = async (
     { baseUrl = getEngineBaseUrl(engine), onStart, onEnd } = {}
 ) => {
     try {
-        if (engine === TTS_ENGINES.ELEVENLABS) {
+        if (engine === TTS_ENGINES.DEEPGRAM) {
             const settings = getTtsSettings();
-            const voiceId = getElevenLabsVoiceId(speakerId, settings);
-            if (!voiceId) return false;
-
-            const endpoints = getUniqueValues([baseUrl, ...getElevenLabsEndpoints()]);
+            const model = getDeepgramVoiceModel(speakerId, settings);
+            const endpoints = getUniqueValues([baseUrl, ...getDeepgramEndpoints()]);
             let lastError = null;
 
             for (const endpoint of endpoints) {
                 try {
-                    const cacheKey = createCacheKey(engine, text, voiceId, endpoint);
+                    const cacheKey = createCacheKey(engine, text, model, endpoint);
                     if (audioCache.has(cacheKey)) {
                         const audioBlob = audioCache.get(cacheKey);
                         const audioUrl = URL.createObjectURL(audioBlob);
@@ -300,8 +303,7 @@ export const speakWithEngine = async (
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             text,
-                            voiceId,
-                            modelId: settings.elevenlabsModelId,
+                            model,
                         }),
                     });
                     if (!response.ok) {
@@ -335,7 +337,7 @@ export const speakWithEngine = async (
                 }
             }
 
-            throw lastError || new Error('No ElevenLabs endpoint available');
+            throw lastError || new Error('No Deepgram endpoint available');
         }
 
         if (!baseUrl) return false;
@@ -419,15 +421,14 @@ export const prefetchEngine = async (
     { baseUrl = getEngineBaseUrl(engine) } = {}
 ) => {
     try {
-        if (engine === TTS_ENGINES.ELEVENLABS) {
+        if (engine === TTS_ENGINES.DEEPGRAM) {
             const settings = getTtsSettings();
-            const voiceId = getElevenLabsVoiceId(speakerId, settings);
-            if (!voiceId) return false;
+            const model = getDeepgramVoiceModel(speakerId, settings);
+            const endpoints = getUniqueValues([baseUrl, ...getDeepgramEndpoints()]);
 
-            const endpoints = getUniqueValues([baseUrl, ...getElevenLabsEndpoints()]);
             for (const endpoint of endpoints) {
                 try {
-                    const cacheKey = createCacheKey(engine, text, voiceId, endpoint);
+                    const cacheKey = createCacheKey(engine, text, model, endpoint);
                     if (audioCache.has(cacheKey)) return true;
 
                     const response = await fetch(endpoint, {
@@ -435,8 +436,7 @@ export const prefetchEngine = async (
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             text,
-                            voiceId,
-                            modelId: settings.elevenlabsModelId,
+                            model,
                         }),
                     });
                     if (!response.ok) continue;
@@ -594,7 +594,7 @@ export const speakWithPreferredTts = async (text, settings = getTtsSettings()) =
     if (!text || settings?.enabled === false) return false;
 
     const engineOrder = settings.engine === TTS_ENGINES.AUTO
-        ? [TTS_ENGINES.ELEVENLABS, TTS_ENGINES.AIVIS, TTS_ENGINES.VOICEVOX, TTS_ENGINES.BROWSER]
+        ? [TTS_ENGINES.DEEPGRAM, TTS_ENGINES.AIVIS, TTS_ENGINES.VOICEVOX, TTS_ENGINES.BROWSER]
         : [settings.engine];
 
     for (const engine of engineOrder) {
@@ -612,7 +612,7 @@ export const speakWithPreferredTts = async (text, settings = getTtsSettings()) =
 
         const speakerId = await resolveSpeakerIdForEngine(
             engine,
-            engine === TTS_ENGINES.ELEVENLABS ? settings.elevenlabsVoiceId || settings.preferredSpeaker : settings.preferredSpeaker,
+            engine === TTS_ENGINES.DEEPGRAM ? settings.deepgramVoiceModel : settings.preferredSpeaker,
             {
                 baseUrl,
             }

@@ -1,6 +1,6 @@
 import { createNoaChatResponse } from '../functions/_shared/chatService.js';
 import {
-    createElevenLabsSpeechResponse,
+    createDeepgramSpeechResponse,
     createTtsHealthResponse,
     createTtsOptionsResponse,
 } from '../functions/_shared/ttsService.js';
@@ -71,7 +71,7 @@ export default {
                 return buildJsonResponse({ error: 'Request body must be valid JSON' }, 400);
             }
 
-            return createElevenLabsSpeechResponse({
+            return createDeepgramSpeechResponse({
                 env,
                 body,
             });

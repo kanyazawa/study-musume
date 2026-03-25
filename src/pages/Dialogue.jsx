@@ -47,7 +47,7 @@ const Dialogue = ({ stats, updateStats }) => {
     const [characterSpeaking, setCharacterSpeaking] = useState(false);
     const [characterSpeechText, setCharacterSpeechText] = useState('');
     const characterSpeakTimerRef = useRef(null);
-    const ttsAvailabilityRef = useRef({ elevenlabs: false, aivis: false, voicevox: false });
+    const ttsAvailabilityRef = useRef({ deepgram: false, aivis: false, voicevox: false });
     const preferredRenderer = stats?.characterRenderer;
     const renderer = resolveCharacterRenderer({
         preferredRenderer,
@@ -64,11 +64,11 @@ const Dialogue = ({ stats, updateStats }) => {
     useEffect(() => {
         const settings = getTtsSettings();
         Promise.all([
-            isEngineAvailable(TTS_ENGINES.ELEVENLABS),
+            isEngineAvailable(TTS_ENGINES.DEEPGRAM),
             isEngineAvailable(TTS_ENGINES.AIVIS, settings.aivisUrl),
             isEngineAvailable(TTS_ENGINES.VOICEVOX, settings.voicevoxUrl),
-        ]).then(([elevenlabsAvailable, aivisAvailable, voicevoxAvailable]) => {
-            ttsAvailabilityRef.current = { elevenlabs: elevenlabsAvailable, aivis: aivisAvailable, voicevox: voicevoxAvailable };
+        ]).then(([deepgramAvailable, aivisAvailable, voicevoxAvailable]) => {
+            ttsAvailabilityRef.current = { deepgram: deepgramAvailable, aivis: aivisAvailable, voicevox: voicevoxAvailable };
             console.log('TTS engines available:', ttsAvailabilityRef.current);
         });
     }, []);
@@ -699,8 +699,8 @@ const Dialogue = ({ stats, updateStats }) => {
         const preferredSpeaker = targetLine?.tts_speaker
             || targetLine?.voicevox_speaker
             || targetLine?.speaker_id
-            || (chosenEngine === TTS_ENGINES.ELEVENLABS
-                ? (ttsSettings.elevenlabsVoiceId || ttsSettings.preferredSpeaker)
+            || (chosenEngine === TTS_ENGINES.DEEPGRAM
+                ? ttsSettings.deepgramVoiceModel
                 : ttsSettings.preferredSpeaker);
 
         return resolveSpeakerIdForEngine(chosenEngine, preferredSpeaker, {
@@ -717,8 +717,8 @@ const Dialogue = ({ stats, updateStats }) => {
         setCharacterSpeechText(targetLine.text);
 
         const chosenEngine = ttsSettings.engine === TTS_ENGINES.AUTO
-            ? (ttsAvailabilityRef.current.elevenlabs
-                ? TTS_ENGINES.ELEVENLABS
+            ? (ttsAvailabilityRef.current.deepgram
+                ? TTS_ENGINES.DEEPGRAM
                 : ttsAvailabilityRef.current.aivis
                     ? TTS_ENGINES.AIVIS
                     : ttsAvailabilityRef.current.voicevox
@@ -790,8 +790,8 @@ const Dialogue = ({ stats, updateStats }) => {
         if (!ttsSettings.enabled) return;
 
         const chosenEngine = ttsSettings.engine === TTS_ENGINES.AUTO
-            ? (ttsAvailabilityRef.current.elevenlabs
-                ? TTS_ENGINES.ELEVENLABS
+            ? (ttsAvailabilityRef.current.deepgram
+                ? TTS_ENGINES.DEEPGRAM
                 : ttsAvailabilityRef.current.aivis
                     ? TTS_ENGINES.AIVIS
                     : ttsAvailabilityRef.current.voicevox

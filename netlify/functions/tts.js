@@ -1,4 +1,4 @@
-import { createElevenLabsSpeechResponse, getElevenLabsRuntimeConfig } from '../../functions/_shared/ttsService.js';
+import { createDeepgramSpeechResponse, getDeepgramTtsRuntimeConfig } from '../../functions/_shared/ttsService.js';
 
 const JSON_HEADERS = {
     'Content-Type': 'application/json; charset=utf-8',
@@ -46,12 +46,11 @@ export async function handler(event) {
     }
 
     if (event.httpMethod === 'GET') {
-        const config = getElevenLabsRuntimeConfig(process.env);
+        const config = getDeepgramTtsRuntimeConfig(process.env);
         return toJson(200, {
             ok: config.configured,
-            provider: 'elevenlabs',
+            provider: 'deepgram',
             hasApiKey: config.hasApiKey,
-            hasDefaultVoiceId: config.hasDefaultVoiceId,
             defaultModelId: config.defaultModelId,
         });
     }
@@ -67,7 +66,7 @@ export async function handler(event) {
         return toJson(400, { error: 'Request body must be valid JSON' });
     }
 
-    const response = await createElevenLabsSpeechResponse({
+    const response = await createDeepgramSpeechResponse({
         env: process.env,
         body,
     });

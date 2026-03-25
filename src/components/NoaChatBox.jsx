@@ -98,7 +98,7 @@ const speakReplyWithSettings = async (text, { onStart, onEnd } = {}) => {
     if (!settings.enabled) return false;
 
     const engineOrder = settings.engine === TTS_ENGINES.AUTO
-        ? [TTS_ENGINES.ELEVENLABS, TTS_ENGINES.AIVIS, TTS_ENGINES.VOICEVOX, TTS_ENGINES.BROWSER]
+        ? [TTS_ENGINES.DEEPGRAM, TTS_ENGINES.AIVIS, TTS_ENGINES.VOICEVOX, TTS_ENGINES.BROWSER]
         : [settings.engine];
 
     for (const engine of engineOrder) {
@@ -116,8 +116,8 @@ const speakReplyWithSettings = async (text, { onStart, onEnd } = {}) => {
         const available = await isEngineAvailable(engine, baseUrl);
         if (!available) continue;
 
-        const speakerValue = engine === TTS_ENGINES.ELEVENLABS
-            ? settings.elevenlabsVoiceId || settings.preferredSpeaker
+        const speakerValue = engine === TTS_ENGINES.DEEPGRAM
+            ? settings.deepgramVoiceModel
             : settings.preferredSpeaker;
         const speakerId = await resolveSpeakerIdForEngine(engine, speakerValue, {
             baseUrl,
