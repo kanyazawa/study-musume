@@ -13,8 +13,8 @@ import {
 } from '../utils/voicevoxUtils';
 
 const ENGINE_OPTIONS = [
-    { value: TTS_ENGINES.AUTO, label: '自動判定', desc: 'Deepgram → AivisSpeech → VOICEVOX → ブラウザTTS の順で使います' },
-    { value: TTS_ENGINES.DEEPGRAM, label: 'Deepgram', desc: '本番向け。サーバー経由で高速に再生します' },
+    { value: TTS_ENGINES.AUTO, label: '自動判定', desc: 'クラウドTTS → AivisSpeech → VOICEVOX → ブラウザTTS の順で使います' },
+    { value: TTS_ENGINES.DEEPGRAM, label: 'クラウドTTS', desc: '本番向け。Aivis Cloud を優先し、未設定なら Deepgram を使います' },
     { value: TTS_ENGINES.AIVIS, label: 'AivisSpeech', desc: 'AivisSpeech Engine を優先して使います' },
     { value: TTS_ENGINES.VOICEVOX, label: 'VOICEVOX', desc: 'VOICEVOX Engine を優先して使います' },
     { value: TTS_ENGINES.BROWSER, label: 'ブラウザTTS', desc: '端末標準の読み上げだけを使います' },
@@ -161,7 +161,7 @@ const TtsSettingsModal = ({ onClose }) => {
                 <div className="tts-settings-body">
                     <div className="tts-status-grid">
                         <div className={`tts-status-card ${available.deepgram ? 'online' : 'offline'}`}>
-                            <div className="tts-status-name">Deepgram</div>
+                            <div className="tts-status-name">クラウドTTS</div>
                             <div className="tts-status-value">{loadingAvailability ? '確認中' : available.deepgram ? '接続OK' : '未設定'}</div>
                         </div>
                         <div className={`tts-status-card ${available.aivis ? 'online' : 'offline'}`}>
@@ -212,7 +212,7 @@ const TtsSettingsModal = ({ onClose }) => {
 
                     <div className="tts-field-group">
                         <label className="tts-field">
-                            <span>Deepgram Voice Model</span>
+                            <span>クラウドTTS 音声設定</span>
                             <select
                                 value={settings.deepgramVoiceModel}
                                 onChange={(e) => handleChange('deepgramVoiceModel', e.target.value)}
@@ -224,7 +224,7 @@ const TtsSettingsModal = ({ onClose }) => {
                                 ))}
                             </select>
                             <div className="tts-inline-help">
-                                Deepgram は Voice ID ではなく model 名で切り替えます。かわいさ重視なら Uzume、やわらかさ重視なら Ama がおすすめです。
+                                Aivis Cloud が設定されている場合はサーバー側のモデル UUID を優先します。未設定時は Deepgram フォールバックとして下の候補を使います。
                             </div>
                             <div className="tts-inline-help">
                                 {DEEPGRAM_MODEL_OPTIONS.find((option) => option.value === settings.deepgramVoiceModel)?.desc || 'モデルを選んで音の印象を調整できます'}
@@ -252,7 +252,7 @@ const TtsSettingsModal = ({ onClose }) => {
                     </div>
 
                     <div className="tts-url-hint">
-                        Deepgram は `/api/tts` 経由で使います。AivisSpeech の標準URLは `http://127.0.0.1:10101`、VOICEVOX は `http://127.0.0.1:50021` です。
+                        クラウドTTS は `/api/tts` 経由で使います。AivisSpeech の標準URLは `http://127.0.0.1:10101`、VOICEVOX は `http://127.0.0.1:50021` です。
                     </div>
 
                     <div className="tts-field-group">
@@ -276,8 +276,8 @@ const TtsSettingsModal = ({ onClose }) => {
                                     : selectedEngine === TTS_ENGINES.BROWSER
                                         ? 'ブラウザTTS利用時は話者指定できません'
                                         : selectedEngine === TTS_ENGINES.DEEPGRAM
-                                            ? 'Deepgram では上の Voice Model を使います'
-                                        : speakerOptions.length > 0
+                                            ? 'クラウドTTS ではサーバー設定の音声、または上の Deepgram フォールバック候補を使います'
+                                            : speakerOptions.length > 0
                                             ? `${speakerOptions.length}件の話者が見つかりました`
                                             : '話者一覧を取得できませんでした'}
                             </div>
@@ -300,7 +300,7 @@ const TtsSettingsModal = ({ onClose }) => {
                                 {selectedEngine === TTS_ENGINES.BROWSER
                                     ? 'ブラウザTTS利用時は対戦話者を分けられません'
                                     : selectedEngine === TTS_ENGINES.DEEPGRAM
-                                        ? 'Deepgram では通常音声と同じ Voice Model を使います'
+                                        ? 'クラウドTTS では通常音声と同じ設定を使います'
                                         : settings.battleSpeaker
                                             ? '対戦中の連鎖ボイスだけこの話者で再生します'
                                             : '未設定なら通常の優先話者をそのまま使います'}

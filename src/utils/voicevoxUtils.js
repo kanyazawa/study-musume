@@ -122,7 +122,7 @@ export const resolveVoicevoxSpeakerId = (value, fallbackSpeakerId = VOICEVOX_SPE
 };
 
 export const getEngineDisplayName = (engine) => {
-    if (engine === TTS_ENGINES.DEEPGRAM) return 'Deepgram';
+    if (engine === TTS_ENGINES.DEEPGRAM) return 'クラウドTTS';
     if (engine === TTS_ENGINES.AIVIS) return 'AivisSpeech';
     if (engine === TTS_ENGINES.VOICEVOX) return 'VOICEVOX';
     if (engine === TTS_ENGINES.BROWSER) return 'ブラウザTTS';

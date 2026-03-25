@@ -1,4 +1,4 @@
-import { createDeepgramSpeechResponse, getDeepgramTtsRuntimeConfig } from '../../functions/_shared/ttsService.js';
+import { createSpeechResponse, getTtsRuntimeConfig } from '../../functions/_shared/ttsService.js';
 
 const JSON_HEADERS = {
     'Content-Type': 'application/json; charset=utf-8',
@@ -46,12 +46,14 @@ export async function handler(event) {
     }
 
     if (event.httpMethod === 'GET') {
-        const config = getDeepgramTtsRuntimeConfig(process.env);
+        const config = getTtsRuntimeConfig(process.env);
         return toJson(200, {
             ok: config.configured,
-            provider: 'deepgram',
+            provider: config.provider,
             hasApiKey: config.hasApiKey,
             defaultModelId: config.defaultModelId,
+            hasAivisModelUuid: config.hasAivisModelUuid,
+            defaultStyleId: config.defaultStyleId,
         });
     }
 
@@ -66,7 +68,7 @@ export async function handler(event) {
         return toJson(400, { error: 'Request body must be valid JSON' });
     }
 
-    const response = await createDeepgramSpeechResponse({
+    const response = await createSpeechResponse({
         env: process.env,
         body,
     });
