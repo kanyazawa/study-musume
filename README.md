@@ -8,9 +8,9 @@
 - Vite 7
 - React Router
 - Firebase Authentication / Firestore
-- Three.js / React Three Fiber / VRM
+- Live2D / 静止画キャラクター表示
 - Tailwind CSS 関連ユーティリティ
-- Capacitor Android
+- Capacitor Android / iOS
 
 ## 開発環境の起動
 
@@ -80,7 +80,7 @@ study-musume/
 - ガチャ、所持アイテム、ミッション
 - カレンダーと統計表示
 - Firebase ログインとセーブ同期
-- VRM モデル表示
+- Live2D 導入用の共通キャラ描画基盤
 
 ## Firebase 設定
 
@@ -125,6 +125,31 @@ Android Studio で開く:
 npx cap open android
 ```
 
+## iOS アプリとして使う場合
+
+iOS は `Mac` と `Xcode` が必要です。借りた Mac で最短セットアップしたい場合は、次を実行してください。
+
+```bash
+npm run ios:prepare
+```
+
+そのあと Xcode を開きます。
+
+```bash
+npx cap open ios
+```
+
+詳細手順は [docs/ios-quickstart.md](/C:/Users/Hide2/.gemini/study-musume/docs/ios-quickstart.md) にまとめています。
+
+補足:
+
+- `ios/` ディレクトリが無ければ初回に自動生成します
+- `@capacitor/ios` が未導入なら自動で追加します
+- 現在の Google ログイン実装は Web 向けのため、iOS ネイティブアプリで安定化するには後で native auth 対応が必要です
+
+iOS の native Google ログインへ置き換える実装計画は [docs/ios-native-auth-plan.md](/C:/Users/Hide2/.gemini/study-musume/docs/ios-native-auth-plan.md) にまとめています。
+Swift plugin のテンプレートは [docs/ios-native-plugin-template/NativeGoogleAuth.swift](/C:/Users/Hide2/.gemini/study-musume/docs/ios-native-plugin-template/NativeGoogleAuth.swift) と [docs/ios-native-plugin-template/NativeGoogleAuthPlugin.swift](/C:/Users/Hide2/.gemini/study-musume/docs/ios-native-plugin-template/NativeGoogleAuthPlugin.swift) に置いてあります。`AppDelegate` と `Info.plist` 用の差し込み例も [docs/ios-native-plugin-template/AppDelegate.google-signin.swift.snippet](/C:/Users/Hide2/.gemini/study-musume/docs/ios-native-plugin-template/AppDelegate.google-signin.swift.snippet) と [docs/ios-native-plugin-template/Info.plist.google-signin.snippet.xml](/C:/Users/Hide2/.gemini/study-musume/docs/ios-native-plugin-template/Info.plist.google-signin.snippet.xml) に追加しています。
+
 ## デプロイ
 
 Netlify 用の SPA リダイレクト設定が [netlify.toml](/C:/Users/Hide2/.gemini/study-musume/netlify.toml) にあります。`/* -> /index.html` へリダイレクトする構成です。
@@ -135,6 +160,13 @@ Netlify 用の SPA リダイレクト設定が [netlify.toml](/C:/Users/Hide2/.g
 - `novel-prototype/` は本体と別系統のプロトタイプです。
 - 画像処理用の Python スクリプトはフロントエンド本体の実行には不要です。
 - テスト基盤はまだ未整備です。
+
+## Live2D 導入メモ
+
+キャラ描画は `CharacterStage` で `image / live2d` を切り替える構成に寄せています。  
+`stats.characterRenderer` が `auto` の場合は既存の画像描画を使い、`live2d` を選んだ時だけ Live2D を優先します。
+
+詳細な配置手順と登録方法は [docs/live2d-setup.md](/C:/Users/Hide2/.gemini/study-musume/docs/live2d-setup.md) にまとめています。
 
 ## スプレッドシート授業データと読み上げ
 
@@ -148,6 +180,13 @@ Netlify 用の SPA リダイレクト設定が [netlify.toml](/C:/Users/Hide2/.g
 - `tts_rate`: ブラウザTTSの速度を数値で上書きします
 
 `voice` 列はこれまで通り `public/audio` 配下の音声ファイル再生に使われます。`text` にカンマや改行を含む場合も、CSV のクオート付きセルでそのまま扱えます。
+
+`voice` には次の形式を使えます。
+
+- `tts-generated/...` のような `public/audio` 配下の相対パス
+- `https://...` のような外部URL
+- `storage:tts-generated/...` のような Firebase Storage パス
+- `gs://<bucket>/<path>` のような Firebase Storage URL
 
 ### AivisSpeech を事前音声化してスマホで使う
 
@@ -180,6 +219,40 @@ npm run tts:aivis -- --input src/scenarios/chem_scenario.csv --dry-run
 ```bash
 npm run tts:aivis -- --input src/scenarios/chem_scenario.csv --write-csv tmp/chem_scenario.with-voice.csv
 ```
+
+mp3 で軽く出力する:
+
+```bash
+npm run tts:aivis -- --input src/scenarios/chem_scenario.csv --format mp3 --write-csv tmp/chem_scenario.with-voice.csv
+```
+
+1コマンドでシーン音声を公開用まで進める:
+
+```bash
+npm run tts:publish -- --input tmp/noun_article.csv --sheet "1.1 名詞と冠詞" --fallback-speaker "まお / ノーマル"
+```
+
+mp3 で公開する:
+
+```bash
+npm run tts:publish -- --input tmp/noun_article.csv --sheet "1.1 名詞と冠詞" --fallback-speaker "まお / ノーマル" --format mp3
+```
+
+このコマンドで次をまとめて行います。
+
+- 対象シーンの音声生成
+- `voice` 列つき CSV の出力
+- `voice` 列だけの `.txt` 出力
+- `public/audio/tts-generated/<scene>` の git add / commit / push
+
+補足:
+
+- 出力CSVは既定で `tmp/<scene>.with-voice.csv`
+- `voice` 列だけの貼り付け用テキストは `tmp/<scene>.voice-only.txt`
+- `--skip-git` を付けると git add / commit / push を止められます
+- `--skip-push` を付けるとコミットまでは行い、push は止められます
+- `--format mp3` を使うには `ffmpeg` が必要です
+- `tools/ffmpeg/bin/ffmpeg.exe` に置いてあれば自動で使います
 
 特定シーンだけ生成:
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Footer from './Footer';
 
@@ -11,11 +11,24 @@ const AppLayout = ({ children }) => {
   const location = useLocation();
   const pathname = location.pathname.replace(/\/+$/, '') || '/';
   const isTitlePage = pathname === '/';
+  const isReviewRoute = matchesRoutePrefix(pathname, '/review');
   const isImmersiveScene = ['/review', '/multiplayer-match'].some((path) =>
     matchesRoutePrefix(pathname, path),
   );
   const shouldHideFooter =
     isTitlePage || HIDE_FOOTER_PATHS.some((path) => matchesRoutePrefix(pathname, path));
+
+  useEffect(() => {
+    if (isReviewRoute) {
+      document.body.classList.add('review-route-active');
+      return () => {
+        document.body.classList.remove('review-route-active');
+      };
+    }
+
+    document.body.classList.remove('review-route-active');
+    return undefined;
+  }, [isReviewRoute]);
 
   return (
     <>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Shirt, Image as ImageIcon, Gift, MessageCircle } from 'lucide-react';
 import './CharacterInteraction.css';
@@ -18,7 +18,7 @@ import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
 const CharacterInteraction = ({ stats, updateStats }) => {
     const navigate = useNavigate();
     const [mode, setMode] = useState('main'); // main, gift, costume, bg, chat
-    const [expression, setExpression] = useState('normal'); // normal, smile
+    const [expression, setExpression] = useState('normal');
     const [showCharSelect, setShowCharSelect] = useState(false);
     const [giftReaction, setGiftReaction] = useState(null);
     const [chatSpeechText, setChatSpeechText] = useState('');
@@ -53,12 +53,24 @@ const CharacterInteraction = ({ stats, updateStats }) => {
         characterId,
         skinId: stats.equippedSkin || 'default',
     });
+    const currentExpression = normalizeCharacterEmotion(expression);
+    const expressionIntensity = useMemo(() => {
+        if (currentExpression === 'shy') {
+            return 0.68;
+        }
+
+        if (currentExpression === 'serious') {
+            return 0.58;
+        }
+
+        return ['happy', 'smile', 'angry', 'surprised'].includes(currentExpression) ? 0.82 : 0.42;
+    }, [currentExpression]);
     const interactionPose = giftReaction
         ? createGiftPose(giftReaction)
         : {
-            emotion: normalizeCharacterEmotion(expression),
-            expression: normalizeCharacterEmotion(expression),
-            intensity: expression === 'smile' ? 0.8 : 0.4,
+            emotion: currentExpression,
+            expression: currentExpression,
+            intensity: expressionIntensity,
             motion: null,
             idle: 'gentle',
             gaze: 'camera',
@@ -74,6 +86,7 @@ const CharacterInteraction = ({ stats, updateStats }) => {
 
         setIsChatSpeaking(false);
         setChatSpeechText('');
+        setExpression('normal');
     }, [mode]);
 
     useEffect(() => {
@@ -215,8 +228,12 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                             stats={stats}
                             embedded
                             autoSpeakAssistant
-                            onAssistantReply={(replyText) => {
+                            onUserMessage={(_, { emotion: nextEmotion } = {}) => {
+                                setExpression(normalizeCharacterEmotion(nextEmotion, 'normal'));
+                            }}
+                            onAssistantReply={(replyText, { emotion: nextEmotion } = {}) => {
                                 setChatSpeechText(String(replyText || '').trim());
+                                setExpression(normalizeCharacterEmotion(nextEmotion, 'normal'));
                             }}
                             onAssistantSpeechStart={(replyText) => {
                                 setChatSpeechText(String(replyText || '').trim());
@@ -235,7 +252,6 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                      But "Gift button -> list comes out from bottom" implies inline interaction.
                      For now, let's keep it simple. If they click Costume, maybe show alert or implement similar list.
                  */}
-// ... (imports are handled in next step or already present)
 
                 {/* Costume Selection Mode */}
                 {mode === 'costume' && (

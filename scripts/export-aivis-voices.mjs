@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { parseCsvTable } from '../src/utils/csvUtils.js';
 
@@ -9,6 +10,7 @@ const projectRoot = path.resolve(__dirname, '..');
 
 const DEFAULT_AIVIS_URL = 'http://127.0.0.1:10101';
 const DEFAULT_OUTPUT_DIR = path.join(projectRoot, 'public', 'audio', 'tts-generated');
+const DEFAULT_LOCAL_FFMPEG_PATH = path.join(projectRoot, 'tools', 'ffmpeg', 'bin', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
 
 const printUsage = () => {
     console.log(`Usage:
@@ -19,6 +21,8 @@ Options:
   --output-dir <dir>           Output directory (default: public/audio/tts-generated)
   --base-url <url>             AivisSpeech Engine URL (default: http://127.0.0.1:10101)
   --fallback-speaker <name>    Speaker name or "speaker / style"
+  --format <wav|mp3>           Output audio format (default: wav)
+  --ffmpeg-path <path>         ffmpeg path for mp3 conversion
   --write-csv <file>           Write CSV with voice column filled
   --dry-run                    Show what would be generated without writing audio
   --overwrite                  Regenerate files even if they already exist
@@ -31,6 +35,7 @@ const parseArgs = (argv) => {
         outputDir: DEFAULT_OUTPUT_DIR,
         dryRun: false,
         overwrite: false,
+        format: 'wav',
     };
 
     for (let index = 0; index < argv.length; index += 1) {
@@ -61,6 +66,12 @@ const parseArgs = (argv) => {
         throw new Error('--input is required');
     }
 
+    if (!['wav', 'mp3'].includes(String(options.format).toLowerCase())) {
+        throw new Error('--format must be wav or mp3');
+    }
+
+    options.format = String(options.format).toLowerCase();
+
     return options;
 };
 
@@ -90,6 +101,42 @@ const normalizeSpeakerKey = (value) => String(value || '')
     .replace(/[／/]/g, '/')
     .replace(/\s+/g, ' ');
 
+const resolveInputPath = async (input) => {
+    const resolvedPath = path.isAbsolute(input) ? input : path.join(projectRoot, input);
+
+    try {
+        await fs.access(resolvedPath);
+        return resolvedPath;
+    } catch {
+        if (path.extname(resolvedPath)) {
+            throw new Error(`Input file not found: ${resolvedPath}`);
+        }
+    }
+
+    const csvPath = `${resolvedPath}.csv`;
+    try {
+        await fs.access(csvPath);
+        return csvPath;
+    } catch {
+        throw new Error(`Input file not found: ${resolvedPath} (.csv も見つかりません)`);
+    }
+};
+
+const getFfmpegCommand = (customPath) => customPath || process.env.FFMPEG_PATH || DEFAULT_LOCAL_FFMPEG_PATH || 'ffmpeg';
+
+const ensureMp3Support = (customPath) => {
+    const ffmpegCommand = getFfmpegCommand(customPath);
+    const result = spawnSync(ffmpegCommand, ['-version'], {
+        stdio: 'ignore',
+    });
+
+    if (result.status !== 0) {
+        throw new Error('mp3 出力には ffmpeg が必要です。--ffmpeg-path で指定するか、FFMPEG_PATH を設定してください。');
+    }
+
+    return ffmpegCommand;
+};
+
 const loadCsvText = async (input) => {
     if (/^https?:\/\//i.test(input)) {
         const response = await fetch(input);
@@ -99,7 +146,7 @@ const loadCsvText = async (input) => {
         return response.text();
     }
 
-    const resolvedPath = path.isAbsolute(input) ? input : path.join(projectRoot, input);
+    const resolvedPath = await resolveInputPath(input);
     return fs.readFile(resolvedPath, 'utf8');
 };
 
@@ -152,7 +199,7 @@ const resolveSpeaker = (speakers, value, fallbackSpeaker) => {
     return fallbackSpeaker ?? speakers[0];
 };
 
-const synthesizeToFile = async ({ baseUrl, text, speakerId, outputPath }) => {
+const synthesizeVoiceBuffer = async ({ baseUrl, text, speakerId }) => {
     const queryResponse = await fetch(
         `${baseUrl}/audio_query?text=${encodeURIComponent(text)}&speaker=${speakerId}`,
         { method: 'POST' }
@@ -172,12 +219,46 @@ const synthesizeToFile = async ({ baseUrl, text, speakerId, outputPath }) => {
     }
 
     const arrayBuffer = await synthesisResponse.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+};
+
+const convertWavBufferToMp3 = async ({ wavBuffer, outputPath, ffmpegCommand }) => {
+    const tempWavPath = `${outputPath}.tmp.wav`;
     await fs.mkdir(path.dirname(outputPath), { recursive: true });
-    await fs.writeFile(outputPath, Buffer.from(arrayBuffer));
+    await fs.writeFile(tempWavPath, wavBuffer);
+
+    try {
+        const result = spawnSync(
+            ffmpegCommand,
+            ['-y', '-i', tempWavPath, '-codec:a', 'libmp3lame', '-q:a', '4', outputPath],
+            {
+                stdio: 'ignore',
+            }
+        );
+
+        if (result.status !== 0) {
+            throw new Error('ffmpeg conversion failed');
+        }
+    } finally {
+        await fs.rm(tempWavPath, { force: true });
+    }
+};
+
+const synthesizeToFile = async ({ baseUrl, text, speakerId, outputPath, format, ffmpegCommand }) => {
+    const voiceBuffer = await synthesizeVoiceBuffer({ baseUrl, text, speakerId });
+
+    await fs.mkdir(path.dirname(outputPath), { recursive: true });
+    if (format === 'mp3') {
+        await convertWavBufferToMp3({ wavBuffer: voiceBuffer, outputPath, ffmpegCommand });
+        return;
+    }
+
+    await fs.writeFile(outputPath, voiceBuffer);
 };
 
 const main = async () => {
     const options = parseArgs(process.argv.slice(2));
+    const ffmpegCommand = options.format === 'mp3' ? ensureMp3Support(options['ffmpeg-path']) : null;
     const csvText = await loadCsvText(options.input);
     const rows = parseCsvTable(csvText);
 
@@ -235,7 +316,7 @@ const main = async () => {
         const sceneSegment = sanitizeSegment(scene || 'default-scene');
         const idSegment = sanitizeSegment((idIndex >= 0 ? row[idIndex] : '') || String(rowIndex), `line-${rowIndex}`);
         const speakerSegment = sanitizeSegment(speaker.speakerName);
-        const filename = `${sceneSegment}-${idSegment}-${speakerSegment}-${speaker.styleId}.wav`;
+        const filename = `${sceneSegment}-${idSegment}-${speakerSegment}-${speaker.styleId}.${options.format}`;
         const relativeVoicePath = `tts-generated/${sceneSegment}/${filename}`.replace(/\\/g, '/');
         const outputPath = path.join(options.outputDir, sceneSegment, filename);
 
@@ -258,6 +339,8 @@ const main = async () => {
                 text,
                 speakerId: speaker.styleId,
                 outputPath,
+                format: options.format,
+                ffmpegCommand,
             });
         }
     }

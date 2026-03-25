@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { LoaderCircle, RefreshCcw, SendHorizontal, Volume2, X } from 'lucide-react';
 import './NoaChatBox.css';
 import { clearNoaChatMessages, getNoaChatMessages, saveNoaChatMessages } from '../utils/chatHistory';
+import { inferEmotionFromChatText } from '../utils/chatEmotionUtils';
 import { getTtsSettings, TTS_ENGINES } from '../utils/ttsSettings';
 import {
     getEngineBaseUrl,
@@ -75,6 +76,7 @@ const formatChatError = (errorMessage, endpoint) => {
 const buildStarterMessage = () => ({
     role: 'assistant',
     content: '今日は普通に話してもいいわ。聞きたいことでも雑談でも、好きに振ってきなさい。',
+    emotion: 'normal',
 });
 
 const getLastStudyTopicName = () => {
@@ -197,6 +199,7 @@ const NoaChatBox = ({
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [error, setError] = useState('');
     const messageEndRef = useRef(null);
+    const lastAssistantCallbackKeyRef = useRef('');
 
     useEffect(() => {
         setMessages(getNoaChatMessages(NOA_CHAT_HISTORY_KEY, starterMessages));
@@ -210,12 +213,28 @@ const NoaChatBox = ({
     useEffect(() => {
         if (typeof onAssistantReply !== 'function' || messages.length === 0) return;
 
-        const latestAssistantMessage = [...messages]
-            .reverse()
-            .find((message) => message?.role === 'assistant' && message?.content);
+        const latestAssistantIndex = messages.findLastIndex(
+            (message) => message?.role === 'assistant' && message?.content
+        );
+        const latestAssistantMessage = latestAssistantIndex >= 0 ? messages[latestAssistantIndex] : null;
 
         if (latestAssistantMessage) {
-            onAssistantReply(latestAssistantMessage.content);
+            const emotion = latestAssistantMessage.emotion
+                || inferEmotionFromChatText(latestAssistantMessage.content, { role: 'assistant' });
+            const callbackKey = `${latestAssistantIndex}:${latestAssistantMessage.content}:${emotion}`;
+
+            if (lastAssistantCallbackKeyRef.current === callbackKey) {
+                return;
+            }
+
+            lastAssistantCallbackKeyRef.current = callbackKey;
+            onAssistantReply(latestAssistantMessage.content, {
+                emotion,
+                message: {
+                    ...latestAssistantMessage,
+                    emotion,
+                },
+            });
         }
     }, [messages, onAssistantReply]);
 
@@ -227,6 +246,7 @@ const NoaChatBox = ({
 
     const handleReset = () => {
         clearNoaChatMessages(NOA_CHAT_HISTORY_KEY);
+        lastAssistantCallbackKeyRef.current = '';
         setMessages(starterMessages);
         setError('');
     };
@@ -250,9 +270,12 @@ const NoaChatBox = ({
         const trimmed = clipText(input);
         if (!trimmed || isLoading) return;
 
-        onUserMessage?.(trimmed);
-
-        const userMessage = { role: 'user', content: trimmed };
+        const userEmotion = inferEmotionFromChatText(trimmed, { role: 'user' });
+        const userMessage = { role: 'user', content: trimmed, emotion: userEmotion };
+        onUserMessage?.(trimmed, {
+            emotion: userEmotion,
+            message: userMessage,
+        });
         const nextMessages = [...messages, userMessage];
         persistMessages(nextMessages);
         setInput('');
@@ -270,6 +293,7 @@ const NoaChatBox = ({
             const assistantMessage = {
                 role: 'assistant',
                 content: clipText(payload.reply, 320),
+                emotion: payload.emotion || inferEmotionFromChatText(payload.reply, { role: 'assistant' }),
             };
 
             const saved = saveNoaChatMessages(NOA_CHAT_HISTORY_KEY, [...nextMessages, assistantMessage]);

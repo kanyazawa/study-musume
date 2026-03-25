@@ -58,11 +58,18 @@ scene,id,speaker,text,emotion,next_id,background,voice,se,effect,graph,tts_speak
 
 - `tts-generated/chem_01/chem_01-3-まお-888753760.wav`
 - `v_a_001`
+- `https://firebasestorage.googleapis.com/...`
+- `storage:tts-generated/1.1-名詞と冠詞/1.1-名詞と冠詞-56-まお-888753760.mp3`
 
 `v_a_001` のように拡張子なしでも使えます。  
 この場合は `/public/audio/v_a_001.mp3` を探します。
 
 `.wav` や `.mp3` まで書いた場合は、そのファイルをそのまま再生します。
+
+Firebase Storage を使う場合:
+
+- `https://...` のダウンロードURLをそのまま入れてOK
+- または `storage:フォルダ/ファイル.mp3` の形でもOK
 
 ## いちばん簡単な運用
 
@@ -84,6 +91,39 @@ npm run tts:aivis -- --input src/scenarios/chem_scenario.csv --dry-run
 
 ```bash
 npm run tts:aivis -- --input src/scenarios/chem_scenario.csv --write-csv tmp/chem_scenario.with-voice.csv
+```
+
+mp3 で軽く出力する:
+
+```bash
+npm run tts:aivis -- --input src/scenarios/chem_scenario.csv --format mp3 --write-csv tmp/chem_scenario.with-voice.csv
+```
+
+1コマンドで音声公開まで進める:
+
+```bash
+npm run tts:publish -- --input tmp/noun_article.csv --sheet "1.1 名詞と冠詞" --fallback-speaker "まお / ノーマル"
+```
+
+mp3 で公開する:
+
+```bash
+npm run tts:publish -- --input tmp/noun_article.csv --sheet "1.1 名詞と冠詞" --fallback-speaker "まお / ノーマル" --format mp3
+```
+
+このコマンドで次をまとめて行います。
+
+- 対象シーンの音声生成
+- `tmp/<scene>.with-voice.csv` を出力
+- `tmp/<scene>.voice-only.txt` を出力
+- `public/audio/tts-generated/<scene>` を git add / commit / push
+- `--format mp3` を使うには `ffmpeg` が必要
+- `tools/ffmpeg/bin/ffmpeg.exe` に置いてあれば自動で使います
+
+貼り付け作業をローカルだけにしたいとき:
+
+```bash
+npm run tts:publish -- --input tmp/noun_article.csv --sheet "1.1 名詞と冠詞" --fallback-speaker "まお / ノーマル" --skip-git
 ```
 
 話者のデフォルトを決める:

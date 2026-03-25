@@ -5,6 +5,56 @@
 // 忘却曲線に基づく復習間隔（日数）
 const REVIEW_INTERVALS = [1, 3, 7, 14, 30];
 const MAX_REVIEW_LEVEL = 5; // レベル5で完全習得
+const MAX_REVIEW_HISTORY = 12;
+
+const normalizeReviewHistory = (history) => {
+    if (!Array.isArray(history)) return [];
+
+    return history
+        .filter((entry) => entry && Number.isFinite(Number(entry.date)) && (entry.result === 'correct' || entry.result === 'wrong'))
+        .slice(-MAX_REVIEW_HISTORY)
+        .map((entry) => ({
+            date: Number(entry.date),
+            result: entry.result,
+        }));
+};
+
+const normalizeReviewQuestion = (question, index) => {
+    if (!question || typeof question !== 'object') return null;
+
+    const subject = String(question.subject || '').trim();
+    const questionId = String(question.questionId || question.id || `review-${index}`).trim();
+    const questionText = String(question.questionText || '').trim();
+    const correctAnswer = String(question.correctAnswer || '').trim();
+
+    if (!subject || !questionId || !questionText || !correctAnswer) {
+        return null;
+    }
+
+    const wrongCount = Math.max(1, Number(question.wrongCount) || 1);
+    const reviewLevel = Math.max(0, Math.min(MAX_REVIEW_LEVEL, Number(question.reviewLevel) || 0));
+    const now = Date.now();
+    const nextReviewDate = Number.isFinite(Number(question.nextReviewDate))
+        ? Number(question.nextReviewDate)
+        : now;
+    const history = normalizeReviewHistory(question.reviewHistory);
+
+    return {
+        id: String(question.id || `${subject}-${questionId}`),
+        subject,
+        questionId,
+        questionText,
+        correctAnswer,
+        userAnswer: typeof question.userAnswer === 'string' ? question.userAnswer : '',
+        options: Array.isArray(question.options) ? question.options.slice(0, 6) : null,
+        wrongCount,
+        firstWrongDate: Number.isFinite(Number(question.firstWrongDate)) ? Number(question.firstWrongDate) : now,
+        lastWrongDate: Number.isFinite(Number(question.lastWrongDate)) ? Number(question.lastWrongDate) : now,
+        reviewHistory: history,
+        reviewLevel,
+        nextReviewDate,
+    };
+};
 
 // ============================================
 // データ取得・保存
@@ -16,7 +66,20 @@ const MAX_REVIEW_LEVEL = 5; // レベル5で完全習得
 export const getReviewQuestions = () => {
     try {
         const stored = localStorage.getItem('reviewQuestions');
-        return stored ? JSON.parse(stored) : [];
+        if (!stored) return [];
+
+        const parsed = JSON.parse(stored);
+        if (!Array.isArray(parsed)) return [];
+
+        const normalized = parsed
+            .map((question, index) => normalizeReviewQuestion(question, index))
+            .filter(Boolean);
+
+        if (JSON.stringify(parsed) !== JSON.stringify(normalized)) {
+            saveReviewQuestions(normalized);
+        }
+
+        return normalized;
     } catch (error) {
         console.error('Error loading review questions:', error);
         return [];

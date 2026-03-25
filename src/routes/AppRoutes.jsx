@@ -41,7 +41,7 @@ const AppRoutes = ({ stats, updateStats, onLoginSuccess, currentUser }) => (
       <Route path="/missions" element={<Missions stats={stats} updateStats={updateStats} />} />
       <Route path="/calendar" element={<CalendarPage />} />
       <Route path="/gacha" element={<Gacha stats={stats} updateStats={updateStats} />} />
-      <Route path="/review" element={<Review />} />
+      <Route path="/review" element={<Review stats={stats} />} />
       <Route path="/profile" element={<Profile stats={stats} updateStats={updateStats} />} />
       <Route
         path="/login"

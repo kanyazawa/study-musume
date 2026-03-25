@@ -59,6 +59,9 @@ const Login = ({ onLoginSuccess }) => {
                         </svg>
                         {isLoading ? 'ログイン中...' : 'Googleでログイン'}
                     </button>
+                    <p className="skip-note">
+                        ※Web版のiPhoneホーム画面追加では制約があります。iOSネイティブアプリ化後は native Googleログインへ切り替える想定です
+                    </p>
 
                     {error && (
                         <div className="login-error">

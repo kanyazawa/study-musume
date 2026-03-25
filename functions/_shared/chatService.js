@@ -5,11 +5,57 @@ const GEMINI_MODEL_ALIASES = {
     'models/gemini-2.5-flash-lite-preview-09-2025': 'gemini-2.5-flash-lite',
 };
 const MAX_HISTORY_MESSAGES = 4;
+const SUPPORTED_CHAT_EMOTIONS = ['normal', 'happy', 'shy', 'serious', 'angry', 'surprised'];
 
 const sanitizeText = (value, maxLength = 220) => String(value || '')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, maxLength);
+
+const normalizeChatEmotion = (value, fallback = 'normal') => {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (SUPPORTED_CHAT_EMOTIONS.includes(normalized)) {
+        return normalized;
+    }
+
+    return fallback;
+};
+
+const stripMarkdownCodeFence = (value) => {
+    const trimmed = String(value || '').trim();
+    const fencedMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+    return fencedMatch ? fencedMatch[1].trim() : trimmed;
+};
+
+const tryParseJsonObject = (value) => {
+    const text = stripMarkdownCodeFence(value);
+    if (!text) return null;
+
+    try {
+        const parsed = JSON.parse(text);
+        return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch {
+        return null;
+    }
+};
+
+export const extractStructuredChatResponse = (rawText, fallbackEmotion = 'normal') => {
+    const parsed = tryParseJsonObject(rawText);
+    if (parsed) {
+        const reply = sanitizeText(parsed.reply || parsed.text, 220);
+        if (reply) {
+            return {
+                reply,
+                emotion: normalizeChatEmotion(parsed.emotion, fallbackEmotion),
+            };
+        }
+    }
+
+    return {
+        reply: sanitizeText(rawText, 220),
+        emotion: normalizeChatEmotion(fallbackEmotion),
+    };
+};
 
 const summarizeRecentMessages = (messages) => {
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -42,6 +88,9 @@ const buildPrompts = (body) => {
         '最近の学習トピックは参考情報です。ユーザーが触れた時だけ自然に使ってください。',
         '返答は1〜2文を基本に、長くても3文まで。例は多くても1つだけです。',
         '断言できないことは言い切らず、箇条書きや長い前置きは使わないでください。',
+        `返答はJSONのみで返してください。形式は {"reply":"...", "emotion":"normal|happy|shy|serious|angry|surprised"} です。`,
+        'emotion は返答全体の表情として最も自然なものを1つだけ選んでください。',
+        'Markdownのコードブロックは使わないでください。',
     ].join(' ');
 
     const userPromptSections = [
@@ -145,7 +194,8 @@ const callGeminiChat = async ({
         };
     }
 
-    const reply = sanitizeText(extractGeminiText(payload), 220);
+    const structuredResponse = extractStructuredChatResponse(extractGeminiText(payload));
+    const reply = structuredResponse.reply;
     if (!reply) {
         return {
             statusCode: 502,
@@ -157,6 +207,7 @@ const callGeminiChat = async ({
         statusCode: 200,
         body: {
             reply,
+            emotion: structuredResponse.emotion,
             model: normalizeGeminiModel(model),
             provider: 'gemini',
             usage: payload?.usageMetadata || null,
@@ -219,7 +270,8 @@ const callOpenAiChat = async ({
         };
     }
 
-    const reply = sanitizeText(extractOpenAiText(payload), 220);
+    const structuredResponse = extractStructuredChatResponse(extractOpenAiText(payload));
+    const reply = structuredResponse.reply;
     if (!reply) {
         return {
             statusCode: 502,
@@ -231,6 +283,7 @@ const callOpenAiChat = async ({
         statusCode: 200,
         body: {
             reply,
+            emotion: structuredResponse.emotion,
             model,
             provider: 'openai',
             usage: payload?.usage || null,

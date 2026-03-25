@@ -3,6 +3,7 @@ import { subscribeToAuthState, handleRedirectResult } from '../firebase/auth';
 import { auth } from '../firebase/config';
 import { syncOnLogin, uploadAllSaveData } from '../firebase/sync';
 import { loadStats, registerCloudSync } from '../utils/saveUtils';
+import { isNativeIOSApp } from '../native/nativeGoogleAuth';
 
 export const useAuthSync = (setStats) => {
   const [currentUser, setCurrentUser] = useState(null);
@@ -16,16 +17,18 @@ export const useAuthSync = (setStats) => {
   };
 
   useEffect(() => {
-    handleRedirectResult()
-      .then((result) => {
-        if (result.success && result.user) {
-          console.log('Redirect login successful:', result.user.displayName);
-          redirectToHomeIfNeeded();
-        }
-      })
-      .catch((err) => {
-        console.error('Redirect result check failed:', err);
-      });
+    if (!isNativeIOSApp()) {
+      handleRedirectResult()
+        .then((result) => {
+          if (result.success && result.user) {
+            console.log('Redirect login successful:', result.user.displayName);
+            redirectToHomeIfNeeded();
+          }
+        })
+        .catch((err) => {
+          console.error('Redirect result check failed:', err);
+        });
+    }
 
     const unsubscribe = subscribeToAuthState(async (user) => {
       setCurrentUser(user);

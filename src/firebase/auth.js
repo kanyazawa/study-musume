@@ -1,7 +1,9 @@
 import {
+    GoogleAuthProvider,
     signInWithPopup,
     signInWithRedirect,
     getRedirectResult,
+    signInWithCredential,
     signOut as firebaseSignOut,
     onAuthStateChanged
 } from "firebase/auth";
@@ -12,7 +14,9 @@ import {
     updateDoc,
     serverTimestamp
 } from "firebase/firestore";
+import { Capacitor } from "@capacitor/core";
 import { auth, db, googleProvider, isFirebaseConfigured } from "./config";
+import { isNativeIOSApp, nativeGoogleSignIn, nativeGoogleSignOut } from "../native/nativeGoogleAuth";
 
 /**
  * ユーザードキュメントを作成または更新
@@ -66,6 +70,25 @@ const isInAppBrowser = () => {
     return /Line|FBAN|FBAV|Instagram|wv/i.test(userAgent);
 };
 
+const isIOSDevice = () => {
+    const userAgent = navigator.userAgent || '';
+    return /iPhone|iPad|iPod/i.test(userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+};
+
+const isNativeApp = () => {
+    try {
+        return Capacitor.isNativePlatform();
+    } catch {
+        return false;
+    }
+};
+
+const openBrowserLogin = () => {
+    const loginUrl = `${window.location.origin}/login?from=standalone`;
+    return window.open(loginUrl, '_blank', 'noopener,noreferrer');
+};
+
 /**
  * Googleでサインイン
  * 通常ブラウザ: signInWithPopup を優先
@@ -81,6 +104,40 @@ export const signInWithGoogle = async () => {
             };
         }
 
+        if (isNativeIOSApp()) {
+            const nativeResult = await nativeGoogleSignIn();
+            if (!nativeResult.success) {
+                return {
+                    success: false,
+                    error: nativeResult.error || 'iOS native Google Sign-In に失敗しました。'
+                };
+            }
+
+            if (!nativeResult.idToken && !nativeResult.accessToken) {
+                return {
+                    success: false,
+                    error: 'iOS native Google Sign-In から必要なトークンを取得できませんでした。'
+                };
+            }
+
+            const credential = GoogleAuthProvider.credential(
+                nativeResult.idToken || null,
+                nativeResult.accessToken || null
+            );
+            const credentialResult = await signInWithCredential(auth, credential);
+            const user = credentialResult.user;
+            await ensureUserDocument(user);
+
+            return { success: true, user };
+        }
+
+        if (isNativeApp()) {
+            return {
+                success: false,
+                error: 'スマホのアプリ内表示ではGoogleログインが不安定です。SafariまたはChromeでこのページを開いてログインしてください。'
+            };
+        }
+
         if (isMobileDevice() && isInAppBrowser()) {
             return {
                 success: false,
@@ -91,17 +148,24 @@ export const signInWithGoogle = async () => {
         const mobileBrowser = isMobileDevice();
         const isStandalone = isStandaloneMode();
 
-        // ホーム画面に追加されたアプリ（PWA standalone）では、
-        // signInWithPopup / signInWithRedirect ともにOS制約で失敗するため、
-        // システムブラウザでサイトを開いてログインしてもらう。
-        // ログイン後のセッションは IndexedDB 経由で PWA と共有される。
+        // iPhone のホーム画面追加 PWA は Safari と別ストレージで動き、
+        // Google OAuth の popup / redirect 復帰後に認証状態を保持できないケースがある。
+        // 「一瞬ロードして同じ画面に戻る」ループを避けるため、このモードでは明示的に案内する。
         if (isStandalone) {
-            console.log("Standalone mode detected, opening system browser for login...");
-            const loginUrl = `${window.location.origin}/login?from=pwa`;
-            window.open(loginUrl, '_blank');
+            if (isIOSDevice()) {
+                return {
+                    success: false,
+                    error: 'iPhoneでホーム画面に追加したアプリ表示では、Googleログイン完了後に元画面へ認証状態を戻せません。Safariで直接開いた状態ではログインできます。'
+                };
+            }
+
+            console.log("Standalone mode detected, opening browser login...");
+            const openedWindow = openBrowserLogin();
             return {
                 success: false,
-                error: 'ブラウザが開きます。そちらでGoogleログインを完了した後、このアプリに戻ってください。（画面を再読み込みすればログイン状態が反映されます）'
+                error: openedWindow
+                    ? 'ブラウザを開きました。そちらでGoogleログインを完了したあと、このアプリ風画面に戻って再読み込みしてください。'
+                    : 'ホーム画面アプリではGoogleログインが不安定です。SafariまたはChromeで直接開いてログインしてください。'
             };
         }
 
@@ -111,12 +175,16 @@ export const signInWithGoogle = async () => {
         try {
             result = await signInWithPopup(auth, googleProvider);
         } catch (popupError) {
-            if (popupError.code === 'auth/popup-blocked' ||
-                popupError.code === 'auth/popup-closed-by-user' ||
-                popupError.code === 'auth/cancelled-popup-request') {
+            if (popupError.code === 'auth/popup-blocked') {
                 console.log("Popup blocked, falling back to redirect...");
                 await signInWithRedirect(auth, googleProvider);
                 return { success: true, redirect: true };
+            }
+            if (popupError.code === 'auth/popup-closed-by-user') {
+                return { success: false, error: "ポップアップが閉じられました。ログインを再試行してください。" };
+            }
+            if (popupError.code === 'auth/cancelled-popup-request') {
+                return { success: false, error: "他のログイン処理が進行中です。" };
             }
             throw popupError;
         }
@@ -141,6 +209,10 @@ export const handleRedirectResult = async () => {
             return { success: false, noResult: true };
         }
 
+        if (isNativeIOSApp()) {
+            return { success: false, noResult: true };
+        }
+
         const result = await getRedirectResult(auth);
         if (result) {
             const user = result.user;
@@ -161,6 +233,13 @@ export const signOut = async () => {
     try {
         if (!auth) {
             return { success: true };
+        }
+
+        if (isNativeIOSApp()) {
+            const nativeSignOut = await nativeGoogleSignOut();
+            if (!nativeSignOut.success) {
+                console.warn("Native Google sign-out warning:", nativeSignOut.error);
+            }
         }
 
         await firebaseSignOut(auth);

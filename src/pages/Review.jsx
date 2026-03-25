@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Filter, Calendar, BookOpen, Sparkles, Clock3, CircleAlert, ArrowRight } from 'lucide-react';
 import {
@@ -11,8 +11,11 @@ import {
     buildReviewSessionOrder
 } from '../utils/reviewUtils';
 import { STUDY_TOPICS } from '../data/studyTopics';
-import ReviewQuiz from '../components/ReviewQuiz';
 import './Review.css';
+
+const ReviewQuiz = lazy(() => import('../components/ReviewQuiz'));
+const INITIAL_VISIBLE_QUESTIONS = 40;
+const VISIBLE_QUESTIONS_STEP = 40;
 
 const Review = ({ stats }) => {
     const navigate = useNavigate();
@@ -23,6 +26,7 @@ const Review = ({ stats }) => {
     const [reviewStats, setReviewStats] = useState(null);
     const [isQuizMode, setIsQuizMode] = useState(false);
     const [quizQuestions, setQuizQuestions] = useState([]);
+    const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_QUESTIONS);
 
     function loadReviewData() {
         const allQuestions = getReviewQuestions();
@@ -58,6 +62,10 @@ const Review = ({ stats }) => {
 
     useEffect(() => {
         applyFilters();
+    }, [selectedSubject, selectedPriority, questions]);
+
+    useEffect(() => {
+        setVisibleCount(INITIAL_VISIBLE_QUESTIONS);
     }, [selectedSubject, selectedPriority, questions]);
 
     const getPriorityBadge = (nextReviewDate) => {
@@ -103,17 +111,21 @@ const Review = ({ stats }) => {
     const recommendedCount = selectedPriority === 'all'
         ? (reviewStats?.due || 0) || filteredQuestions.length
         : filteredQuestions.length;
+    const visibleQuestions = filteredQuestions.slice(0, visibleCount);
+    const remainingQuestionCount = Math.max(filteredQuestions.length - visibleQuestions.length, 0);
 
     // If in quiz mode, show ReviewQuiz component
     if (isQuizMode) {
         return (
             <div className="review-page review-page-quiz">
-                <ReviewQuiz
-                    key={quizQuestions.map((question) => question.id).join('-')}
-                    questions={quizQuestions}
-                    stats={stats}
-                    onComplete={handleQuizComplete}
-                />
+                <Suspense fallback={<div className="review-page">復習モードを準備中...</div>}>
+                    <ReviewQuiz
+                        key={quizQuestions.map((question) => question.id).join('-')}
+                        questions={quizQuestions}
+                        stats={stats}
+                        onComplete={handleQuizComplete}
+                    />
+                </Suspense>
             </div>
         );
     }
@@ -251,7 +263,7 @@ const Review = ({ stats }) => {
                             </button>
                         </div>
 
-                        {filteredQuestions.map((question) => {
+                        {visibleQuestions.map((question) => {
                             const badge = getPriorityBadge(question.nextReviewDate);
                             const BadgeIcon = badge.icon;
                             return (
@@ -292,6 +304,17 @@ const Review = ({ stats }) => {
                                 </button>
                             );
                         })}
+
+                        {remainingQuestionCount > 0 && (
+                            <button
+                                type="button"
+                                className="start-review-btn-inline"
+                                onClick={() => setVisibleCount((count) => count + VISIBLE_QUESTIONS_STEP)}
+                            >
+                                さらに表示
+                                <span>残り {remainingQuestionCount}問</span>
+                            </button>
+                        )}
                     </>
                 )}
             </div>
