@@ -30,6 +30,11 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
     const [correctStreak, setCorrectStreak] = useState(0);
     const chainAudioCacheRef = useRef({});
     const audioContextRef = useRef(null);
+    const shouldPreferStaticCharacter = typeof window !== 'undefined' && (
+        (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches) ||
+        window.innerWidth <= 768 ||
+        (typeof navigator !== 'undefined' && Number(navigator.deviceMemory || 0) > 0 && Number(navigator.deviceMemory) <= 4)
+    );
 
     const currentQuestion = sessionQuestions[currentIndex];
     const accuracy = results.length ? Math.round((results.filter((result) => result.isCorrect).length / results.length) * 100) : 100;
@@ -51,7 +56,7 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
     const characterId = stats?.characterId || 'noah';
     const skinId = stats?.equippedSkin || 'default';
     const renderer = resolveCharacterRenderer({
-        preferredRenderer: stats?.characterRenderer,
+        preferredRenderer: shouldPreferStaticCharacter ? 'image' : stats?.characterRenderer,
         characterId,
         skinId,
     });
@@ -68,15 +73,9 @@ const ReviewQuiz = ({ questions, stats, onComplete }) => {
         emotion: poseEmotion,
         expression: poseEmotion,
         intensity: feedback
-            ? feedback === 'correct' ? 0.96 : 0.84
-            : currentQuestion.wrongCount >= 3 ? 0.76 : priority === 'urgent' ? 0.68 : 0.48,
-        motion: feedback === 'correct'
-            ? 'talk_soft'
-            : feedback === 'incorrect'
-                ? 'present_accept'
-                : priority === 'urgent'
-                    ? 'talk'
-                    : 'idle_home',
+            ? feedback === 'correct' ? 0.52 : 0.46
+            : currentQuestion.wrongCount >= 3 ? 0.42 : priority === 'urgent' ? 0.4 : 0.32,
+        motion: null,
         idle: 'gentle',
         gaze: 'camera',
         speaking: false,

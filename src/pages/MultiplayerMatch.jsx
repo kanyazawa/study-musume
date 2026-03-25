@@ -234,6 +234,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const [isPronouncingQuestion, setIsPronouncingQuestion] = useState(false);
     const [isCharacterSpeaking, setIsCharacterSpeaking] = useState(false);
     const [pronunciationReplayCount, setPronunciationReplayCount] = useState(0);
+    const [persistentEmotion, setPersistentEmotion] = useState(null);
 
     // 連鎖ボイスを事前読み込みしておく（ラグ解消のため）
     const chainAudioCacheRef = useRef({});
@@ -301,6 +302,10 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             return 'angry';
         }
 
+        if (persistentEmotion) {
+            return persistentEmotion;
+        }
+
         if (phase === 'countdown') {
             return 'serious';
         }
@@ -329,6 +334,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         myScore,
         myUid,
         phase,
+        persistentEmotion,
         resultFx,
         roomData,
     ]);
@@ -595,6 +601,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         setIsPronouncingQuestion(false);
         setIsCharacterSpeaking(false);
         setPronunciationReplayCount(0);
+        setPersistentEmotion(null);
         resultFxPlayedRef.current = null;
     }, [cancelQuestionPronunciation]);
 
@@ -990,11 +997,13 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             triggerAnswerFx('correct');
             playSE('se_correct');
             setCorrectStreak(nextStreak);
+            setPersistentEmotion(null);
             triggerChainCallout(nextStreak);
             setMyScore(prev => prev + 1);
             queueAdvance(true, 1000, submitPromise);
         } else {
             setCorrectStreak(0);
+            setPersistentEmotion('angry');
             clearChainCallout();
             triggerAnswerFx('wrong');
             playUiTone(180, 180, { type: 'sawtooth', gain: 0.022 });
@@ -1015,6 +1024,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         if (selectedAnswer !== null || !roomData || (!isSolo && !myUid)) return;
         const question = roomData.questions[myQuestionIndex];
         setCorrectStreak(0);
+        setPersistentEmotion('angry');
         clearChainCallout();
         cancelQuestionPronunciation();
         setSelectedAnswer('__skip__');
@@ -1052,6 +1062,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         if (selectedAnswer !== null || !roomData || (!isSolo && !myUid)) return;
 
         setCorrectStreak(0);
+        setPersistentEmotion('angry');
         clearChainCallout();
         cancelQuestionPronunciation();
         setSelectedAnswer('__timeout__');
