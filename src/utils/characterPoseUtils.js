@@ -44,14 +44,18 @@ export const createDialoguePose = (line, { speaking = false, text } = {}) => {
 
 export const createHomePose = (reaction, { speaking = false } = {}) => {
     const emotion = normalizeCharacterEmotion(reaction?.emotion);
+    const intensity = emotion === 'normal'
+        ? 0.48
+        : 0.9;
 
     return {
         emotion,
         expression: emotion,
-        intensity: emotion === 'normal' ? 0.35 : 0.65,
+        intensity,
         motion: speaking ? 'talk_soft' : 'idle_home',
         idle: 'gentle',
         gaze: 'camera',
+        scene: 'home',
         speaking,
         text: reaction?.text ?? '',
         effect: '',

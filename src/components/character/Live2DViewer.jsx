@@ -35,6 +35,8 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const getPoseEmotionKey = (pose = {}) =>
     String(pose.emotion || pose.expression || 'normal').trim().toLowerCase();
 
+const isHomePose = (pose = {}) => String(pose.scene || '').trim().toLowerCase() === 'home';
+
 const getEmotionAnimationProfile = (pose = {}) => {
     const emotion = String(pose.emotion || pose.expression || 'normal').toLowerCase();
     const intensity = clamp(typeof pose.intensity === 'number' ? pose.intensity : 0.5, 0, 1);
@@ -194,37 +196,38 @@ const setParameterValues = (model, parameterIds, value) => {
 const getEmotionParameterProfile = (pose = {}) => {
     const emotion = getPoseEmotionKey(pose);
     const intensity = clamp(typeof pose.intensity === 'number' ? pose.intensity : 0.5, 0, 1);
+    const homeBoost = isHomePose(pose) ? 1.22 : 1;
 
     if (emotion === 'happy' || emotion === 'smile') {
         return {
-            browY: 0.22 + (intensity * 0.08),
-            browAngle: 0.08 + (intensity * 0.04),
-            angleX: 2 + (intensity * 3),
-            angleY: -1.4,
-            angleZ: 1.2,
-            cheek: 0.55 + (intensity * 0.18),
+            browY: (0.22 + (intensity * 0.08)) * homeBoost,
+            browAngle: (0.08 + (intensity * 0.04)) * homeBoost,
+            angleX: (2 + (intensity * 3)) * homeBoost,
+            angleY: -1.4 * homeBoost,
+            angleZ: 1.2 * homeBoost,
+            cheek: clamp((0.55 + (intensity * 0.18)) * homeBoost, 0, 1),
         };
     }
 
     if (emotion === 'angry' || emotion === 'serious' || emotion === 'sad') {
         return {
-            browY: -(0.18 + (intensity * 0.1)),
-            browAngle: -(0.1 + (intensity * 0.08)),
-            angleX: -(2 + (intensity * 2)),
-            angleY: 1.2,
-            angleZ: -(1.2 + intensity),
+            browY: -((0.18 + (intensity * 0.1)) * homeBoost),
+            browAngle: -((0.1 + (intensity * 0.08)) * homeBoost),
+            angleX: -((2 + (intensity * 2)) * homeBoost),
+            angleY: 1.2 * homeBoost,
+            angleZ: -((1.2 + intensity) * homeBoost),
             cheek: 0,
         };
     }
 
     if (emotion === 'surprised') {
         return {
-            browY: 0.28 + (intensity * 0.08),
+            browY: (0.28 + (intensity * 0.08)) * homeBoost,
             browAngle: 0,
             angleX: 0,
-            angleY: -(1.8 + intensity),
+            angleY: -((1.8 + intensity) * homeBoost),
             angleZ: 0,
-            cheek: 0.12,
+            cheek: clamp(0.12 * homeBoost, 0, 1),
         };
     }
 
@@ -272,6 +275,10 @@ const clearActiveExpression = (model) => {
 const resolveMappedExpression = (modelConfig, pose = {}) => {
     const expressionMap = modelConfig?.expressionMap;
     if (!expressionMap) {
+        return '';
+    }
+
+    if (isHomePose(pose)) {
         return '';
     }
 
