@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Volume2 } from 'lucide-react';
 import './Dialogue.css';
@@ -925,7 +925,30 @@ const Dialogue = ({ stats, updateStats }) => {
     if (!line) return <div className="dialogue-screen"><div className="dialogue-box"><div className="dialogue-text">データがありません</div></div></div>;
 
     const isQuiz = line.speaker === 'Quiz';
-    const dialoguePose = createDialoguePose(line, {
+    const poseLine = useMemo(() => {
+        if (!line) return line;
+
+        if (feedback === 'correct') {
+            return {
+                ...line,
+                emotion: 'happy',
+                expression: 'happy',
+                effect: 'glow',
+            };
+        }
+
+        if (feedback === 'incorrect') {
+            return {
+                ...line,
+                emotion: 'angry',
+                expression: 'angry',
+                effect: 'shake',
+            };
+        }
+
+        return line;
+    }, [feedback, line]);
+    const dialoguePose = createDialoguePose(poseLine, {
         speaking: characterSpeaking,
         text: characterSpeechText,
     });
@@ -990,7 +1013,7 @@ const Dialogue = ({ stats, updateStats }) => {
                     scene="dialogue"
                     pose={dialoguePose}
                     className={`character-dialogue ${(line.graph || line.study_image) ? 'with-board' : ''}`}
-                    imageClassName={`char-image-dialogue ${line.effect === 'shake' ? 'effect-shake' : ''} ${(line.graph || line.study_image) ? 'with-board' : ''}`}
+                    imageClassName={`char-image-dialogue ${dialoguePose.effect === 'shake' ? 'effect-shake' : ''} ${(line.graph || line.study_image) ? 'with-board' : ''}`}
                 />
             </div>
 

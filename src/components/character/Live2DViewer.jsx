@@ -24,6 +24,12 @@ const VOWEL_OPEN_MAP = {
 const FALLBACK_EYE_PARAM_NAMES = ['ParamEyeLOpen', 'ParamEyeROpen'];
 const FALLBACK_MOUTH_PARAM_NAMES = ['ParamMouthOpenY'];
 const FALLBACK_MOUTH_FORM_PARAM_NAMES = ['ParamMouthForm'];
+const FALLBACK_BROW_Y_PARAM_NAMES = ['ParamBrowLY', 'ParamBrowRY'];
+const FALLBACK_BROW_ANGLE_PARAM_NAMES = ['ParamBrowLAngle', 'ParamBrowRAngle'];
+const FALLBACK_ANGLE_X_PARAM_NAMES = ['ParamAngleX'];
+const FALLBACK_ANGLE_Y_PARAM_NAMES = ['ParamAngleY'];
+const FALLBACK_ANGLE_Z_PARAM_NAMES = ['ParamAngleZ'];
+const FALLBACK_CHEEK_PARAM_NAMES = ['ParamCheek'];
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 const getPoseEmotionKey = (pose = {}) =>
@@ -183,6 +189,53 @@ const setParameterValues = (model, parameterIds, value) => {
             // Ignore unsupported parameter writes on prototype runtime.
         }
     });
+};
+
+const getEmotionParameterProfile = (pose = {}) => {
+    const emotion = getPoseEmotionKey(pose);
+    const intensity = clamp(typeof pose.intensity === 'number' ? pose.intensity : 0.5, 0, 1);
+
+    if (emotion === 'happy' || emotion === 'smile') {
+        return {
+            browY: 0.22 + (intensity * 0.08),
+            browAngle: 0.08 + (intensity * 0.04),
+            angleX: 2 + (intensity * 3),
+            angleY: -1.4,
+            angleZ: 1.2,
+            cheek: 0.55 + (intensity * 0.18),
+        };
+    }
+
+    if (emotion === 'angry' || emotion === 'serious' || emotion === 'sad') {
+        return {
+            browY: -(0.18 + (intensity * 0.1)),
+            browAngle: -(0.1 + (intensity * 0.08)),
+            angleX: -(2 + (intensity * 2)),
+            angleY: 1.2,
+            angleZ: -(1.2 + intensity),
+            cheek: 0,
+        };
+    }
+
+    if (emotion === 'surprised') {
+        return {
+            browY: 0.28 + (intensity * 0.08),
+            browAngle: 0,
+            angleX: 0,
+            angleY: -(1.8 + intensity),
+            angleZ: 0,
+            cheek: 0.12,
+        };
+    }
+
+    return {
+        browY: 0,
+        browAngle: 0,
+        angleX: 0,
+        angleY: 0,
+        angleZ: 0,
+        cheek: 0,
+    };
 };
 
 const getActiveTyranoModel = (manager, modelName) => {
@@ -586,9 +639,16 @@ const Live2DViewer = ({
                             const { timeline, startedAt, totalDuration } = lipSyncRef.current;
                             const animationState = animationStateRef.current;
                             const profile = getEmotionAnimationProfile(currentPose);
+                            const emotionProfile = getEmotionParameterProfile(currentPose);
                             const resolvedEyeIds = resolveParameterIds(model, this._eyeBlinkIds, FALLBACK_EYE_PARAM_NAMES);
                             const resolvedLipIds = resolveParameterIds(model, this._lipSyncIds, FALLBACK_MOUTH_PARAM_NAMES);
                             const resolvedMouthFormIds = resolveParameterIds(model, null, FALLBACK_MOUTH_FORM_PARAM_NAMES);
+                            const resolvedBrowYIds = resolveParameterIds(model, null, FALLBACK_BROW_Y_PARAM_NAMES);
+                            const resolvedBrowAngleIds = resolveParameterIds(model, null, FALLBACK_BROW_ANGLE_PARAM_NAMES);
+                            const resolvedAngleXIds = resolveParameterIds(model, null, FALLBACK_ANGLE_X_PARAM_NAMES);
+                            const resolvedAngleYIds = resolveParameterIds(model, null, FALLBACK_ANGLE_Y_PARAM_NAMES);
+                            const resolvedAngleZIds = resolveParameterIds(model, null, FALLBACK_ANGLE_Z_PARAM_NAMES);
+                            const resolvedCheekIds = resolveParameterIds(model, null, FALLBACK_CHEEK_PARAM_NAMES);
 
                             if (model?.setParameterValueById) {
                                 let targetMouthValue = 0;
@@ -620,6 +680,12 @@ const Live2DViewer = ({
                                 animationState.mouthFormValue += (targetMouthFormValue - animationState.mouthFormValue) * mouthFormFollowRate;
                                 const mouthFormValue = clamp(animationState.mouthFormValue, 0, 0.28);
                                 setParameterValues(model, resolvedMouthFormIds, mouthFormValue);
+                                setParameterValues(model, resolvedBrowYIds, emotionProfile.browY);
+                                setParameterValues(model, resolvedBrowAngleIds, emotionProfile.browAngle);
+                                setParameterValues(model, resolvedAngleXIds, emotionProfile.angleX);
+                                setParameterValues(model, resolvedAngleYIds, emotionProfile.angleY);
+                                setParameterValues(model, resolvedAngleZIds, emotionProfile.angleZ);
+                                setParameterValues(model, resolvedCheekIds, emotionProfile.cheek);
 
                                 if (resolvedEyeIds.length > 0) {
                                     let blinkValue = 1;

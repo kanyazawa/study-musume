@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Home.css';
 // Footer removed
@@ -16,9 +16,74 @@ import { updateMissionsOnInteract } from '../utils/missionUtils';
 import { checkForNewAchievements } from '../utils/achievementUtils';
 import { ACHIEVEMENTS } from '../data/achievements';
 import { processLoginBonus } from '../utils/loginBonusUtils';
-import { getLastStudyTopic } from '../data/studyData';
 import { getLatestNoaAssistantMessage } from '../utils/chatHistory';
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
+
+const inferHomeEmotion = ({ emotion, speech, tp, maxTp, affectionLevel, examDate }) => {
+    if (emotion && emotion !== 'normal') {
+        return emotion;
+    }
+
+    const normalizedSpeech = String(speech || '').toLowerCase();
+    const tpRatio = maxTp > 0 ? tp / maxTp : 0;
+
+    if (tpRatio <= 0.25) {
+        return 'serious';
+    }
+
+    if (examDate) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const target = new Date(`${examDate}T00:00:00`);
+        if (!Number.isNaN(target.getTime())) {
+            const remainingDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            if (remainingDays >= 0 && remainingDays <= 7) {
+                return 'serious';
+            }
+        }
+    }
+
+    if (
+        normalizedSpeech.includes('嬉') ||
+        normalizedSpeech.includes('安心') ||
+        normalizedSpeech.includes('ありがと') ||
+        normalizedSpeech.includes('一緒') ||
+        normalizedSpeech.includes('いい感じ') ||
+        normalizedSpeech.includes('落ち着')
+    ) {
+        return 'happy';
+    }
+
+    if (
+        normalizedSpeech.includes('深呼吸') ||
+        normalizedSpeech.includes('無理') ||
+        normalizedSpeech.includes('休') ||
+        normalizedSpeech.includes('集中')
+    ) {
+        return 'serious';
+    }
+
+    if (affectionLevel >= 5) {
+        return 'happy';
+    }
+
+    return 'normal';
+};
+
+const toVisibleHomeEmotion = (emotion) => {
+    switch (emotion) {
+        case 'smile':
+        case 'shy':
+        case 'relaxed':
+        case 'surprised':
+            return 'happy';
+        case 'serious':
+        case 'sad':
+            return 'angry';
+        default:
+            return emotion || 'normal';
+    }
+};
 
 const Home = ({ stats, updateStats }) => {
     // Default stats if not provided (fallback)
@@ -54,7 +119,6 @@ const Home = ({ stats, updateStats }) => {
     const shouldForceHomeLive2D = characterId === 'noah' && hasHomeLive2D;
 
     const currentBgStyle = getBackgroundStyle(equippedBackground);
-    const homePose = createHomePose({ emotion, text: speech }, { speaking: isTalkAnimating });
     const renderer = resolveCharacterRenderer({
         preferredRenderer: shouldForceHomeLive2D ? 'live2d' : preferredRenderer,
         characterId,
@@ -65,6 +129,15 @@ const Home = ({ stats, updateStats }) => {
     const affectionLevelInfo = getAffectionLevel(affection);
     const affectionProgress = getAffectionProgress(affection);
     const examDate = stats?.examDate || '';
+    const homeEmotion = useMemo(() => toVisibleHomeEmotion(inferHomeEmotion({
+        emotion,
+        speech,
+        tp,
+        maxTp,
+        affectionLevel: affectionLevelInfo.level,
+        examDate,
+    })), [affectionLevelInfo.level, emotion, examDate, maxTp, speech, tp]);
+    const homePose = useMemo(() => createHomePose({ emotion: homeEmotion, text: speech }, { speaking: isTalkAnimating }), [homeEmotion, isTalkAnimating, speech]);
 
     const getCountdownDisplay = () => {
         if (!examDate) {
@@ -122,7 +195,7 @@ const Home = ({ stats, updateStats }) => {
             characterId,
         });
         setSpeech(reaction.text);
-        setEmotion(reaction.emotion || 'normal');
+        setEmotion(toVisibleHomeEmotion(reaction.emotion || 'normal'));
         startTimedTalkAnimation(reaction.text);
 
         // Update mission progress for character interaction
@@ -134,7 +207,14 @@ const Home = ({ stats, updateStats }) => {
         if (!nextSpeech) return;
 
         setSpeech(nextSpeech);
-        setEmotion('normal');
+        setEmotion(toVisibleHomeEmotion(inferHomeEmotion({
+            emotion: 'normal',
+            speech: nextSpeech,
+            tp,
+            maxTp,
+            affectionLevel: affectionLevelInfo.level,
+            examDate,
+        })));
         if (animate) {
             startTimedTalkAnimation(nextSpeech);
         } else {
@@ -143,8 +223,7 @@ const Home = ({ stats, updateStats }) => {
     };
 
     useEffect(() => {
-        const topicName = getLastStudyTopic()?.topicName || 'default';
-        const latestReply = getLatestNoaAssistantMessage(topicName);
+        const latestReply = getLatestNoaAssistantMessage('general');
 
         if (latestReply) {
             syncSpeechWithNoaReply(latestReply, { animate: true });

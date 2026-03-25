@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/preserve-manual-memoization */
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Swords, Clock, Loader2, TrendingUp, TrendingDown, Volume2 } from 'lucide-react';
 import { getCurrentUser, getUserProfile } from '../firebase/auth';
@@ -235,9 +235,6 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const [isCharacterSpeaking, setIsCharacterSpeaking] = useState(false);
     const [pronunciationReplayCount, setPronunciationReplayCount] = useState(0);
 
-    // matchPose は isCharacterSpeaking ステートを使ってリップシンクさせる
-    const matchPose = createHomePose({ emotion: 'normal', text: '' }, { speaking: isCharacterSpeaking });
-
     // 連鎖ボイスを事前読み込みしておく（ラグ解消のため）
     const chainAudioCacheRef = useRef({});
     useEffect(() => {
@@ -283,6 +280,92 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const battleModeLabel = getBattleModeLabel(battleMode);
     const isListeningBattle = isFriendMatch && battleMode === 'listening';
     const canUseSpeechSynthesis = typeof window !== 'undefined' && 'speechSynthesis' in window;
+    const isPoseSpeaking = isCharacterSpeaking || isPronouncingQuestion;
+    const matchEmotion = useMemo(() => {
+        if (phase === 'result' && roomData) {
+            const opponent = roomData.player1?.uid === myUid ? roomData.player2 : roomData.player1;
+            const winnerUid = roomData.winnerUid ?? resolveWinnerUid(roomData, matchTargetCorrect);
+            const didWin = isSolo || winnerUid === myUid || (!winnerUid && (myScore > (opponent?.score || 0)));
+            return didWin ? 'happy' : 'serious';
+        }
+
+        if (resultFx === 'victory') {
+            return 'happy';
+        }
+
+        if (answerFx === 'correct') {
+            return correctStreak >= 2 ? 'happy' : 'smile';
+        }
+
+        if (answerFx === 'wrong') {
+            return 'angry';
+        }
+
+        if (phase === 'countdown') {
+            return 'serious';
+        }
+
+        if (isListeningBattle && isPronouncingQuestion) {
+            return 'surprised';
+        }
+
+        if (!isSolo && roomData && phase === 'playing') {
+            const opponent = roomData.player1?.uid === myUid ? roomData.player2 : roomData.player1;
+            const gap = myScore - (opponent?.score || 0);
+
+            if (gap >= 2) return 'happy';
+            if (gap < 0) return 'serious';
+        }
+
+        return 'normal';
+    }, [
+        answerFx,
+        correctStreak,
+        isListeningBattle,
+        isPoseSpeaking,
+        isPronouncingQuestion,
+        isSolo,
+        matchTargetCorrect,
+        myScore,
+        myUid,
+        phase,
+        resultFx,
+        roomData,
+    ]);
+    const matchPose = useMemo(() => {
+        const basePose = createHomePose({ emotion: matchEmotion, text: '' }, { speaking: isPoseSpeaking });
+
+        return {
+            ...basePose,
+            intensity: answerFx === 'correct'
+                ? 0.95
+                : answerFx === 'wrong'
+                    ? 0.86
+                    : resultFx === 'victory'
+                        ? 0.92
+                        : matchEmotion === 'happy' || matchEmotion === 'smile'
+                            ? 0.72
+                            : matchEmotion === 'serious' || matchEmotion === 'angry' || matchEmotion === 'surprised'
+                                ? 0.68
+                                : basePose.intensity,
+            motion: answerFx === 'correct'
+                ? 'talk_soft'
+                : answerFx === 'wrong'
+                    ? 'present_accept'
+                    : resultFx === 'victory'
+                        ? 'present_happy'
+                        : isPoseSpeaking
+                            ? basePose.motion
+                            : phase === 'countdown'
+                                ? 'talk'
+                                : 'idle_home',
+            effect: answerFx === 'wrong'
+                ? 'shake'
+                : answerFx === 'correct' || resultFx === 'victory'
+                    ? 'glow'
+                    : '',
+        };
+    }, [answerFx, isPoseSpeaking, matchEmotion, phase, resultFx]);
 
     const playUiTone = useCallback((frequency, durationMs, { type = 'sine', gain = 0.03, delayMs = 0 } = {}) => {
         if (isMuted || typeof window === 'undefined') return;
