@@ -524,6 +524,76 @@
     filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.4));
 }
 
+.mp-face-accent {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 4;
+}
+
+.mp-face-eye,
+.mp-face-cheek,
+.mp-face-mouth {
+    position: absolute;
+    display: block;
+}
+
+.mp-face-eye {
+    top: 35%;
+    font-size: clamp(20px, 3vw, 34px);
+    line-height: 1;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.35));
+}
+
+.mp-face-eye-left {
+    left: 42%;
+    transform: translateX(-50%) rotate(-8deg);
+}
+
+.mp-face-eye-right {
+    left: 58%;
+    transform: translateX(-50%) rotate(8deg);
+}
+
+.mp-face-accent-star .mp-face-eye {
+    color: #ffd84a;
+}
+
+.mp-face-accent-heart .mp-face-eye {
+    color: #ff6fae;
+}
+
+.mp-face-cheek {
+    top: 45%;
+    width: clamp(18px, 2.4vw, 28px);
+    height: clamp(10px, 1.4vw, 16px);
+    border-radius: 999px;
+    background: radial-gradient(circle at 50% 50%, rgba(255, 120, 140, 0.95) 0%, rgba(255, 120, 140, 0.58) 68%, rgba(255, 120, 140, 0) 100%);
+    opacity: 0.9;
+}
+
+.mp-face-cheek-left {
+    left: 39%;
+    transform: translateX(-50%) rotate(-16deg);
+}
+
+.mp-face-cheek-right {
+    left: 61%;
+    transform: translateX(-50%) rotate(16deg);
+}
+
+.mp-face-mouth {
+    top: 49.5%;
+    left: 50%;
+    width: clamp(16px, 2vw, 24px);
+    height: clamp(8px, 1vw, 12px);
+    border-bottom: 3px solid rgba(95, 34, 48, 0.88);
+    border-radius: 0 0 999px 999px;
+    transform: translateX(-50%) scaleY(0.72);
+    opacity: 0.9;
+}
+
 .mp-playing-content-wrapper {
     position: relative;
     z-index: 10;
@@ -1597,6 +1667,18 @@
 .mp-character-area.is-live2d .mp-center-character {
     width: 100%;
     height: 100%;
+}
+
+.mp-character-area.is-live2d .mp-face-eye {
+    top: 37%;
+}
+
+.mp-character-area.is-live2d .mp-face-cheek {
+    top: 47%;
+}
+
+.mp-character-area.is-live2d .mp-face-mouth {
+    top: 51%;
 }
 
 .mp-result-character-bg.is-live2d {

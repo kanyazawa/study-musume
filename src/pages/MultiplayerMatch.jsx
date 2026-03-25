@@ -372,6 +372,25 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                     : '',
         };
     }, [answerFx, isPoseSpeaking, matchEmotion, phase, resultFx]);
+    const matchFaceAccent = useMemo(() => {
+        if (answerFx === 'wrong' || persistentEmotion === 'angry') {
+            return 'angry';
+        }
+
+        if (answerFx === 'correct') {
+            return persistentEmotion === 'happy' || correctStreak >= 2 ? 'heart' : 'star';
+        }
+
+        if (persistentEmotion === 'happy') {
+            return 'heart';
+        }
+
+        if (persistentEmotion === 'smile') {
+            return 'star';
+        }
+
+        return null;
+    }, [answerFx, correctStreak, persistentEmotion]);
 
     const playUiTone = useCallback((frequency, durationMs, { type = 'sine', gain = 0.03, delayMs = 0 } = {}) => {
         if (isMuted || typeof window === 'undefined') return;
@@ -1475,6 +1494,22 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                         className="character-match"
                         imageClassName="mp-center-character"
                     />
+                    {matchFaceAccent && (
+                        <div className={`mp-face-accent mp-face-accent-${matchFaceAccent}`} aria-hidden="true">
+                            {matchFaceAccent === 'angry' ? (
+                                <>
+                                    <span className="mp-face-cheek mp-face-cheek-left" />
+                                    <span className="mp-face-cheek mp-face-cheek-right" />
+                                    <span className="mp-face-mouth" />
+                                </>
+                            ) : (
+                                <>
+                                    <span className="mp-face-eye mp-face-eye-left">{matchFaceAccent === 'heart' ? '♥' : '★'}</span>
+                                    <span className="mp-face-eye mp-face-eye-right">{matchFaceAccent === 'heart' ? '♥' : '★'}</span>
+                                </>
+                            )}
+                        </div>
+                    )}
                 </div>
                 
                 {/* プレイ画面のコンテンツラッパー */}
