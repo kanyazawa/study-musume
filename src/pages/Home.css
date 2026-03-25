@@ -703,7 +703,7 @@
 .speech-bubble {
     position: absolute;
     left: 24px;
-    bottom: 178px;
+    bottom: 276px;
     transform: none;
     background: rgba(255, 255, 255, 0.98);
     padding: 12px 20px;
@@ -723,7 +723,7 @@
 
 .character-figure.is-live2d .speech-bubble {
     left: 24px;
-    bottom: 178px;
+    bottom: 276px;
     transform: none;
     width: min(92vw, 720px);
     max-width: 720px;
@@ -1111,7 +1111,7 @@
 
     .speech-bubble {
         left: 14px;
-        bottom: 244px;
+        bottom: 332px;
         transform: none;
         width: min(94vw, 600px);
         max-width: 560px;
@@ -1119,7 +1119,7 @@
 
     .character-figure.is-live2d .speech-bubble {
         left: 14px;
-        bottom: 244px;
+        bottom: 332px;
         transform: none;
         width: min(94vw, 580px);
         max-width: 540px;
