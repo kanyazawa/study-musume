@@ -16,10 +16,11 @@ const DEFAULT_ENGINE_BASE_URLS = {
 const CLOUDFLARE_TTS_ENDPOINT = 'https://study-musume.hide20080422.workers.dev/api/tts';
 
 export const DEEPGRAM_VOICE_MODELS = [
+    'aura-2-izanami-ja',
+    'aura-2-fujin-ja',
+    'aura-2-uzume-ja',
     'aura-2-thalia-en',
     'aura-2-luna-en',
-    'aura-2-asteria-en',
-    'aura-2-stella-en',
 ];
 
 export const VOICEVOX_SPEAKERS = {

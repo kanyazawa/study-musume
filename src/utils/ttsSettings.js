@@ -11,7 +11,7 @@ export const TTS_ENGINES = {
 export const DEFAULT_TTS_SETTINGS = {
     enabled: true,
     engine: TTS_ENGINES.AUTO,
-    deepgramVoiceModel: 'aura-2-thalia-en',
+    deepgramVoiceModel: 'aura-2-izanami-ja',
     aivisUrl: 'http://127.0.0.1:10101',
     voicevoxUrl: 'http://127.0.0.1:50021',
     browserPitch: 1.2,
@@ -26,12 +26,24 @@ const clampNumber = (value, fallback, min, max) => {
     return Math.min(max, Math.max(min, parsed));
 };
 
+const normalizeDeepgramVoiceModel = (value) => {
+    if (typeof value !== 'string') return DEFAULT_TTS_SETTINGS.deepgramVoiceModel;
+
+    const normalized = value.trim();
+    if (!normalized) return DEFAULT_TTS_SETTINGS.deepgramVoiceModel;
+
+    // Migrate the previous English default so existing users get natural Japanese speech automatically.
+    if (normalized === 'aura-2-thalia-en') {
+        return DEFAULT_TTS_SETTINGS.deepgramVoiceModel;
+    }
+
+    return normalized;
+};
+
 export const normalizeTtsSettings = (settings = {}) => ({
     enabled: settings.enabled !== false,
     engine: Object.values(TTS_ENGINES).includes(settings.engine) ? settings.engine : DEFAULT_TTS_SETTINGS.engine,
-    deepgramVoiceModel: typeof settings.deepgramVoiceModel === 'string' && settings.deepgramVoiceModel.trim()
-        ? settings.deepgramVoiceModel.trim()
-        : DEFAULT_TTS_SETTINGS.deepgramVoiceModel,
+    deepgramVoiceModel: normalizeDeepgramVoiceModel(settings.deepgramVoiceModel),
     aivisUrl: typeof settings.aivisUrl === 'string' && settings.aivisUrl.trim()
         ? settings.aivisUrl.trim()
         : DEFAULT_TTS_SETTINGS.aivisUrl,
