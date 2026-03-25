@@ -1,0 +1,395 @@
+.character-static-stage {
+    position: relative;
+    display: inline-flex;
+    align-items: flex-end;
+    justify-content: center;
+    max-width: 100%;
+    overflow: visible;
+}
+
+.character-static-base-image {
+    display: block;
+    height: 100%;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.character-face-fx-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 3;
+}
+
+.character-face-fx {
+    position: absolute;
+    inset: 0;
+    opacity: var(--fx-opacity, 1);
+}
+
+.character-eye-fx,
+.character-cheek-puff,
+.character-angry-brow,
+.character-pout-mouth,
+.character-forehead-mark {
+    position: absolute;
+    pointer-events: none;
+}
+
+.character-eye-fx {
+    top: var(--fx-eye-y);
+    width: var(--fx-eye-size);
+    height: calc(var(--fx-eye-size) * 1.12);
+    transform: translate(-50%, -50%);
+    opacity: 0;
+}
+
+.character-eye-fx.left {
+    left: var(--fx-left-eye-x);
+}
+
+.character-eye-fx.right {
+    left: var(--fx-right-eye-x);
+}
+
+.character-eye-aura,
+.character-eye-iris,
+.character-eye-star,
+.character-eye-highlight {
+    position: absolute;
+    inset: 0;
+}
+
+.character-eye-aura {
+    inset: -18%;
+    border-radius: 50%;
+    opacity: 0;
+    filter: blur(8px);
+}
+
+.character-eye-iris {
+    border-radius: 50%;
+    opacity: 0;
+}
+
+.character-eye-star {
+    inset: 18%;
+    opacity: 0;
+    clip-path: polygon(50% 0%, 60% 28%, 86% 14%, 72% 40%, 100% 50%, 72% 60%, 86% 86%, 60% 72%, 50% 100%, 40% 72%, 14% 86%, 28% 60%, 0% 50%, 28% 40%, 14% 14%, 40% 28%);
+}
+
+.character-eye-highlight {
+    inset: 22% 18% auto auto;
+    width: 26%;
+    height: 26%;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.95);
+    opacity: 0;
+}
+
+.character-cheek-puff {
+    top: var(--fx-cheek-y);
+    width: var(--fx-cheek-size);
+    height: calc(var(--fx-cheek-size) * 0.88);
+    transform: translate(-50%, -50%) scale(0.6);
+    border-radius: 999px;
+    opacity: 0;
+}
+
+.character-cheek-puff.left {
+    left: var(--fx-left-cheek-x);
+}
+
+.character-cheek-puff.right {
+    left: var(--fx-right-cheek-x);
+}
+
+.character-pout-mouth {
+    top: var(--fx-mouth-y);
+    left: 50%;
+    width: var(--fx-mouth-size);
+    height: calc(var(--fx-mouth-size) * 0.72);
+    transform: translate(-50%, -50%) scale(0.72);
+    opacity: 0;
+}
+
+.character-pout-mouth::before,
+.character-pout-mouth::after {
+    content: '';
+    position: absolute;
+}
+
+.character-pout-mouth::before {
+    inset: 0;
+    border-bottom: 3px solid rgba(150, 60, 84, 0.9);
+    border-radius: 0 0 999px 999px;
+}
+
+.character-pout-mouth::after {
+    left: 50%;
+    bottom: -2px;
+    width: 28%;
+    height: 28%;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: rgba(255, 190, 205, 0.9);
+}
+
+.character-angry-brow {
+    top: calc(var(--fx-eye-y) - (var(--fx-eye-size) * 0.72));
+    width: calc(var(--fx-eye-size) * 1.06);
+    height: calc(var(--fx-eye-size) * 0.15);
+    border-radius: 999px;
+    opacity: 0;
+}
+
+.character-angry-brow.left {
+    left: var(--fx-left-eye-x);
+    transform: translate(-50%, -50%) rotate(-22deg);
+}
+
+.character-angry-brow.right {
+    left: var(--fx-right-eye-x);
+    transform: translate(-50%, -50%) rotate(22deg);
+}
+
+.character-forehead-mark {
+    left: calc(var(--fx-right-eye-x) + 5.6%);
+    top: calc(var(--fx-eye-y) - (var(--fx-eye-size) * 1.2));
+    width: calc(var(--fx-eye-size) * 0.76);
+    height: calc(var(--fx-eye-size) * 0.76);
+    transform: translate(-50%, -50%) rotate(10deg) scale(0.7);
+    opacity: 0;
+}
+
+.character-forehead-mark::before,
+.character-forehead-mark::after {
+    content: '';
+    position: absolute;
+    background: linear-gradient(180deg, #ff6b8b 0%, #ff365d 100%);
+    border-radius: 999px;
+}
+
+.character-forehead-mark::before {
+    inset: 0 36%;
+}
+
+.character-forehead-mark::after {
+    inset: 36% 0;
+}
+
+.character-face-fx.mode-sparkle .character-eye-fx,
+.character-face-fx.mode-starburst .character-eye-fx,
+.character-face-fx.mode-dreamy .character-eye-fx,
+.character-face-fx.mode-focus .character-eye-fx {
+    opacity: 1;
+}
+
+.character-face-fx.mode-sparkle .character-eye-aura {
+    opacity: 0.65;
+    background: radial-gradient(circle, rgba(255, 245, 170, 0.72) 0%, rgba(109, 220, 255, 0.46) 44%, rgba(109, 220, 255, 0) 72%);
+    animation: eyePulse 1.7s ease-in-out infinite;
+}
+
+.character-face-fx.mode-sparkle .character-eye-iris {
+    opacity: 0.96;
+    background: radial-gradient(circle at 50% 44%, rgba(255, 251, 215, 0.98) 0 18%, rgba(117, 241, 255, 0.92) 19% 34%, rgba(72, 100, 255, 0.94) 35% 58%, rgba(17, 20, 51, 0.24) 59% 100%);
+}
+
+.character-face-fx.mode-sparkle .character-eye-star {
+    opacity: 0.92;
+    background: linear-gradient(180deg, #fff8be 0%, #9bf7ff 55%, #5a7dff 100%);
+    mix-blend-mode: screen;
+    animation: starTwinkle 2.1s ease-in-out infinite;
+}
+
+.character-face-fx.mode-sparkle .character-eye-highlight {
+    opacity: 1;
+}
+
+.character-face-fx.mode-starburst .character-eye-aura {
+    opacity: 0.82;
+    background: radial-gradient(circle, rgba(255, 255, 210, 0.88) 0%, rgba(100, 232, 255, 0.56) 40%, rgba(100, 232, 255, 0) 76%);
+    animation: eyePulse 1.2s ease-in-out infinite;
+}
+
+.character-face-fx.mode-starburst .character-eye-iris {
+    opacity: 0.96;
+    transform: scale(1.12);
+    background: radial-gradient(circle at 50% 42%, rgba(255, 251, 219, 1) 0 16%, rgba(255, 239, 136, 0.96) 17% 28%, rgba(125, 243, 255, 0.96) 29% 46%, rgba(77, 95, 255, 0.94) 47% 65%, rgba(25, 28, 84, 0.3) 66% 100%);
+}
+
+.character-face-fx.mode-starburst .character-eye-star {
+    opacity: 1;
+    inset: 8%;
+    background: linear-gradient(180deg, #fff9c4 0%, #98f5ff 48%, #4460ff 100%);
+    animation: starBurst 1.05s ease-in-out infinite alternate;
+}
+
+.character-face-fx.mode-starburst .character-eye-highlight {
+    opacity: 1;
+    width: 30%;
+    height: 30%;
+}
+
+.character-face-fx.mode-dreamy .character-eye-aura {
+    opacity: 0.54;
+    background: radial-gradient(circle, rgba(255, 204, 244, 0.62) 0%, rgba(147, 224, 255, 0.35) 48%, rgba(147, 224, 255, 0) 72%);
+}
+
+.character-face-fx.mode-dreamy .character-eye-iris {
+    opacity: 0.88;
+    background: radial-gradient(circle at 50% 44%, rgba(255, 253, 235, 0.92) 0 15%, rgba(255, 185, 219, 0.82) 16% 31%, rgba(161, 220, 255, 0.85) 32% 55%, rgba(80, 109, 216, 0.68) 56% 100%);
+}
+
+.character-face-fx.mode-dreamy .character-eye-star {
+    opacity: 0.74;
+    inset: 24%;
+    background: linear-gradient(180deg, #fff4c9 0%, #ffc8ea 48%, #7cbcff 100%);
+}
+
+.character-face-fx.mode-dreamy .character-eye-highlight {
+    opacity: 0.94;
+}
+
+.character-face-fx.mode-focus .character-eye-iris {
+    opacity: 0.82;
+    background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.9) 0 10%, rgba(173, 235, 255, 0.82) 11% 22%, rgba(88, 122, 255, 0.85) 23% 46%, rgba(14, 18, 46, 0.28) 47% 100%);
+}
+
+.character-face-fx.mode-focus .character-eye-star {
+    opacity: 0.52;
+    inset: 28%;
+    background: linear-gradient(180deg, #f7ffbf 0%, #8ee8ff 58%, #4a64ff 100%);
+}
+
+.character-face-fx.mode-focus .character-eye-highlight {
+    opacity: 0.76;
+}
+
+.character-face-fx.mode-focus .character-angry-brow {
+    opacity: 0.92;
+    background: linear-gradient(180deg, rgba(64, 67, 119, 0.95) 0%, rgba(17, 20, 51, 0.98) 100%);
+}
+
+.character-face-fx.mode-pout .character-angry-brow {
+    opacity: 0.98;
+    width: calc(var(--fx-eye-size) * 1.24);
+    height: calc(var(--fx-eye-size) * 0.18);
+    background: linear-gradient(180deg, rgba(108, 28, 52, 0.98) 0%, rgba(43, 9, 27, 1) 100%);
+    box-shadow: 0 0 10px rgba(122, 37, 70, 0.35);
+}
+
+.character-face-fx.mode-pout .character-eye-fx {
+    opacity: 1;
+}
+
+.character-face-fx.mode-pout .character-eye-aura {
+    inset: -16% -8% 34% -8%;
+    opacity: 0.88;
+    border-radius: 999px 999px 28% 28%;
+    background: linear-gradient(180deg, rgba(36, 12, 24, 0.84) 0%, rgba(36, 12, 24, 0.34) 58%, rgba(36, 12, 24, 0) 100%);
+    filter: blur(2px);
+}
+
+.character-face-fx.mode-pout .character-cheek-puff {
+    opacity: 0.34;
+    width: calc(var(--fx-cheek-size) * 1.04);
+    height: calc(var(--fx-cheek-size) * 0.92);
+    background: radial-gradient(circle at 50% 48%, rgba(236, 178, 160, 0.44) 0%, rgba(163, 96, 76, 0.22) 58%, rgba(163, 96, 76, 0) 100%);
+    box-shadow: none;
+    animation: cheekPuff 1.3s ease-in-out infinite alternate;
+}
+
+.character-face-fx.mode-pout .character-pout-mouth {
+    opacity: 0.92;
+    width: calc(var(--fx-mouth-size) * 0.82);
+    height: calc(var(--fx-mouth-size) * 0.34);
+    animation: poutBounce 1.2s ease-in-out infinite alternate;
+}
+
+.character-face-fx.mode-pout .character-forehead-mark {
+    opacity: 1;
+    width: calc(var(--fx-eye-size) * 1.02);
+    height: calc(var(--fx-eye-size) * 1.02);
+    animation: poutMark 0.95s ease-in-out infinite alternate;
+}
+
+.character-face-fx.mode-pout .character-eye-iris {
+    opacity: 0.96;
+    transform: translateY(2%) scale(0.96, 0.42);
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255, 247, 223, 0.98) 0%, rgba(180, 229, 255, 0.88) 24%, rgba(74, 108, 255, 0.94) 56%, rgba(15, 20, 44, 0.96) 100%);
+    box-shadow: 0 -2px 0 rgba(20, 7, 15, 0.42);
+}
+
+.character-face-fx.mode-pout .character-eye-highlight {
+    opacity: 0.08;
+    inset: 42% 18% auto auto;
+    width: 14%;
+    height: 14%;
+}
+
+.character-face-fx.mode-pout .character-eye-star {
+    opacity: 0;
+}
+
+@keyframes eyePulse {
+    0%,
+    100% {
+        transform: scale(0.94);
+    }
+    50% {
+        transform: scale(1.08);
+    }
+}
+
+@keyframes starTwinkle {
+    0%,
+    100% {
+        transform: rotate(0deg) scale(0.92);
+        opacity: 0.78;
+    }
+    50% {
+        transform: rotate(12deg) scale(1.06);
+        opacity: 1;
+    }
+}
+
+@keyframes starBurst {
+    from {
+        transform: scale(0.88) rotate(-8deg);
+    }
+    to {
+        transform: scale(1.12) rotate(8deg);
+    }
+}
+
+@keyframes cheekPuff {
+    from {
+        transform: translate(-50%, -50%) scale(0.98);
+    }
+    to {
+        transform: translate(-50%, -50%) scale(1.05);
+    }
+}
+
+@keyframes poutBounce {
+    from {
+        transform: translate(-50%, -50%) scale(0.98, 0.9);
+    }
+    to {
+        transform: translate(-50%, -49%) scale(1.02, 0.94);
+    }
+}
+
+@keyframes poutMark {
+    from {
+        transform: translate(-50%, -50%) rotate(6deg) scale(0.98);
+    }
+    to {
+        transform: translate(-50%, -50%) rotate(18deg) scale(1.16);
+    }
+}

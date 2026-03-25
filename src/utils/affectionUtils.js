@@ -3,20 +3,20 @@ import { AFFECTION_LEVELS, AFFECTION_QUOTES, AFFECTION_QUOTES_REN } from '../dat
 const HOME_REACTIONS = {
     noah: {
         lowTp: [
-            { emotion: 'normal', text: '無理しすぎないでよ。少し休んでからでも遅くないんだから。' },
+            { emotion: 'serious', text: '無理しすぎないでよ。少し休んでからでも遅くないんだから。' },
             { emotion: 'serious', text: '顔色、あんまり良くないわよ。今日は深呼吸してからにしなさい。' },
         ],
         highStreak: [
             { emotion: 'happy', text: '連続で頑張れてるじゃない。べ、別にちょっと感心しただけよ。' },
-            { emotion: 'happy', text: 'その調子で積み上げなさいよ。今日はかなりいい感じなんだから。' },
+            { emotion: 'smile', text: 'その調子で積み上げなさいよ。今日はかなりいい感じなんだから。' },
         ],
         highAffection: [
-            { emotion: 'happy', text: '来てくれると安心するの。今日は何を一緒にやる？' },
-            { emotion: 'happy', text: 'あんたと話すと落ち着くのよね。少しだけ、ここにいて。' },
+            { emotion: 'relaxed', text: '来てくれると安心するの。今日は何を一緒にやる？' },
+            { emotion: 'shy', text: 'あんたと話すと落ち着くのよね。少しだけ、ここにいて。' },
         ],
         default: [
             { emotion: 'normal', text: '今日はどこから進めるの？ちゃんと付き合ってあげるわ。' },
-            { emotion: 'normal', text: 'ぼーっとしてないで、やること決めなさいよ。' },
+            { emotion: 'angry', text: 'ぼーっとしてないで、やること決めなさいよ。' },
             { emotion: 'happy', text: '来たのね。少しだけなら、話してあげてもいいわ。' },
         ],
     },
@@ -27,15 +27,15 @@ const HOME_REACTIONS = {
         ],
         highStreak: [
             { emotion: 'happy', text: '継続できているな。その積み重ねは確実に力になる。' },
-            { emotion: 'happy', text: '今日も続けられている。お前の努力、俺はちゃんと見てる。' },
+            { emotion: 'smile', text: '今日も続けられている。お前の努力、俺はちゃんと見てる。' },
         ],
         highAffection: [
-            { emotion: 'happy', text: 'お前が来ると少し空気が変わるな。悪くない。' },
-            { emotion: 'happy', text: '一緒にいると落ち着く。今日は何から始める？' },
+            { emotion: 'relaxed', text: 'お前が来ると少し空気が変わるな。悪くない。' },
+            { emotion: 'smile', text: '一緒にいると落ち着く。今日は何から始める？' },
         ],
         default: [
             { emotion: 'normal', text: '来たか。今日も一つずつ片付けていこう。' },
-            { emotion: 'normal', text: '始めるなら集中していこう。俺も付き合う。' },
+            { emotion: 'serious', text: '始めるなら集中していこう。俺も付き合う。' },
             { emotion: 'happy', text: '少し話すくらいならいい。で、何をやる？' },
         ],
     },

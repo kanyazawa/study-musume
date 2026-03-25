@@ -16,36 +16,9 @@ import { updateMissionsOnInteract } from '../utils/missionUtils';
 import { checkForNewAchievements } from '../utils/achievementUtils';
 import { ACHIEVEMENTS } from '../data/achievements';
 import { processLoginBonus } from '../utils/loginBonusUtils';
-import { getLatestNoaAssistantMessage } from '../utils/chatHistory';
+import { getLatestNoaAssistantMessageEntry } from '../utils/chatHistory';
+import { inferEmotionFromChatText } from '../utils/chatEmotionUtils';
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
-
-const NEGATIVE_USER_INPUT_PATTERNS = [
-    '嫌い', 'きらい', 'バカ', 'ばか', '馬鹿', 'アホ', 'あほ', 'うざ', 'ウザ',
-    'きも', 'キモ', '最悪', 'むかつ', 'ムカつ', 'うるさい', '黙れ', 'だまれ',
-    '消えろ', 'しね', '死ね', 'クソ', 'くそ', 'ゴミ', '役立たず', '最低',
-];
-
-const POSITIVE_USER_INPUT_PATTERNS = [
-    '好き', 'すき', 'ありがとう', 'ありがと', 'ごめん', '応援', '助かる', 'えらい',
-    '偉い', 'すごい', '頑張', 'がんば', 'かわいい', '可愛い',
-];
-
-const inferEmotionFromUserInput = (text) => {
-    const normalizedText = String(text || '').trim().toLowerCase();
-    if (!normalizedText) {
-        return 'normal';
-    }
-
-    if (NEGATIVE_USER_INPUT_PATTERNS.some((pattern) => normalizedText.includes(pattern.toLowerCase()))) {
-        return 'angry';
-    }
-
-    if (POSITIVE_USER_INPUT_PATTERNS.some((pattern) => normalizedText.includes(pattern.toLowerCase()))) {
-        return 'happy';
-    }
-
-    return 'normal';
-};
 
 const inferHomeEmotion = ({ emotion, speech, tp, maxTp, affectionLevel, examDate }) => {
     if (emotion && emotion !== 'normal') {
@@ -101,13 +74,9 @@ const inferHomeEmotion = ({ emotion, speech, tp, maxTp, affectionLevel, examDate
 const toVisibleHomeEmotion = (emotion) => {
     switch (emotion) {
         case 'smile':
-        case 'shy':
-        case 'relaxed':
-        case 'surprised':
             return 'happy';
-        case 'serious':
         case 'sad':
-            return 'angry';
+            return 'serious';
         default:
             return emotion || 'normal';
     }
@@ -250,24 +219,32 @@ const Home = ({ stats, updateStats }) => {
         updateMissionsOnInteract();
     };
 
-    const reactToUserMessage = useCallback((userText) => {
-        const inferredEmotion = toVisibleHomeEmotion(inferEmotionFromUserInput(userText));
+    const reactToUserMessage = useCallback((userText, { emotion: nextEmotion } = {}) => {
+        const inferredEmotion = toVisibleHomeEmotion(
+            nextEmotion || inferEmotionFromChatText(userText, { role: 'user' })
+        );
         scheduleUserInputEmotion(inferredEmotion);
     }, [scheduleUserInputEmotion]);
 
-    const syncSpeechWithNoaReply = useCallback((replyText, { animate = false } = {}) => {
+    const syncSpeechWithNoaReply = useCallback((replyText, { animate = false, emotion: replyEmotion } = {}) => {
         const nextSpeech = String(replyText || '').trim();
         if (!nextSpeech) return;
 
+        const inferredReplyEmotion = replyEmotion || inferEmotionFromChatText(nextSpeech, { role: 'assistant' });
+
         setSpeech(nextSpeech);
-        setEmotion(toVisibleHomeEmotion(inferHomeEmotion({
-            emotion: 'normal',
-            speech: nextSpeech,
-            tp,
-            maxTp,
-            affectionLevel: affectionLevelInfo.level,
-            examDate,
-        })));
+        setEmotion(toVisibleHomeEmotion(
+            inferredReplyEmotion !== 'normal'
+                ? inferredReplyEmotion
+                : inferHomeEmotion({
+                    emotion: 'normal',
+                    speech: nextSpeech,
+                    tp,
+                    maxTp,
+                    affectionLevel: affectionLevelInfo.level,
+                    examDate,
+                })
+        ));
         if (animate) {
             startTimedTalkAnimation(nextSpeech);
         } else {
@@ -276,10 +253,13 @@ const Home = ({ stats, updateStats }) => {
     }, [affectionLevelInfo.level, examDate, maxTp, tp]);
 
     useEffect(() => {
-        const latestReply = getLatestNoaAssistantMessage('general');
+        const latestReply = getLatestNoaAssistantMessageEntry('general');
 
-        if (latestReply) {
-            syncSpeechWithNoaReply(latestReply, { animate: true });
+        if (latestReply?.content) {
+            syncSpeechWithNoaReply(latestReply.content, {
+                animate: true,
+                emotion: latestReply.emotion,
+            });
             return;
         }
 

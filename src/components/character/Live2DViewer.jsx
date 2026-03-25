@@ -223,7 +223,25 @@ const getEmotionParameterProfile = (pose = {}) => {
         };
     }
 
-    if (emotion === 'angry' || emotion === 'serious' || emotion === 'sad') {
+    if (emotion === 'angry') {
+        return {
+            browY: -((0.42 + (intensity * 0.16)) * homeBoost),
+            browForm: 1.12 + (intensity * 0.24),
+            angleX: 0,
+            angleY: 1.5 * homeBoost,
+            angleZ: 0,
+            eyeSmile: 0,
+            eyeSquint: 0.82 + (intensity * 0.12),
+            angry: 1.08 + (intensity * 0.12),
+            mouthX: 0,
+            mouthFunnel: 0.14 + (intensity * 0.05),
+            mouthShrug: 0.08 + (intensity * 0.04),
+            mouthWiden: 0,
+            jawOpen: 0.01,
+        };
+    }
+
+    if (emotion === 'serious' || emotion === 'sad') {
         return {
             browY: -((0.18 + (intensity * 0.1)) * homeBoost),
             browForm: 0.7 + (intensity * 0.18),
@@ -313,11 +331,11 @@ const resolveMappedExpression = (modelConfig, pose = {}) => {
         return '';
     }
 
-    if (isHomePose(pose)) {
+    const emotionKey = getPoseEmotionKey(pose);
+    if (isHomePose(pose) && emotionKey === 'normal') {
         return '';
     }
 
-    const emotionKey = getPoseEmotionKey(pose);
     return expressionMap[emotionKey] || '';
 };
 

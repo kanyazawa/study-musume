@@ -1,3 +1,5 @@
+import { normalizeCharacterEmotion } from './characterPoseUtils';
+
 const STORAGE_KEY = 'noaChatHistory';
 const MAX_MESSAGES_PER_TOPIC = 6;
 
@@ -8,7 +10,9 @@ const normalizeMessage = (message) => {
     const content = message.content.trim();
     if (!content) return null;
 
-    return { role, content };
+    const emotion = normalizeCharacterEmotion(message.emotion || message.expression, '');
+
+    return emotion ? { role, content, emotion } : { role, content };
 };
 
 const readStore = () => {
@@ -62,14 +66,19 @@ export const clearNoaChatMessages = (topicKey) => {
 };
 
 export const getLatestNoaAssistantMessage = (topicKey, fallbackMessages = []) => {
+    const latestAssistantMessage = getLatestNoaAssistantMessageEntry(topicKey, fallbackMessages);
+    return latestAssistantMessage?.content || '';
+};
+
+export const getLatestNoaAssistantMessageEntry = (topicKey, fallbackMessages = []) => {
     const messages = getNoaChatMessages(topicKey, fallbackMessages);
 
     for (let index = messages.length - 1; index >= 0; index -= 1) {
         const message = messages[index];
         if (message?.role === 'assistant' && message?.content) {
-            return message.content;
+            return message;
         }
     }
 
-    return '';
+    return null;
 };
