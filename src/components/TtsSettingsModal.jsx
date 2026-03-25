@@ -23,9 +23,11 @@ const ENGINE_OPTIONS = [
 const SAMPLE_TEXT = 'こんにちは。読み上げエンジンのテストです。授業データを自然に読めるか確認しましょう。';
 
 const DEEPGRAM_MODEL_OPTIONS = [
-    { value: 'aura-2-izanami-ja', label: 'Aura-2 Izanami', desc: '日本語向け。いちばん自然でおすすめです' },
-    { value: 'aura-2-fujin-ja', label: 'Aura-2 Fujin', desc: '日本語向け。少し印象を変えたい時の候補です' },
-    { value: 'aura-2-uzume-ja', label: 'Aura-2 Uzume', desc: '日本語向け。明るめに試したい時の候補です' },
+    { value: 'aura-2-uzume-ja', label: 'Aura-2 Uzume', desc: '日本語向け。若めでかわいい寄りの声です' },
+    { value: 'aura-2-ama-ja', label: 'Aura-2 Ama', desc: '日本語向け。やわらかくカジュアル寄りです' },
+    { value: 'aura-2-izanami-ja', label: 'Aura-2 Izanami', desc: '日本語向け。自然で安定した声です' },
+    { value: 'aura-2-fujin-ja', label: 'Aura-2 Fujin', desc: '日本語向け。落ち着いた低めの声です' },
+    { value: 'aura-2-ebisu-ja', label: 'Aura-2 Ebisu', desc: '日本語向け。若めの男性声です' },
     { value: 'aura-2-thalia-en', label: 'Aura-2 Thalia', desc: '英語向け' },
     { value: 'aura-2-luna-en', label: 'Aura-2 Luna', desc: '英語向け' },
 ];
@@ -222,7 +224,7 @@ const TtsSettingsModal = ({ onClose }) => {
                                 ))}
                             </select>
                             <div className="tts-inline-help">
-                                Deepgram は Voice ID ではなく model 名で切り替えます。日本語なら Izanami / Fujin / Uzume がおすすめです。
+                                Deepgram は Voice ID ではなく model 名で切り替えます。かわいさ重視なら Uzume、やわらかさ重視なら Ama がおすすめです。
                             </div>
                             <div className="tts-inline-help">
                                 {DEEPGRAM_MODEL_OPTIONS.find((option) => option.value === settings.deepgramVoiceModel)?.desc || 'モデルを選んで音の印象を調整できます'}

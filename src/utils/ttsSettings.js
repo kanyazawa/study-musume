@@ -11,7 +11,7 @@ export const TTS_ENGINES = {
 export const DEFAULT_TTS_SETTINGS = {
     enabled: true,
     engine: TTS_ENGINES.AUTO,
-    deepgramVoiceModel: 'aura-2-izanami-ja',
+    deepgramVoiceModel: 'aura-2-uzume-ja',
     aivisUrl: 'http://127.0.0.1:10101',
     voicevoxUrl: 'http://127.0.0.1:50021',
     browserPitch: 1.2,
@@ -33,7 +33,7 @@ const normalizeDeepgramVoiceModel = (value) => {
     if (!normalized) return DEFAULT_TTS_SETTINGS.deepgramVoiceModel;
 
     // Migrate the previous English default so existing users get natural Japanese speech automatically.
-    if (normalized === 'aura-2-thalia-en') {
+    if (normalized === 'aura-2-thalia-en' || normalized === 'aura-2-izanami-ja') {
         return DEFAULT_TTS_SETTINGS.deepgramVoiceModel;
     }
 

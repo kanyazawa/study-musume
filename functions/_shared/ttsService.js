@@ -9,7 +9,7 @@ const AUDIO_HEADERS = {
     'Access-Control-Allow-Origin': '*',
 };
 
-export const DEEPGRAM_TTS_DEFAULT_MODEL = 'aura-2-izanami-ja';
+export const DEEPGRAM_TTS_DEFAULT_MODEL = 'aura-2-uzume-ja';
 
 const jsonResponse = (body, status = 200) => new Response(JSON.stringify(body), {
     status,
