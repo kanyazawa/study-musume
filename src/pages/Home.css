@@ -710,8 +710,8 @@
     border-radius: 28px;
     border: 3px solid #81c784;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    width: min(94vw, 760px);
-    max-width: 760px;
+    width: min(calc(100vw - 48px), 760px);
+    max-width: calc(100vw - 48px);
     min-height: 72px;
     z-index: 20;
     display: flex;
@@ -725,8 +725,8 @@
     left: 24px;
     bottom: 252px;
     transform: none;
-    width: min(92vw, 720px);
-    max-width: 720px;
+    width: min(calc(100vw - 48px), 720px);
+    max-width: calc(100vw - 48px);
 }
 
 /* 吹き出しの突起（右下向き） */
