@@ -31,6 +31,7 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
     const [inputValue, setInputValue] = useState('');
     const [showNextButton, setShowNextButton] = useState(false);
     const [correctStreak, setCorrectStreak] = useState(0);
+    const [persistentEmotion, setPersistentEmotion] = useState(null);
     const chainAudioCacheRef = useRef({});
     const audioContextRef = useRef(null);
     const nextQuestionTimerRef = useRef(null);
@@ -79,18 +80,34 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
     });
     const showIncorrectFeedback = Boolean(currentQuestion.options && feedback === 'incorrect');
     const isChoiceQuestion = Boolean(currentQuestion.options);
-    const poseEmotion = feedback
-        ? feedback === 'correct'
-            ? 'happy'
-            : 'angry'
-        : currentQuestion.wrongCount >= 3
-            ? 'serious'
-            : priority === 'urgent'
-                ? 'surprised'
-                : 'relaxed';
+    const reviewFaceAccent = feedback === 'incorrect' || persistentEmotion === 'angry'
+        ? null
+        : correctStreak >= 2 || persistentEmotion === 'happy'
+            ? 'heart'
+            : correctStreak === 1 || persistentEmotion === 'smile'
+                ? 'star'
+                : null;
+    const visibleReviewFaceAccent = renderer === 'live2d' ? null : reviewFaceAccent;
+    let poseEmotion;
+    if (feedback === 'incorrect' || persistentEmotion === 'angry') {
+        poseEmotion = 'angry';
+    } else if (correctStreak >= 2 || persistentEmotion === 'happy') {
+        poseEmotion = 'happy';
+    } else if (reviewFaceAccent === 'star') {
+        poseEmotion = renderer === 'live2d' ? 'smile' : 'happy';
+    } else if (renderer === 'live2d') {
+        poseEmotion = 'normal';
+    } else if (currentQuestion.wrongCount >= 3) {
+        poseEmotion = 'serious';
+    } else if (priority === 'urgent') {
+        poseEmotion = 'surprised';
+    } else {
+        poseEmotion = 'relaxed';
+    }
     const characterPose = {
         emotion: poseEmotion,
         expression: poseEmotion,
+        scene: 'review',
         intensity: feedback
             ? feedback === 'correct' ? 0.52 : 0.46
             : currentQuestion.wrongCount >= 3 ? 0.42 : priority === 'urgent' ? 0.4 : 0.32,
@@ -100,6 +117,7 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
         speaking: false,
         text: '',
         effect: feedback === 'correct' ? 'glow' : feedback === 'incorrect' ? 'shake' : '',
+        live2dFaceAccent: reviewFaceAccent,
     };
     const getChainAudioSrc = useCallback((streak) => {
         if (streak <= 1) return battleChain1Audio;
@@ -222,6 +240,7 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
         setFeedback(isCorrect ? 'correct' : 'incorrect');
         setCorrectStreak((prev) => {
             const nextStreak = isCorrect ? prev + 1 : 0;
+            setPersistentEmotion(isCorrect ? (nextStreak >= 2 ? 'happy' : 'smile') : 'angry');
 
             if (isCorrect) {
                 playSE('se_correct');
@@ -282,6 +301,7 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
         setInputValue('');
         setShowNextButton(false);
         setCorrectStreak(0);
+        setPersistentEmotion(null);
     };
 
     if (isCompleted) {
@@ -370,6 +390,18 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
                     imageClassName="mp-center-character"
                     alt="Review Character"
                 />
+                {visibleReviewFaceAccent && (
+                    <div className={`mp-face-accent mp-face-accent-${visibleReviewFaceAccent} review-face-accent`} aria-hidden="true">
+                        {visibleReviewFaceAccent === 'heart' && (
+                            <>
+                                <span className="mp-face-heart-orbit mp-face-heart-orbit-left">♥</span>
+                                <span className="mp-face-heart-orbit mp-face-heart-orbit-right">♥</span>
+                            </>
+                        )}
+                        <span className="mp-face-eye mp-face-eye-left">{visibleReviewFaceAccent === 'heart' ? '♥' : '★'}</span>
+                        <span className="mp-face-eye mp-face-eye-right">{visibleReviewFaceAccent === 'heart' ? '♥' : '★'}</span>
+                    </div>
+                )}
             </div>
 
             <div className="mp-playing-content-wrapper review-playing-content">

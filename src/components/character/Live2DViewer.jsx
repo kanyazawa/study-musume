@@ -37,6 +37,8 @@ const FALLBACK_MOUTH_FUNNEL_PARAM_NAMES = ['Param45'];
 const FALLBACK_MOUTH_SHRUG_PARAM_NAMES = ['Param48'];
 const FALLBACK_MOUTH_WIDEN_PARAM_NAMES = ['Param49'];
 const FALLBACK_JAW_OPEN_PARAM_NAMES = ['Param50'];
+const FALLBACK_STAR_EYE_PARAM_NAMES = ['Param59'];
+const FALLBACK_HEART_EYE_PARAM_NAMES = ['Param60'];
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 const getPoseEmotionKey = (pose = {}) =>
@@ -45,6 +47,9 @@ const getPoseEmotionKey = (pose = {}) =>
 const isHomePose = (pose = {}) => String(pose.scene || '').trim().toLowerCase() === 'home';
 
 const getSceneKey = (pose = {}) => String(pose.scene || 'default').trim().toLowerCase();
+
+const getLive2DFaceAccentKey = (pose = {}) =>
+    String(pose.live2dFaceAccent || pose.faceAccent || '').trim().toLowerCase();
 
 const getEmotionAnimationProfile = (pose = {}) => {
     const emotion = String(pose.emotion || pose.expression || 'normal').toLowerCase();
@@ -822,6 +827,9 @@ const Live2DViewer = ({
                             const resolvedMouthShrugIds = resolveParameterIds(model, null, FALLBACK_MOUTH_SHRUG_PARAM_NAMES);
                             const resolvedMouthWidenIds = resolveParameterIds(model, null, FALLBACK_MOUTH_WIDEN_PARAM_NAMES);
                             const resolvedJawOpenIds = resolveParameterIds(model, null, FALLBACK_JAW_OPEN_PARAM_NAMES);
+                            const resolvedStarEyeIds = resolveParameterIds(model, null, FALLBACK_STAR_EYE_PARAM_NAMES);
+                            const resolvedHeartEyeIds = resolveParameterIds(model, null, FALLBACK_HEART_EYE_PARAM_NAMES);
+                            const faceAccentKey = getLive2DFaceAccentKey(currentPose);
 
                             if (model?.setParameterValueById) {
                                 let targetMouthValue = 0;
@@ -866,6 +874,8 @@ const Live2DViewer = ({
                                 setParameterValues(model, resolvedMouthShrugIds, emotionProfile.mouthShrug);
                                 setParameterValues(model, resolvedMouthWidenIds, emotionProfile.mouthWiden);
                                 setParameterValues(model, resolvedJawOpenIds, emotionProfile.jawOpen);
+                                setParameterValues(model, resolvedStarEyeIds, faceAccentKey === 'star' ? 30 : 0);
+                                setParameterValues(model, resolvedHeartEyeIds, faceAccentKey === 'heart' ? 30 : 0);
                                 applyPartOpacityOverrides(model, modelConfigRef.current, currentPose);
 
                                 if (resolvedEyeIds.length > 0) {
@@ -890,6 +900,10 @@ const Live2DViewer = ({
                                 if (typeof model.update === 'function') {
                                     model.update();
                                 }
+
+                                // Some prototype expressions/motions rewrite part opacities during update,
+                                // so re-apply scene overrides after the model finishes its internal pass.
+                                applyPartOpacityOverrides(model, modelConfigRef.current, currentPose);
                             }
                         };
                         lappModel._patchedForSync = true;

@@ -85,13 +85,6 @@ const MATCHING_TIMEOUT_MS = 30000;
 const LISTENING_REPLAY_LIMIT = 1;
 const SOLO_SESSION_PRESETS = [
     {
-        id: 'quick',
-        label: 'サクッと',
-        eta: '約2分',
-        description: '始めるハードルを下げる短めセット',
-        count: 10,
-    },
-    {
         id: 'standard',
         label: '標準',
         eta: '約4分',
@@ -110,26 +103,13 @@ const SOLO_SESSION_PRESETS = [
 const getSoloSessionOptions = (totalQuestions) => {
     if (totalQuestions <= 0) return [];
 
-    if (totalQuestions <= 10) {
+    if (totalQuestions <= 20) {
         return [
             {
                 id: 'full',
                 label: '1周',
                 eta: '全部',
                 description: 'このレベルを最初から最後まで確認',
-                actualCount: totalQuestions,
-            },
-        ];
-    }
-
-    if (totalQuestions <= 20) {
-        return [
-            {
-                ...SOLO_SESSION_PRESETS[0],
-                actualCount: Math.min(SOLO_SESSION_PRESETS[0].count, totalQuestions),
-            },
-            {
-                ...SOLO_SESSION_PRESETS[2],
                 actualCount: totalQuestions,
             },
         ];
@@ -347,7 +327,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const [pronunciationReplayCount, setPronunciationReplayCount] = useState(0);
     const [persistentEmotion, setPersistentEmotion] = useState(null);
     const [highestCorrectStreak, setHighestCorrectStreak] = useState(0);
-    const [selectedSoloSessionId, setSelectedSoloSessionId] = useState('quick');
+    const [selectedSoloSessionId, setSelectedSoloSessionId] = useState('standard');
 
     // 連鎖ボイスを事前読み込みしておく（ラグ解消のため）
     const chainAudioCacheRef = useRef({});
@@ -473,9 +453,19 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     ]);
     const matchPose = useMemo(() => {
         const basePose = createHomePose({ emotion: matchEmotion, text: '' }, { speaking: isPoseSpeaking });
+        const live2dFaceAccent = answerFx === 'wrong' || persistentEmotion === 'angry'
+            ? null
+            : answerFx === 'correct'
+                ? (persistentEmotion === 'happy' || correctStreak >= 2 ? 'heart' : 'star')
+                : persistentEmotion === 'happy'
+                    ? 'heart'
+                    : persistentEmotion === 'smile'
+                        ? 'star'
+                        : null;
 
         return {
             ...basePose,
+            scene: phase === 'result' ? 'match-result' : 'match',
             intensity: answerFx === 'correct'
                 ? 0.95
                 : answerFx === 'wrong'
@@ -503,8 +493,9 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                 : answerFx === 'correct' || resultFx === 'victory'
                     ? 'glow'
                     : '',
+            live2dFaceAccent,
         };
-    }, [answerFx, isPoseSpeaking, matchEmotion, phase, resultFx]);
+    }, [answerFx, correctStreak, isPoseSpeaking, matchEmotion, persistentEmotion, phase, resultFx]);
     const matchFaceAccent = useMemo(() => {
         if (answerFx === 'wrong' || persistentEmotion === 'angry') {
             return 'angry';
@@ -524,6 +515,9 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
 
         return null;
     }, [answerFx, correctStreak, persistentEmotion]);
+    const visibleFaceAccent = renderer === 'live2d' && matchFaceAccent !== 'angry'
+        ? null
+        : matchFaceAccent;
 
     const playUiTone = useCallback((frequency, durationMs, { type = 'sine', gain = 0.03, delayMs = 0 } = {}) => {
         if (isMuted || typeof window === 'undefined') return;
@@ -1536,9 +1530,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                                         className={`mp-solo-plan-option ${selectedSoloSessionOption.id === option.id ? 'active' : ''}`}
                                         onClick={() => setSelectedSoloSessionId(option.id)}
                                     >
-                                        <span className="mp-solo-plan-option-kicker">
-                                            {option.id === 'quick' ? 'おすすめ' : option.label}
-                                        </span>
+                                        <span className="mp-solo-plan-option-kicker">{option.label}</span>
                                         <strong>{option.actualCount}問</strong>
                                         <span>{option.eta}</span>
                                         <p>{option.description}</p>
@@ -1702,12 +1694,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         const opScore = opponent?.score || 0;
         const totalQuestions = roomData.questions.length;
         const currentQuestionLabel = `${Math.min(myQuestionIndex + 1, totalQuestions)} / ${totalQuestions}`;
-        const remainingQuestions = Math.max(totalQuestions - myQuestionIndex - 1, 0);
-        const targetHint = isSolo
-            ? remainingQuestions === 0
-                ? 'この1問で終了'
-                : `あと ${remainingQuestions} 問で終了`
-            : `あと ${Math.max(matchTargetCorrect - myScore, 0)} 問で勝利`;
+        const targetHint = `あと ${Math.max(matchTargetCorrect - myScore, 0)} 問で勝利`;
         const leadMeta = !isSolo ? getLeadMeta(myScore, opScore) : null;
         const mySummary = summarizeAnswers(myRoomPlayer?.answers || []);
 
@@ -1743,9 +1730,9 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                         className="character-match"
                         imageClassName="mp-center-character"
                     />
-                    {matchFaceAccent && (
-                        <div className={`mp-face-accent mp-face-accent-${matchFaceAccent}`} aria-hidden="true">
-                            {matchFaceAccent === 'angry' ? (
+                    {visibleFaceAccent && (
+                        <div className={`mp-face-accent mp-face-accent-${visibleFaceAccent}`} aria-hidden="true">
+                            {visibleFaceAccent === 'angry' ? (
                                 <>
                                     <span className="mp-face-cheek mp-face-cheek-left" />
                                     <span className="mp-face-cheek mp-face-cheek-right" />
@@ -1753,8 +1740,14 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                                 </>
                             ) : (
                                 <>
-                                    <span className="mp-face-eye mp-face-eye-left">{matchFaceAccent === 'heart' ? '♥' : '★'}</span>
-                                    <span className="mp-face-eye mp-face-eye-right">{matchFaceAccent === 'heart' ? '♥' : '★'}</span>
+                                    {visibleFaceAccent === 'heart' && (
+                                        <>
+                                            <span className="mp-face-heart-orbit mp-face-heart-orbit-left">♥</span>
+                                            <span className="mp-face-heart-orbit mp-face-heart-orbit-right">♥</span>
+                                        </>
+                                    )}
+                                    <span className="mp-face-eye mp-face-eye-left">{visibleFaceAccent === 'heart' ? '♥' : '★'}</span>
+                                    <span className="mp-face-eye mp-face-eye-right">{visibleFaceAccent === 'heart' ? '♥' : '★'}</span>
                                 </>
                             )}
                         </div>
@@ -1802,9 +1795,11 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                                     {battleModeLabel}
                                 </div>
                             )}
-                            <div className="mp-question-pill">
-                                {targetHint}
-                            </div>
+                            {!isSolo && (
+                                <div className="mp-question-pill">
+                                    {targetHint}
+                                </div>
+                            )}
                             {!isSolo && (
                                 <div className={`mp-question-pill mp-question-pill-${leadMeta.tone}`}>
                                     {leadMeta.label}
@@ -1813,11 +1808,6 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                             {isSolo && (
                                 <div className="mp-question-pill mp-question-pill-neutral">
                                     正答率 {mySummary.accuracy}%
-                                </div>
-                            )}
-                            {isSolo && (
-                                <div className="mp-question-pill mp-question-pill-neutral">
-                                    {roomData.soloRetry ? '苦手克服セット' : `${roomData.sessionLabel || `${totalQuestions}問`}セット`}
                                 </div>
                             )}
                             {isSolo && (

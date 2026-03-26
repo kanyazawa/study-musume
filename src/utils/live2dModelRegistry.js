@@ -48,6 +48,15 @@ const LIVE2D_MODEL_REGISTRY = {
                     Part113: 1,
                     Part115: 1,
                 },
+                match: {
+                    Part53: 0,
+                },
+                'match-result': {
+                    Part53: 0,
+                },
+                review: {
+                    Part53: 0,
+                },
             },
             sourceLabel: 'Free Witch Prototype',
         },
