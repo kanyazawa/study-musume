@@ -15,11 +15,17 @@ const CharacterStage = ({
     alt = 'Character',
 }) => {
     const effectiveRenderer = renderer;
+    // Keep the resolved scene on both image and Live2D renderers so scene-specific
+    // pose rules (for example home-only Live2D part overrides) can be applied reliably.
+    const stagedPose = {
+        ...pose,
+        scene: pose?.scene || scene,
+    };
     const imageFallback = (
         <StaticCharacterImage
             characterId={characterId}
             skinId={skinId}
-            pose={pose}
+            pose={stagedPose}
             alt={alt}
             className={imageClassName}
             style={imageStyle}
@@ -32,7 +38,7 @@ const CharacterStage = ({
                 <Live2DViewer
                     characterId={characterId}
                     skinId={skinId}
-                    pose={pose}
+                    pose={stagedPose}
                     className={[className, imageClassName].filter(Boolean).join(' ')}
                     fallback={imageFallback}
                 />

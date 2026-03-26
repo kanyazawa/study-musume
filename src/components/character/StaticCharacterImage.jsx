@@ -102,15 +102,8 @@ const resolveImage = (characterId, skinId, pose = {}) => {
     const expressionKey = pose.expression || pose.emotion || 'normal';
     const isSpeaking = Boolean(pose?.speaking);
     const hasNoahTalkVariant = !isRen && isSpeaking && ['normal', 'happy', 'smile', 'surprised'].includes(expressionKey);
-    const useHomeIdleNoahImage = !isRen
-        && pose?.scene === 'home'
-        && skinId === 'default'
-        && expressionKey === 'normal'
-        && !isSpeaking;
     const source = hasNoahTalkVariant
         ? NoaTalk
-        : useHomeIdleNoahImage
-            ? CharacterCasual
         : expressionImages[expressionKey] || skinImages[skinId] || skinImages.default;
     const skinFallback = skinImages[skinId] || skinImages.default;
 

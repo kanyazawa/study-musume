@@ -44,6 +44,8 @@ const getPoseEmotionKey = (pose = {}) =>
 
 const isHomePose = (pose = {}) => String(pose.scene || '').trim().toLowerCase() === 'home';
 
+const getSceneKey = (pose = {}) => String(pose.scene || 'default').trim().toLowerCase();
+
 const getEmotionAnimationProfile = (pose = {}) => {
     const emotion = String(pose.emotion || pose.expression || 'normal').toLowerCase();
     const intensity = clamp(typeof pose.intensity === 'number' ? pose.intensity : 0.5, 0, 1);
@@ -200,6 +202,91 @@ const setParameterValues = (model, parameterIds, value) => {
     });
 };
 
+// The prototype Tyrano runtime does not expose one stable part-opacity API across builds,
+// so we try the public helpers first and then fall back to the raw part opacity buffer.
+const resolvePartIndex = (model, partId) => {
+    const modelPartIds = model?._partIds;
+    const partCount = getVectorSize(modelPartIds);
+
+    for (let index = 0; index < partCount; index += 1) {
+        if (getCubismIdName(getVectorItem(modelPartIds, index)) === partId) {
+            return index;
+        }
+    }
+
+    return -1;
+};
+
+const setPartOpacity = (model, partId, opacity) => {
+    if (!model || !partId || !Number.isFinite(opacity)) {
+        return;
+    }
+
+    const nextOpacity = clamp(opacity, 0, 1);
+    const globalIdManager = window.Live2DCubismFramework?.CubismFramework?.getIdManager?.();
+    const cubismId = globalIdManager?.getId?.(partId);
+
+    const trySetById = (id) => {
+        if (!id || typeof model.setPartOpacityById !== 'function') {
+            return false;
+        }
+
+        try {
+            model.setPartOpacityById(id, nextOpacity);
+            return true;
+        } catch {
+            return false;
+        }
+    };
+
+    if (trySetById(cubismId) || trySetById(partId)) {
+        return;
+    }
+
+    const partIndex = resolvePartIndex(model, partId);
+    if (partIndex < 0) {
+        return;
+    }
+
+    try {
+        if (typeof model.setPartOpacityByIndex === 'function') {
+            model.setPartOpacityByIndex(partIndex, nextOpacity);
+            return;
+        }
+    } catch {
+        // Fall back to direct array write below.
+    }
+
+    if (model._partOpacities && typeof model._partOpacities[partIndex] !== 'undefined') {
+        model._partOpacities[partIndex] = nextOpacity;
+    }
+};
+
+const applyPartOpacityOverrides = (model, modelConfig, pose = {}) => {
+    const sceneKey = getSceneKey(pose);
+    const sceneOverrides = modelConfig?.partOpacityOverrides?.[sceneKey];
+
+    if (!sceneOverrides) {
+        return;
+    }
+
+    Object.entries(sceneOverrides).forEach(([partId, opacity]) => {
+        setPartOpacity(model, partId, opacity);
+    });
+};
+
+const applyPosePartOpacityOverrides = (manager, modelName, modelConfig, pose = {}) => {
+    const activeModel = getActiveTyranoModel(manager, modelName);
+    const cubismModel = activeModel?._model;
+
+    if (!cubismModel) {
+        return false;
+    }
+
+    applyPartOpacityOverrides(cubismModel, modelConfig, pose);
+    return true;
+};
+
 const getEmotionParameterProfile = (pose = {}) => {
     const emotion = getPoseEmotionKey(pose);
     const intensity = clamp(typeof pose.intensity === 'number' ? pose.intensity : 0.5, 0, 1);
@@ -332,6 +419,12 @@ const resolveMappedExpression = (modelConfig, pose = {}) => {
     }
 
     const emotionKey = getPoseEmotionKey(pose);
+    const sceneKey = getSceneKey(pose);
+
+    if ((sceneKey === 'match' || sceneKey === 'match-result') && (emotionKey === 'happy' || emotionKey === 'smile')) {
+        return '';
+    }
+
     if (isHomePose(pose) && emotionKey === 'normal') {
         return '';
     }
@@ -449,6 +542,14 @@ const Live2DViewer = ({
                         modelConfig,
                         onFinishLoad: () => {
                             if (cancelled) return;
+                            // Apply scene-specific part overrides immediately on load to avoid
+                            // a one-frame flash of the model's default hand-held prop pose.
+                            applyPosePartOpacityOverrides(
+                                managerRef.current || window.__tyranolive2d_manager_instance__,
+                                modelNameRef.current,
+                                modelConfigRef.current,
+                                poseRef.current,
+                            );
                             setStatus('ready');
                             setStatusDetail('');
                         },
@@ -566,7 +667,10 @@ const Live2DViewer = ({
     }, [pose?.speaking, pose?.text]);
 
     useEffect(() => {
-        if (status !== 'ready' || modelConfig?.runtime !== TYRANO_RUNTIME) {
+        if (
+            modelConfig?.runtime !== TYRANO_RUNTIME
+            || (status !== 'loading-model' && status !== 'ready')
+        ) {
             return undefined;
         }
 
@@ -676,6 +780,8 @@ const Live2DViewer = ({
                 const cubismModel = lappModel?._model;
 
                 if (lappModel && cubismModel && typeof lappModel.update === 'function') {
+                    applyPartOpacityOverrides(cubismModel, modelConfigRef.current, poseRef.current);
+
                     if (!lappModel._patchedForSync) {
                         originalUpdate = lappModel.update.bind(lappModel);
                         patchedModel = lappModel;
@@ -760,6 +866,7 @@ const Live2DViewer = ({
                                 setParameterValues(model, resolvedMouthShrugIds, emotionProfile.mouthShrug);
                                 setParameterValues(model, resolvedMouthWidenIds, emotionProfile.mouthWiden);
                                 setParameterValues(model, resolvedJawOpenIds, emotionProfile.jawOpen);
+                                applyPartOpacityOverrides(model, modelConfigRef.current, currentPose);
 
                                 if (resolvedEyeIds.length > 0) {
                                     let blinkValue = 1;
@@ -794,7 +901,7 @@ const Live2DViewer = ({
         };
 
         // 継続的にモデルのロードを監視してパッチを当てる
-        const patchInterval = window.setInterval(tryPatch, 500);
+        const patchInterval = window.setInterval(tryPatch, 50);
         tryPatch();
 
         return () => {
