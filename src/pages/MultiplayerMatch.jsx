@@ -83,6 +83,31 @@ const WRONG_ANSWER_DELAY = 1200; // 不正解時に正解を表示する時間�
 const MATCHING_TIMEOUT_MS = 30000;
 const LISTENING_REPLAY_LIMIT = 1;
 
+const buildSoloRoomData = ({
+    questions,
+    uid,
+    displayName,
+    characterId,
+    skinId,
+    level,
+}) => ({
+    id: `solo-${level}-${questions.length}-${Date.now()}`,
+    status: 'playing',
+    questions,
+    level,
+    player1: {
+        uid,
+        displayName,
+        score: 0,
+        answers: [],
+        characterId,
+        equippedSkin: skinId,
+    },
+    player2: null,
+    winnerUid: null,
+    finishReason: null,
+});
+
 const getLevelMeta = (level) => {
     return LEVEL_THRESHOLDS.find((threshold) => threshold.level === level) || LEVEL_THRESHOLDS[0];
 };
@@ -875,6 +900,39 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         }, delayMs);
     }, [goToNextQuestion]);
 
+    const startSoloSession = useCallback((questions, level) => {
+        const safeQuestions = Array.isArray(questions) ? questions : [];
+
+        if (safeQuestions.length === 0) {
+            setFailureState({
+                title: '問題を用意できませんでした',
+                message: 'この範囲の問題データが見つかりませんでした。別のレベルでお試しください。',
+            });
+            setPhase('error');
+            return;
+        }
+
+        resetMatchState();
+        setError(null);
+        setPrevLevelLabel(myLevelInfo.label);
+        setRoomData(buildSoloRoomData({
+            questions: safeQuestions,
+            uid: myUid,
+            displayName: myDisplayName || 'Player',
+            characterId: myCharacterId,
+            skinId: myEquippedSkin,
+            level,
+        }));
+        setPhase('countdown');
+    }, [
+        myDisplayName,
+        myEquippedSkin,
+        myCharacterId,
+        myLevelInfo.label,
+        myUid,
+        resetMatchState,
+    ]);
+
     // マッチング開始
     const startMatching = useCallback(async () => {
         if (!myUid) return;
@@ -924,27 +982,9 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         }
 
         if (isSolo) {
-            // ソロモードの場合はFirestore通信をスキップして即座に遊ぶ
-            // queryLevel が指定されていれば優先、なければ現在のレートのレベル
             const targetLevel = queryLevel || myLevelInfo.level;
-            // 指定レベルのすべての単語を問題として用意する（上限999）
             const questions = generateQuestions(targetLevel, 999);
-            setRoomData({
-                status: 'playing',
-                questions,
-                player1: {
-                    uid: myUid,
-                    displayName: myDisplayName,
-                    score: 0,
-                    answers: [],
-                    characterId: myCharacterId,
-                    equippedSkin: myEquippedSkin
-                },
-                player2: null,
-                winnerUid: null,
-                finishReason: null
-            });
-            setPhase('countdown');
+            startSoloSession(questions, targetLevel);
             return;
         }
 
@@ -988,6 +1028,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         myRating,
         myUid,
         resetMatchState,
+        startSoloSession,
         queryLevel,
     ]);
 
@@ -1004,6 +1045,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
 
         const question = roomData.questions[myQuestionIndex];
         const isCorrect = answer === question.correctAnswer;
+        const answeredAt = Date.now();
 
         cancelQuestionPronunciation();
         setSelectedAnswer(answer);
@@ -1023,6 +1065,19 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             setPersistentEmotion(nextPersistentEmotion);
             triggerChainCallout(nextStreak);
             setMyScore(prev => prev + 1);
+            if (isSolo) {
+                setRoomData(prev => prev ? ({
+                    ...prev,
+                    player1: {
+                        ...prev.player1,
+                        score: (prev.player1?.score || 0) + 1,
+                        answers: [
+                            ...(prev.player1?.answers || []),
+                            { questionIndex: myQuestionIndex, answer, isCorrect: true, timestamp: answeredAt },
+                        ],
+                    },
+                }) : prev);
+            }
             queueAdvance(true, 1000, submitPromise);
         } else {
             setCorrectStreak(0);
@@ -1030,6 +1085,18 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             clearChainCallout();
             triggerAnswerFx('wrong');
             playUiTone(180, 180, { type: 'sawtooth', gain: 0.022 });
+            if (isSolo) {
+                setRoomData(prev => prev ? ({
+                    ...prev,
+                    player1: {
+                        ...prev.player1,
+                        answers: [
+                            ...(prev.player1?.answers || []),
+                            { questionIndex: myQuestionIndex, answer, isCorrect: false, timestamp: answeredAt },
+                        ],
+                    },
+                }) : prev);
+            }
             addWrongQuestion({
                 subject: '英単語バトル',
                 questionId: question.word,
@@ -1046,6 +1113,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const handleSkip = useCallback(() => {
         if (selectedAnswer !== null || !roomData || (!isSolo && !myUid)) return;
         const question = roomData.questions[myQuestionIndex];
+        const answeredAt = Date.now();
         setCorrectStreak(0);
         setPersistentEmotion('angry');
         clearChainCallout();
@@ -1053,6 +1121,18 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         setSelectedAnswer('__skip__');
         setShowFeedback(true);
         clearInterval(timerIntervalRef.current);
+        if (isSolo) {
+            setRoomData(prev => prev ? ({
+                ...prev,
+                player1: {
+                    ...prev.player1,
+                    answers: [
+                        ...(prev.player1?.answers || []),
+                        { questionIndex: myQuestionIndex, answer: '__skip__', isCorrect: false, timestamp: answeredAt },
+                    ],
+                },
+            }) : prev);
+        }
         const submitPromise = !isSolo
             ? submitAnswer(roomId, myUid, myQuestionIndex, '__skip__', false)
             : Promise.resolve();
@@ -1083,6 +1163,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     // タイムアップ
     const handleTimeUp = useCallback(() => {
         if (selectedAnswer !== null || !roomData || (!isSolo && !myUid)) return;
+        const answeredAt = Date.now();
 
         setCorrectStreak(0);
         setPersistentEmotion('angry');
@@ -1092,6 +1173,18 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         setShowFeedback(true);
         triggerAnswerFx('wrong');
         playUiTone(140, 260, { type: 'sawtooth', gain: 0.02 });
+        if (isSolo) {
+            setRoomData(prev => prev ? ({
+                ...prev,
+                player1: {
+                    ...prev.player1,
+                    answers: [
+                        ...(prev.player1?.answers || []),
+                        { questionIndex: myQuestionIndex, answer: '__timeout__', isCorrect: false, timestamp: answeredAt },
+                    ],
+                },
+            }) : prev);
+        }
 
         const submitPromise = !isSolo
             ? submitAnswer(roomId, myUid, myQuestionIndex, '__timeout__', false)
@@ -1299,11 +1392,11 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                         <div className="mp-title-icon">⚔️</div>
                         <h2>{isSolo ? '英単語 早押しクイズ (ソロ)' : '英単語 早押しクイズ'}</h2>
                         <p>{isSolo ? '英単語の知識を試そう！' : 'フレンドやライバルと英単語の知識で対決！'}<br />
-                            {isSolo ? '限界まで挑戦！出題される単語に次々答えていこう！' : `先に${matchTargetCorrect}問正解した方の勝ち！`}</p>
+                            {isSolo ? 'このレベルの単語を1周して、最後に苦手だけ復習できるよ。' : `先に${matchTargetCorrect}問正解した方の勝ち！`}</p>
                         <div className="mp-rules">
-                            <div className="mp-rule-item">🎯 {isSolo ? '限界まで挑戦' : `${matchTargetCorrect}問正解で勝利`}</div>
+                            <div className="mp-rule-item">🎯 {isSolo ? '全範囲を1周' : `${matchTargetCorrect}問正解で勝利`}</div>
                             <div className="mp-rule-item">⏱️ 1問{ANSWER_TIME_LIMIT}秒</div>
-                            <div className="mp-rule-item">❌ 誤答ペナルティ有</div>
+                            <div className="mp-rule-item">{isSolo ? '🔁 間違いだけ再挑戦可' : '❌ 誤答ペナルティ有'}</div>
                         </div>
                     </div>
                     <button className="mp-start-btn" onClick={startMatching}>
@@ -1707,6 +1800,16 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         const winnerUid = roomData.winnerUid ?? resolveWinnerUid(roomData, matchTargetCorrect);
         const mySummary = summarizeAnswers(myPlayerRoom?.answers || []);
         const opponentSummary = summarizeAnswers(opponent?.answers || []);
+        const soloWrongQuestionIndices = isSolo
+            ? [...new Set(
+                (myPlayerRoom?.answers || [])
+                    .filter((answer) => !answer?.isCorrect && Number.isInteger(answer?.questionIndex))
+                    .map((answer) => answer.questionIndex)
+            )]
+            : [];
+        const soloRetryQuestions = isSolo
+            ? soloWrongQuestionIndices.map((index) => roomData.questions[index]).filter(Boolean)
+            : [];
         const finishReasonLabel = getFinishReasonLabel(roomData.finishReason, isSolo);
         const resultLevelInfo = getLevelMeta(roomData.level || friendLevelParam);
         const hasRematchRoom = Boolean(roomData.rematchRoomId);
@@ -1837,6 +1940,11 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                                 {resultNotice}
                             </div>
                         )}
+                        {!resultNotice && isSolo && (
+                            <div className="mp-result-notice">
+                                {`このレベルを1周完了: 全${totalQuestions}問を確認しました。${soloRetryQuestions.length > 0 ? ` 間違えた${soloRetryQuestions.length}問だけもう一度できます。` : ' 全問正解です。'}`}
+                            </div>
+                        )}
                         {!resultNotice && isFriendMatch && hasRematchRoom && !rematchRequestedByMe && (
                             <div className="mp-result-notice">
                                 相手が再戦ルームを用意しました。このまま続けて対戦できます。
@@ -1863,9 +1971,17 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                         )}
 
                         <div className="mp-result-actions">
+                            {isSolo && soloRetryQuestions.length > 0 && (
+                                <button
+                                    className="mp-rematch-btn"
+                                    onClick={() => startSoloSession(soloRetryQuestions, roomData.level || queryLevel || myLevelInfo.level)}
+                                >
+                                    間違えた {soloRetryQuestions.length} 問だけもう一度
+                                </button>
+                            )}
                             {!isFriendMatch && (
                                 <button className="mp-rematch-btn" onClick={resetToInit}>
-                                    もう一度対戦する
+                                    {isSolo ? '最初からもう1周する' : 'もう一度対戦する'}
                                 </button>
                             )}
                             {isFriendMatch && opponent?.uid && (
