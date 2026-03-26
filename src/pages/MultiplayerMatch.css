@@ -5,8 +5,8 @@
 .mp-screen {
     box-sizing: border-box;
     height: 100%;
-    --mp-character-top-gap: clamp(10px, 2vh, 20px);
-    --mp-character-bottom-gap: clamp(250px, 33vh, 340px);
+    --mp-character-top-gap: 0px;
+    --mp-character-bottom-gap: 0px;
     display: flex;
     flex-direction: column;
     background: linear-gradient(150deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
@@ -652,9 +652,9 @@
 .mp-character-area {
     position: absolute;
     top: var(--mp-character-top-gap);
-    left: 0;
-    width: 100%;
-    height: max(280px, calc(100dvh - var(--mp-character-top-gap) - var(--mp-character-bottom-gap)));
+    left: -10%;
+    width: 120%;
+    height: 100dvh;
     transform: none;
     z-index: 1; /* 問題カード(z-index:15)の裏に入る */
     pointer-events: none;
@@ -666,10 +666,12 @@
 .mp-center-character {
     width: auto;
     height: auto;
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
+    max-width: none;
+    max-height: 188%;
+    object-fit: cover;
     object-position: top;
+    transform: translateY(10%) scale(1.54);
+    transform-origin: center bottom;
     filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.4));
 }
 
@@ -707,10 +709,115 @@
 
 .mp-face-accent-star .mp-face-eye {
     color: #ffd84a;
+    animation: mp-face-star-pop 0.7s ease-out;
 }
 
 .mp-face-accent-heart .mp-face-eye {
     color: #ff6fae;
+    filter: drop-shadow(0 0 10px rgba(255, 111, 174, 0.55));
+    animation: mp-face-heart-beat 0.95s ease-in-out infinite;
+}
+
+.mp-face-heart-orbit {
+    position: absolute;
+    top: 29%;
+    font-size: clamp(14px, 1.8vw, 22px);
+    line-height: 1;
+    color: rgba(255, 143, 192, 0.95);
+    text-shadow: 0 0 10px rgba(255, 111, 174, 0.35);
+    animation: mp-face-heart-float 1.4s ease-in-out infinite;
+}
+
+.mp-face-heart-orbit-left {
+    left: 36%;
+}
+
+.mp-face-heart-orbit-right {
+    left: 64%;
+    animation-delay: 0.2s;
+}
+
+@keyframes mp-face-heart-beat {
+    0%, 100% {
+        transform: translateX(-50%) scale(1) rotate(-8deg);
+    }
+    25% {
+        transform: translateX(-50%) scale(1.16) rotate(-10deg);
+    }
+    50% {
+        transform: translateX(-50%) scale(0.96) rotate(-7deg);
+    }
+    75% {
+        transform: translateX(-50%) scale(1.12) rotate(-9deg);
+    }
+}
+
+.mp-face-accent-heart .mp-face-eye-right {
+    animation-name: mp-face-heart-beat-right;
+}
+
+@keyframes mp-face-heart-beat-right {
+    0%, 100% {
+        transform: translateX(-50%) scale(1) rotate(8deg);
+    }
+    25% {
+        transform: translateX(-50%) scale(1.16) rotate(10deg);
+    }
+    50% {
+        transform: translateX(-50%) scale(0.96) rotate(7deg);
+    }
+    75% {
+        transform: translateX(-50%) scale(1.12) rotate(9deg);
+    }
+}
+
+@keyframes mp-face-star-pop {
+    0% {
+        transform: translateX(-50%) scale(0.7);
+        opacity: 0.4;
+    }
+    60% {
+        transform: translateX(-50%) scale(1.18);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(-50%) scale(1);
+        opacity: 1;
+    }
+}
+
+.mp-face-accent-star .mp-face-eye-right {
+    animation-name: mp-face-star-pop-right;
+}
+
+@keyframes mp-face-star-pop-right {
+    0% {
+        transform: translateX(-50%) scale(0.7);
+        opacity: 0.4;
+    }
+    60% {
+        transform: translateX(-50%) scale(1.18);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(-50%) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes mp-face-heart-float {
+    0%, 100% {
+        transform: translate(-50%, 0) scale(0.9);
+        opacity: 0.2;
+    }
+    35% {
+        transform: translate(-50%, -8px) scale(1.05);
+        opacity: 0.95;
+    }
+    70% {
+        transform: translate(-50%, -16px) scale(1.12);
+        opacity: 0.4;
+    }
 }
 
 .mp-face-cheek {
@@ -1711,8 +1818,8 @@
    ============================== */
 @media (max-width: 400px) {
     .mp-screen {
-        --mp-character-top-gap: clamp(8px, 1.6vh, 14px);
-        --mp-character-bottom-gap: clamp(280px, 38vh, 360px);
+        --mp-character-top-gap: 0px;
+        --mp-character-bottom-gap: 0px;
     }
 
     .mp-question-word {
@@ -1921,8 +2028,8 @@
    Live2D Overrides
    ============================== */
 .mp-character-area.is-live2d {
-    width: 100%;
-    height: max(280px, calc(100dvh - var(--mp-character-top-gap) - var(--mp-character-bottom-gap)));
+    width: 120%;
+    height: 100dvh;
     display: flex;
     justify-content: center;
     align-items: flex-end;
