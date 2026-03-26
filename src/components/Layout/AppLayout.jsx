@@ -12,7 +12,7 @@ const AppLayout = ({ children }) => {
   const pathname = location.pathname.replace(/\/+$/, '') || '/';
   const isTitlePage = pathname === '/';
   const isReviewRoute = matchesRoutePrefix(pathname, '/review');
-  const isImmersiveScene = ['/review', '/multiplayer-match'].some((path) =>
+  const isImmersiveScene = ['/multiplayer-match'].some((path) =>
     matchesRoutePrefix(pathname, path),
   );
   const shouldHideFooter =

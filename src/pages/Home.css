@@ -1,5 +1,7 @@
 .home-screen {
     height: 100%;
+    width: 100%;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     background-color: var(--uma-bg);
@@ -291,15 +293,17 @@
     position: relative;
     z-index: 5;
     height: 96%;
-    width: auto;
+    width: 100%;
+    min-width: 0;
     display: flex;
+    justify-content: center;
     align-items: flex-end;
     margin-bottom: 8px;
     overflow: visible;
 }
 
 .character-figure.is-live2d {
-    width: min(100%, 460px);
+    width: 100%;
     justify-content: center;
 }
 
@@ -626,8 +630,11 @@
 
 .room-container {
     flex: 1;
+    width: 100%;
+    min-width: 0;
+    align-self: stretch;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     display: flex;
     justify-content: center;
     align-items: flex-end;
@@ -654,13 +661,16 @@
     position: relative;
     z-index: 5;
     height: 85%;
-    width: auto;
+    width: 100%;
+    min-width: 0;
     display: flex;
+    justify-content: center;
     align-items: flex-end;
+    overflow: visible;
 }
 
 .character-figure.is-live2d {
-    width: min(100%, 460px);
+    width: 100%;
     justify-content: center;
 }
 

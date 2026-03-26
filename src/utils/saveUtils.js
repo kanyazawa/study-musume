@@ -36,6 +36,10 @@ export const getDefaultStats = () => ({
     lastLoginDate: null,
     loginStreak: 0,
     totalLoginDays: 0,
+    // 復習セッション進捗
+    reviewRewardDate: null,
+    reviewSetsToday: 0,
+    reviewTicketsRemaining: 3,
     // TP回復システム
     lastTpUpdateTime: Date.now(),
     // マルチプレイ対戦レート

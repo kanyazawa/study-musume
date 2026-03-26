@@ -116,7 +116,6 @@ const Home = ({ stats, updateStats }) => {
     const preferredRenderer = stats?.characterRenderer;
     const hasHomeLive2D = hasLive2DModelConfig(characterId, equippedSkin);
     const shouldForceHomeLive2D = characterId === 'noah' && hasHomeLive2D;
-
     const currentBgStyle = getBackgroundStyle(equippedBackground);
     const renderer = resolveCharacterRenderer({
         preferredRenderer: shouldForceHomeLive2D ? 'live2d' : preferredRenderer,

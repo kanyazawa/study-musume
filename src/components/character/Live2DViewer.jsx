@@ -824,7 +824,7 @@ const Live2DViewer = ({
 
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-            {!['loading-model', 'ready'].includes(status) && (
+            {status !== 'ready' && (
                 <div style={{ position: 'absolute', inset: 0 }}>
                     {fallback}
                 </div>
@@ -846,7 +846,7 @@ const Live2DViewer = ({
                     zIndex: 1,
                     overflow: 'visible',
                     transform: 'none',
-                    opacity: ['loading-model', 'ready'].includes(status) ? 1 : 0,
+                    opacity: status === 'ready' ? 1 : 0,
                 }}
             />
             {status !== 'ready' && (

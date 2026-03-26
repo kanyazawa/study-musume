@@ -79,6 +79,51 @@
     gap: 1rem;
 }
 
+.review-session-options {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.review-session-option {
+    border: 1px solid rgba(241, 188, 106, 0.28);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.82);
+    padding: 0.9rem 0.85rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.28rem;
+    color: #634426;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.review-session-option strong {
+    font-size: 1.1rem;
+    color: #3e2a17;
+}
+
+.review-session-option:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px rgba(209, 139, 39, 0.14);
+}
+
+.review-session-option.active {
+    border-color: rgba(232, 132, 31, 0.8);
+    background: linear-gradient(135deg, rgba(255, 247, 236, 0.98), rgba(255, 232, 195, 0.96));
+    box-shadow: 0 16px 30px rgba(232, 132, 31, 0.16);
+}
+
+.review-session-option-kicker {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #d36a1a;
+}
+
 .review-session-summary {
     margin: 0 1rem 1rem;
     padding: 1rem 1.05rem;
@@ -108,6 +153,49 @@
     display: flex;
     gap: 0.75rem;
     flex-wrap: wrap;
+}
+
+.review-session-summary-badges,
+.review-session-summary-progress,
+.review-bonus-strip {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.review-bonus-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.68rem 0.92rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(255, 210, 146, 0.4);
+    color: #85551d;
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.review-bonus-pill.is-highlight {
+    background: linear-gradient(135deg, rgba(255, 249, 239, 0.98), rgba(255, 233, 193, 0.95));
+    border-color: rgba(233, 141, 36, 0.4);
+}
+
+.review-bonus-pill.is-muted {
+    color: #8f8f8f;
+    border-color: rgba(205, 205, 205, 0.45);
+    background: rgba(255, 255, 255, 0.72);
+}
+
+.review-session-summary-coach {
+    margin: 0;
+    padding: 0.95rem 1rem;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(255, 250, 243, 0.98), rgba(235, 246, 255, 0.96));
+    border: 1px solid rgba(152, 196, 255, 0.22);
+    color: #42576c;
+    line-height: 1.7;
+    font-weight: 700;
 }
 
 .review-hero-copy h3 {
@@ -494,6 +582,10 @@
 @media (max-width: 768px) {
     .review-hero {
         border-radius: 20px;
+    }
+
+    .review-session-options {
+        grid-template-columns: 1fr;
     }
 
     .review-stats-bar {

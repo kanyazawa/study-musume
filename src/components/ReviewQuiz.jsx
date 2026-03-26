@@ -36,6 +36,22 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
     const nextQuestionTimerRef = useRef(null);
 
     const currentQuestion = sessionQuestions[currentIndex];
+    if (!currentQuestion) {
+        return (
+            <div className="review-quiz completion-screen">
+                <div className="completion-content">
+                    <div className="completion-icon">📚</div>
+                    <h2>復習を準備中です</h2>
+                    <p className="completion-coach-message">
+                        問題の読み込みに失敗したので、いったん復習リストに戻します。
+                    </p>
+                    <button className="finish-btn" onClick={() => onComplete({ results, completed: false })}>
+                        復習リストに戻る
+                    </button>
+                </div>
+            </div>
+        );
+    }
     const accuracy = results.length ? Math.round((results.filter((result) => result.isCorrect).length / results.length) * 100) : 100;
     const priority = getReviewPriority(currentQuestion.nextReviewDate);
     const priorityLabel = {
@@ -299,10 +315,19 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
                     </p>
                     <p className="completion-coach-message">{completionCoachMessage}</p>
                     {rewardSummary && rewardSummary.answeredCount > 0 && (
-                        <div className="completion-reward-row">
-                            <div className="completion-reward-chip">💎 +{rewardSummary.diamonds}</div>
-                            <div className="completion-reward-chip">🧠 +{rewardSummary.intellect}</div>
-                        </div>
+                        <>
+                            <div className="completion-reward-row">
+                                <div className="completion-reward-chip">💎 +{rewardSummary.diamonds}</div>
+                                <div className="completion-reward-chip">🧠 +{rewardSummary.intellect}</div>
+                            </div>
+                            {rewardSummary.bonusLabels?.length > 0 && (
+                                <div className="completion-bonus-row">
+                                    {rewardSummary.bonusLabels.map((label) => (
+                                        <div key={label} className="completion-bonus-chip">{label}</div>
+                                    ))}
+                                </div>
+                            )}
+                        </>
                     )}
                     {incorrectRetryQuestions.length > 0 && (
                         <button

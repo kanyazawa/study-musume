@@ -10,6 +10,7 @@ import {
     sortReviewQuestions,
     buildReviewSessionOrder
 } from '../utils/reviewUtils';
+import { getTodayString } from '../utils/loginBonusUtils';
 import { STUDY_TOPICS } from '../data/studyTopics';
 import './Review.css';
 
@@ -17,12 +18,88 @@ const ReviewQuiz = lazy(() => import('../components/ReviewQuiz'));
 const INITIAL_VISIBLE_QUESTIONS = 40;
 const VISIBLE_QUESTIONS_STEP = 40;
 const REVIEW_SESSION_SIZE = 5;
+const REVIEW_SESSION_OPTIONS = [
+    { size: 3, label: 'サクッと', eta: '約30秒' },
+    { size: 5, label: '標準', eta: '約1分' },
+    { size: 10, label: '集中', eta: '約2分' },
+];
 const REVIEW_BASE_DIAMONDS = 8;
 const REVIEW_BASE_INTELLECT = 12;
 const REVIEW_PER_CORRECT_DIAMONDS = 2;
 const REVIEW_PER_CORRECT_INTELLECT = 5;
 const REVIEW_PERFECT_BONUS_DIAMONDS = 6;
 const REVIEW_PERFECT_BONUS_INTELLECT = 8;
+const REVIEW_TICKET_DAILY_LIMIT = 3;
+const REVIEW_TICKET_BONUS_DIAMONDS = 6;
+const REVIEW_TICKET_BONUS_INTELLECT = 10;
+const REVIEW_STREAK_REWARDS = {
+    2: { diamonds: 5, intellect: 8, label: '2セット連続ボーナス' },
+    3: { diamonds: 12, intellect: 18, label: '3セット連続ボーナス' },
+    5: { diamonds: 20, intellect: 30, label: '5セット連続ボーナス' },
+};
+const EMPTY_STREAK_REWARD = { diamonds: 0, intellect: 0, label: '' };
+
+const getReviewStreakReward = (sessionStreak) => REVIEW_STREAK_REWARDS[sessionStreak] || EMPTY_STREAK_REWARD;
+
+const getNextReviewStreakMilestone = (sessionStreak) => {
+    const upcomingMilestone = Object.keys(REVIEW_STREAK_REWARDS)
+        .map(Number)
+        .sort((a, b) => a - b)
+        .find((milestone) => milestone > sessionStreak);
+
+    if (!upcomingMilestone) return null;
+
+    return {
+        sessionCount: upcomingMilestone,
+        ...REVIEW_STREAK_REWARDS[upcomingMilestone],
+    };
+};
+
+const getNormalizedDailyReviewProgress = (stats) => {
+    const today = getTodayString();
+    const isToday = stats?.reviewRewardDate === today;
+    const parsedTickets = Number(stats?.reviewTicketsRemaining);
+
+    return {
+        today,
+        reviewSetsToday: isToday ? Math.max(0, Number(stats?.reviewSetsToday) || 0) : 0,
+        reviewTicketsRemaining: isToday
+            ? Math.max(
+                0,
+                Math.min(
+                    REVIEW_TICKET_DAILY_LIMIT,
+                    Number.isFinite(parsedTickets) ? parsedTickets : REVIEW_TICKET_DAILY_LIMIT
+                )
+            )
+            : REVIEW_TICKET_DAILY_LIMIT,
+    };
+};
+
+const getNoaReviewRewardMessage = ({ rewardSummary, dueReduced, totalReduced, nextMilestone }) => {
+    if (!rewardSummary) return '短く回して終われる形にしてあるから、また気が向いたらすぐ戻っておいで。';
+
+    if (rewardSummary.sessionStreak >= 5) {
+        return 'ここまで来たらかなり強いよ。今日はもう十分やり切ってる。';
+    }
+
+    if (rewardSummary.perfectBonus && rewardSummary.ticketBonusActive) {
+        return 'パーフェクトにごほうびチケットまで乗ったね。今の一周、かなりおいしい。';
+    }
+
+    if (dueReduced >= 5) {
+        return `復習待ちを${dueReduced}件片づけたよ。ここで止めてもちゃんと前進してる。`;
+    }
+
+    if (totalReduced > 0) {
+        return `完全習得も${totalReduced}件進んだね。負債がちゃんと軽くなってる。`;
+    }
+
+    if (nextMilestone) {
+        return `次はあと${Math.max(nextMilestone.sessionCount - rewardSummary.sessionStreak, 0)}セットで${nextMilestone.label}だよ。`;
+    }
+
+    return 'いい区切りだよ。ここで終わっても、もう今日の復習は前より軽い。';
+};
 
 const Review = ({ stats, updateStats }) => {
     const navigate = useNavigate();
@@ -33,8 +110,10 @@ const Review = ({ stats, updateStats }) => {
     const [reviewStats, setReviewStats] = useState(null);
     const [isQuizMode, setIsQuizMode] = useState(false);
     const [quizQuestions, setQuizQuestions] = useState([]);
+    const [selectedSessionSize, setSelectedSessionSize] = useState(REVIEW_SESSION_SIZE);
     const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_QUESTIONS);
     const [lastSessionSummary, setLastSessionSummary] = useState(null);
+    const [sessionSnapshot, setSessionSnapshot] = useState(null);
 
     function loadReviewData() {
         const allQuestions = getReviewQuestions();
@@ -76,24 +155,51 @@ const Review = ({ stats, updateStats }) => {
         setVisibleCount(INITIAL_VISIBLE_QUESTIONS);
     }, [selectedSubject, selectedPriority, questions]);
 
-    const getSessionRewards = (results = []) => {
+    const { reviewSetsToday, reviewTicketsRemaining } = getNormalizedDailyReviewProgress(stats);
+
+    const getSessionRewards = (results = [], overrides = {}) => {
         const answeredCount = results.length;
         const correctCount = results.filter((result) => result.isCorrect).length;
         const perfectBonus = answeredCount > 0 && correctCount === answeredCount;
-        const sessionScale = answeredCount > 0 ? Math.max(0.35, answeredCount / REVIEW_SESSION_SIZE) : 0;
+        const sessionSize = Math.max(1, overrides.sessionSize || selectedSessionSize || REVIEW_SESSION_SIZE);
+        const completedSetsToday = overrides.completedSetsToday ?? reviewSetsToday;
+        const ticketsRemaining = overrides.ticketsRemaining ?? reviewTicketsRemaining;
+        const sessionScale = answeredCount > 0 ? Math.max(0.35, answeredCount / sessionSize) : 0;
+        const sessionStreak = answeredCount > 0 ? completedSetsToday + 1 : completedSetsToday;
+        const streakReward = answeredCount > 0 ? getReviewStreakReward(sessionStreak) : EMPTY_STREAK_REWARD;
+        const ticketBonusActive = answeredCount > 0 && ticketsRemaining > 0;
+        const ticketBonusDiamonds = ticketBonusActive ? REVIEW_TICKET_BONUS_DIAMONDS : 0;
+        const ticketBonusIntellect = ticketBonusActive ? REVIEW_TICKET_BONUS_INTELLECT : 0;
+        const diamonds =
+            Math.round(REVIEW_BASE_DIAMONDS * sessionScale) +
+            (correctCount * REVIEW_PER_CORRECT_DIAMONDS) +
+            (perfectBonus ? REVIEW_PERFECT_BONUS_DIAMONDS : 0) +
+            streakReward.diamonds +
+            ticketBonusDiamonds;
+        const intellect =
+            Math.round(REVIEW_BASE_INTELLECT * sessionScale) +
+            (correctCount * REVIEW_PER_CORRECT_INTELLECT) +
+            (perfectBonus ? REVIEW_PERFECT_BONUS_INTELLECT : 0) +
+            streakReward.intellect +
+            ticketBonusIntellect;
 
         return {
             answeredCount,
             correctCount,
-            diamonds:
-                Math.round(REVIEW_BASE_DIAMONDS * sessionScale) +
-                (correctCount * REVIEW_PER_CORRECT_DIAMONDS) +
-                (perfectBonus ? REVIEW_PERFECT_BONUS_DIAMONDS : 0),
-            intellect:
-                Math.round(REVIEW_BASE_INTELLECT * sessionScale) +
-                (correctCount * REVIEW_PER_CORRECT_INTELLECT) +
-                (perfectBonus ? REVIEW_PERFECT_BONUS_INTELLECT : 0),
+            diamonds,
+            intellect,
             perfectBonus,
+            sessionSize,
+            sessionStreak,
+            streakReward,
+            ticketBonusActive,
+            ticketBonusDiamonds,
+            ticketBonusIntellect,
+            bonusLabels: [
+                ticketBonusActive ? `🎫 復習チケット +${ticketBonusDiamonds} / +${ticketBonusIntellect}` : null,
+                streakReward.label ? `🔥 ${streakReward.label}` : null,
+                perfectBonus ? '✨ パーフェクトボーナス' : null,
+            ].filter(Boolean),
         };
     };
 
@@ -121,27 +227,79 @@ const Review = ({ stats, updateStats }) => {
                 ...prioritizedQuestions.filter((question) => question.id !== startQuestionId)
             ]
             : prioritizedQuestions;
+        const sessionPool = orderedQuestions.filter(Boolean);
 
-        setQuizQuestions(orderedQuestions.slice(0, REVIEW_SESSION_SIZE));
+        if (sessionPool.length === 0) {
+            alert('復習を開始できませんでした。リストを更新してからもう一度試してください。');
+            loadReviewData();
+            return;
+        }
+
+        const actualSessionSize = Math.min(selectedSessionSize, sessionPool.length);
+        const sessionOption = REVIEW_SESSION_OPTIONS.find((option) => option.size === selectedSessionSize) || REVIEW_SESSION_OPTIONS[1];
+
+        setSessionSnapshot({
+            dueBefore: reviewStats?.due || 0,
+            totalBefore: reviewStats?.total || questions.length,
+            sessionSize: actualSessionSize,
+            eta: sessionOption.eta,
+            label: sessionOption.label,
+        });
+        setQuizQuestions(sessionPool.slice(0, actualSessionSize));
         setIsQuizMode(true);
     };
 
     const handleQuizComplete = ({ results = [], completed = false } = {}) => {
         if (completed && results.length > 0) {
-            const rewardSummary = getSessionRewards(results);
+            const dailyProgress = getNormalizedDailyReviewProgress(stats);
+            const rewardSummary = getSessionRewards(results, {
+                sessionSize: sessionSnapshot?.sessionSize,
+                completedSetsToday: dailyProgress.reviewSetsToday,
+                ticketsRemaining: dailyProgress.reviewTicketsRemaining,
+            });
+            const afterReviewStats = getReviewStats();
+            const dueBefore = sessionSnapshot?.dueBefore ?? reviewStats?.due ?? 0;
+            const totalBefore = sessionSnapshot?.totalBefore ?? reviewStats?.total ?? questions.length;
+            const dueAfter = afterReviewStats?.due ?? 0;
+            const totalAfter = afterReviewStats?.total ?? 0;
+            const dueReduced = Math.max(dueBefore - dueAfter, 0);
+            const totalReduced = Math.max(totalBefore - totalAfter, 0);
+            const nextMilestone = getNextReviewStreakMilestone(rewardSummary.sessionStreak);
 
             if (updateStats) {
                 updateStats({
                     diamonds: (stats?.diamonds || 0) + rewardSummary.diamonds,
                     intellect: (stats?.intellect || 0) + rewardSummary.intellect,
+                    reviewRewardDate: dailyProgress.today,
+                    reviewSetsToday: dailyProgress.reviewSetsToday + 1,
+                    reviewTicketsRemaining: Math.max(
+                        dailyProgress.reviewTicketsRemaining - (rewardSummary.ticketBonusActive ? 1 : 0),
+                        0
+                    ),
                 });
             }
 
-            setLastSessionSummary(rewardSummary);
+            setLastSessionSummary({
+                ...rewardSummary,
+                dueBefore,
+                dueAfter,
+                dueReduced,
+                totalBefore,
+                totalAfter,
+                totalReduced,
+                nextMilestone,
+                coachMessage: getNoaReviewRewardMessage({
+                    rewardSummary,
+                    dueReduced,
+                    totalReduced,
+                    nextMilestone,
+                }),
+            });
         }
 
         setIsQuizMode(false);
         setQuizQuestions([]);
+        setSessionSnapshot(null);
         loadReviewData();
     };
 
@@ -150,13 +308,16 @@ const Review = ({ stats, updateStats }) => {
     const topSubject = reviewStats
         ? Object.entries(reviewStats.bySubject || {}).sort((a, b) => b[1] - a[1])[0]
         : null;
-    const recommendedCount = Math.min(
-        REVIEW_SESSION_SIZE,
-        (selectedPriority === 'all'
-            ? (reviewStats?.due || 0) || filteredQuestions.length
-            : filteredQuestions.length) || REVIEW_SESSION_SIZE
+    const selectedSessionOption = REVIEW_SESSION_OPTIONS.find((option) => option.size === selectedSessionSize) || REVIEW_SESSION_OPTIONS[1];
+    const availableQuestionCount = selectedSubject === 'all' && selectedPriority === 'all'
+        ? ((reviewStats?.due || 0) > 0 ? (reviewStats?.due || 0) : filteredQuestions.length)
+        : filteredQuestions.length;
+    const activeSessionCount = Math.min(selectedSessionSize, availableQuestionCount);
+    const rewardPreview = getSessionRewards(
+        new Array(Math.max(activeSessionCount, 0)).fill({ isCorrect: true }),
+        { sessionSize: Math.max(selectedSessionSize, 1) }
     );
-    const rewardPreview = getSessionRewards(new Array(recommendedCount).fill({ isCorrect: true }));
+    const nextMilestone = getNextReviewStreakMilestone(reviewSetsToday);
     const visibleQuestions = filteredQuestions.slice(0, visibleCount);
     const remainingQuestionCount = Math.max(filteredQuestions.length - visibleQuestions.length, 0);
 
@@ -196,25 +357,68 @@ const Review = ({ stats, updateStats }) => {
                     <h3>忘れかけを先に片づけよう</h3>
                     <p>
                         {reviewStats?.due
-                            ? `今日やるべき問題が ${reviewStats.due} 件あります。短く回して、記憶をつなぎ直そう。`
+                            ? `今日やるべき問題が ${reviewStats.due} 件あります。今回は ${Math.max(activeSessionCount, 1)} 問・${selectedSessionOption.eta} でちゃんと終われます。`
                             : filteredQuestions.length
-                                ? `今すぐの期限はありません。余裕があるうちに ${filteredQuestions.length} 件を整えておくと安心です。`
+                                ? `今すぐの期限はありません。余裕があるうちに ${Math.max(activeSessionCount, 1)} 問だけ整えておくと後がかなり楽です。`
                                 : '復習ストックは空です。学習で間違えた問題がここに集まります。'}
                     </p>
                 </div>
+                <div className="review-session-options" aria-label="復習セット選択">
+                    {REVIEW_SESSION_OPTIONS.map((option) => {
+                        const previewCount = Math.min(option.size, filteredQuestions.length);
+                        const previewRewards = getSessionRewards(
+                            new Array(Math.max(previewCount, 0)).fill({ isCorrect: true }),
+                            { sessionSize: option.size }
+                        );
+
+                        return (
+                            <button
+                                key={option.size}
+                                type="button"
+                                className={`review-session-option ${selectedSessionSize === option.size ? 'active' : ''}`}
+                                onClick={() => setSelectedSessionSize(option.size)}
+                            >
+                                <span className="review-session-option-kicker">{option.label}</span>
+                                <strong>{option.size}問</strong>
+                                <span>{option.eta}</span>
+                                <span>💎 {previewRewards.diamonds} / 🧠 {previewRewards.intellect}</span>
+                            </button>
+                        );
+                    })}
+                </div>
                 <div className="review-hero-meta">
                     <div className="hero-chip">
-                        <span className="hero-chip-label">おすすめセット</span>
-                        <strong>{recommendedCount}問で一区切り</strong>
+                        <span className="hero-chip-label">今回のセット</span>
+                        <strong>{Math.max(activeSessionCount, 1)}問 / {selectedSessionOption.eta}</strong>
                     </div>
                     <div className="hero-chip">
                         <span className="hero-chip-label">完走報酬めやす</span>
                         <strong>💎 {rewardPreview.diamonds} / 🧠 {rewardPreview.intellect}</strong>
                     </div>
+                    <div className="hero-chip">
+                        <span className="hero-chip-label">復習チケット</span>
+                        <strong>{reviewTicketsRemaining}/{REVIEW_TICKET_DAILY_LIMIT} 回</strong>
+                    </div>
+                    <div className="hero-chip">
+                        <span className="hero-chip-label">今日の連続セット</span>
+                        <strong>{reviewSetsToday} セット</strong>
+                    </div>
                     {topSubject && (
                         <div className="hero-chip">
                             <span className="hero-chip-label">多い科目</span>
                             <strong>{topSubject[0]} {topSubject[1]}問</strong>
+                        </div>
+                    )}
+                </div>
+                <div className="review-bonus-strip">
+                    <div className={`review-bonus-pill ${reviewTicketsRemaining > 0 ? 'is-highlight' : 'is-muted'}`}>
+                        {reviewTicketsRemaining > 0
+                            ? `🎫 次のセットは追加で 💎 ${REVIEW_TICKET_BONUS_DIAMONDS} / 🧠 ${REVIEW_TICKET_BONUS_INTELLECT}`
+                            : '🎫 今日のチケット報酬は受け取り済み'}
+                    </div>
+                    {nextMilestone && (
+                        <div className="review-bonus-pill">
+                            {`🔥 あと${nextMilestone.sessionCount - reviewSetsToday}セットで ${nextMilestone.label}`}
                         </div>
                     )}
                 </div>
@@ -239,7 +443,47 @@ const Review = ({ stats, updateStats }) => {
                             <span className="hero-chip-label">知力</span>
                             <strong>🧠 {lastSessionSummary.intellect}</strong>
                         </div>
+                        <div className="hero-chip">
+                            <span className="hero-chip-label">今日の連続セット</span>
+                            <strong>🔥 {lastSessionSummary.sessionStreak}</strong>
+                        </div>
+                        {lastSessionSummary.streakReward.label && (
+                            <div className="hero-chip">
+                                <span className="hero-chip-label">連続報酬</span>
+                                <strong>{lastSessionSummary.streakReward.label}</strong>
+                            </div>
+                        )}
                     </div>
+                    {lastSessionSummary.bonusLabels.length > 0 && (
+                        <div className="review-session-summary-badges">
+                            {lastSessionSummary.bonusLabels.map((label) => (
+                                <span key={label} className="review-bonus-pill">
+                                    {label}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                    <div className="review-session-summary-progress">
+                        <div className="hero-chip">
+                            <span className="hero-chip-label">今日の復習待ち</span>
+                            <strong>{lastSessionSummary.dueBefore} → {lastSessionSummary.dueAfter}</strong>
+                        </div>
+                        <div className="hero-chip">
+                            <span className="hero-chip-label">今回片づけた</span>
+                            <strong>{lastSessionSummary.dueReduced}件</strong>
+                        </div>
+                        <div className="hero-chip">
+                            <span className="hero-chip-label">残りストック</span>
+                            <strong>{lastSessionSummary.totalAfter}件</strong>
+                        </div>
+                        {lastSessionSummary.totalReduced > 0 && (
+                            <div className="hero-chip">
+                                <span className="hero-chip-label">完全習得</span>
+                                <strong>{lastSessionSummary.totalReduced}件</strong>
+                            </div>
+                        )}
+                    </div>
+                    <p className="review-session-summary-coach">{lastSessionSummary.coachMessage}</p>
                 </section>
             )}
 
@@ -332,8 +576,8 @@ const Review = ({ stats, updateStats }) => {
                                 表示中 {filteredQuestions.length} 問
                             </div>
                             <button className="start-review-btn-inline" onClick={() => startReview()}>
-                                まず {Math.min(REVIEW_SESSION_SIZE, filteredQuestions.length)}問やる
-                                <span>一区切り</span>
+                                まず {Math.min(selectedSessionSize, filteredQuestions.length)}問やる
+                                <span>{selectedSessionOption.eta}</span>
                             </button>
                         </div>
 

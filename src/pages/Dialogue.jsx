@@ -1022,7 +1022,7 @@ const Dialogue = ({ stats, updateStats }) => {
             )}
 
             <div
-                className="character-figure"
+                className={`character-figure ${(line.graph || line.study_image) ? 'has-board' : ''}`}
             >
                 <CharacterStage
                     characterId={characterId}
