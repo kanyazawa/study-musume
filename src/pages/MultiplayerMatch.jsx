@@ -160,7 +160,7 @@ const sanitizeMatchQuestions = (questions, fallbackMeanings = []) => {
         const resolvedOptions = cleanedOptions.includes(correctAnswer) && cleanedOptions.length >= 2
             ? cleanedOptions
             : buildQuestionOptions(correctAnswer, resolvedFallbackMeanings);
-        const finalOptions = [...new Set([correctAnswer, ...resolvedOptions].filter(Boolean))];
+        const finalOptions = shuffleArray([...new Set([correctAnswer, ...resolvedOptions].filter(Boolean))]);
 
         if (finalOptions.length < 2) {
             return null;
