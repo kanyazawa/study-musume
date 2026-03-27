@@ -174,6 +174,23 @@ const sanitizeMatchQuestions = (questions, fallbackMeanings = []) => {
     }).filter(Boolean);
 };
 
+const sanitizeVocabItems = (items) => {
+    return (Array.isArray(items) ? items : []).map((item) => {
+        const word = String(item?.word ?? '').trim();
+        const meaning = String(item?.meaning ?? '').trim();
+
+        if (!word || !meaning) {
+            return null;
+        }
+
+        return {
+            ...item,
+            word,
+            meaning,
+        };
+    }).filter(Boolean);
+};
+
 const buildQuestionsFromVocabItems = (vocabItems, fallbackMeanings = []) => {
     return sanitizeMatchQuestions(
         (Array.isArray(vocabItems) ? vocabItems : []).map((item) => ({
@@ -427,7 +444,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const myRankInfo = getRankFromRating(myRating);
     const nextLevelInfo = getNextLevelInfo(myRating);
     const soloLevel = queryLevel || myLevelInfo.level;
-    const soloVocabPool = useMemo(() => getVocabByLevel(soloLevel), [soloLevel]);
+    const soloVocabPool = useMemo(() => sanitizeVocabItems(getVocabByLevel(soloLevel)), [soloLevel]);
     const questionOptionMeanings = useMemo(
         () => soloVocabPool.map((item) => String(item?.meaning ?? '').trim()).filter(Boolean),
         [soloVocabPool]
@@ -1319,6 +1336,18 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             }
 
             if (isSoloQuestionBatchLoading) {
+                return;
+            }
+
+            if (myQuestionIndex >= roomData.questions.length) {
+                clearInterval(timerIntervalRef.current);
+                cancelQuestionPronunciation();
+                setRoomData((prev) => (prev ? {
+                    ...prev,
+                    totalQuestionCount: prev.questions.length,
+                    finishReason: prev.finishReason || 'questions_exhausted',
+                } : prev));
+                setPhase('result');
                 return;
             }
         }
