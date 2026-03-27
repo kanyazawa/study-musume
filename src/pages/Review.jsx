@@ -17,11 +17,11 @@ import './Review.css';
 const ReviewQuiz = lazy(() => import('../components/ReviewQuiz'));
 const INITIAL_VISIBLE_QUESTIONS = 40;
 const VISIBLE_QUESTIONS_STEP = 40;
-const REVIEW_SESSION_SIZE = 5;
+const REVIEW_SESSION_SIZE = 10;
 const REVIEW_SESSION_OPTIONS = [
-    { size: 3, label: 'サクッと', eta: '約30秒' },
-    { size: 5, label: '標準', eta: '約1分' },
-    { size: 10, label: '集中', eta: '約2分' },
+    { size: 10, label: 'サクッと', eta: '約1分' },
+    { size: 20, label: 'しっかり', eta: '約2分' },
+    { size: 50, label: '集中', eta: '約5分' },
 ];
 const REVIEW_BASE_DIAMONDS = 8;
 const REVIEW_BASE_INTELLECT = 12;
@@ -213,7 +213,7 @@ const Review = ({ stats, updateStats }) => {
         return badges[priority] || badges.later;
     };
 
-    const startReview = (startQuestionId = null) => {
+    const startReview = (startQuestionId = null, sessionSize = selectedSessionSize) => {
         if (filteredQuestions.length === 0) {
             alert('復習する問題がありません');
             return;
@@ -235,8 +235,10 @@ const Review = ({ stats, updateStats }) => {
             return;
         }
 
-        const actualSessionSize = Math.min(selectedSessionSize, sessionPool.length);
-        const sessionOption = REVIEW_SESSION_OPTIONS.find((option) => option.size === selectedSessionSize) || REVIEW_SESSION_OPTIONS[1];
+        const actualSessionSize = Math.min(sessionSize, sessionPool.length);
+        const sessionOption = REVIEW_SESSION_OPTIONS.find((option) => option.size === sessionSize) || REVIEW_SESSION_OPTIONS[0];
+
+        setSelectedSessionSize(sessionSize);
 
         setSessionSnapshot({
             dueBefore: reviewStats?.due || 0,
@@ -308,7 +310,7 @@ const Review = ({ stats, updateStats }) => {
     const topSubject = reviewStats
         ? Object.entries(reviewStats.bySubject || {}).sort((a, b) => b[1] - a[1])[0]
         : null;
-    const selectedSessionOption = REVIEW_SESSION_OPTIONS.find((option) => option.size === selectedSessionSize) || REVIEW_SESSION_OPTIONS[1];
+    const selectedSessionOption = REVIEW_SESSION_OPTIONS.find((option) => option.size === selectedSessionSize) || REVIEW_SESSION_OPTIONS[0];
     const availableQuestionCount = selectedSubject === 'all' && selectedPriority === 'all'
         ? ((reviewStats?.due || 0) > 0 ? (reviewStats?.due || 0) : filteredQuestions.length)
         : filteredQuestions.length;
@@ -376,12 +378,13 @@ const Review = ({ stats, updateStats }) => {
                                 key={option.size}
                                 type="button"
                                 className={`review-session-option ${selectedSessionSize === option.size ? 'active' : ''}`}
-                                onClick={() => setSelectedSessionSize(option.size)}
+                                onClick={() => startReview(null, option.size)}
                             >
                                 <span className="review-session-option-kicker">{option.label}</span>
                                 <strong>{option.size}問</strong>
                                 <span>{option.eta}</span>
                                 <span>💎 {previewRewards.diamonds} / 🧠 {previewRewards.intellect}</span>
+                                <span className="review-session-option-action">選んだらすぐ開始</span>
                             </button>
                         );
                     })}
@@ -411,6 +414,9 @@ const Review = ({ stats, updateStats }) => {
                     )}
                 </div>
                 <div className="review-bonus-strip">
+                    <div className="review-bonus-pill is-highlight">
+                        タップしたセットでそのまま復習スタート
+                    </div>
                     <div className={`review-bonus-pill ${reviewTicketsRemaining > 0 ? 'is-highlight' : 'is-muted'}`}>
                         {reviewTicketsRemaining > 0
                             ? `🎫 次のセットは追加で 💎 ${REVIEW_TICKET_BONUS_DIAMONDS} / 🧠 ${REVIEW_TICKET_BONUS_INTELLECT}`
@@ -575,10 +581,9 @@ const Review = ({ stats, updateStats }) => {
                             <div className="list-count">
                                 表示中 {filteredQuestions.length} 問
                             </div>
-                            <button className="start-review-btn-inline" onClick={() => startReview()}>
-                                まず {Math.min(selectedSessionSize, filteredQuestions.length)}問やる
-                                <span>{selectedSessionOption.eta}</span>
-                            </button>
+                            <div className="review-toolbar-hint">
+                                上のセットを選ぶとすぐ始まります
+                            </div>
                         </div>
 
                         {visibleQuestions.map((question) => {

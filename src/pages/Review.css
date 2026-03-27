@@ -105,6 +105,18 @@
     color: #3e2a17;
 }
 
+.review-session-option-action {
+    margin-top: 0.28rem;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(239, 123, 21, 0.12);
+    color: #c46014;
+    font-size: 0.74rem;
+    font-weight: 800;
+}
+
 .review-session-option:hover {
     transform: translateY(-2px);
     box-shadow: 0 14px 28px rgba(209, 139, 39, 0.14);
@@ -384,6 +396,12 @@
     color: #7d6f5e;
     font-weight: 700;
     font-size: 0.92rem;
+}
+
+.review-toolbar-hint {
+    color: #b06c2d;
+    font-size: 0.88rem;
+    font-weight: 800;
 }
 
 .empty-state {
