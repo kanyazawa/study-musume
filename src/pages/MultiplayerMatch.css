@@ -1820,6 +1820,16 @@
 /* ==============================
    Mobile Responsive
    ============================== */
+@media (max-width: 480px) {
+    .mp-character-area.is-live2d .mp-center-character {
+        transform: translateY(-10%);
+    }
+
+    .mp-character-area.is-live2d + .mp-playing-content-wrapper .mp-question-container {
+        margin-top: 76px;
+    }
+}
+
 @media (max-width: 400px) {
     .mp-screen {
         --mp-character-top-gap: 0px;
