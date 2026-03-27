@@ -33,7 +33,7 @@ import {
     summarizeAnswers,
 } from '../utils/matchUtils';
 import { addWrongQuestion } from '../utils/reviewUtils';
-import { getAllVocab, getVocabByLevel } from '../data/vocabData';
+import { getVocabByLevel } from '../data/vocabData';
 import { useSound } from '../contexts/SoundContext';
 import { getTtsSettings, TTS_ENGINES } from '../utils/ttsSettings';
 import { getEngineBaseUrl, isEngineAvailable, resolveSpeakerIdForEngine, speakWithEngine } from '../utils/voicevoxUtils';
@@ -84,9 +84,9 @@ const ANSWER_TIME_LIMIT = 10; // 1問あたりの制限時間（秒）
 const WRONG_ANSWER_DELAY = 1200; // 不正解時に正解を表示する時間（ms）
 const MATCHING_TIMEOUT_MS = 30000;
 const LISTENING_REPLAY_LIMIT = 1;
-const SOLO_INITIAL_QUESTION_BATCH = 6;
-const SOLO_BACKGROUND_QUESTION_BATCH = 12;
-const SOLO_PRELOAD_THRESHOLD = 3;
+const SOLO_INITIAL_QUESTION_BATCH = 4;
+const SOLO_BACKGROUND_QUESTION_BATCH = 8;
+const SOLO_PRELOAD_THRESHOLD = 2;
 const SOLO_SESSION_PRESETS = [
     {
         id: 'standard',
@@ -428,10 +428,14 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const nextLevelInfo = getNextLevelInfo(myRating);
     const soloLevel = queryLevel || myLevelInfo.level;
     const soloVocabPool = useMemo(() => getVocabByLevel(soloLevel), [soloLevel]);
-    const allVocabMeanings = useMemo(
-        () => getAllVocab().map((item) => String(item?.meaning ?? '').trim()).filter(Boolean),
-        []
+    const questionOptionMeanings = useMemo(
+        () => soloVocabPool.map((item) => String(item?.meaning ?? '').trim()).filter(Boolean),
+        [soloVocabPool]
     );
+    const soloInitialBatchSize = isNativePlatform ? 1 : SOLO_INITIAL_QUESTION_BATCH;
+    const soloBackgroundBatchSize = isNativePlatform ? 2 : SOLO_BACKGROUND_QUESTION_BATCH;
+    const soloPreloadThreshold = isNativePlatform ? 0 : SOLO_PRELOAD_THRESHOLD;
+    const shouldRenderMatchCharacter = !(isNativePlatform && isSolo);
     const soloSessionOptions = useMemo(
         () => (isSolo ? getSoloSessionOptions(soloVocabPool.length) : []),
         [isSolo, soloVocabPool.length]
@@ -1102,8 +1106,8 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         setIsSoloQuestionBatchLoading(true);
 
         const loadBatch = () => {
-            const nextVocabItems = soloQuestionQueueRef.current.splice(0, SOLO_BACKGROUND_QUESTION_BATCH);
-            const nextQuestions = buildQuestionsFromVocabItems(nextVocabItems, allVocabMeanings);
+            const nextVocabItems = soloQuestionQueueRef.current.splice(0, soloBackgroundBatchSize);
+            const nextQuestions = buildQuestionsFromVocabItems(nextVocabItems, questionOptionMeanings);
 
             if (nextQuestions.length > 0) {
                 setRoomData((prev) => (prev ? {
@@ -1124,10 +1128,10 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         }
 
         return true;
-    }, [allVocabMeanings, isSolo]);
+    }, [isSolo, questionOptionMeanings, soloBackgroundBatchSize]);
 
     const startSoloSession = useCallback((questions, level, { retry = false, totalCount, sourceCount } = {}) => {
-        const safeQuestions = sanitizeMatchQuestions(questions, allVocabMeanings);
+        const safeQuestions = sanitizeMatchQuestions(questions, questionOptionMeanings);
 
         if (safeQuestions.length === 0) {
             setFailureState({
@@ -1155,12 +1159,12 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         }));
         setPhase('countdown');
     }, [
-        allVocabMeanings,
         myDisplayName,
         myEquippedSkin,
         myCharacterId,
         myLevelInfo.label,
         myUid,
+        questionOptionMeanings,
         resetMatchState,
         selectedSoloSessionOption?.label,
     ]);
@@ -1217,9 +1221,9 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             const targetLevel = soloLevel;
             const questionCount = Math.min(selectedSoloSessionOption?.actualCount || soloVocabPool.length || 999, soloVocabPool.length);
             const selectedVocabItems = shuffleArray(soloVocabPool).slice(0, questionCount);
-            const initialVocabItems = selectedVocabItems.slice(0, SOLO_INITIAL_QUESTION_BATCH);
+            const initialVocabItems = selectedVocabItems.slice(0, soloInitialBatchSize);
             const remainingVocabItems = selectedVocabItems.slice(initialVocabItems.length);
-            const initialQuestions = buildQuestionsFromVocabItems(initialVocabItems, allVocabMeanings);
+            const initialQuestions = buildQuestionsFromVocabItems(initialVocabItems, questionOptionMeanings);
 
             soloQuestionQueueRef.current = remainingVocabItems;
             startSoloSession(initialQuestions, targetLevel, {
@@ -1261,16 +1265,17 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         directRoomId,
         isFriendMatch,
         isSolo,
-        allVocabMeanings,
         myCharacterId,
         myDisplayName,
         myEquippedSkin,
         myLevelInfo.label,
         myRating,
         myUid,
+        questionOptionMeanings,
         resetMatchState,
         selectedSoloSessionOption?.actualCount,
         soloLevel,
+        soloInitialBatchSize,
         soloVocabPool,
         startSoloSession,
     ]);
@@ -1283,12 +1288,12 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     }, [isFriendMatch, myUid, phase, startMatching]);
 
     useEffect(() => {
-        if (!isSolo || phase !== 'countdown' || roomData?.questions?.length !== SOLO_INITIAL_QUESTION_BATCH) {
+        if (!isSolo || isNativePlatform || phase !== 'countdown' || roomData?.questions?.length !== soloInitialBatchSize) {
             return;
         }
 
         appendSoloQuestionBatch();
-    }, [appendSoloQuestionBatch, isSolo, phase, roomData?.questions?.length]);
+    }, [appendSoloQuestionBatch, isNativePlatform, isSolo, phase, roomData?.questions?.length, soloInitialBatchSize]);
 
     useEffect(() => {
         if (!isSolo || phase !== 'playing' || !roomData || soloQuestionQueueRef.current.length === 0) {
@@ -1296,10 +1301,10 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         }
 
         const loadedAheadCount = roomData.questions.length - (myQuestionIndex + 1);
-        if (loadedAheadCount <= SOLO_PRELOAD_THRESHOLD) {
+        if (loadedAheadCount <= soloPreloadThreshold) {
             appendSoloQuestionBatch();
         }
-    }, [appendSoloQuestionBatch, isSolo, myQuestionIndex, phase, roomData]);
+    }, [appendSoloQuestionBatch, isSolo, myQuestionIndex, phase, roomData, soloPreloadThreshold]);
 
     useEffect(() => {
         if (phase !== 'playing' || !roomData?.questions?.length || hasCurrentQuestion) {
@@ -1917,39 +1922,41 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                 )}
                 
                 {/* キャラクター（mp-playing-screenに対してabsolute配置） */}
-                <div className={`mp-character-area ${renderer === 'live2d' ? 'is-live2d' : ''}`}>
-                    <CharacterStage
-                        characterId={myCharacterId}
-                        renderer={renderer}
-                        skinId={myEquippedSkin}
-                        scene="match"
-                        pose={matchPose}
-                        className="character-match"
-                        imageClassName="mp-center-character"
-                    />
-                    {visibleFaceAccent && (
-                        <div className={`mp-face-accent mp-face-accent-${visibleFaceAccent}`} aria-hidden="true">
-                            {visibleFaceAccent === 'angry' ? (
-                                <>
-                                    <span className="mp-face-cheek mp-face-cheek-left" />
-                                    <span className="mp-face-cheek mp-face-cheek-right" />
-                                    <span className="mp-face-mouth" />
-                                </>
-                            ) : (
-                                <>
-                                    {visibleFaceAccent === 'heart' && (
-                                        <>
-                                            <span className="mp-face-heart-orbit mp-face-heart-orbit-left">♥</span>
-                                            <span className="mp-face-heart-orbit mp-face-heart-orbit-right">♥</span>
-                                        </>
-                                    )}
-                                    <span className="mp-face-eye mp-face-eye-left">{visibleFaceAccent === 'heart' ? '♥' : '★'}</span>
-                                    <span className="mp-face-eye mp-face-eye-right">{visibleFaceAccent === 'heart' ? '♥' : '★'}</span>
-                                </>
-                            )}
-                        </div>
-                    )}
-                </div>
+                {shouldRenderMatchCharacter && (
+                    <div className={`mp-character-area ${renderer === 'live2d' ? 'is-live2d' : ''}`}>
+                        <CharacterStage
+                            characterId={myCharacterId}
+                            renderer={renderer}
+                            skinId={myEquippedSkin}
+                            scene="match"
+                            pose={matchPose}
+                            className="character-match"
+                            imageClassName="mp-center-character"
+                        />
+                        {visibleFaceAccent && (
+                            <div className={`mp-face-accent mp-face-accent-${visibleFaceAccent}`} aria-hidden="true">
+                                {visibleFaceAccent === 'angry' ? (
+                                    <>
+                                        <span className="mp-face-cheek mp-face-cheek-left" />
+                                        <span className="mp-face-cheek mp-face-cheek-right" />
+                                        <span className="mp-face-mouth" />
+                                    </>
+                                ) : (
+                                    <>
+                                        {visibleFaceAccent === 'heart' && (
+                                            <>
+                                                <span className="mp-face-heart-orbit mp-face-heart-orbit-left">♥</span>
+                                                <span className="mp-face-heart-orbit mp-face-heart-orbit-right">♥</span>
+                                            </>
+                                        )}
+                                        <span className="mp-face-eye mp-face-eye-left">{visibleFaceAccent === 'heart' ? '♥' : '★'}</span>
+                                        <span className="mp-face-eye mp-face-eye-right">{visibleFaceAccent === 'heart' ? '♥' : '★'}</span>
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
                 
                 {/* プレイ画面のコンテンツラッパー */}
                 <div className="mp-playing-content-wrapper">
@@ -2228,7 +2235,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                 <div className={`mp-result-content ${resultClass}`}>
                     
                     <div className={`mp-result-character-bg ${renderer === 'live2d' ? 'is-live2d' : ''}`}>
-                        {(isSolo || finalMyScore >= opScore) && (
+                        {shouldRenderMatchCharacter && (isSolo || finalMyScore >= opScore) && (
                             <CharacterStage
                                 characterId={myCharacterId}
                                 renderer={renderer}
