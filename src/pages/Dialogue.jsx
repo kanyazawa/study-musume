@@ -371,7 +371,7 @@ const Dialogue = ({ stats, updateStats }) => {
             setLoading(false);
         };
         loadScenario();
-    }, [currentSubjectId, playScene, sheetGid, topic]);
+    }, [currentSubjectId, sheetGid, topic]);
 
     // Preload common phrases for faster playback
     useEffect(() => {
@@ -491,7 +491,7 @@ const Dialogue = ({ stats, updateStats }) => {
                 window.removeEventListener('resize', handleResize);
             };
         }
-    }, [line, playSE, speakLineWithPreferredAudio]);
+    }, [line, playSE]);
 
     // Get subject info from topic
     const getSubjectInfo = (topic) => {
