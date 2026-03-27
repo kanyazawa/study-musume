@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trophy, Users, Globe, Crown, Medal, Award } from 'lucide-react';
 import { getCurrentUser } from '../firebase/auth';
@@ -16,7 +16,7 @@ const Ranking = () => {
     const [friendIds, setFriendIds] = useState([]);
     const [error, setError] = useState(null);
 
-    async function loadFriendsData(uid) {
+    const loadFriendsData = useCallback(async (uid) => {
         const result = await getFriendsList(uid);
         if (result.success) {
             setFriendIds([uid, ...result.friends.map(f => f.id)]);
@@ -24,9 +24,11 @@ const Ranking = () => {
             setFriendIds([uid]);
             setError(result.error || 'フレンド一覧の取得に失敗しました');
         }
-    }
+    }, []);
 
-    async function loadRankingData() {
+    const loadRankingData = useCallback(async () => {
+        if (!currentUser) return;
+
         setLoading(true);
         setError(null);
 
@@ -56,7 +58,7 @@ const Ranking = () => {
         }
 
         setLoading(false);
-    }
+    }, [activeTab, currentUser, friendIds]);
 
     useEffect(() => {
         const user = getCurrentUser();
@@ -66,13 +68,13 @@ const Ranking = () => {
         }
         setCurrentUser(user);
         loadFriendsData(user.uid);
-    }, [navigate]);
+    }, [loadFriendsData, navigate]);
 
     useEffect(() => {
         if (currentUser) {
             loadRankingData();
         }
-    }, [activeTab, currentUser, friendIds]);
+    }, [activeTab, currentUser, friendIds, loadRankingData]);
 
     const getRankIcon = (rank) => {
         if (rank === 1) return <Crown size={24} color="#FFD700" />;

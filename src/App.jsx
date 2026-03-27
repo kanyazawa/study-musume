@@ -3,6 +3,7 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import MobileContainer from './components/Layout/MobileContainer';
 import AppLayout from './components/Layout/AppLayout';
 import LoadingScreen from './components/UI/LoadingScreen';
+import AppErrorBoundary from './components/UI/AppErrorBoundary';
 import { SoundProvider } from './contexts/SoundContext';
 import { loadStats, saveStats } from './utils/saveUtils';
 import { useAuthSync } from './hooks/useAuthSync';
@@ -53,14 +54,16 @@ function App() {
     <SoundProvider>
       <Router>
         <MobileContainer>
-          <AppLayout>
-            <AppRoutes
-              stats={stats}
-              updateStats={updateStats}
-              onLoginSuccess={handleLoginSuccess}
-              currentUser={currentUser}
-            />
-          </AppLayout>
+          <AppErrorBoundary>
+            <AppLayout>
+              <AppRoutes
+                stats={stats}
+                updateStats={updateStats}
+                onLoginSuccess={handleLoginSuccess}
+                currentUser={currentUser}
+              />
+            </AppLayout>
+          </AppErrorBoundary>
         </MobileContainer>
       </Router>
     </SoundProvider>

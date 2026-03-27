@@ -96,6 +96,18 @@ const Home = ({ stats, updateStats }) => {
         equippedBackground = 'default'
     } = stats || {};
 
+    const loginStreak = stats?.loginStreak || 0;
+    const characterId = stats?.characterId || 'noah';
+    const preferredRenderer = stats?.characterRenderer;
+    const hasHomeLive2D = hasLive2DModelConfig(characterId, equippedSkin);
+    const shouldForceHomeLive2D = characterId === 'noah' && hasHomeLive2D;
+    const currentBgStyle = getBackgroundStyle(equippedBackground);
+    const renderer = resolveCharacterRenderer({
+        preferredRenderer: shouldForceHomeLive2D ? 'live2d' : preferredRenderer,
+        characterId,
+        skinId: equippedSkin,
+    });
+
     const navigate = useNavigate();
     const [speech, setSpeech] = useState("");
     const [emotion, setEmotion] = useState('normal');
@@ -112,16 +124,6 @@ const Home = ({ stats, updateStats }) => {
 
     // スキン画像のマッピング
     // キャラクターIDに基づいて切り替え (デフォルトは 'noah')
-    const characterId = stats.characterId || 'noah';
-    const preferredRenderer = stats?.characterRenderer;
-    const hasHomeLive2D = hasLive2DModelConfig(characterId, equippedSkin);
-    const shouldForceHomeLive2D = characterId === 'noah' && hasHomeLive2D;
-    const currentBgStyle = getBackgroundStyle(equippedBackground);
-    const renderer = resolveCharacterRenderer({
-        preferredRenderer: shouldForceHomeLive2D ? 'live2d' : preferredRenderer,
-        characterId,
-        skinId: equippedSkin,
-    });
 
     // 好感度レベルを取得
     const affectionLevelInfo = getAffectionLevel(affection);
@@ -166,13 +168,13 @@ const Home = ({ stats, updateStats }) => {
 
     const countdownDisplay = getCountdownDisplay();
 
-    const stopTalkAnimation = () => {
+    const stopTalkAnimation = useCallback(() => {
         if (talkAnimationTimerRef.current) {
             clearTimeout(talkAnimationTimerRef.current);
             talkAnimationTimerRef.current = null;
         }
         setIsTalkAnimating(false);
-    };
+    }, [setIsTalkAnimating]);
 
     const scheduleUserInputEmotion = useCallback((nextEmotion) => {
         if (userInputEmotionTimerRef.current) {
@@ -190,24 +192,24 @@ const Home = ({ stats, updateStats }) => {
             setUserInputEmotion(null);
             userInputEmotionTimerRef.current = null;
         }, 3800);
-    }, []);
+    }, [setUserInputEmotion]);
 
-    const startTimedTalkAnimation = (text) => {
+    const startTimedTalkAnimation = useCallback((text) => {
         stopTalkAnimation();
         setIsTalkAnimating(true);
         talkAnimationTimerRef.current = setTimeout(() => {
             setIsTalkAnimating(false);
             talkAnimationTimerRef.current = null;
         }, Math.max(1500, String(text || '').length * 150));
-    };
+    }, [stopTalkAnimation, setIsTalkAnimating]);
 
     // Random speech on mount and click (好感度レベルに応じて)
-    const talk = () => {
+    const talk = useCallback(() => {
         const reaction = getHomeReaction({
             affection,
             tp,
             maxTp,
-            loginStreak: stats?.loginStreak || 0,
+            loginStreak,
             characterId,
         });
         setSpeech(reaction.text);
@@ -216,7 +218,7 @@ const Home = ({ stats, updateStats }) => {
 
         // Update mission progress for character interaction
         updateMissionsOnInteract();
-    };
+    }, [affection, characterId, loginStreak, maxTp, startTimedTalkAnimation, tp]);
 
     const reactToUserMessage = useCallback((userText, { emotion: nextEmotion } = {}) => {
         const inferredEmotion = toVisibleHomeEmotion(
@@ -249,7 +251,7 @@ const Home = ({ stats, updateStats }) => {
         } else {
             stopTalkAnimation();
         }
-    }, [affectionLevelInfo.level, examDate, maxTp, tp]);
+    }, [affectionLevelInfo.level, examDate, maxTp, setEmotion, setSpeech, startTimedTalkAnimation, stopTalkAnimation, tp]);
 
     useEffect(() => {
         const latestReply = getLatestNoaAssistantMessageEntry('general');
@@ -263,7 +265,7 @@ const Home = ({ stats, updateStats }) => {
         }
 
         talk();
-    }, [affectionLevelInfo.level]);
+    }, [affectionLevelInfo.level, syncSpeechWithNoaReply, talk]);
 
     useEffect(() => {
         if (!shouldForceHomeLive2D || !updateStats || preferredRenderer === 'live2d') {
@@ -285,7 +287,7 @@ const Home = ({ stats, updateStats }) => {
                 setLoginBonusData(bonusResult);
             }
         }
-    }, []);
+    }, [stats, updateStats]);
 
     useEffect(() => (
         () => {
@@ -295,7 +297,7 @@ const Home = ({ stats, updateStats }) => {
                 userInputEmotionTimerRef.current = null;
             }
         }
-    ), []);
+    ), [stopTalkAnimation]);
 
     // Calculate TP percentage
     const tpPercent = Math.min((tp / maxTp) * 100, 100);

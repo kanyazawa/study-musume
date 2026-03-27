@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Filter, Calendar, BookOpen, Sparkles, Clock3, CircleAlert, ArrowRight } from 'lucide-react';
 import {
@@ -115,13 +115,13 @@ const Review = ({ stats, updateStats }) => {
     const [lastSessionSummary, setLastSessionSummary] = useState(null);
     const [sessionSnapshot, setSessionSnapshot] = useState(null);
 
-    function loadReviewData() {
+    const loadReviewData = useCallback(() => {
         const allQuestions = getReviewQuestions();
         setQuestions(allQuestions);
         setReviewStats(getReviewStats());
-    }
+    }, []);
 
-    function applyFilters() {
+    const applyFilters = useCallback(() => {
         let filtered = [...questions];
 
         // 科目フィルター
@@ -141,15 +141,15 @@ const Review = ({ stats, updateStats }) => {
 
         // ソート（優先度順）
         setFilteredQuestions(sortReviewQuestions(filtered));
-    }
+    }, [questions, selectedPriority, selectedSubject]);
 
     useEffect(() => {
         loadReviewData();
-    }, []);
+    }, [loadReviewData]);
 
     useEffect(() => {
         applyFilters();
-    }, [selectedSubject, selectedPriority, questions]);
+    }, [applyFilters]);
 
     useEffect(() => {
         setVisibleCount(INITIAL_VISIBLE_QUESTIONS);

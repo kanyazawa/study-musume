@@ -145,7 +145,6 @@ export const signInWithGoogle = async () => {
             };
         }
 
-        const mobileBrowser = isMobileDevice();
         const isStandalone = isStandaloneMode();
 
         // iPhone のホーム画面追加 PWA は Safari と別ストレージで動き、

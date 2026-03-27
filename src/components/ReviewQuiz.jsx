@@ -37,24 +37,8 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
     const nextQuestionTimerRef = useRef(null);
 
     const currentQuestion = sessionQuestions[currentIndex];
-    if (!currentQuestion) {
-        return (
-            <div className="review-quiz completion-screen">
-                <div className="completion-content">
-                    <div className="completion-icon">📚</div>
-                    <h2>復習を準備中です</h2>
-                    <p className="completion-coach-message">
-                        問題の読み込みに失敗したので、いったん復習リストに戻します。
-                    </p>
-                    <button className="finish-btn" onClick={() => onComplete({ results, completed: false })}>
-                        復習リストに戻る
-                    </button>
-                </div>
-            </div>
-        );
-    }
     const accuracy = results.length ? Math.round((results.filter((result) => result.isCorrect).length / results.length) * 100) : 100;
-    const priority = getReviewPriority(currentQuestion.nextReviewDate);
+    const priority = getReviewPriority(currentQuestion?.nextReviewDate);
     const priorityLabel = {
         urgent: '今すぐ復習',
         soon: '近日中',
@@ -64,7 +48,7 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
         ? feedback === 'correct'
             ? 'success'
             : 'mistake'
-        : currentQuestion.wrongCount >= 3
+        : (currentQuestion?.wrongCount || 0) >= 3
             ? 'focus'
             : priority === 'urgent'
                 ? 'urgent'
@@ -97,7 +81,7 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
         poseEmotion = renderer === 'live2d' ? 'smile' : 'happy';
     } else if (renderer === 'live2d') {
         poseEmotion = 'normal';
-    } else if (currentQuestion.wrongCount >= 3) {
+    } else if ((currentQuestion?.wrongCount || 0) >= 3) {
         poseEmotion = 'serious';
     } else if (priority === 'urgent') {
         poseEmotion = 'surprised';
@@ -110,7 +94,7 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
         scene: 'review',
         intensity: feedback
             ? feedback === 'correct' ? 0.52 : 0.46
-            : currentQuestion.wrongCount >= 3 ? 0.42 : priority === 'urgent' ? 0.4 : 0.32,
+            : (currentQuestion?.wrongCount || 0) >= 3 ? 0.42 : priority === 'urgent' ? 0.4 : 0.32,
         motion: null,
         idle: 'gentle',
         gaze: 'camera',
@@ -303,6 +287,23 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
         setCorrectStreak(0);
         setPersistentEmotion(null);
     };
+
+    if (!currentQuestion) {
+        return (
+            <div className="review-quiz completion-screen">
+                <div className="completion-content">
+                    <div className="completion-icon">📚</div>
+                    <h2>復習を準備中です</h2>
+                    <p className="completion-coach-message">
+                        問題の読み込みに失敗したので、いったん復習リストに戻します。
+                    </p>
+                    <button className="finish-btn" onClick={() => onComplete({ results, completed: false })}>
+                        復習リストに戻る
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     if (isCompleted) {
         const completionCoachMessage = correctCount === results.length

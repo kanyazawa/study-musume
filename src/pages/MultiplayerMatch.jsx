@@ -1,5 +1,5 @@
-/* eslint-disable react-hooks/preserve-manual-memoization */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Swords, Clock, Loader2, TrendingUp, TrendingDown, Volume2, Flag } from 'lucide-react';
 import { getCurrentUser, getUserProfile } from '../firebase/auth';
@@ -295,11 +295,12 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const currentBgStyle = getBackgroundStyle(myEquippedBackground);
     
     const preferredRenderer = stats?.characterRenderer;
-    const renderer = resolveCharacterRenderer({
+    const resolvedRenderer = resolveCharacterRenderer({
         preferredRenderer,
         characterId: myCharacterId,
         skinId: myEquippedSkin,
     });
+    const renderer = Capacitor.isNativePlatform() ? 'image' : resolvedRenderer;
     
     const [phase, setPhase] = useState('init'); // init | matching | countdown | playing | result | error
     const [roomId, setRoomId] = useState(null);
@@ -440,7 +441,6 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         answerFx,
         correctStreak,
         isListeningBattle,
-        isPoseSpeaking,
         isPronouncingQuestion,
         isSolo,
         matchTargetCorrect,

@@ -473,6 +473,11 @@ const Live2DViewer = ({
     const [status, setStatus] = useState(() => (modelConfig ? 'checking' : 'missing-config'));
     const [statusDetail, setStatusDetail] = useState('');
     const statusMessage = useMemo(() => resolveLive2DStatusMessage(status, statusDetail), [status, statusDetail]);
+    const shouldShowStaticFallback = status === 'missing-config'
+        || status === 'missing-model'
+        || status === 'missing-sdk'
+        || status === 'sdk-load-failed'
+        || status === 'init-failed';
 
     useEffect(() => {
         if (!modelConfig) {
@@ -909,7 +914,7 @@ const Live2DViewer = ({
                         lappModel._patchedForSync = true;
                     }
                 }
-            } catch (e) {
+            } catch {
                 // Ignore transient errors
             }
         };
@@ -945,7 +950,7 @@ const Live2DViewer = ({
 
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-            {status !== 'ready' && (
+            {shouldShowStaticFallback && (
                 <div style={{ position: 'absolute', inset: 0 }}>
                     {fallback}
                 </div>
@@ -970,7 +975,7 @@ const Live2DViewer = ({
                     opacity: status === 'ready' ? 1 : 0,
                 }}
             />
-            {status !== 'ready' && (
+            {shouldShowStaticFallback && (
                 <div
                     style={{
                         position: 'absolute',
