@@ -1147,7 +1147,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         return true;
     }, [isSolo, questionOptionMeanings, soloBackgroundBatchSize]);
 
-    const startSoloSession = useCallback((questions, level, { retry = false, totalCount, sourceCount } = {}) => {
+    const startSoloSession = useCallback((questions, level, { retry = false, totalCount, sourceCount, queuedVocabItems = [] } = {}) => {
         const safeQuestions = sanitizeMatchQuestions(questions, questionOptionMeanings);
 
         if (safeQuestions.length === 0) {
@@ -1160,6 +1160,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         }
 
         resetMatchState();
+        soloQuestionQueueRef.current = Array.isArray(queuedVocabItems) ? queuedVocabItems : [];
         setError(null);
         setPrevLevelLabel(myLevelInfo.label);
         setRoomData(buildSoloRoomData({
@@ -1242,10 +1243,10 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             const remainingVocabItems = selectedVocabItems.slice(initialVocabItems.length);
             const initialQuestions = buildQuestionsFromVocabItems(initialVocabItems, questionOptionMeanings);
 
-            soloQuestionQueueRef.current = remainingVocabItems;
             startSoloSession(initialQuestions, targetLevel, {
                 totalCount: selectedVocabItems.length,
                 sourceCount: soloVocabPool.length,
+                queuedVocabItems: remainingVocabItems,
             });
             return;
         }
