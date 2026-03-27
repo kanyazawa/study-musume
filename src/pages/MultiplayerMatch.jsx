@@ -1023,6 +1023,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
 
     useEffect(() => {
         if (phase !== 'result' || !roomData || resultFxPlayedRef.current === roomData.id) return;
+        if (isSolo && isNativePlatform) return;
 
         resultFxPlayedRef.current = roomData.id;
         setResultFx(null);
@@ -1040,7 +1041,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                 setResultFx(null);
             }, 1800);
         }
-    }, [phase, roomData, myUid, myScore, isSolo, matchTargetCorrect, playMatchSE, playUiTone]);
+    }, [phase, roomData, myUid, myScore, isNativePlatform, isSolo, matchTargetCorrect, playMatchSE, playUiTone]);
 
     // 次の問題へ進む（ローカル管理）
     const goToNextQuestion = useCallback(async (wasCorrect) => {
@@ -2197,6 +2198,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         const mySummary = summarizeAnswers(myPlayerRoom?.answers || []);
         const opponentSummary = summarizeAnswers(opponent?.answers || []);
         const isManualExit = Boolean(isSolo && roomData.finishReason === 'manual_exit');
+        const shouldUseLiteSoloResult = Boolean(isSolo && isNativePlatform);
         const soloWrongQuestionIndices = isSolo
             ? [...new Set(
                 (myPlayerRoom?.answers || [])
@@ -2248,6 +2250,50 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         // レベルアップ判定
         const newLevelInfo = ratingChange ? getLevelFromRating(ratingChange.newRating) : myLevelInfo;
         const isLevelUp = prevLevelLabel && newLevelInfo.label !== prevLevelLabel && ratingChange?.change > 0;
+
+        if (shouldUseLiteSoloResult) {
+            return (
+                <div className="mp-screen">
+                    {renderBackground()}
+                    <div className="mp-header">
+                        <button className="mp-back-btn" onClick={() => navigate('/home')}>
+                            <ArrowLeft size={24} />
+                        </button>
+                        <h1>学習結果</h1>
+                    </div>
+                    <div className="mp-matching-content">
+                        <div className="mp-error-panel">
+                            <div className="mp-error-icon">{isManualExit ? '☕' : '🎉'}</div>
+                            <h2>{isManualExit ? 'ここで一区切り！' : 'お疲れ様！'}</h2>
+                            <p>{mySummary.correctCount} / {totalQuestions} 問正解</p>
+                            <p>正答率 {mySummary.accuracy}% ・ 最高 {highestCorrectStreak} CHAIN</p>
+                            <p>
+                                {roomData.soloRetry
+                                    ? '苦手克服チャレンジ完了。'
+                                    : `${roomData.sessionLabel || `${totalQuestions}問セット`} 完了。`}
+                                {sourceQuestionCount > totalQuestions ? ` 全${sourceQuestionCount}問のうち今回は${totalQuestions}問で区切りました。` : ''}
+                            </p>
+                            <div className="mp-error-actions">
+                                {soloRetryQuestions.length > 0 && (
+                                    <button
+                                        className="mp-start-btn"
+                                        onClick={() => startSoloSession(soloRetryQuestions, roomData.level || queryLevel || myLevelInfo.level, { retry: true })}
+                                    >
+                                        苦手克服チャレンジ {soloRetryQuestions.length} 問
+                                    </button>
+                                )}
+                                <button className="mp-start-btn" onClick={resetToInit}>
+                                    最初からもう1周する
+                                </button>
+                                <button className="mp-cancel-btn" onClick={() => navigate('/home')}>
+                                    ホームに戻る
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
 
         return (
             <div className={`mp-screen ${resultFx ? `mp-result-fx-${resultFx}` : ''}`}>

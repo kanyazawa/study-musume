@@ -1,4 +1,7 @@
+import { Capacitor } from '@capacitor/core';
+
 const scriptLoadCache = new Map();
+const assetProbeCache = new Map();
 const TYRANO_CANVAS_ID = 'live2d_canvas_tyrano';
 
 const TYRANO_RUNTIME = 'tyrano-v4';
@@ -24,22 +27,30 @@ export const probeAssetUrl = async (url) => {
     }
 
     const absoluteUrl = getAbsoluteUrl(url);
+    if (assetProbeCache.has(absoluteUrl)) {
+        return assetProbeCache.get(absoluteUrl);
+    }
 
-    try {
-        const response = await fetch(absoluteUrl, { method: 'HEAD' });
-        if (response.ok) {
-            return { ok: true, status: response.status };
+    const probePromise = (async () => {
+        try {
+            const response = await fetch(absoluteUrl, { method: 'HEAD' });
+            if (response.ok) {
+                return { ok: true, status: response.status };
+            }
+        } catch {
+            // Some static servers do not support HEAD. We retry with GET below.
         }
-    } catch {
-        // Some static servers do not support HEAD. We retry with GET below.
-    }
 
-    try {
-        const response = await fetch(absoluteUrl, { method: 'GET' });
-        return { ok: response.ok, status: response.status };
-    } catch {
-        return { ok: false, status: 0 };
-    }
+        try {
+            const response = await fetch(absoluteUrl, { method: 'GET' });
+            return { ok: response.ok, status: response.status };
+        } catch {
+            return { ok: false, status: 0 };
+        }
+    })();
+
+    assetProbeCache.set(absoluteUrl, probePromise);
+    return probePromise;
 };
 
 export const loadExternalScript = (url) => {
@@ -140,10 +151,18 @@ export const resizeTyranoCanvas = (canvas, container) => {
 
     // 内部的な描画解像度（アスペクト比）は固定し、画面の縦横比が変わっても
     // Live2Dのプロジェクション（座標系）が崩れてキャラがずれないようにする
-    if (!canvas.getAttribute('data-resolution-set')) {
-        const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
-        canvas.width = 1000 * dpr;
-        canvas.height = 2000 * dpr;
+    const isNativePlatform = Capacitor.isNativePlatform();
+    const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, isNativePlatform ? 1 : 2));
+    const targetCanvasWidth = isNativePlatform
+        ? Math.max(480, Math.min(720, Math.round(rect.width * dpr)))
+        : 1000 * dpr;
+    const targetCanvasHeight = isNativePlatform
+        ? Math.max(900, Math.min(1280, Math.round(rect.height * dpr)))
+        : 2000 * dpr;
+
+    if (canvas.width !== targetCanvasWidth || canvas.height !== targetCanvasHeight) {
+        canvas.width = targetCanvasWidth;
+        canvas.height = targetCanvasHeight;
         canvas.setAttribute('data-resolution-set', 'true');
     }
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { getLive2DModelConfig } from '../../utils/live2dModelRegistry';
 import { generateLipSyncTimeline, getCurrentVowel } from '../../utils/lipSync';
 import {
@@ -458,10 +459,12 @@ const Live2DViewer = ({
     className = '',
     fallback = null,
 }) => {
+    const isNativePlatform = Capacitor.isNativePlatform();
     const rootRef = useRef(null);
     const managerRef = useRef(null);
     const modelNameRef = useRef('');
     const readyTimerRef = useRef(null);
+    const initTimerRef = useRef(null);
     const lipSyncRef = useRef({ timeline: [], startedAt: 0, totalDuration: 0 });
     const animationStateRef = useRef({ mouthValue: 0, mouthFormValue: 0 });
     const appliedExpressionRef = useRef('');
@@ -497,6 +500,35 @@ const Live2DViewer = ({
         }
 
         let cancelled = false;
+        const readyCheckStartedAt = Date.now();
+
+        const monitorReadyState = () => {
+            window.clearTimeout(readyTimerRef.current);
+            readyTimerRef.current = window.setTimeout(() => {
+                if (cancelled) {
+                    return;
+                }
+
+                const modelMeta = managerRef.current?.models?.[modelNameRef.current];
+                const model = typeof modelMeta?.index === 'number'
+                    ? managerRef.current?.lappdelegate?.lapplive2dmanager?.getModel(modelMeta.index)
+                    : null;
+
+                if (model?._state === 22) {
+                    setStatus('ready');
+                    setStatusDetail('');
+                    return;
+                }
+
+                if (Date.now() - readyCheckStartedAt >= (isNativePlatform ? 5000 : 3000)) {
+                    setStatus('init-failed');
+                    setStatusDetail('Live2Dの読み込みが完了しませんでした。');
+                    return;
+                }
+
+                monitorReadyState();
+            }, isNativePlatform ? 320 : 220);
+        };
 
         const initialize = async () => {
             setStatus('checking');
@@ -566,6 +598,25 @@ const Live2DViewer = ({
                     });
 
                     modelNameRef.current = modelParams.name;
+                    const existingModelMeta = manager.models?.[modelNameRef.current];
+                    const existingModel = typeof existingModelMeta?.index === 'number'
+                        ? manager.lappdelegate?.lapplive2dmanager?.getModel(existingModelMeta.index)
+                        : null;
+
+                    if (existingModel) {
+                        applyPosePartOpacityOverrides(
+                            managerRef.current || window.__tyranolive2d_manager_instance__,
+                            modelNameRef.current,
+                            modelConfigRef.current,
+                            poseRef.current,
+                        );
+                        setStatus(existingModel._state === 22 ? 'ready' : 'loading-model');
+                        setStatusDetail(existingModel._state === 22 ? '' : (modelConfig.sourceLabel || modelConfig.modelId || ''));
+                        if (existingModel._state !== 22) {
+                            monitorReadyState();
+                        }
+                        return;
+                    }
 
                     // 本番環境の CsmVector を壊さずに二重描画を回避するため、
                     // 古いモデルのスケールを 0 にして画面から透明化・除外する
@@ -574,20 +625,7 @@ const Live2DViewer = ({
                     manager.addModel(modelParams);
                     setStatus('loading-model');
                     setStatusDetail(modelConfig.sourceLabel || modelConfig.modelId || '');
-
-                    window.clearTimeout(readyTimerRef.current);
-                    readyTimerRef.current = window.setTimeout(() => {
-                        if (!cancelled) {
-                            const modelMeta = managerRef.current?.models?.[modelNameRef.current];
-                            const model = typeof modelMeta?.index === 'number'
-                                ? managerRef.current?.lappdelegate?.lapplive2dmanager?.getModel(modelMeta.index)
-                                : null;
-                            if (model?._state === 22) {
-                                setStatus('ready');
-                                setStatusDetail('');
-                            }
-                        }
-                    }, 1200);
+                    monitorReadyState();
                     return;
                 }
 
@@ -603,7 +641,13 @@ const Live2DViewer = ({
             }
         };
 
-        initialize();
+        if (isNativePlatform) {
+            initTimerRef.current = window.setTimeout(() => {
+                initialize();
+            }, 180);
+        } else {
+            initialize();
+        }
 
         return () => {
             cancelled = true;
@@ -621,12 +665,13 @@ const Live2DViewer = ({
             managerRef.current = null;
             modelNameRef.current = '';
             appliedExpressionRef.current = '';
+            window.clearTimeout(initTimerRef.current);
             window.clearTimeout(readyTimerRef.current);
             destroyTyranoManager();
         };
     // modelConfig は LIVE2D_MODEL_REGISTRY の固定参照なので characterId/skinId のみで十分
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [characterId, skinId]);
+    }, [characterId, isNativePlatform, skinId]);
 
     useEffect(() => {
         const rootElement = rootRef.current;
