@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Volume2 } from 'lucide-react';
 import './Dialogue.css';
@@ -371,7 +371,7 @@ const Dialogue = ({ stats, updateStats }) => {
             setLoading(false);
         };
         loadScenario();
-    }, [topic]);
+    }, [currentSubjectId, playScene, sheetGid, topic]);
 
     // Preload common phrases for faster playback
     useEffect(() => {
@@ -387,6 +387,29 @@ const Dialogue = ({ stats, updateStats }) => {
         setCharacterSpeaking(false);
         setIsSpeaking(false);
     }, []);
+
+    const playScene = useCallback((allData, id) => {
+        const sceneLines = allData.filter(d => d.scene === id);
+        sceneLines.sort((a, b) => parseInt(a.order) - parseInt(b.order));
+
+        if (sceneLines.length === 0) {
+            console.warn("Scene empty:", id);
+            return;
+        }
+
+        setCurrentScene(sceneLines);
+        setCurrentIndex(0);
+
+        const firstLine = sceneLines[0];
+        const processedLine = isRen ? {
+            ...firstLine,
+            text: convertTone(firstLine.text, 'ren')
+        } : firstLine;
+
+        setLine(processedLine);
+        setCharacterSpeechText(processedLine?.text || '');
+        stopCharacterSpeech();
+    }, [isRen, stopCharacterSpeech]);
 
     // Play Audio/Voice when line changes
     useEffect(() => {
@@ -469,32 +492,6 @@ const Dialogue = ({ stats, updateStats }) => {
             };
         }
     }, [line, playSE, speakLineWithPreferredAudio]);
-
-    const playScene = (allData, id) => {
-        const sceneLines = allData.filter(d => d.scene === id);
-        sceneLines.sort((a, b) => parseInt(a.order) - parseInt(b.order));
-
-        if (sceneLines.length === 0) {
-            console.warn("Scene empty:", id);
-            return;
-        }
-
-
-
-        setCurrentScene(sceneLines);
-        setCurrentIndex(0);
-
-        // Process line for tone
-        const firstLine = sceneLines[0];
-        const processedLine = isRen ? {
-            ...firstLine,
-            text: convertTone(firstLine.text, 'ren')
-        } : firstLine;
-
-        setLine(processedLine);
-        setCharacterSpeechText(processedLine?.text || '');
-        stopCharacterSpeech();
-    };
 
     // Get subject info from topic
     const getSubjectInfo = (topic) => {
@@ -764,7 +761,7 @@ const Dialogue = ({ stats, updateStats }) => {
             onEnd: handleSpeechEnd,
         });
         return true;
-    }, [IS_LITE_DEPLOY, isRen, playVoice, resolveLineSpeakerId]);
+    }, [isRen, playVoice, resolveLineSpeakerId]);
 
     const handleSpeak = async (e) => {
         e.stopPropagation(); // Prevent advancing dialogue
@@ -939,37 +936,36 @@ const Dialogue = ({ stats, updateStats }) => {
 
     // ... (existing code)
 
+    let poseLine = line;
+
+    if (line && feedback === 'correct') {
+        poseLine = {
+            ...line,
+            emotion: 'happy',
+            expression: 'happy',
+            effect: 'glow',
+        };
+    } else if (line && feedback === 'incorrect') {
+        poseLine = {
+            ...line,
+            emotion: 'angry',
+            expression: 'angry',
+            effect: 'shake',
+        };
+    }
+
     if (loading) return <LoadingScreen />;
     if (!line) return <div className="dialogue-screen"><div className="dialogue-box"><div className="dialogue-text">データがありません</div></div></div>;
 
     const isQuiz = line.speaker === 'Quiz';
-    const poseLine = useMemo(() => {
-        if (!line) return line;
-
-        if (feedback === 'correct') {
-            return {
-                ...line,
-                emotion: 'happy',
-                expression: 'happy',
-                effect: 'glow',
-            };
-        }
-
-        if (feedback === 'incorrect') {
-            return {
-                ...line,
-                emotion: 'angry',
-                expression: 'angry',
-                effect: 'shake',
-            };
-        }
-
-        return line;
-    }, [feedback, line]);
-    const dialoguePose = createDialoguePose(poseLine, {
-        speaking: characterSpeaking,
-        text: characterSpeechText,
-    });
+    const characterScene = type === 'talk' ? 'dialogue' : 'study';
+    const dialoguePose = {
+        ...createDialoguePose(poseLine, {
+            speaking: characterSpeaking,
+            text: characterSpeechText,
+        }),
+        scene: characterScene,
+    };
 
     // Background Logic
     const getBackgroundImage = (bgId) => {
@@ -1028,7 +1024,7 @@ const Dialogue = ({ stats, updateStats }) => {
                     characterId={characterId}
                     renderer={renderer}
                     skinId={stats?.equippedSkin || 'default'}
-                    scene="dialogue"
+                    scene={characterScene}
                     pose={dialoguePose}
                     className={`character-dialogue ${(line.graph || line.study_image) ? 'with-board' : ''}`}
                     imageClassName={`char-image-dialogue ${dialoguePose.effect === 'shake' ? 'effect-shake' : ''} ${(line.graph || line.study_image) ? 'with-board' : ''}`}

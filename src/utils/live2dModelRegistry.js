@@ -57,6 +57,9 @@ const LIVE2D_MODEL_REGISTRY = {
                 review: {
                     Part53: 0,
                 },
+                study: {
+                    Part53: 0,
+                },
             },
             sourceLabel: 'Free Witch Prototype',
         },
