@@ -26,13 +26,14 @@ import {
 } from '../utils/ratingUtils';
 import {
     getBattleModeLabel,
+    buildQuestionOptions,
     normalizeBattleMode,
     normalizeTargetCorrect,
     resolveWinnerUid,
     summarizeAnswers,
 } from '../utils/matchUtils';
 import { addWrongQuestion } from '../utils/reviewUtils';
-import { getVocabByLevel } from '../data/vocabData';
+import { getAllVocab, getVocabByLevel } from '../data/vocabData';
 import { useSound } from '../contexts/SoundContext';
 import { getTtsSettings, TTS_ENGINES } from '../utils/ttsSettings';
 import { getEngineBaseUrl, isEngineAvailable, resolveSpeakerIdForEngine, speakWithEngine } from '../utils/voicevoxUtils';
@@ -137,6 +138,37 @@ const getOptionTextSizeClass = (text = '') => {
     if (length >= 18) return 'is-compact';
     if (length >= 11) return 'is-long';
     return '';
+};
+
+const sanitizeMatchQuestions = (questions, fallbackMeanings = []) => {
+    const resolvedFallbackMeanings = Array.isArray(fallbackMeanings) ? fallbackMeanings : [];
+
+    return (Array.isArray(questions) ? questions : []).map((question) => {
+        const word = String(question?.word ?? '').trim();
+        const correctAnswer = String(question?.correctAnswer ?? question?.meaning ?? '').trim();
+
+        if (!word || !correctAnswer) {
+            return null;
+        }
+
+        const cleanedOptions = Array.isArray(question?.options)
+            ? [...new Set(question.options.map((option) => String(option ?? '').trim()).filter(Boolean))]
+            : [];
+        const resolvedOptions = cleanedOptions.includes(correctAnswer) && cleanedOptions.length >= 2
+            ? cleanedOptions
+            : buildQuestionOptions(correctAnswer, resolvedFallbackMeanings);
+        const finalOptions = [...new Set([correctAnswer, ...resolvedOptions].filter(Boolean))];
+
+        if (finalOptions.length < 2) {
+            return null;
+        }
+
+        return {
+            word,
+            correctAnswer,
+            options: finalOptions,
+        };
+    }).filter(Boolean);
 };
 
 const buildSoloRoomData = ({
@@ -280,6 +312,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const { isMuted, playSE } = useSound();
     const searchParams = new URLSearchParams(location.search);
     const isSolo = searchParams.get('mode') === 'solo';
+    const isNativePlatform = Capacitor.isNativePlatform();
     const queryLevel = searchParams.get('level');
     const directRoomId = searchParams.get('room');
     const friendNameParam = searchParams.get('friendName');
@@ -300,7 +333,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         characterId: myCharacterId,
         skinId: myEquippedSkin,
     });
-    const renderer = Capacitor.isNativePlatform() ? 'image' : resolvedRenderer;
+    const renderer = isNativePlatform ? 'image' : resolvedRenderer;
     
     const [phase, setPhase] = useState('init'); // init | matching | countdown | playing | result | error
     const [roomId, setRoomId] = useState(null);
@@ -333,6 +366,10 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     // 連鎖ボイスを事前読み込みしておく（ラグ解消のため）
     const chainAudioCacheRef = useRef({});
     useEffect(() => {
+        if (isNativePlatform || typeof window === 'undefined') {
+            return;
+        }
+
         const srcs = [1, 2, 3, 4, 5].map(n => {
             const meta = getChainMeta(n);
             return meta?.voiceSrc;
@@ -347,7 +384,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                 chainAudioCacheRef.current[src] = audio;
             }
         });
-    }, []);
+    }, [isNativePlatform]);
 
     const chainLipIntervalRef = useRef(null);
 
@@ -371,6 +408,10 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const nextLevelInfo = getNextLevelInfo(myRating);
     const soloLevel = queryLevel || myLevelInfo.level;
     const soloVocabPool = useMemo(() => getVocabByLevel(soloLevel), [soloLevel]);
+    const allVocabMeanings = useMemo(
+        () => getAllVocab().map((item) => String(item?.meaning ?? '').trim()).filter(Boolean),
+        []
+    );
     const soloSessionOptions = useMemo(
         () => (isSolo ? getSoloSessionOptions(soloVocabPool.length) : []),
         [isSolo, soloVocabPool.length]
@@ -387,6 +428,14 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const isListeningBattle = isFriendMatch && battleMode === 'listening';
     const canUseSpeechSynthesis = typeof window !== 'undefined' && 'speechSynthesis' in window;
     const isPoseSpeaking = isCharacterSpeaking || isPronouncingQuestion;
+    const currentQuestion = roomData?.questions?.[myQuestionIndex] ?? null;
+    const hasCurrentQuestion = Boolean(
+        currentQuestion &&
+        String(currentQuestion.word ?? '').trim() &&
+        String(currentQuestion.correctAnswer ?? '').trim() &&
+        Array.isArray(currentQuestion.options) &&
+        currentQuestion.options.length > 0
+    );
 
     useEffect(() => {
         if (!soloSessionOptions.length) return;
@@ -520,37 +569,51 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         : matchFaceAccent;
 
     const playUiTone = useCallback((frequency, durationMs, { type = 'sine', gain = 0.03, delayMs = 0 } = {}) => {
-        if (isMuted || typeof window === 'undefined') return;
+        if (isMuted || isNativePlatform || typeof window === 'undefined') return;
 
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContextClass) return;
+        try {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) return;
 
-        if (!audioContextRef.current) {
-            audioContextRef.current = new AudioContextClass();
+            if (!audioContextRef.current) {
+                audioContextRef.current = new AudioContextClass();
+            }
+
+            const audioContext = audioContextRef.current;
+            if (!audioContext) return;
+
+            if (audioContext.state === 'suspended') {
+                audioContext.resume().catch(() => {});
+            }
+
+            const now = audioContext.currentTime + (delayMs / 1000);
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.type = type;
+            oscillator.frequency.setValueAtTime(frequency, now);
+            gainNode.gain.setValueAtTime(0.0001, now);
+            gainNode.gain.exponentialRampToValueAtTime(gain, now + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, now + (durationMs / 1000));
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            oscillator.start(now);
+            oscillator.stop(now + (durationMs / 1000) + 0.02);
+        } catch (toneError) {
+            console.warn('Battle UI tone is unavailable on this device.', toneError);
         }
+    }, [isMuted, isNativePlatform]);
 
-        const audioContext = audioContextRef.current;
-        if (!audioContext) return;
+    const playMatchSE = useCallback((filename) => {
+        if (!filename || isNativePlatform) return;
 
-        if (audioContext.state === 'suspended') {
-            audioContext.resume().catch(() => {});
+        try {
+            playSE(filename);
+        } catch (soundError) {
+            console.warn(`Battle SE failed: ${filename}`, soundError);
         }
-
-        const now = audioContext.currentTime + (delayMs / 1000);
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-
-        oscillator.type = type;
-        oscillator.frequency.setValueAtTime(frequency, now);
-        gainNode.gain.setValueAtTime(0.0001, now);
-        gainNode.gain.exponentialRampToValueAtTime(gain, now + 0.01);
-        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + (durationMs / 1000));
-
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        oscillator.start(now);
-        oscillator.stop(now + (durationMs / 1000) + 0.02);
-    }, [isMuted]);
+    }, [isNativePlatform, playSE]);
 
     const triggerAnswerFx = useCallback((type) => {
         clearTimeout(answerFxTimeoutRef.current);
@@ -561,7 +624,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     }, []);
 
     const playChainVoiceClip = useCallback((voiceSrc, volume = 0.8) => {
-        if (isMuted || typeof window === 'undefined' || !voiceSrc) {
+        if (isMuted || isNativePlatform || typeof window === 'undefined' || !voiceSrc) {
             return;
         }
 
@@ -593,7 +656,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             console.error('Chain voice playback error:', err);
             stopLipSync();
         });
-    }, [isMuted]);
+    }, [isMuted, isNativePlatform]);
 
     const speakBattleVoice = useCallback(async (text, settings, speakerValue) => {
         if (!text || !speakerValue) {
@@ -904,12 +967,12 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         }
 
         if (previousPhaseRef.current === 'countdown' && phase === 'playing') {
-            playSE('se_correct');
+            playMatchSE('se_correct');
             playUiTone(880, 180, { type: 'sine', gain: 0.03 });
         }
 
         previousPhaseRef.current = phase;
-    }, [countdown, phase, playSE, playUiTone]);
+    }, [countdown, phase, playMatchSE, playUiTone]);
 
     useEffect(() => {
         if (phase !== 'result' || !roomData || resultFxPlayedRef.current === roomData.id) return;
@@ -923,14 +986,14 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
 
         if (didWin) {
             setResultFx('victory');
-            playSE('gacha');
+            playMatchSE('gacha');
             playUiTone(784, 150, { type: 'triangle', gain: 0.03 });
             playUiTone(1046, 220, { type: 'triangle', gain: 0.028, delayMs: 120 });
             resultFxTimeoutRef.current = setTimeout(() => {
                 setResultFx(null);
             }, 1800);
         }
-    }, [phase, roomData, myUid, myScore, isSolo, matchTargetCorrect, playSE, playUiTone]);
+    }, [phase, roomData, myUid, myScore, isSolo, matchTargetCorrect, playMatchSE, playUiTone]);
 
     // 次の問題へ進む（ローカル管理）
     const goToNextQuestion = useCallback(async (wasCorrect) => {
@@ -1004,7 +1067,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     }, [goToNextQuestion]);
 
     const startSoloSession = useCallback((questions, level, { retry = false } = {}) => {
-        const safeQuestions = Array.isArray(questions) ? questions : [];
+        const safeQuestions = sanitizeMatchQuestions(questions, allVocabMeanings);
 
         if (safeQuestions.length === 0) {
             setFailureState({
@@ -1031,6 +1094,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         }));
         setPhase('countdown');
     }, [
+        allVocabMeanings,
         myDisplayName,
         myEquippedSkin,
         myCharacterId,
@@ -1149,11 +1213,31 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         void startMatching();
     }, [isFriendMatch, myUid, phase, startMatching]);
 
+    useEffect(() => {
+        if (phase !== 'playing' || !roomData?.questions?.length || hasCurrentQuestion) {
+            return;
+        }
+
+        console.warn('Current match question is missing or malformed.', {
+            phase,
+            myQuestionIndex,
+            questionCount: roomData.questions.length,
+        });
+        clearInterval(timerIntervalRef.current);
+        cancelQuestionPronunciation();
+        setFailureState({
+            title: '問題の読み込みに失敗しました',
+            message: '最初の問題データが壊れていたため、この回は安全に中止しました。もう一度試してください。',
+        });
+        setPhase('error');
+    }, [phase, roomData, myQuestionIndex, hasCurrentQuestion, cancelQuestionPronunciation]);
+
     // 解答選択
     const handleAnswer = useCallback(async (answer) => {
         if (selectedAnswer !== null || !roomData || (!isSolo && !myUid) || showFeedback) return;
 
         const question = roomData.questions[myQuestionIndex];
+        if (!question) return;
         const isCorrect = answer === question.correctAnswer;
         const answeredAt = Date.now();
 
@@ -1170,7 +1254,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             const nextStreak = correctStreak + 1;
             const nextPersistentEmotion = nextStreak >= 2 ? 'happy' : 'smile';
             triggerAnswerFx('correct');
-            playSE('se_correct');
+            playMatchSE('se_correct');
             setCorrectStreak(nextStreak);
             setHighestCorrectStreak((prev) => Math.max(prev, nextStreak));
             setPersistentEmotion(nextPersistentEmotion);
@@ -1218,12 +1302,13 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             });
             queueAdvance(false, WRONG_ANSWER_DELAY, submitPromise);
         }
-    }, [selectedAnswer, roomData, myUid, showFeedback, isSolo, roomId, myQuestionIndex, correctStreak, playSE, playUiTone, queueAdvance, triggerAnswerFx, triggerChainCallout, clearChainCallout, cancelQuestionPronunciation]);
+    }, [selectedAnswer, roomData, myUid, showFeedback, isSolo, roomId, myQuestionIndex, correctStreak, playMatchSE, playUiTone, queueAdvance, triggerAnswerFx, triggerChainCallout, clearChainCallout, cancelQuestionPronunciation]);
 
     // 「わからない」：正解を見せて不正解扱いで次へ
     const handleSkip = useCallback(() => {
         if (selectedAnswer !== null || !roomData || (!isSolo && !myUid)) return;
         const question = roomData.questions[myQuestionIndex];
+        if (!question) return;
         const answeredAt = Date.now();
         setCorrectStreak(0);
         setPersistentEmotion('angry');
@@ -1274,6 +1359,8 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     // タイムアップ
     const handleTimeUp = useCallback(() => {
         if (selectedAnswer !== null || !roomData || (!isSolo && !myUid)) return;
+        const question = roomData.questions[myQuestionIndex];
+        if (!question) return;
         const answeredAt = Date.now();
 
         setCorrectStreak(0);
@@ -1301,7 +1388,6 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             ? submitAnswer(roomId, myUid, myQuestionIndex, '__timeout__', false)
             : Promise.resolve();
 
-        const question = roomData.questions[myQuestionIndex];
         addWrongQuestion({
             subject: '英単語バトル',
             questionId: question.word,
@@ -1316,7 +1402,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
 
     // 問題タイマー（問題が変わるたびにリセット）
     useEffect(() => {
-        if (phase !== 'playing' || !roomData) return;
+        if (phase !== 'playing' || !roomData || !hasCurrentQuestion) return;
         clearInterval(timerIntervalRef.current);
         setTimer(ANSWER_TIME_LIMIT);
 
@@ -1332,7 +1418,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         }, 1000);
 
         return () => clearInterval(timerIntervalRef.current);
-    }, [phase, myQuestionIndex, roomData, handleTimeUp]);
+    }, [phase, myQuestionIndex, roomData, hasCurrentQuestion, handleTimeUp]);
 
     // 退出
     const handleLeave = async () => {
@@ -1688,7 +1774,18 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             );
         }
 
-        const question = roomData.questions[myQuestionIndex];
+        if (!hasCurrentQuestion) {
+            return (
+                <div className="mp-screen">
+                    <div className="mp-loading-content">
+                        <Loader2 className="mp-spin" size={48} />
+                        <p>問題データを確認中...</p>
+                    </div>
+                </div>
+            );
+        }
+
+        const question = currentQuestion;
         const opponent = getOpponent();
         const myRoomPlayer = getMyPlayerFromRoom();
         const opScore = opponent?.score || 0;
