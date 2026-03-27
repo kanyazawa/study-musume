@@ -12,7 +12,6 @@ import {
     leaveRoom,
     markFinished,
     TARGET_CORRECT,
-    generateQuestions
 } from '../firebase/matching';
 import { getBackgroundStyle } from '../utils/cosmeticUtils';
 import {
@@ -30,6 +29,7 @@ import {
     normalizeBattleMode,
     normalizeTargetCorrect,
     resolveWinnerUid,
+    shuffleArray,
     summarizeAnswers,
 } from '../utils/matchUtils';
 import { addWrongQuestion } from '../utils/reviewUtils';
@@ -84,6 +84,9 @@ const ANSWER_TIME_LIMIT = 10; // 1問あたりの制限時間（秒）
 const WRONG_ANSWER_DELAY = 1200; // 不正解時に正解を表示する時間（ms）
 const MATCHING_TIMEOUT_MS = 30000;
 const LISTENING_REPLAY_LIMIT = 1;
+const SOLO_INITIAL_QUESTION_BATCH = 6;
+const SOLO_BACKGROUND_QUESTION_BATCH = 12;
+const SOLO_PRELOAD_THRESHOLD = 3;
 const SOLO_SESSION_PRESETS = [
     {
         id: 'standard',
@@ -171,6 +174,17 @@ const sanitizeMatchQuestions = (questions, fallbackMeanings = []) => {
     }).filter(Boolean);
 };
 
+const buildQuestionsFromVocabItems = (vocabItems, fallbackMeanings = []) => {
+    return sanitizeMatchQuestions(
+        (Array.isArray(vocabItems) ? vocabItems : []).map((item) => ({
+            word: item?.word,
+            correctAnswer: item?.meaning,
+            options: buildQuestionOptions(item?.meaning, fallbackMeanings),
+        })),
+        fallbackMeanings,
+    );
+};
+
 const buildSoloRoomData = ({
     questions,
     uid,
@@ -180,6 +194,7 @@ const buildSoloRoomData = ({
     level,
     retry = false,
     sessionLabel = '',
+    totalQuestionCount = questions.length,
     sourceQuestionCount = questions.length,
 }) => ({
     id: `solo-${level}-${questions.length}-${Date.now()}`,
@@ -188,6 +203,7 @@ const buildSoloRoomData = ({
     level,
     soloRetry: retry,
     sessionLabel,
+    totalQuestionCount,
     sourceQuestionCount,
     player1: {
         uid,
@@ -362,6 +378,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const [persistentEmotion, setPersistentEmotion] = useState(null);
     const [highestCorrectStreak, setHighestCorrectStreak] = useState(0);
     const [selectedSoloSessionId, setSelectedSoloSessionId] = useState('standard');
+    const [isSoloQuestionBatchLoading, setIsSoloQuestionBatchLoading] = useState(false);
 
     // 連鎖ボイスを事前読み込みしておく（ラグ解消のため）
     const chainAudioCacheRef = useRef({});
@@ -387,6 +404,9 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     }, [isNativePlatform]);
 
     const chainLipIntervalRef = useRef(null);
+    const soloQuestionQueueRef = useRef([]);
+    const soloBatchLoadingRef = useRef(false);
+    const soloBatchTimeoutRef = useRef(null);
 
     const unsubscribeRef = useRef(null);
     const timerIntervalRef = useRef(null);
@@ -429,6 +449,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const canUseSpeechSynthesis = typeof window !== 'undefined' && 'speechSynthesis' in window;
     const isPoseSpeaking = isCharacterSpeaking || isPronouncingQuestion;
     const currentQuestion = roomData?.questions?.[myQuestionIndex] ?? null;
+    const totalQuestionCount = roomData?.totalQuestionCount || roomData?.questions?.length || 0;
     const hasCurrentQuestion = Boolean(
         currentQuestion &&
         String(currentQuestion.word ?? '').trim() &&
@@ -792,8 +813,11 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         clearTimeout(answerFxTimeoutRef.current);
         clearTimeout(resultFxTimeoutRef.current);
         clearTimeout(chainCalloutTimeoutRef.current);
+        clearTimeout(soloBatchTimeoutRef.current);
         clearInterval(chainLipIntervalRef.current);
         cancelQuestionPronunciation();
+        soloQuestionQueueRef.current = [];
+        soloBatchLoadingRef.current = false;
         setRoomId(null);
         setRoomData(null);
         setMyQuestionIndex(0);
@@ -815,6 +839,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         setPronunciationReplayCount(0);
         setPersistentEmotion(null);
         setHighestCorrectStreak(0);
+        setIsSoloQuestionBatchLoading(false);
         resultFxPlayedRef.current = null;
     }, [cancelQuestionPronunciation]);
 
@@ -939,6 +964,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             clearTimeout(answerFxTimeoutRef.current);
             clearTimeout(resultFxTimeoutRef.current);
             clearTimeout(chainCalloutTimeoutRef.current);
+            clearTimeout(soloBatchTimeoutRef.current);
             cancelQuestionPronunciation();
             if (audioContextRef.current?.state && audioContextRef.current.state !== 'closed') {
                 audioContextRef.current.close().catch(() => {});
@@ -999,6 +1025,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const goToNextQuestion = useCallback(async (wasCorrect) => {
         const newScore = wasCorrect ? myScore + 1 : myScore;
         const nextIndex = myQuestionIndex + 1;
+        const totalQuestions = roomData?.totalQuestionCount || roomData?.questions.length || 0;
 
         // 対戦モード：正解数が目標に達したか判定
         if (!isSolo && newScore >= matchTargetCorrect) {
@@ -1010,7 +1037,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         }
 
         // 問題プールを使い切った場合もゲーム終了
-        if (roomData && nextIndex >= roomData.questions.length) {
+        if (roomData && nextIndex >= totalQuestions) {
             clearInterval(timerIntervalRef.current);
             setMyScore(newScore);
             if (!isSolo) {
@@ -1066,7 +1093,40 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         }, delayMs);
     }, [goToNextQuestion]);
 
-    const startSoloSession = useCallback((questions, level, { retry = false } = {}) => {
+    const appendSoloQuestionBatch = useCallback(({ immediate = false } = {}) => {
+        if (!isSolo || soloBatchLoadingRef.current || soloQuestionQueueRef.current.length === 0) {
+            return false;
+        }
+
+        soloBatchLoadingRef.current = true;
+        setIsSoloQuestionBatchLoading(true);
+
+        const loadBatch = () => {
+            const nextVocabItems = soloQuestionQueueRef.current.splice(0, SOLO_BACKGROUND_QUESTION_BATCH);
+            const nextQuestions = buildQuestionsFromVocabItems(nextVocabItems, allVocabMeanings);
+
+            if (nextQuestions.length > 0) {
+                setRoomData((prev) => (prev ? {
+                    ...prev,
+                    questions: [...prev.questions, ...nextQuestions],
+                } : prev));
+            }
+
+            soloBatchLoadingRef.current = false;
+            setIsSoloQuestionBatchLoading(false);
+        };
+
+        clearTimeout(soloBatchTimeoutRef.current);
+        if (immediate) {
+            loadBatch();
+        } else {
+            soloBatchTimeoutRef.current = setTimeout(loadBatch, 0);
+        }
+
+        return true;
+    }, [allVocabMeanings, isSolo]);
+
+    const startSoloSession = useCallback((questions, level, { retry = false, totalCount, sourceCount } = {}) => {
         const safeQuestions = sanitizeMatchQuestions(questions, allVocabMeanings);
 
         if (safeQuestions.length === 0) {
@@ -1090,7 +1150,8 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             level,
             retry,
             sessionLabel: retry ? '苦手克服' : (selectedSoloSessionOption?.label || `${safeQuestions.length}問`),
-            sourceQuestionCount: retry ? safeQuestions.length : soloVocabPool.length,
+            totalQuestionCount: totalCount || safeQuestions.length,
+            sourceQuestionCount: sourceCount || safeQuestions.length,
         }));
         setPhase('countdown');
     }, [
@@ -1102,7 +1163,6 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         myUid,
         resetMatchState,
         selectedSoloSessionOption?.label,
-        soloVocabPool.length,
     ]);
 
     // マッチング開始
@@ -1155,9 +1215,17 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
 
         if (isSolo) {
             const targetLevel = soloLevel;
-            const questionCount = selectedSoloSessionOption?.actualCount || soloVocabPool.length || 999;
-            const questions = generateQuestions(targetLevel, questionCount);
-            startSoloSession(questions, targetLevel);
+            const questionCount = Math.min(selectedSoloSessionOption?.actualCount || soloVocabPool.length || 999, soloVocabPool.length);
+            const selectedVocabItems = shuffleArray(soloVocabPool).slice(0, questionCount);
+            const initialVocabItems = selectedVocabItems.slice(0, SOLO_INITIAL_QUESTION_BATCH);
+            const remainingVocabItems = selectedVocabItems.slice(initialVocabItems.length);
+            const initialQuestions = buildQuestionsFromVocabItems(initialVocabItems, allVocabMeanings);
+
+            soloQuestionQueueRef.current = remainingVocabItems;
+            startSoloSession(initialQuestions, targetLevel, {
+                totalCount: selectedVocabItems.length,
+                sourceCount: soloVocabPool.length,
+            });
             return;
         }
 
@@ -1193,6 +1261,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         directRoomId,
         isFriendMatch,
         isSolo,
+        allVocabMeanings,
         myCharacterId,
         myDisplayName,
         myEquippedSkin,
@@ -1202,7 +1271,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         resetMatchState,
         selectedSoloSessionOption?.actualCount,
         soloLevel,
-        soloVocabPool.length,
+        soloVocabPool,
         startSoloSession,
     ]);
 
@@ -1214,8 +1283,39 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     }, [isFriendMatch, myUid, phase, startMatching]);
 
     useEffect(() => {
+        if (!isSolo || phase !== 'countdown' || roomData?.questions?.length !== SOLO_INITIAL_QUESTION_BATCH) {
+            return;
+        }
+
+        appendSoloQuestionBatch();
+    }, [appendSoloQuestionBatch, isSolo, phase, roomData?.questions?.length]);
+
+    useEffect(() => {
+        if (!isSolo || phase !== 'playing' || !roomData || soloQuestionQueueRef.current.length === 0) {
+            return;
+        }
+
+        const loadedAheadCount = roomData.questions.length - (myQuestionIndex + 1);
+        if (loadedAheadCount <= SOLO_PRELOAD_THRESHOLD) {
+            appendSoloQuestionBatch();
+        }
+    }, [appendSoloQuestionBatch, isSolo, myQuestionIndex, phase, roomData]);
+
+    useEffect(() => {
         if (phase !== 'playing' || !roomData?.questions?.length || hasCurrentQuestion) {
             return;
+        }
+
+        if (isSolo) {
+            const hasQueuedQuestions = soloQuestionQueueRef.current.length > 0;
+            if (hasQueuedQuestions) {
+                appendSoloQuestionBatch({ immediate: true });
+                return;
+            }
+
+            if (isSoloQuestionBatchLoading) {
+                return;
+            }
         }
 
         console.warn('Current match question is missing or malformed.', {
@@ -1230,7 +1330,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             message: '最初の問題データが壊れていたため、この回は安全に中止しました。もう一度試してください。',
         });
         setPhase('error');
-    }, [phase, roomData, myQuestionIndex, hasCurrentQuestion, cancelQuestionPronunciation]);
+    }, [appendSoloQuestionBatch, cancelQuestionPronunciation, hasCurrentQuestion, isSolo, isSoloQuestionBatchLoading, myQuestionIndex, phase, roomData]);
 
     // 解答選択
     const handleAnswer = useCallback(async (answer) => {
@@ -1762,8 +1862,8 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     }
 
     // プレイ中
-    if (phase === 'playing' && roomData && roomData.questions.length > 0) {
-        if (myQuestionIndex >= roomData.questions.length) {
+    if (phase === 'playing' && roomData && totalQuestionCount > 0) {
+        if (myQuestionIndex >= totalQuestionCount) {
             return (
                 <div className="mp-screen">
                     <div className="mp-loading-content">
@@ -1789,7 +1889,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         const opponent = getOpponent();
         const myRoomPlayer = getMyPlayerFromRoom();
         const opScore = opponent?.score || 0;
-        const totalQuestions = roomData.questions.length;
+        const totalQuestions = totalQuestionCount;
         const currentQuestionLabel = `${Math.min(myQuestionIndex + 1, totalQuestions)} / ${totalQuestions}`;
         const targetHint = `あと ${Math.max(matchTargetCorrect - myScore, 0)} 問で勝利`;
         const leadMeta = !isSolo ? getLeadMeta(myScore, opScore) : null;
@@ -1910,6 +2010,11 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                             {isSolo && (
                                 <div className={`mp-question-pill ${highestCorrectStreak >= 8 ? 'mp-question-pill-lead' : highestCorrectStreak >= 5 ? 'mp-question-pill-primary' : 'mp-question-pill-neutral'} mp-question-pill-chain`}>
                                     {highestCorrectStreak > 0 ? `Best ${highestCorrectStreak} CHAIN` : 'CHAIN 0'}
+                                </div>
+                            )}
+                            {isSolo && isSoloQuestionBatchLoading && (
+                                <div className="mp-question-pill mp-question-pill-neutral">
+                                    次の問題を準備中...
                                 </div>
                             )}
                         </div>
@@ -2049,7 +2154,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         const myPlayerRoom = getMyPlayerFromRoom();
         const finalMyScore = Math.max(myPlayerRoom?.score || 0, myScore);
         const opScore = opponent?.score || 0;
-        const totalQuestions = roomData.questions.length;
+        const totalQuestions = roomData.totalQuestionCount || roomData.questions.length;
         const sourceQuestionCount = roomData.sourceQuestionCount || totalQuestions;
         const winnerUid = roomData.winnerUid ?? resolveWinnerUid(roomData, matchTargetCorrect);
         const mySummary = summarizeAnswers(myPlayerRoom?.answers || []);
