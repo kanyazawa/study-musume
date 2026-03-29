@@ -1,5 +1,5 @@
-import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Filter, Calendar, BookOpen, Sparkles, Clock3, CircleAlert, ArrowRight } from 'lucide-react';
 import {
     getReviewQuestions,
@@ -8,9 +8,14 @@ import {
     getReviewStats,
     formatReviewLevel,
     sortReviewQuestions,
-    buildReviewSessionOrder
+    buildReviewSessionOrder,
+    getNormalizedDailyReviewProgress,
+    getNextReviewStreakMilestone,
+    REVIEW_STREAK_REWARDS,
+    REVIEW_TICKET_BONUS_DIAMONDS,
+    REVIEW_TICKET_BONUS_INTELLECT,
+    REVIEW_TICKET_DAILY_LIMIT,
 } from '../utils/reviewUtils';
-import { getTodayString } from '../utils/loginBonusUtils';
 import { STUDY_TOPICS } from '../data/studyTopics';
 import './Review.css';
 
@@ -29,51 +34,9 @@ const REVIEW_PER_CORRECT_DIAMONDS = 2;
 const REVIEW_PER_CORRECT_INTELLECT = 5;
 const REVIEW_PERFECT_BONUS_DIAMONDS = 6;
 const REVIEW_PERFECT_BONUS_INTELLECT = 8;
-const REVIEW_TICKET_DAILY_LIMIT = 3;
-const REVIEW_TICKET_BONUS_DIAMONDS = 6;
-const REVIEW_TICKET_BONUS_INTELLECT = 10;
-const REVIEW_STREAK_REWARDS = {
-    2: { diamonds: 5, intellect: 8, label: '2セット連続ボーナス' },
-    3: { diamonds: 12, intellect: 18, label: '3セット連続ボーナス' },
-    5: { diamonds: 20, intellect: 30, label: '5セット連続ボーナス' },
-};
 const EMPTY_STREAK_REWARD = { diamonds: 0, intellect: 0, label: '' };
 
 const getReviewStreakReward = (sessionStreak) => REVIEW_STREAK_REWARDS[sessionStreak] || EMPTY_STREAK_REWARD;
-
-const getNextReviewStreakMilestone = (sessionStreak) => {
-    const upcomingMilestone = Object.keys(REVIEW_STREAK_REWARDS)
-        .map(Number)
-        .sort((a, b) => a - b)
-        .find((milestone) => milestone > sessionStreak);
-
-    if (!upcomingMilestone) return null;
-
-    return {
-        sessionCount: upcomingMilestone,
-        ...REVIEW_STREAK_REWARDS[upcomingMilestone],
-    };
-};
-
-const getNormalizedDailyReviewProgress = (stats) => {
-    const today = getTodayString();
-    const isToday = stats?.reviewRewardDate === today;
-    const parsedTickets = Number(stats?.reviewTicketsRemaining);
-
-    return {
-        today,
-        reviewSetsToday: isToday ? Math.max(0, Number(stats?.reviewSetsToday) || 0) : 0,
-        reviewTicketsRemaining: isToday
-            ? Math.max(
-                0,
-                Math.min(
-                    REVIEW_TICKET_DAILY_LIMIT,
-                    Number.isFinite(parsedTickets) ? parsedTickets : REVIEW_TICKET_DAILY_LIMIT
-                )
-            )
-            : REVIEW_TICKET_DAILY_LIMIT,
-    };
-};
 
 const getNoaReviewRewardMessage = ({ rewardSummary, dueReduced, totalReduced, nextMilestone }) => {
     if (!rewardSummary) return '短く回して終われる形にしてあるから、また気が向いたらすぐ戻っておいで。';
@@ -103,6 +66,7 @@ const getNoaReviewRewardMessage = ({ rewardSummary, dueReduced, totalReduced, ne
 
 const Review = ({ stats, updateStats }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [questions, setQuestions] = useState([]);
     const [filteredQuestions, setFilteredQuestions] = useState([]);
     const [selectedSubject, setSelectedSubject] = useState('all');
@@ -114,6 +78,7 @@ const Review = ({ stats, updateStats }) => {
     const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_QUESTIONS);
     const [lastSessionSummary, setLastSessionSummary] = useState(null);
     const [sessionSnapshot, setSessionSnapshot] = useState(null);
+    const hasConsumedAutoStartRef = useRef(false);
 
     const loadReviewData = useCallback(() => {
         const allQuestions = getReviewQuestions();
@@ -154,6 +119,12 @@ const Review = ({ stats, updateStats }) => {
     useEffect(() => {
         setVisibleCount(INITIAL_VISIBLE_QUESTIONS);
     }, [selectedSubject, selectedPriority, questions]);
+
+    useEffect(() => {
+        if (!location.state?.autoStart) {
+            hasConsumedAutoStartRef.current = false;
+        }
+    }, [location.state]);
 
     const { reviewSetsToday, reviewTicketsRemaining } = getNormalizedDailyReviewProgress(stats);
 
@@ -213,7 +184,7 @@ const Review = ({ stats, updateStats }) => {
         return badges[priority] || badges.later;
     };
 
-    const startReview = (startQuestionId = null, sessionSize = selectedSessionSize) => {
+    const startReview = useCallback((startQuestionId = null, sessionSize = selectedSessionSize) => {
         if (filteredQuestions.length === 0) {
             alert('復習する問題がありません');
             return;
@@ -249,7 +220,22 @@ const Review = ({ stats, updateStats }) => {
         });
         setQuizQuestions(sessionPool.slice(0, actualSessionSize));
         setIsQuizMode(true);
-    };
+    }, [filteredQuestions, loadReviewData, questions.length, reviewStats?.due, reviewStats?.total, selectedSessionSize]);
+
+    useEffect(() => {
+        const autoStartConfig = location.state;
+        if (!autoStartConfig?.autoStart || hasConsumedAutoStartRef.current) {
+            return;
+        }
+
+        if (filteredQuestions.length === 0 || isQuizMode) {
+            return;
+        }
+
+        hasConsumedAutoStartRef.current = true;
+        startReview(autoStartConfig.startQuestionId || null, autoStartConfig.sessionSize || REVIEW_SESSION_SIZE);
+        navigate(location.pathname, { replace: true, state: null });
+    }, [filteredQuestions, isQuizMode, location.pathname, location.state, navigate, startReview]);
 
     const handleQuizComplete = ({ results = [], completed = false } = {}) => {
         if (completed && results.length > 0) {

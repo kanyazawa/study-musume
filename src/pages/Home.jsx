@@ -19,6 +19,7 @@ import { processLoginBonus } from '../utils/loginBonusUtils';
 import { getLatestNoaAssistantMessageEntry } from '../utils/chatHistory';
 import { inferEmotionFromChatText } from '../utils/chatEmotionUtils';
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
+import { getHomeReviewSummary } from '../utils/reviewUtils';
 
 const inferHomeEmotion = ({ emotion, speech, tp, maxTp, affectionLevel, examDate }) => {
     if (emotion && emotion !== 'normal') {
@@ -167,6 +168,7 @@ const Home = ({ stats, updateStats }) => {
     };
 
     const countdownDisplay = getCountdownDisplay();
+    const homeReviewSummary = useMemo(() => getHomeReviewSummary(stats), [stats]);
 
     const stopTalkAnimation = useCallback(() => {
         if (talkAnimationTimerRef.current) {
@@ -302,6 +304,21 @@ const Home = ({ stats, updateStats }) => {
     // Calculate TP percentage
     const tpPercent = Math.min((tp / maxTp) * 100, 100);
 
+    const handleOpenRecommendedReview = () => {
+        if (!homeReviewSummary.hasReviews) {
+            navigate('/study');
+            return;
+        }
+
+        navigate('/review', {
+            state: {
+                autoStart: true,
+                sessionSize: homeReviewSummary.sessionSize || 10,
+                startQuestionId: homeReviewSummary.recommendedQuestion?.id || null,
+            },
+        });
+    };
+
     return (
         <div className="home-screen">
             {/* Menu Modal */}
@@ -398,6 +415,44 @@ const Home = ({ stats, updateStats }) => {
                         {countdownDisplay.suffix && <span className="days-label">{countdownDisplay.suffix}</span>}
                     </div>
                 </div>
+
+                <button
+                    type="button"
+                    className={`home-review-card is-${homeReviewSummary.mode}`}
+                    onClick={handleOpenRecommendedReview}
+                >
+                    <div className="home-review-card-header">
+                        <span className="home-review-kicker">おすすめ復習</span>
+                        <span className={`home-review-priority is-${homeReviewSummary.mode}`}>
+                            {homeReviewSummary.priorityLabel}
+                        </span>
+                    </div>
+                    <strong className="home-review-headline">{homeReviewSummary.headline}</strong>
+                    <p className="home-review-body">{homeReviewSummary.body}</p>
+                    {homeReviewSummary.recommendedQuestion && (
+                        <div className="home-review-focus">
+                            <span className="home-review-focus-label">いちばん先に触る問題</span>
+                            <span className="home-review-focus-text">{homeReviewSummary.recommendedPreview}</span>
+                            <span className="home-review-focus-meta">{homeReviewSummary.recommendedMeta}</span>
+                        </div>
+                    )}
+                    {homeReviewSummary.bonusHints?.length > 0 && (
+                        <div className="home-review-bonus-strip">
+                            {homeReviewSummary.bonusHints.map((hint) => (
+                                <span key={hint} className="home-review-bonus-pill">
+                                    {hint}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                    <div className="home-review-footer">
+                        <span className="home-review-stats">
+                            復習待ち {homeReviewSummary.total}件
+                            {homeReviewSummary.hasReviews && ` · 今日 ${homeReviewSummary.due}件 · 連続 ${homeReviewSummary.reviewSetsToday}セット`}
+                        </span>
+                        <span className="home-review-cta">{homeReviewSummary.ctaLabel}</span>
+                    </div>
+                </button>
 
                 {/* Character Figure */}
                 <div

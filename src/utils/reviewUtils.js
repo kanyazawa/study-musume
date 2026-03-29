@@ -2,10 +2,20 @@
 // 復習システムのユーティリティ関数
 // ============================================
 
+import { getTodayString } from './loginBonusUtils';
+
 // 忘却曲線に基づく復習間隔（日数）
 const REVIEW_INTERVALS = [1, 3, 7, 14, 30];
 const MAX_REVIEW_LEVEL = 5; // レベル5で完全習得
 const MAX_REVIEW_HISTORY = 12;
+export const REVIEW_TICKET_DAILY_LIMIT = 3;
+export const REVIEW_TICKET_BONUS_DIAMONDS = 6;
+export const REVIEW_TICKET_BONUS_INTELLECT = 10;
+export const REVIEW_STREAK_REWARDS = {
+    2: { diamonds: 5, intellect: 8, label: '2セット連続ボーナス' },
+    3: { diamonds: 12, intellect: 18, label: '3セット連続ボーナス' },
+    5: { diamonds: 20, intellect: 30, label: '5セット連続ボーナス' },
+};
 
 const normalizeReviewHistory = (history) => {
     if (!Array.isArray(history)) return [];
@@ -368,6 +378,171 @@ export const getReviewStats = () => {
             soon: questions.filter(q => getReviewPriority(q.nextReviewDate) === 'soon').length,
             later: questions.filter(q => getReviewPriority(q.nextReviewDate) === 'later').length
         }
+    };
+};
+
+/**
+ * 連続セット報酬の次の節目を取得
+ * @param {number} sessionStreak
+ * @returns {Object|null}
+ */
+export const getNextReviewStreakMilestone = (sessionStreak = 0) => {
+    const upcomingMilestone = Object.keys(REVIEW_STREAK_REWARDS)
+        .map(Number)
+        .sort((a, b) => a - b)
+        .find((milestone) => milestone > sessionStreak);
+
+    if (!upcomingMilestone) return null;
+
+    return {
+        sessionCount: upcomingMilestone,
+        ...REVIEW_STREAK_REWARDS[upcomingMilestone],
+    };
+};
+
+/**
+ * 今日の復習進捗を正規化して返す
+ * @param {Object} stats
+ * @returns {{today: string, reviewSetsToday: number, reviewTicketsRemaining: number}}
+ */
+export const getNormalizedDailyReviewProgress = (stats) => {
+    const today = getTodayString();
+    const isToday = stats?.reviewRewardDate === today;
+    const parsedTickets = Number(stats?.reviewTicketsRemaining);
+
+    return {
+        today,
+        reviewSetsToday: isToday ? Math.max(0, Number(stats?.reviewSetsToday) || 0) : 0,
+        reviewTicketsRemaining: isToday
+            ? Math.max(
+                0,
+                Math.min(
+                    REVIEW_TICKET_DAILY_LIMIT,
+                    Number.isFinite(parsedTickets) ? parsedTickets : REVIEW_TICKET_DAILY_LIMIT
+                )
+            )
+            : REVIEW_TICKET_DAILY_LIMIT,
+    };
+};
+
+/**
+ * 最優先の復習問題を取得
+ * @param {Array} [questions] - 復習問題リスト
+ * @returns {Object|null}
+ */
+export const getRecommendedReviewQuestion = (questions = getReviewQuestions()) => {
+    if (!Array.isArray(questions) || questions.length === 0) {
+        return null;
+    }
+
+    return sortReviewQuestions(questions)[0] || null;
+};
+
+/**
+ * ホーム画面向けの復習サマリーを作る
+ * @param {Object} [currentStats]
+ * @returns {Object}
+ */
+export const getHomeReviewSummary = (currentStats = null) => {
+    const questions = getReviewQuestions();
+    const stats = getReviewStats();
+    const dailyProgress = getNormalizedDailyReviewProgress(currentStats);
+    const nextMilestone = getNextReviewStreakMilestone(dailyProgress.reviewSetsToday);
+    const recommendedQuestion = getRecommendedReviewQuestion(questions);
+    const topSubjectEntry = Object.entries(stats.bySubject || {})
+        .sort((a, b) => b[1] - a[1])[0] || null;
+    const topSubject = topSubjectEntry
+        ? { name: topSubjectEntry[0], count: topSubjectEntry[1] }
+        : null;
+
+    if (!recommendedQuestion) {
+        return {
+            hasReviews: false,
+            mode: 'empty',
+            total: 0,
+            due: 0,
+            urgentCount: 0,
+            soonCount: 0,
+            laterCount: 0,
+            sessionSize: 0,
+            headline: '復習ストックはまだ空',
+            body: '間違えた問題はここに集まるよ。今日は新しい問題を進めよう。',
+            ctaLabel: '勉強へ',
+            topSubject: null,
+            recommendedQuestion: null,
+            recommendedPreview: '',
+            recommendedMeta: '',
+            priorityLabel: '準備OK',
+            reviewSetsToday: dailyProgress.reviewSetsToday,
+            reviewTicketsRemaining: dailyProgress.reviewTicketsRemaining,
+            nextMilestone: null,
+            bonusHints: [],
+        };
+    }
+
+    const sessionSize = Math.min(stats.due > 0 ? stats.due : questions.length, 10);
+    const urgentCount = stats.byPriority?.urgent || 0;
+    const soonCount = stats.byPriority?.soon || 0;
+    const laterCount = stats.byPriority?.later || 0;
+    const priority = getReviewPriority(recommendedQuestion.nextReviewDate);
+    const basePreview = String(recommendedQuestion.questionText || '').replace(/\s+/g, ' ').trim();
+    const recommendedPreview = basePreview.length > 42 ? `${basePreview.slice(0, 42)}...` : basePreview;
+
+    let mode = 'later';
+    let headline = `余裕があるうちに ${sessionSize}問`;
+    let body = topSubject
+        ? `${topSubject.name} が ${topSubject.count} 問たまってる。軽く整えておくと後が楽。`
+        : '今すぐの期限はないけど、先に少しだけ片づけると後がかなり軽くなる。';
+    let ctaLabel = `${sessionSize}問だけ復習`;
+    let priorityLabel = 'あとでOK';
+
+    if (stats.due > 0) {
+        mode = 'due';
+        headline = `今日の復習 ${stats.due}件`;
+        body = soonCount > 0
+            ? `今すぐ ${urgentCount} 件、近日中 ${soonCount} 件。重いところから先に片づけよう。`
+            : `今すぐやる分が ${urgentCount} 件あるよ。短く回して復習負債を軽くしよう。`;
+        ctaLabel = `${sessionSize}問すぐやる`;
+        priorityLabel = '今すぐ';
+    } else if (soonCount > 0) {
+        mode = 'soon';
+        headline = `近日中の復習 ${soonCount}件`;
+        body = topSubject
+            ? `${topSubject.name} を先に触っておくと期限前に余裕が作れる。`
+            : '今は切れてないけど、近いうちに必要になる問題が待ってる。';
+        ctaLabel = `${sessionSize}問先回り`;
+        priorityLabel = '近日中';
+    }
+
+    const bonusHints = [];
+    if (dailyProgress.reviewTicketsRemaining > 0) {
+        bonusHints.push(`🎫 次のセットで +${REVIEW_TICKET_BONUS_DIAMONDS} / +${REVIEW_TICKET_BONUS_INTELLECT}`);
+    }
+    if (nextMilestone) {
+        bonusHints.push(`🔥 あと${Math.max(nextMilestone.sessionCount - dailyProgress.reviewSetsToday, 0)}セットで ${nextMilestone.label}`);
+    }
+
+    return {
+        hasReviews: true,
+        mode,
+        total: stats.total,
+        due: stats.due,
+        urgentCount,
+        soonCount,
+        laterCount,
+        sessionSize,
+        headline,
+        body,
+        ctaLabel,
+        topSubject,
+        recommendedQuestion,
+        recommendedPreview,
+        recommendedMeta: `${recommendedQuestion.subject} · ${formatRelativeDate(recommendedQuestion.nextReviewDate)} · ❌ ${recommendedQuestion.wrongCount}回`,
+        priorityLabel,
+        reviewSetsToday: dailyProgress.reviewSetsToday,
+        reviewTicketsRemaining: dailyProgress.reviewTicketsRemaining,
+        nextMilestone,
+        bonusHints,
     };
 };
 
