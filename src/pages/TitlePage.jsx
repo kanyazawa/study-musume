@@ -19,15 +19,15 @@ const TitlePage = () => {
             <div className="title-content fade-in">
                 <div className="title-logo-container">
                     <h1 className="main-title">先輩<br />ここがわかりません</h1>
-                    <div className="sub-title">先輩、ここがわかりません</div>
+                    <div className="sub-title">放課後補習ラブコメ x 学習トレーニング</div>
                 </div>
 
                 <div className="start-prompt">
-                    <span className="blink-text">TAP TO START</span>
+                    <span className="blink-text">画面をタップしてはじめる</span>
                 </div>
 
                 <div className="copyright">
-                    &copy; 2026 先輩、ここがわかりません Project
+                    &copy; 2026 Study Musume Project
                 </div>
             </div>
         </div>

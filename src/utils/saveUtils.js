@@ -43,7 +43,16 @@ export const getDefaultStats = () => ({
     // TP回復システム
     lastTpUpdateTime: Date.now(),
     // マルチプレイ対戦レート
-    multiplayerRating: 1000
+    multiplayerRating: 1000,
+    relationshipDaily: {
+        date: '',
+        talk: 0,
+        chat: 0,
+        study: 0,
+        gift: 0,
+    },
+    relationshipMoments: [],
+    relationshipLastInteractionAt: null,
 });
 
 // ============================================
@@ -66,6 +75,8 @@ const SYNC_KEYS = [
     'statsTracking',
     'studyProgress',
     'lastStudyTopic',
+    'writingHistory',
+    'writingDrafts',
 ];
 
 // デバウンスタイマー

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import './Home.css';
 // Footer removed
@@ -18,8 +19,10 @@ import { ACHIEVEMENTS } from '../data/achievements';
 import { processLoginBonus } from '../utils/loginBonusUtils';
 import { getLatestNoaAssistantMessageEntry } from '../utils/chatHistory';
 import { inferEmotionFromChatText } from '../utils/chatEmotionUtils';
+import { getEnabledHomeTouchAreas, getHomeTouchReaction } from '../data/homeTouchReactions';
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
 import { getHomeReviewSummary } from '../utils/reviewUtils';
+import { useSound } from '../contexts/SoundContext';
 
 const inferHomeEmotion = ({ emotion, speech, tp, maxTp, affectionLevel, examDate }) => {
     if (emotion && emotion !== 'normal') {
@@ -86,7 +89,7 @@ const toVisibleHomeEmotion = (emotion) => {
 const Home = ({ stats, updateStats }) => {
     // Default stats if not provided (fallback)
     const {
-        name = 'トレーナー',
+        name = '先輩',
         rank = 'C+',
         tp = 100,
         maxTp = 100,
@@ -110,14 +113,22 @@ const Home = ({ stats, updateStats }) => {
     });
 
     const navigate = useNavigate();
+    const { playVoice, stopVoice } = useSound();
     const [speech, setSpeech] = useState("");
     const [emotion, setEmotion] = useState('normal');
+    const [activeHomeReaction, setActiveHomeReaction] = useState(null);
     const [userInputEmotion, setUserInputEmotion] = useState(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [loginBonusData, setLoginBonusData] = useState(null);
     const [isTalkAnimating, setIsTalkAnimating] = useState(false);
+    const [speechNonce, setSpeechNonce] = useState(0);
+    const [touchMotion, setTouchMotion] = useState('');
     const talkAnimationTimerRef = useRef(null);
     const userInputEmotionTimerRef = useRef(null);
+    const touchMotionTimerRef = useRef(null);
+    const touchAreaTapGuardRef = useRef(0);
+    const interactionDedupRef = useRef({ key: '', timestamp: 0 });
+    const speechPriorityLockRef = useRef(0);
 
     // Get equipped title
     const selectedTitle = stats?.selectedTitle;
@@ -138,11 +149,18 @@ const Home = ({ stats, updateStats }) => {
         affectionLevel: affectionLevelInfo.level,
         examDate,
     })), [affectionLevelInfo.level, emotion, examDate, maxTp, speech, tp, userInputEmotion]);
-    const homePose = useMemo(() => createHomePose({ emotion: homeEmotion, text: speech }, { speaking: isTalkAnimating }), [homeEmotion, isTalkAnimating, speech]);
+    const homePose = useMemo(() => ({
+        ...createHomePose({
+            ...(activeHomeReaction || {}),
+            emotion: homeEmotion,
+            text: speech,
+        }, { speaking: isTalkAnimating }),
+        speechNonce,
+    }), [activeHomeReaction, homeEmotion, isTalkAnimating, speech, speechNonce]);
 
     const getCountdownDisplay = () => {
         if (!examDate) {
-            return { value: '--', suffix: '日', title: '入試日未設定' };
+            return { value: '--', suffix: '日', title: '目標日未設定' };
         }
 
         const today = new Date();
@@ -157,18 +175,31 @@ const Home = ({ stats, updateStats }) => {
         const remainingDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
         if (remainingDays < 0) {
-            return { value: '終了', suffix: '', title: '入試日通過' };
+            return { value: '終了', suffix: '', title: '本番終了' };
         }
 
         if (remainingDays === 0) {
-            return { value: '今日', suffix: '', title: '入試当日' };
+            return { value: '今日', suffix: '', title: '本番当日' };
         }
 
-        return { value: remainingDays, suffix: '日', title: '入試まで' };
+        return { value: remainingDays, suffix: '日', title: '本番まで' };
     };
 
     const countdownDisplay = getCountdownDisplay();
     const homeReviewSummary = useMemo(() => getHomeReviewSummary(stats), [stats]);
+    const homeTouchAreas = useMemo(() => getEnabledHomeTouchAreas(characterId), [characterId]);
+    const examDaysLeft = useMemo(() => {
+        if (!examDate) return null;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const target = new Date(`${examDate}T00:00:00`);
+        if (Number.isNaN(target.getTime())) {
+            return null;
+        }
+
+        return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    }, [examDate]);
 
     const stopTalkAnimation = useCallback(() => {
         if (talkAnimationTimerRef.current) {
@@ -197,30 +228,149 @@ const Home = ({ stats, updateStats }) => {
     }, [setUserInputEmotion]);
 
     const startTimedTalkAnimation = useCallback((text) => {
-        stopTalkAnimation();
+        if (talkAnimationTimerRef.current) {
+            clearTimeout(talkAnimationTimerRef.current);
+            talkAnimationTimerRef.current = null;
+        }
+        flushSync(() => {
+            setIsTalkAnimating(false);
+            setSpeechNonce((current) => current + 1);
+        });
         setIsTalkAnimating(true);
         talkAnimationTimerRef.current = setTimeout(() => {
             setIsTalkAnimating(false);
             talkAnimationTimerRef.current = null;
         }, Math.max(1500, String(text || '').length * 150));
-    }, [stopTalkAnimation, setIsTalkAnimating]);
+    }, [setIsTalkAnimating]);
+
+    const triggerTouchMotion = useCallback((areaId) => {
+        if (touchMotionTimerRef.current) {
+            clearTimeout(touchMotionTimerRef.current);
+            touchMotionTimerRef.current = null;
+        }
+
+        const nextMotion = areaId === 'chest' ? 'chest-flinch' : areaId === 'hair' ? 'hair-sway' : 'face-bounce';
+        const duration = areaId === 'chest' ? 520 : 320;
+
+        setTouchMotion(nextMotion);
+        touchMotionTimerRef.current = setTimeout(() => {
+            setTouchMotion('');
+            touchMotionTimerRef.current = null;
+        }, duration);
+    }, []);
+
+    const isDuplicateInteraction = useCallback((key, windowMs = 700) => {
+        const now = Date.now();
+        const last = interactionDedupRef.current;
+        if (last.key === key && now - last.timestamp < windowMs) {
+            return true;
+        }
+
+        interactionDedupRef.current = { key, timestamp: now };
+        return false;
+    }, []);
+
+    const lockManualSpeechPriority = useCallback((durationMs = 1800) => {
+        speechPriorityLockRef.current = Date.now() + durationMs;
+    }, []);
 
     // Random speech on mount and click (好感度レベルに応じて)
-    const talk = useCallback(() => {
+    const talk = useCallback(async ({ source = 'system' } = {}) => {
+        if (source !== 'system' && isDuplicateInteraction(`talk:${source}`)) {
+            return;
+        }
+
+        if (source === 'system' && Date.now() < speechPriorityLockRef.current) {
+            return;
+        }
+
         const reaction = getHomeReaction({
             affection,
             tp,
             maxTp,
             loginStreak,
             characterId,
+            reviewDueCount: homeReviewSummary.due,
+            examDaysLeft,
         });
+        setActiveHomeReaction(reaction);
         setSpeech(reaction.text);
         setEmotion(toVisibleHomeEmotion(reaction.emotion || 'normal'));
         startTimedTalkAnimation(reaction.text);
 
+        const played = reaction.voice
+            ? await playVoice(reaction.voice, {
+                channel: 'home',
+                onStart: () => {
+                    startTimedTalkAnimation(reaction.text);
+                },
+                onEnd: () => {
+                    stopTalkAnimation();
+                },
+            })
+            : false;
+
+        if (!played && reaction.voice) {
+            stopTalkAnimation();
+            startTimedTalkAnimation(reaction.text);
+        }
+
         // Update mission progress for character interaction
         updateMissionsOnInteract();
-    }, [affection, characterId, loginStreak, maxTp, startTimedTalkAnimation, tp]);
+    }, [affection, characterId, examDaysLeft, homeReviewSummary.due, isDuplicateInteraction, loginStreak, maxTp, playVoice, startTimedTalkAnimation, stopTalkAnimation, tp]);
+
+    const handleTouchAreaTap = useCallback(async (areaId, event) => {
+        if (isDuplicateInteraction(`area:${areaId}`)) {
+            event?.preventDefault?.();
+            event?.stopPropagation?.();
+            return;
+        }
+
+        touchAreaTapGuardRef.current = Date.now() + 1000;
+        lockManualSpeechPriority();
+        event?.preventDefault?.();
+        event?.stopPropagation?.();
+        triggerTouchMotion(areaId);
+
+        const reaction = getHomeTouchReaction(characterId, areaId);
+        if (!reaction) {
+            return;
+        }
+
+        setActiveHomeReaction(reaction);
+        setSpeech(reaction.text);
+        setEmotion(toVisibleHomeEmotion(reaction.emotion || 'normal'));
+        startTimedTalkAnimation(reaction.text);
+
+        const played = reaction.voice
+            ? await playVoice(reaction.voice, {
+                channel: 'home',
+                onStart: () => {
+                    startTimedTalkAnimation(reaction.text);
+                },
+                onEnd: () => {
+                    stopTalkAnimation();
+                },
+            })
+            : false;
+
+        if (!played && reaction.voice) {
+            stopTalkAnimation();
+            startTimedTalkAnimation(reaction.text);
+        }
+
+        updateMissionsOnInteract();
+    }, [characterId, isDuplicateInteraction, lockManualSpeechPriority, playVoice, startTimedTalkAnimation, stopTalkAnimation, triggerTouchMotion]);
+
+    const handleCharacterTap = useCallback((event) => {
+        if (Date.now() < touchAreaTapGuardRef.current) {
+            event?.preventDefault?.();
+            event?.stopPropagation?.();
+            return;
+        }
+
+        void talk({ source: 'touch' });
+    }, [talk]);
 
     const reactToUserMessage = useCallback((userText, { emotion: nextEmotion } = {}) => {
         const inferredEmotion = toVisibleHomeEmotion(
@@ -230,13 +380,15 @@ const Home = ({ stats, updateStats }) => {
     }, [scheduleUserInputEmotion]);
 
     const syncSpeechWithNoaReply = useCallback((replyText, { animate = false, emotion: replyEmotion } = {}) => {
+        if (Date.now() < speechPriorityLockRef.current) {
+            return;
+        }
+
         const nextSpeech = String(replyText || '').trim();
         if (!nextSpeech) return;
 
         const inferredReplyEmotion = replyEmotion || inferEmotionFromChatText(nextSpeech, { role: 'assistant' });
-
-        setSpeech(nextSpeech);
-        setEmotion(toVisibleHomeEmotion(
+        const visibleReplyEmotion = toVisibleHomeEmotion(
             inferredReplyEmotion !== 'normal'
                 ? inferredReplyEmotion
                 : inferHomeEmotion({
@@ -247,7 +399,14 @@ const Home = ({ stats, updateStats }) => {
                     affectionLevel: affectionLevelInfo.level,
                     examDate,
                 })
-        ));
+        );
+
+        setActiveHomeReaction({
+            emotion: visibleReplyEmotion,
+            text: nextSpeech,
+        });
+        setSpeech(nextSpeech);
+        setEmotion(visibleReplyEmotion);
         if (animate) {
             startTimedTalkAnimation(nextSpeech);
         } else {
@@ -266,7 +425,7 @@ const Home = ({ stats, updateStats }) => {
             return;
         }
 
-        talk();
+        void talk();
     }, [affectionLevelInfo.level, syncSpeechWithNoaReply, talk]);
 
     useEffect(() => {
@@ -294,12 +453,17 @@ const Home = ({ stats, updateStats }) => {
     useEffect(() => (
         () => {
             stopTalkAnimation();
+            stopVoice('home');
             if (userInputEmotionTimerRef.current) {
                 clearTimeout(userInputEmotionTimerRef.current);
                 userInputEmotionTimerRef.current = null;
             }
+            if (touchMotionTimerRef.current) {
+                clearTimeout(touchMotionTimerRef.current);
+                touchMotionTimerRef.current = null;
+            }
         }
-    ), [stopTalkAnimation]);
+    ), [stopTalkAnimation, stopVoice]);
 
     // Calculate TP percentage
     const tpPercent = Math.min((tp / maxTp) * 100, 100);
@@ -317,6 +481,14 @@ const Home = ({ stats, updateStats }) => {
                 startQuestionId: homeReviewSummary.recommendedQuestion?.id || null,
             },
         });
+    };
+
+    const getReviewShortcutLabel = () => {
+        if (!homeReviewSummary.hasReviews) {
+            return '弱点ノートは空です。授業一覧へ移動します。';
+        }
+
+        return `${homeReviewSummary.priorityLabel}の弱点回収。今日 ${homeReviewSummary.due}件、連続 ${homeReviewSummary.reviewSetsToday}セット。`;
     };
 
     return (
@@ -420,38 +592,21 @@ const Home = ({ stats, updateStats }) => {
                     type="button"
                     className={`home-review-card is-${homeReviewSummary.mode}`}
                     onClick={handleOpenRecommendedReview}
+                    aria-label={getReviewShortcutLabel()}
+                    title={getReviewShortcutLabel()}
                 >
-                    <div className="home-review-card-header">
-                        <span className="home-review-kicker">おすすめ復習</span>
-                        <span className={`home-review-priority is-${homeReviewSummary.mode}`}>
-                            {homeReviewSummary.priorityLabel}
+                    <span className={`home-review-priority-dot is-${homeReviewSummary.mode}`} aria-hidden="true" />
+                    <span className="home-review-title">弱点回収</span>
+                    <span className="home-review-value" aria-hidden="true">
+                        {homeReviewSummary.hasReviews
+                            ? `${homeReviewSummary.due}件`
+                            : 'GO'}
+                    </span>
+                    {homeReviewSummary.reviewSetsToday > 0 && (
+                        <span className="home-review-streak" aria-hidden="true">
+                            {homeReviewSummary.reviewSetsToday}
                         </span>
-                    </div>
-                    <strong className="home-review-headline">{homeReviewSummary.headline}</strong>
-                    <p className="home-review-body">{homeReviewSummary.body}</p>
-                    {homeReviewSummary.recommendedQuestion && (
-                        <div className="home-review-focus">
-                            <span className="home-review-focus-label">いちばん先に触る問題</span>
-                            <span className="home-review-focus-text">{homeReviewSummary.recommendedPreview}</span>
-                            <span className="home-review-focus-meta">{homeReviewSummary.recommendedMeta}</span>
-                        </div>
                     )}
-                    {homeReviewSummary.bonusHints?.length > 0 && (
-                        <div className="home-review-bonus-strip">
-                            {homeReviewSummary.bonusHints.map((hint) => (
-                                <span key={hint} className="home-review-bonus-pill">
-                                    {hint}
-                                </span>
-                            ))}
-                        </div>
-                    )}
-                    <div className="home-review-footer">
-                        <span className="home-review-stats">
-                            復習待ち {homeReviewSummary.total}件
-                            {homeReviewSummary.hasReviews && ` · 今日 ${homeReviewSummary.due}件 · 連続 ${homeReviewSummary.reviewSetsToday}セット`}
-                        </span>
-                        <span className="home-review-cta">{homeReviewSummary.ctaLabel}</span>
-                    </div>
                 </button>
 
                 {/* Character Figure */}
@@ -459,11 +614,11 @@ const Home = ({ stats, updateStats }) => {
                     className={`character-figure ${renderer === 'live2d' ? 'is-live2d' : ''}`}
                 >
                     <div
-                        className="character-touch-target"
-                        onClick={talk}
+                        className={`character-touch-target ${touchMotion ? `motion-${touchMotion}` : ''}`}
+                        onPointerUp={handleCharacterTap}
                         role="button"
                         tabIndex={0}
-                        onKeyDown={(e) => e.key === 'Enter' && talk()}
+                        onKeyDown={(e) => e.key === 'Enter' && void talk({ source: 'touch' })}
                     >
                         <CharacterStage
                             characterId={characterId}
@@ -474,7 +629,40 @@ const Home = ({ stats, updateStats }) => {
                             className="character-home"
                             imageClassName={`char-image ${isTalkAnimating ? 'talk-burst' : ''}`}
                         />
+                        {renderer === 'live2d' && (homePose.live2dFaceAccent === 'blush' || homePose.live2dFaceAccent === 'shy') && (
+                            <div className={`home-live2d-face-accent is-${homePose.live2dFaceAccent}`} aria-hidden="true">
+                                <span className="home-live2d-blush left" />
+                                <span className="home-live2d-blush right" />
+                                {homePose.live2dFaceAccent === 'shy' && (
+                                    <>
+                                        <span className="home-live2d-eye-lid left" />
+                                        <span className="home-live2d-eye-lid right" />
+                                        <span className="home-live2d-mouth-shy" />
+                                    </>
+                                )}
+                            </div>
+                        )}
                     </div>
+
+                    {homeTouchAreas.length > 0 && (
+                        <div className="home-touch-hotspot-layer">
+                            {homeTouchAreas.map((area) => (
+                                <button
+                                    key={area.id}
+                                    type="button"
+                                    className={`home-touch-hotspot is-${area.id}`}
+                                    style={{
+                                        left: area.left,
+                                        top: area.top,
+                                        width: area.width,
+                                        height: area.height,
+                                    }}
+                                    onPointerUp={(event) => { void handleTouchAreaTap(area.id, event); }}
+                                    aria-label={`${area.label}をタップ`}
+                                />
+                            ))}
+                        </div>
+                    )}
 
                     {/* Speech Bubble */}
                     <div className="speech-bubble">
@@ -485,23 +673,23 @@ const Home = ({ stats, updateStats }) => {
                 {/* Action Buttons */}
                 <div className="action-area">
                     <button className="battle-btn-large" onClick={() => navigate('/multiplayer-match')}>
-                        <span>⚔️ 対戦</span>
+                        <span>⚔️ 単語バトル</span>
                     </button>
                     <button className="study-btn-large" onClick={() => navigate('/study')}>
-                        <span>📚 勉強</span>
+                        <span>📚 授業へ</span>
                     </button>
                 </div>
 
                 {/* Social Buttons (Right Side) */}
                 <div className="social-buttons">
                     <button className="mission-btn-side" onClick={() => navigate('/missions')}>
-                        <span>✓ ミッション</span>
+                        <span>📋 課題</span>
                     </button>
                     <button className="friend-btn" onClick={() => navigate('/friends')}>
-                        <span>👥 フレンド</span>
+                        <span>🤝 仲間</span>
                     </button>
                     <button className="ranking-btn" onClick={() => navigate('/ranking')}>
-                        <span>🏆 ランキング</span>
+                        <span>🏆 順位表</span>
                     </button>
                 </div>
 

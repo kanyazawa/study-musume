@@ -51,6 +51,53 @@ const audioCache = new Map();
 const speakerListCache = new Map();
 const speakerListPromiseCache = new Map();
 
+const clampNumber = (value, min, max) => Math.min(max, Math.max(min, value));
+
+const roundTo = (value, digits = 3) => {
+    const factor = 10 ** digits;
+    return Math.round(value * factor) / factor;
+};
+
+const toFiniteNumber = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+};
+
+const hashString = (value) => {
+    const text = String(value || '');
+    let hash = 0;
+
+    for (let index = 0; index < text.length; index += 1) {
+        hash = ((hash * 31) + text.charCodeAt(index)) >>> 0;
+    }
+
+    return hash;
+};
+
+const getSeededOffset = (seed, offset = 0) => ((((seed >> offset) & 0xff) / 255) - 0.5);
+
+const getNormalizedEmotion = (...values) => String(values.filter(Boolean).join(' '))
+    .trim()
+    .toLowerCase();
+
+const buildVariationSignature = (parts = {}) => JSON.stringify(parts);
+
+const applyAudioQueryOverrides = (audioQuery, overrides = {}) => {
+    if (!audioQuery || !overrides || typeof overrides !== 'object') {
+        return audioQuery;
+    }
+
+    const nextAudioQuery = { ...audioQuery };
+    Object.entries(overrides).forEach(([key, rawValue]) => {
+        const numericValue = toFiniteNumber(rawValue);
+        if (numericValue !== null) {
+            nextAudioQuery[key] = numericValue;
+        }
+    });
+
+    return nextAudioQuery;
+};
+
 const getDeepgramEndpoints = () => {
     if (typeof window === 'undefined') {
         return [DEFAULT_ENGINE_BASE_URLS[TTS_ENGINES.DEEPGRAM], CLOUDFLARE_TTS_ENDPOINT];
@@ -170,7 +217,154 @@ export const isEngineAvailable = async (engine = TTS_ENGINES.VOICEVOX, baseUrl =
 
 export const isVoicevoxAvailable = async () => isEngineAvailable(TTS_ENGINES.VOICEVOX);
 
-const createCacheKey = (engine, text, speakerId, baseUrl) => `${engine}_${baseUrl}_${text}_${speakerId}`;
+const createCacheKey = (engine, text, speakerId, baseUrl, variationSignature = '') =>
+    `${engine}_${baseUrl}_${text}_${speakerId}_${variationSignature}`;
+
+export const buildSpeechVariationProfile = (
+    text,
+    {
+        emotion = '',
+        expression = '',
+        speaker = '',
+        isMale = false,
+        browserPitch = 1.2,
+        browserRate = 1.0,
+        pitchOverride,
+        rateOverride,
+        speedScale,
+        pitchScale,
+        intonationScale,
+        volumeScale,
+        prePhonemeLength,
+        postPhonemeLength,
+        seedHint = '',
+    } = {}
+) => {
+    const normalizedText = String(text || '').trim();
+    const normalizedEmotion = getNormalizedEmotion(emotion, expression);
+    const seed = hashString(`${speaker}|${normalizedEmotion}|${normalizedText}|${seedHint}`);
+    const jitterA = getSeededOffset(seed, 0);
+    const jitterB = getSeededOffset(seed, 8);
+
+    const hasExcitement = /[!！]/.test(normalizedText);
+    const hasQuestion = /[?？]/.test(normalizedText);
+    const hasPause = /…|\.{2,}|、/.test(normalizedText);
+    const textLength = normalizedText.length;
+
+    let pitchBias = isMale ? -0.1 : 0.08;
+    let rateBias = 0;
+    let enginePitchBias = isMale ? -0.04 : 0.03;
+    let speedBias = 0;
+    let intonationBias = 0;
+
+    if (/(happy|smile|relaxed|excited|love)/.test(normalizedEmotion)) {
+        pitchBias += isMale ? 0.02 : 0.08;
+        rateBias += 0.04;
+        enginePitchBias += 0.03;
+        speedBias += 0.04;
+        intonationBias += 0.14;
+    }
+
+    if (/(shy|sweet|soft|gentle)/.test(normalizedEmotion)) {
+        pitchBias += isMale ? 0.01 : 0.05;
+        rateBias -= 0.03;
+        enginePitchBias += 0.02;
+        intonationBias += 0.08;
+    }
+
+    if (/(serious|sad|cool|sleepy|tired)/.test(normalizedEmotion)) {
+        pitchBias -= isMale ? 0.02 : 0.05;
+        rateBias -= 0.06;
+        enginePitchBias -= 0.025;
+        speedBias -= 0.06;
+        intonationBias -= 0.08;
+    }
+
+    if (/(angry|tsun|sharp)/.test(normalizedEmotion)) {
+        pitchBias -= isMale ? 0.01 : 0.04;
+        rateBias += 0.03;
+        enginePitchBias -= 0.02;
+        speedBias += 0.03;
+        intonationBias += 0.12;
+    }
+
+    if (hasExcitement) {
+        pitchBias += isMale ? 0.01 : 0.04;
+        rateBias += 0.03;
+        enginePitchBias += 0.015;
+        speedBias += 0.03;
+        intonationBias += 0.12;
+    }
+
+    if (hasQuestion) {
+        pitchBias += isMale ? 0.005 : 0.025;
+        rateBias -= 0.01;
+        enginePitchBias += 0.012;
+        intonationBias += 0.08;
+    }
+
+    if (hasPause || textLength >= 40) {
+        rateBias -= 0.04;
+        speedBias -= 0.04;
+    }
+
+    if (textLength <= 10) {
+        rateBias += 0.02;
+        speedBias += 0.02;
+    }
+
+    const resolvedPitch = toFiniteNumber(pitchOverride);
+    const resolvedRate = toFiniteNumber(rateOverride);
+
+    const browser = {
+        pitch: resolvedPitch ?? roundTo(clampNumber(browserPitch + pitchBias + (jitterA * 0.08), 0.65, 1.75), 2),
+        rate: resolvedRate ?? roundTo(clampNumber(browserRate + rateBias + (jitterB * 0.05), 0.78, 1.22), 2),
+        isMale,
+    };
+
+    const engineAudioQuery = {
+        speedScale: roundTo(clampNumber(
+            toFiniteNumber(speedScale) ?? (1 + speedBias + (jitterB * 0.05)),
+            0.82,
+            1.18
+        )),
+        pitchScale: roundTo(clampNumber(
+            toFiniteNumber(pitchScale) ?? (enginePitchBias + (jitterA * 0.03)),
+            -0.12,
+            0.14
+        )),
+        intonationScale: roundTo(clampNumber(
+            toFiniteNumber(intonationScale) ?? (1 + intonationBias + (jitterA * 0.08)),
+            0.78,
+            1.4
+        )),
+        volumeScale: roundTo(clampNumber(toFiniteNumber(volumeScale) ?? 1, 0.6, 1.4)),
+        prePhonemeLength: roundTo(clampNumber(
+            toFiniteNumber(prePhonemeLength) ?? (0.08 + (hasPause ? 0.01 : 0) + (Math.abs(jitterB) * 0.01)),
+            0.03,
+            0.18
+        )),
+        postPhonemeLength: roundTo(clampNumber(
+            toFiniteNumber(postPhonemeLength) ?? (0.1 + (hasPause ? 0.04 : 0.01) + (Math.abs(jitterA) * 0.02)),
+            0.05,
+            0.24
+        )),
+    };
+
+    return {
+        browser,
+        engine: {
+            audioQueryOverrides: engineAudioQuery,
+        },
+        signature: buildVariationSignature({
+            emotion: normalizedEmotion,
+            speaker: String(speaker || ''),
+            browserPitch: browser.pitch,
+            browserRate: browser.rate,
+            ...engineAudioQuery,
+        }),
+    };
+};
 
 export const fetchEngineSpeakers = async (engine = TTS_ENGINES.VOICEVOX, baseUrl = getEngineBaseUrl(engine)) => {
     if (!baseUrl || engine === TTS_ENGINES.BROWSER || engine === TTS_ENGINES.DEEPGRAM) return [];
@@ -266,7 +460,7 @@ export const speakWithEngine = async (
     engine = TTS_ENGINES.VOICEVOX,
     text,
     speakerId = VOICEVOX_SPEAKERS.ZUNDAMON,
-    { baseUrl = getEngineBaseUrl(engine), onStart, onEnd } = {}
+    { baseUrl = getEngineBaseUrl(engine), onStart, onEnd, audioQueryOverrides, cacheKeyHint = '' } = {}
 ) => {
     try {
         if (engine === TTS_ENGINES.DEEPGRAM) {
@@ -277,7 +471,7 @@ export const speakWithEngine = async (
 
             for (const endpoint of endpoints) {
                 try {
-                    const cacheKey = createCacheKey(engine, text, model, endpoint);
+                    const cacheKey = createCacheKey(engine, text, model, endpoint, cacheKeyHint);
                     if (audioCache.has(cacheKey)) {
                         const audioBlob = audioCache.get(cacheKey);
                         const audioUrl = URL.createObjectURL(audioBlob);
@@ -345,7 +539,8 @@ export const speakWithEngine = async (
 
         if (!baseUrl) return false;
 
-        const cacheKey = createCacheKey(engine, text, speakerId, baseUrl);
+        const variationSignature = cacheKeyHint || buildVariationSignature(audioQueryOverrides);
+        const cacheKey = createCacheKey(engine, text, speakerId, baseUrl, variationSignature);
         if (audioCache.has(cacheKey)) {
             const audioBlob = audioCache.get(cacheKey);
             const audioUrl = URL.createObjectURL(audioBlob);
@@ -375,7 +570,8 @@ export const speakWithEngine = async (
         );
         if (!queryResponse.ok) throw new Error('Audio query failed');
 
-        const audioQuery = await queryResponse.json();
+        const rawAudioQuery = await queryResponse.json();
+        const audioQuery = applyAudioQueryOverrides(rawAudioQuery, audioQueryOverrides);
         const synthesisResponse = await fetch(
             `${baseUrl}/synthesis?speaker=${speakerId}`,
             {
@@ -421,7 +617,7 @@ export const prefetchEngine = async (
     engine = TTS_ENGINES.VOICEVOX,
     text,
     speakerId = VOICEVOX_SPEAKERS.ZUNDAMON,
-    { baseUrl = getEngineBaseUrl(engine) } = {}
+    { baseUrl = getEngineBaseUrl(engine), audioQueryOverrides, cacheKeyHint = '' } = {}
 ) => {
     try {
         if (engine === TTS_ENGINES.DEEPGRAM) {
@@ -431,7 +627,7 @@ export const prefetchEngine = async (
 
             for (const endpoint of endpoints) {
                 try {
-                    const cacheKey = createCacheKey(engine, text, model, endpoint);
+                    const cacheKey = createCacheKey(engine, text, model, endpoint, cacheKeyHint);
                     if (audioCache.has(cacheKey)) return true;
 
                     const response = await fetch(endpoint, {
@@ -457,7 +653,8 @@ export const prefetchEngine = async (
 
         if (!baseUrl) return false;
 
-        const cacheKey = createCacheKey(engine, text, speakerId, baseUrl);
+        const variationSignature = cacheKeyHint || buildVariationSignature(audioQueryOverrides);
+        const cacheKey = createCacheKey(engine, text, speakerId, baseUrl, variationSignature);
         if (audioCache.has(cacheKey)) return true;
 
         const queryResponse = await fetch(
@@ -466,7 +663,8 @@ export const prefetchEngine = async (
         );
         if (!queryResponse.ok) return false;
 
-        const audioQuery = await queryResponse.json();
+        const rawAudioQuery = await queryResponse.json();
+        const audioQuery = applyAudioQueryOverrides(rawAudioQuery, audioQueryOverrides);
         const synthesisResponse = await fetch(
             `${baseUrl}/synthesis?speaker=${speakerId}`,
             {

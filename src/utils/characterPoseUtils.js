@@ -47,6 +47,8 @@ export const createHomePose = (reaction, { speaking = false } = {}) => {
     const intensity = emotion === 'normal'
         ? 0.48
         : 0.9;
+    const live2dExpression = reaction?.live2dExpression ?? (emotion === 'shy' ? 'none' : '');
+    const live2dFaceAccent = reaction?.live2dFaceAccent ?? '';
 
     return {
         emotion,
@@ -58,6 +60,8 @@ export const createHomePose = (reaction, { speaking = false } = {}) => {
         scene: 'home',
         speaking,
         text: reaction?.text ?? '',
+        live2dExpression,
+        live2dFaceAccent,
         effect: '',
     };
 };

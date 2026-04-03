@@ -52,6 +52,7 @@
     margin: 0;
     font-size: 1.35rem;
     font-weight: 800;
+    font-family: var(--font-display);
     letter-spacing: 0.02em;
     text-shadow: 0 2px 8px rgba(124, 63, 0, 0.18);
 }
@@ -131,8 +132,8 @@
 .review-session-option-kicker {
     font-size: 0.72rem;
     font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-family: var(--font-round);
+    letter-spacing: 0.04em;
     color: #d36a1a;
 }
 
@@ -215,6 +216,8 @@
     font-size: 1.35rem;
     font-weight: 900;
     color: #4e341e;
+    font-family: var(--font-display);
+    letter-spacing: 0.03em;
 }
 
 .review-hero-copy p {
@@ -229,8 +232,8 @@
     margin-bottom: 0.45rem;
     font-size: 0.72rem;
     font-weight: 800;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    font-family: var(--font-round);
+    letter-spacing: 0.05em;
     color: #d46a17;
 }
 
@@ -255,11 +258,14 @@
     font-size: 0.72rem;
     color: #9d7c53;
     font-weight: 700;
+    font-family: var(--font-round);
 }
 
 .hero-chip strong {
     font-size: 1rem;
     color: #4c3520;
+    font-family: var(--font-number);
+    letter-spacing: 0.03em;
 }
 
 .review-stats-bar {
@@ -293,6 +299,8 @@
     font-size: 1.45rem;
     font-weight: 900;
     color: #2c405a;
+    font-family: var(--font-number);
+    letter-spacing: 0.03em;
 }
 
 .stat-value.urgent {
@@ -470,6 +478,8 @@
     border-radius: 999px;
     font-size: 0.8rem;
     font-weight: 800;
+    font-family: var(--font-round);
+    letter-spacing: 0.04em;
     box-shadow: 0 6px 14px rgba(255, 154, 61, 0.24);
 }
 
@@ -566,6 +576,7 @@
     color: #b5601a;
     font-size: 0.84rem;
     font-weight: 800;
+    font-family: var(--font-round);
 }
 
 .start-review-btn-inline {

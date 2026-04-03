@@ -63,6 +63,8 @@ const StudySelect = () => {
             // 章がない場合は直接学習へ
             if (unit.id === 'eng_vocab_basic' || unit.topic === '英単語') {
                 navigate(`/multiplayer-match?mode=solo`);
+            } else if (unit.mode === 'writing') {
+                navigate(`/writing${unit.writingLevel ? `?level=${unit.writingLevel}` : ''}`);
             } else {
                 navigate(`/dialogue?topic=${unit.topic}`);
             }
@@ -80,6 +82,8 @@ const StudySelect = () => {
             if (chapter.level) {
                 // クイズレベルが設定されている場合（例: 英検5級など）はソロモードへ
                 navigate(`/multiplayer-match?mode=solo&level=${chapter.level}`);
+            } else if (chapter.mode === 'writing') {
+                navigate(`/writing${chapter.writingLevel ? `?level=${chapter.writingLevel}` : ''}`);
             } else {
                 navigate(`/dialogue?topic=${chapter.topic}`);
             }
@@ -90,6 +94,8 @@ const StudySelect = () => {
     const handleSectionClick = (section) => {
         if (section.level) {
             navigate(`/multiplayer-match?mode=solo&level=${section.level}`);
+        } else if (section.mode === 'writing') {
+            navigate(`/writing${section.writingLevel ? `?level=${section.writingLevel}` : ''}`);
         } else {
             navigate(`/dialogue?topic=${section.topic}`);
         }
@@ -181,12 +187,12 @@ const StudySelect = () => {
 
     // タイトルを取得
     const getTitle = () => {
-        if (currentLevel === 'subject') return '科目選択';
-        if (currentLevel === 'category') return '分野選択';
-        if (currentLevel === 'unit') return '単元選択';
-        if (currentLevel === 'chapter') return '章選択';
-        if (currentLevel === 'section') return '学習トピック';
-        return '科目選択';
+        if (currentLevel === 'subject') return '今日の授業を選ぶ';
+        if (currentLevel === 'category') return '分野を選ぶ';
+        if (currentLevel === 'unit') return '単元を選ぶ';
+        if (currentLevel === 'chapter') return '章を選ぶ';
+        if (currentLevel === 'section') return '演習テーマ';
+        return '今日の授業を選ぶ';
     };
 
     // タイトルを取得
@@ -223,11 +229,11 @@ const StudySelect = () => {
                 <input
                     type="text"
                     placeholder={
-                        currentLevel === 'subject' ? '科目を検索...' :
+                        currentLevel === 'subject' ? '授業を検索...' :
                             currentLevel === 'category' ? '分野を検索...' :
                                 currentLevel === 'unit' ? '単元を検索...' :
                                     currentLevel === 'chapter' ? '章を検索...' :
-                                        'トピックを検索...'
+                                        'テーマを検索...'
                     }
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -261,8 +267,16 @@ const StudySelect = () => {
                                 onClick={() => navigate('/review')}
                             >
                                 <span className="review-icon">📚</span>
-                                <span className="review-label">復習モード</span>
-                                <span className="review-hint">間違えた問題を復習</span>
+                                <span className="review-label">弱点ノート</span>
+                                <span className="review-hint">つまずいた問題だけ回収</span>
+                            </button>
+                            <button
+                                className="writing-mode-btn"
+                                onClick={() => navigate('/writing')}
+                            >
+                                <span className="review-icon">✍️</span>
+                                <span className="review-label">英検ライティング</span>
+                                <span className="review-hint">問題を見てAI採点</span>
                             </button>
                         </div>
                     </>
@@ -335,7 +349,7 @@ const StudySelect = () => {
                 {/* 検索結果なし */}
                 {displayData.length === 0 && searchQuery && (
                     <div className="no-results">
-                        <p>「{searchQuery}」に一致する結果が見つかりませんでした</p>
+                        <p>「{searchQuery}」に合う授業は見つかりませんでした</p>
                     </div>
                 )}
             </div>
@@ -343,7 +357,7 @@ const StudySelect = () => {
             {/* ホームボタン */}
             <div className="bottom-area">
                 <button className="big-home-btn" onClick={() => navigate('/home')}>
-                    ホーム
+                    ホームへ戻る
                 </button>
             </div>
         </div>

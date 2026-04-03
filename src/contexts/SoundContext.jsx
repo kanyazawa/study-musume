@@ -60,6 +60,7 @@ export const SoundProvider = ({ children }) => {
 
     // Refs
     const bgmRef = useRef(null);
+    const activeVoicesRef = useRef(new Map());
 
     const ensureBgm = () => {
         if (!bgmRef.current) {
@@ -77,6 +78,12 @@ export const SoundProvider = ({ children }) => {
             bgmRef.current.pause();
             bgmRef.current = null;
         }
+        activeVoicesRef.current.forEach((audio) => {
+            audio.__voiceDisposed = true;
+            audio.pause();
+            audio.src = '';
+        });
+        activeVoicesRef.current.clear();
     }, []);
 
     // バックグラウンド時にBGMを停止、フォアグラウンド復帰時に再開
@@ -147,7 +154,7 @@ export const SoundProvider = ({ children }) => {
 
     // Play Voice (from public/audio)
     const playVoice = async (filename, options = {}) => {
-        const { onStart, onEnd } = options;
+        const { onStart, onEnd, channel = 'default' } = options;
         if (!filename || isMuted) return Promise.resolve(false);
 
         let path = '';
@@ -159,17 +166,36 @@ export const SoundProvider = ({ children }) => {
         }
 
         return new Promise((resolve) => {
+            const previousAudio = activeVoicesRef.current.get(channel);
+            if (previousAudio) {
+                previousAudio.__voiceDisposed = true;
+                previousAudio.pause();
+                previousAudio.currentTime = 0;
+                previousAudio.src = '';
+                activeVoicesRef.current.delete(channel);
+            }
+
             const audio = new Audio(path);
             let settled = false;
             let started = false;
 
             const handleStart = () => {
+                if (audio.__voiceDisposed) return;
                 if (started) return;
                 started = true;
                 onStart?.();
             };
 
             const handleEnd = () => {
+                if (audio.__voiceDisposed) {
+                    if (activeVoicesRef.current.get(channel) === audio) {
+                        activeVoicesRef.current.delete(channel);
+                    }
+                    return;
+                }
+                if (activeVoicesRef.current.get(channel) === audio) {
+                    activeVoicesRef.current.delete(channel);
+                }
                 onEnd?.();
             };
 
@@ -181,6 +207,7 @@ export const SoundProvider = ({ children }) => {
 
             audio.preload = 'none';
             audio.volume = seVolume || volume;
+            activeVoicesRef.current.set(channel, audio);
             audio.addEventListener('play', handleStart, { once: true });
             audio.addEventListener('ended', handleEnd, { once: true });
             audio.addEventListener('error', () => {
@@ -200,6 +227,17 @@ export const SoundProvider = ({ children }) => {
                     finish(false);
                 });
         });
+    };
+
+    const stopVoice = (channel = 'default') => {
+        const audio = activeVoicesRef.current.get(channel);
+        if (!audio) return;
+
+        audio.__voiceDisposed = true;
+        audio.pause();
+        audio.currentTime = 0;
+        audio.src = '';
+        activeVoicesRef.current.delete(channel);
     };
 
     const toggleMute = () => setIsMuted(prev => !prev);
@@ -222,6 +260,7 @@ export const SoundProvider = ({ children }) => {
         pauseBGM,
         playSE,
         playVoice,
+        stopVoice,
         toggleMute,
         changeVolume
     };

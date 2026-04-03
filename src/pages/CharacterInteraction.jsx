@@ -14,6 +14,7 @@ import { getBackgroundStyle, getOwnedSkins, getOwnedBackgrounds } from '../utils
 import { createGiftPose, normalizeCharacterEmotion } from '../utils/characterPoseUtils';
 import { filterInventoryByType, removeFromInventory } from '../utils/itemUtils';
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
+import { getRelationshipSnapshot, recordRelationshipMoment } from '../utils/relationshipUtils';
 
 const CharacterInteraction = ({ stats, updateStats }) => {
     const navigate = useNavigate();
@@ -34,6 +35,7 @@ const CharacterInteraction = ({ stats, updateStats }) => {
     // Owned Cosmetics
     const ownedSkins = getOwnedSkins(stats.inventory || []);
     const ownedBackgrounds = getOwnedBackgrounds(stats.inventory || []);
+    const relationshipSnapshot = useMemo(() => getRelationshipSnapshot(stats), [stats]);
 
     const handleEquipSkin = (skinId) => {
         updateStats({ equippedSkin: skinId });
@@ -121,7 +123,17 @@ const CharacterInteraction = ({ stats, updateStats }) => {
 
         updateStats({
             inventory: newInventory,
-            affection: newAffection
+            affection: newAffection,
+            ...recordRelationshipMoment({
+                ...stats,
+                inventory: newInventory,
+                affection: newAffection,
+            }, {
+                type: 'gift',
+                summary: `${item.name}をプレゼントした`,
+                detail: '好みに合わせて選んだ気持ちが、しっかり届いたみたいだ。',
+                affectionDelta: item.affection,
+            }),
         });
 
         setGiftReaction(reaction);
@@ -146,6 +158,23 @@ const CharacterInteraction = ({ stats, updateStats }) => {
             <button className="ci-back-btn" onClick={() => navigate('/home')}>
                 <ArrowLeft size={32} color="white" />
             </button>
+
+            <section className="ci-relationship-card" aria-label="関係メモ">
+                <div className="ci-relationship-card-header">
+                    <span className="ci-relationship-card-label">関係メモ</span>
+                    <span className="ci-relationship-card-rhythm">{relationshipSnapshot.rhythmLabel}</span>
+                </div>
+                <div className="ci-relationship-card-stage">{relationshipSnapshot.stageLabel}</div>
+                <p className="ci-relationship-card-copy">{relationshipSnapshot.stageDescription}</p>
+                <div className="ci-relationship-card-latest">
+                    <span className="ci-relationship-card-latest-title">{relationshipSnapshot.latestMomentTitle}</span>
+                    <span className="ci-relationship-card-latest-detail">{relationshipSnapshot.latestMomentDetail}</span>
+                </div>
+                <div className="ci-relationship-card-footer">
+                    <span>{relationshipSnapshot.focusCopy}</span>
+                    <span>{relationshipSnapshot.nextHint}</span>
+                </div>
+            </section>
 
             {/* Gift Animation Overlay */}
             {givingItem && (
@@ -230,6 +259,11 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                             autoSpeakAssistant
                             onUserMessage={(_, { emotion: nextEmotion } = {}) => {
                                 setExpression(normalizeCharacterEmotion(nextEmotion, 'normal'));
+                                updateStats?.((currentStats) => recordRelationshipMoment(currentStats, {
+                                    type: 'chat',
+                                    summary: '二人きりで話し込んだ',
+                                    detail: '向き合って話すぶん、いつもより素直な空気になった。',
+                                }));
                             }}
                             onAssistantReply={(replyText, { emotion: nextEmotion } = {}) => {
                                 setChatSpeechText(String(replyText || '').trim());

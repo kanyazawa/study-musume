@@ -36,3 +36,16 @@ capacitor.config.json
 .deploy-head/
 .deploy-head.zip
 .deploy-head-zip/
+
+# Local runtime artifacts
+.edge-headless/
+.tmp-deepgram-test.bin
+.vite-dev.err
+.vite-dev.out
+.vite-dev.pid
+edge-dom.err
+edge-dom.out
+
+# Local generated export work
+tmp/
+tools/ffmpeg/

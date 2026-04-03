@@ -419,6 +419,15 @@ const clearActiveExpression = (model) => {
 };
 
 const resolveMappedExpression = (modelConfig, pose = {}) => {
+    const explicitExpression = String(pose.live2dExpression || '').trim().toLowerCase();
+    if (explicitExpression === 'none') {
+        return '';
+    }
+
+    if (explicitExpression) {
+        return explicitExpression;
+    }
+
     const expressionMap = modelConfig?.expressionMap;
     if (!expressionMap) {
         return '';
@@ -719,7 +728,7 @@ const Live2DViewer = ({
             startedAt: performance.now(),
             totalDuration: lastEntry ? lastEntry.time + lastEntry.duration : 0,
         };
-    }, [pose?.speaking, pose?.text]);
+    }, [pose?.speaking, pose?.text, pose?.speechNonce]);
 
     useEffect(() => {
         if (
@@ -884,6 +893,7 @@ const Live2DViewer = ({
                             if (model?.setParameterValueById) {
                                 let targetMouthValue = 0;
                                 let targetMouthFormValue = 0;
+                                let blinkValue = 1;
 
                                 if (currentPose.speaking && resolvedLipIds.length > 0) {
                                     const elapsed = Math.max(0, (performance.now() - startedAt) / 1000);
@@ -910,27 +920,7 @@ const Live2DViewer = ({
                                 const mouthFormFollowRate = targetMouthFormValue > animationState.mouthFormValue ? 0.2 : 0.15;
                                 animationState.mouthFormValue += (targetMouthFormValue - animationState.mouthFormValue) * mouthFormFollowRate;
                                 const mouthFormValue = clamp(animationState.mouthFormValue, 0, 0.28);
-                                setParameterValues(model, resolvedMouthFormIds, mouthFormValue);
-                                setParameterValues(model, resolvedBrowYIds, emotionProfile.browY);
-                                setParameterValues(model, resolvedEyeSmileIds, emotionProfile.eyeSmile);
-                                setParameterValues(model, resolvedEyeSquintIds, emotionProfile.eyeSquint);
-                                setParameterValues(model, resolvedBrowFormIds, emotionProfile.browForm);
-                                setParameterValues(model, resolvedAngleXIds, emotionProfile.angleX);
-                                setParameterValues(model, resolvedAngleYIds, emotionProfile.angleY);
-                                setParameterValues(model, resolvedAngleZIds, emotionProfile.angleZ);
-                                setParameterValues(model, resolvedAngryIds, emotionProfile.angry);
-                                setParameterValues(model, resolvedMouthXIds, emotionProfile.mouthX);
-                                setParameterValues(model, resolvedMouthFunnelIds, emotionProfile.mouthFunnel);
-                                setParameterValues(model, resolvedMouthShrugIds, emotionProfile.mouthShrug);
-                                setParameterValues(model, resolvedMouthWidenIds, emotionProfile.mouthWiden);
-                                setParameterValues(model, resolvedJawOpenIds, emotionProfile.jawOpen);
-                                setParameterValues(model, resolvedStarEyeIds, faceAccentKey === 'star' ? 30 : 0);
-                                setParameterValues(model, resolvedHeartEyeIds, faceAccentKey === 'heart' ? 30 : 0);
-                                applyPartOpacityOverrides(model, modelConfigRef.current, currentPose);
-
                                 if (resolvedEyeIds.length > 0) {
-                                    let blinkValue = 1;
-
                                     if (isBlinking) {
                                         const elapsedMs = performance.now() - blinkStartedAt;
                                         if (elapsedMs < blinkCloseMs) {
@@ -943,17 +933,39 @@ const Live2DViewer = ({
                                         }
                                         blinkValue = Math.max(0, Math.min(1, blinkValue));
                                     }
-
-                                    setParameterValues(model, resolvedEyeIds, blinkValue);
                                 }
+
+                                const applyCustomParameters = () => {
+                                    setParameterValues(model, resolvedLipIds, mouthValue);
+                                    setParameterValues(model, resolvedMouthFormIds, mouthFormValue);
+                                    setParameterValues(model, resolvedBrowYIds, emotionProfile.browY);
+                                    setParameterValues(model, resolvedEyeSmileIds, emotionProfile.eyeSmile);
+                                    setParameterValues(model, resolvedEyeSquintIds, emotionProfile.eyeSquint);
+                                    setParameterValues(model, resolvedBrowFormIds, emotionProfile.browForm);
+                                    setParameterValues(model, resolvedAngleXIds, emotionProfile.angleX);
+                                    setParameterValues(model, resolvedAngleYIds, emotionProfile.angleY);
+                                    setParameterValues(model, resolvedAngleZIds, emotionProfile.angleZ);
+                                    setParameterValues(model, resolvedAngryIds, emotionProfile.angry);
+                                    setParameterValues(model, resolvedMouthXIds, emotionProfile.mouthX);
+                                    setParameterValues(model, resolvedMouthFunnelIds, emotionProfile.mouthFunnel);
+                                    setParameterValues(model, resolvedMouthShrugIds, emotionProfile.mouthShrug);
+                                    setParameterValues(model, resolvedMouthWidenIds, emotionProfile.mouthWiden);
+                                    setParameterValues(model, resolvedJawOpenIds, emotionProfile.jawOpen);
+                                    setParameterValues(model, resolvedStarEyeIds, faceAccentKey === 'star' ? 30 : 0);
+                                    setParameterValues(model, resolvedHeartEyeIds, faceAccentKey === 'heart' ? 30 : 0);
+                                    setParameterValues(model, resolvedEyeIds, blinkValue);
+                                    applyPartOpacityOverrides(model, modelConfigRef.current, currentPose);
+                                };
+
+                                applyCustomParameters();
 
                                 if (typeof model.update === 'function') {
                                     model.update();
                                 }
 
-                                // Some prototype expressions/motions rewrite part opacities during update,
-                                // so re-apply scene overrides after the model finishes its internal pass.
-                                applyPartOpacityOverrides(model, modelConfigRef.current, currentPose);
+                                // Some prototype expressions/motions rewrite parameters and part opacities
+                                // during update, so re-apply our mouth/face sync after the internal pass.
+                                applyCustomParameters();
                             }
                         };
                         lappModel._patchedForSync = true;

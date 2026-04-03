@@ -41,7 +41,7 @@ const Login = ({ onLoginSuccess }) => {
                 <div className="login-header">
                     <div className="login-logo">📚</div>
                     <h1 className="login-title">先輩、ここがわかりません</h1>
-                    <p className="login-subtitle">勉強を楽しく、一緒に頑張ろう！</p>
+                    <p className="login-subtitle">放課後の勉強会、今日もここから。</p>
                 </div>
 
                 {/* Login Options */}
@@ -77,10 +77,10 @@ const Login = ({ onLoginSuccess }) => {
                         className="skip-login-btn"
                         onClick={handleSkip}
                     >
-                        ログインせずに始める
+                        ひとりで始める
                     </button>
                     <p className="skip-note">
-                        ※ログインなしではフレンド機能が使えません
+                        ※ログインなしではフレンド対戦やランキングは使えません
                     </p>
                 </div>
 
@@ -88,15 +88,15 @@ const Login = ({ onLoginSuccess }) => {
                 <div className="login-features">
                     <div className="feature-item">
                         <span className="feature-icon">👥</span>
-                        <span>フレンドと競争</span>
+                        <span>友だちと単語勝負</span>
                     </div>
                     <div className="feature-item">
                         <span className="feature-icon">📊</span>
-                        <span>データ同期</span>
+                        <span>学習データ同期</span>
                     </div>
                     <div className="feature-item">
                         <span className="feature-icon">🏆</span>
-                        <span>ランキング</span>
+                        <span>週間ランキング</span>
                     </div>
                 </div>
             </div>

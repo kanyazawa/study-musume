@@ -465,9 +465,9 @@ export const getHomeReviewSummary = (currentStats = null) => {
             soonCount: 0,
             laterCount: 0,
             sessionSize: 0,
-            headline: '復習ストックはまだ空',
-            body: '間違えた問題はここに集まるよ。今日は新しい問題を進めよう。',
-            ctaLabel: '勉強へ',
+            headline: '弱点ノートはまだ空',
+            body: '授業でつまずいた問題はここに残るよ。今日は新しい内容を進めよう。',
+            ctaLabel: '授業へ',
             topSubject: null,
             recommendedQuestion: null,
             recommendedPreview: '',
@@ -489,28 +489,28 @@ export const getHomeReviewSummary = (currentStats = null) => {
     const recommendedPreview = basePreview.length > 42 ? `${basePreview.slice(0, 42)}...` : basePreview;
 
     let mode = 'later';
-    let headline = `余裕があるうちに ${sessionSize}問`;
+    let headline = `余裕があるうちに ${sessionSize}問回収`;
     let body = topSubject
-        ? `${topSubject.name} が ${topSubject.count} 問たまってる。軽く整えておくと後が楽。`
-        : '今すぐの期限はないけど、先に少しだけ片づけると後がかなり軽くなる。';
-    let ctaLabel = `${sessionSize}問だけ復習`;
+        ? `${topSubject.name} が ${topSubject.count} 問たまってる。先に少し触っておくと次がかなり楽。`
+        : '今すぐの期限はないけど、先に少しだけ回収しておくと後がかなり軽くなる。';
+    let ctaLabel = `${sessionSize}問回収`;
     let priorityLabel = 'あとでOK';
 
     if (stats.due > 0) {
         mode = 'due';
-        headline = `今日の復習 ${stats.due}件`;
+        headline = `今日の回収 ${stats.due}件`;
         body = soonCount > 0
-            ? `今すぐ ${urgentCount} 件、近日中 ${soonCount} 件。重いところから先に片づけよう。`
-            : `今すぐやる分が ${urgentCount} 件あるよ。短く回して復習負債を軽くしよう。`;
-        ctaLabel = `${sessionSize}問すぐやる`;
+            ? `今すぐ ${urgentCount} 件、近日中 ${soonCount} 件。重いところから先に回収しよう。`
+            : `今すぐやる分が ${urgentCount} 件あるよ。短く回して弱点ノートを軽くしよう。`;
+        ctaLabel = `${sessionSize}問回収`;
         priorityLabel = '今すぐ';
     } else if (soonCount > 0) {
         mode = 'soon';
-        headline = `近日中の復習 ${soonCount}件`;
+        headline = `近日中の回収 ${soonCount}件`;
         body = topSubject
             ? `${topSubject.name} を先に触っておくと期限前に余裕が作れる。`
             : '今は切れてないけど、近いうちに必要になる問題が待ってる。';
-        ctaLabel = `${sessionSize}問先回り`;
+        ctaLabel = `${sessionSize}問だけ先回り`;
         priorityLabel = '近日中';
     }
 

@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Volume2 } from 'lucide-react';
 import './Dialogue.css';
 import LoadingScreen from '../components/UI/LoadingScreen';
-import { getEngineBaseUrl, speakWithBrowserTts, speakWithEngine, prefetchEngine, isEngineAvailable, VOICEVOX_SPEAKERS, preloadCommonPhrases, resolveSpeakerIdForEngine, shouldAutoSpeakLine } from '../utils/voicevoxUtils';
+import { buildSpeechVariationProfile, getEngineBaseUrl, speakWithBrowserTts, speakWithEngine, prefetchEngine, isEngineAvailable, VOICEVOX_SPEAKERS, preloadCommonPhrases, resolveSpeakerIdForEngine, shouldAutoSpeakLine } from '../utils/voicevoxUtils';
 import { saveStudySession } from '../utils/studyHistoryUtils';
 import { STUDY_TOPICS } from '../data/studyTopics';
 import { updateMissionsOnStudy } from '../utils/missionUtils';
@@ -18,6 +18,7 @@ import { parseCsvTable } from '../utils/csvUtils';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { createDialoguePose } from '../utils/characterPoseUtils';
 import { getTtsSettings, TTS_ENGINES } from '../utils/ttsSettings';
+import { recordRelationshipMoment } from '../utils/relationshipUtils';
 
 import BgClassroom from '../assets/images/bg_classroom.webp';
 
@@ -570,6 +571,13 @@ const Dialogue = ({ stats, updateStats }) => {
 
     const finishStudy = async () => {
         if (type === 'talk') {
+            if (updateStats) {
+                updateStats((currentStats) => recordRelationshipMoment(currentStats, {
+                    type: 'chat',
+                    summary: '少し長く会話した',
+                    detail: '向き合って話す時間が、そのまま距離の近さになっている。',
+                }));
+            }
             navigate('/character');
             return;
         }
@@ -661,7 +669,14 @@ const Dialogue = ({ stats, updateStats }) => {
                 lastTpUpdateTime: Date.now(),
                 intellect: currentIntellect + INTELLECT_REWARD,
                 totalStudyTime: updatedStats.totalStudyTime,
-                totalSessions: updatedStats.totalSessions
+                totalSessions: updatedStats.totalSessions,
+                ...recordRelationshipMoment(updatedStats, {
+                    type: 'study',
+                    summary: `${subjectInfo.unit || subjectInfo.subject || '勉強'}を一緒に進めた`,
+                    detail: isPerfect
+                        ? '息がぴったり合って、かなり手応えのある勉強時間になった。'
+                        : '一緒に取り組んだ時間が、じわっと信頼につながっている。',
+                }),
             });
 
             // Sync to Firestore (if logged in)
@@ -706,12 +721,31 @@ const Dialogue = ({ stats, updateStats }) => {
         });
     }, [isRen]);
 
+    const buildLineSpeechProfile = useCallback((targetLine, ttsSettings) => buildSpeechVariationProfile(targetLine?.text, {
+        emotion: targetLine?.emotion,
+        expression: targetLine?.expression,
+        speaker: targetLine?.speaker,
+        isMale: isRen,
+        browserPitch: isRen ? 0.8 : ttsSettings.browserPitch,
+        browserRate: ttsSettings.browserRate,
+        pitchOverride: targetLine?.tts_pitch,
+        rateOverride: targetLine?.tts_rate,
+        speedScale: targetLine?.tts_speed,
+        pitchScale: targetLine?.tts_pitch_scale,
+        intonationScale: targetLine?.tts_intonation,
+        volumeScale: targetLine?.tts_volume,
+        prePhonemeLength: targetLine?.tts_pre_phoneme,
+        postPhonemeLength: targetLine?.tts_post_phoneme,
+        seedHint: targetLine?.order || targetLine?.id || '',
+    }), [isRen]);
+
     const speakLineWithPreferredAudio = useCallback(async (targetLine) => {
         if (!targetLine?.text) return false;
 
         const ttsSettings = getTtsSettings();
         if (!ttsSettings.enabled) return false;
         setCharacterSpeechText(targetLine.text);
+        const speechProfile = buildLineSpeechProfile(targetLine, ttsSettings);
 
         const chosenEngine = ttsSettings.engine === TTS_ENGINES.AUTO
             ? (ttsAvailabilityRef.current.deepgram
@@ -747,21 +781,19 @@ const Dialogue = ({ stats, updateStats }) => {
                 baseUrl: getEngineBaseUrl(chosenEngine, ttsSettings),
                 onStart: handleSpeechStart,
                 onEnd: handleSpeechEnd,
+                audioQueryOverrides: speechProfile.engine.audioQueryOverrides,
+                cacheKeyHint: speechProfile.signature,
             });
             if (success) return true;
         }
 
-        const pitchValue = Number(targetLine.tts_pitch);
-        const rateValue = Number(targetLine.tts_rate);
         speakWithBrowserTts(targetLine.text, {
-            pitch: Number.isFinite(pitchValue) ? pitchValue : (isRen ? 0.8 : ttsSettings.browserPitch),
-            rate: Number.isFinite(rateValue) ? rateValue : ttsSettings.browserRate,
-            isMale: isRen,
+            ...speechProfile.browser,
             onStart: handleSpeechStart,
             onEnd: handleSpeechEnd,
         });
         return true;
-    }, [isRen, playVoice, resolveLineSpeakerId]);
+    }, [buildLineSpeechProfile, playVoice, resolveLineSpeakerId]);
 
     const handleSpeak = async (e) => {
         e.stopPropagation(); // Prevent advancing dialogue
@@ -808,8 +840,11 @@ const Dialogue = ({ stats, updateStats }) => {
                 if (!shouldAutoSpeakLine(nextLine)) return;
                 try {
                     const nextSpeakerId = await resolveLineSpeakerId(nextLine, chosenEngine, ttsSettings);
+                    const nextSpeechProfile = buildLineSpeechProfile(nextLine, ttsSettings);
                     await prefetchEngine(chosenEngine, nextLine.text, nextSpeakerId, {
                         baseUrl: getEngineBaseUrl(chosenEngine, ttsSettings),
+                        audioQueryOverrides: nextSpeechProfile.engine.audioQueryOverrides,
+                        cacheKeyHint: nextSpeechProfile.signature,
                     });
                 } catch { /* ignore */ }
             });
@@ -819,7 +854,7 @@ const Dialogue = ({ stats, updateStats }) => {
             window.speechSynthesis.cancel();
             stopCharacterSpeech();
         };
-    }, [currentIndex, currentScene, line, resolveLineSpeakerId, speakLineWithPreferredAudio, stopCharacterSpeech]);
+    }, [buildLineSpeechProfile, currentIndex, currentScene, line, resolveLineSpeakerId, speakLineWithPreferredAudio, stopCharacterSpeech]);
 
     useEffect(() => () => {
         window.speechSynthesis.cancel();

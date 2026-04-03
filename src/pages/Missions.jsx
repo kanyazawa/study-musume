@@ -2,12 +2,22 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Missions.css';
 import CharacterStage from '../components/character/CharacterStage';
+import { useSound } from '../contexts/SoundContext';
 import {
     getAllMissionsWithProgress,
     claimMissionReward,
 } from '../utils/missionUtils';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { createHomePose } from '../utils/characterPoseUtils';
+import { getTtsSettings, TTS_ENGINES } from '../utils/ttsSettings';
+import {
+    buildSpeechVariationProfile,
+    getEngineBaseUrl,
+    isEngineAvailable,
+    resolveSpeakerIdForEngine,
+    speakWithBrowserTts,
+    speakWithEngine,
+} from '../utils/voicevoxUtils';
 
 const getMissionMood = ({ completionPercent, claimableCount, completedCount, totalCount }) => {
     if (claimableCount > 0) {
@@ -41,8 +51,35 @@ const getMissionMood = ({ completionPercent, claimableCount, completedCount, tot
     };
 };
 
+const getRewardReactionLine = (rewards = {}) => {
+    const hasDiamonds = Number(rewards?.diamonds || 0) > 0;
+    const hasIntellect = Number(rewards?.intellect || 0) > 0;
+
+    if (hasDiamonds && hasIntellect) {
+        return 'ごほうび受け取り完了だよ。ダイヤも知力も増えたね。えらいえらい。';
+    }
+
+    if (hasDiamonds) {
+        return 'ごほうびのダイヤ、ちゃんと受け取れたよ。今日もいい感じ。';
+    }
+
+    if (hasIntellect) {
+        return '知力のごほうびを受け取ったよ。こつこつ進めてて、とってもえらいね。';
+    }
+
+    return 'ごほうび受け取り、ありがとう。ちゃんと進んでてえらいよ。';
+};
+
+const REWARD_VOICE_FILES = [
+    'mission_reward_cheer.wav',
+    'mission_reward_cheer_soft.wav',
+    'mission_reward_cheer_bright.wav',
+    'mission_reward_cheer_tease.wav',
+];
+
 const Missions = ({ stats, updateStats }) => {
     const navigate = useNavigate();
+    const { playVoice } = useSound();
     const [missions, setMissions] = useState([]);
     const [showRewardAnimation, setShowRewardAnimation] = useState(null);
     const [missionReaction, setMissionReaction] = useState(null);
@@ -62,10 +99,59 @@ const Missions = ({ stats, updateStats }) => {
         setMissions(allMissions);
     };
 
-    const handleClaimReward = (missionId) => {
+    const playRewardVoice = async (lineText) => {
+        const settings = getTtsSettings();
+        if (!settings.enabled || !lineText) return;
+
+        const speechProfile = buildSpeechVariationProfile(lineText, {
+            emotion: 'happy sweet',
+            speaker: 'ノア',
+            browserPitch: Math.max(settings.browserPitch, 1.28),
+            browserRate: Math.min(settings.browserRate, 1.02),
+            pitchScale: 0.06,
+            speedScale: 0.98,
+            intonationScale: 1.24,
+            postPhonemeLength: 0.14,
+        });
+
+        const preferredEngineOrder = [
+            TTS_ENGINES.AIVIS,
+            ...(settings.engine === TTS_ENGINES.AUTO
+                ? [TTS_ENGINES.DEEPGRAM, TTS_ENGINES.VOICEVOX]
+                : [settings.engine].filter((engine) => engine !== TTS_ENGINES.AIVIS && engine !== TTS_ENGINES.BROWSER)),
+        ];
+
+        for (const engine of preferredEngineOrder) {
+            const baseUrl = getEngineBaseUrl(engine, settings);
+            const available = await isEngineAvailable(engine, baseUrl);
+            if (!available) continue;
+
+            const preferredSpeakerValue = engine === TTS_ENGINES.DEEPGRAM
+                ? settings.deepgramVoiceModel
+                : settings.preferredSpeaker;
+            const speakerId = await resolveSpeakerIdForEngine(engine, preferredSpeakerValue, { baseUrl });
+            const success = await speakWithEngine(engine, lineText, speakerId, {
+                baseUrl,
+                audioQueryOverrides: speechProfile.engine.audioQueryOverrides,
+                cacheKeyHint: `mission-reward:${lineText}:${speechProfile.signature}`,
+            });
+            if (success) {
+                return;
+            }
+        }
+
+        speakWithBrowserTts(lineText, {
+            pitch: speechProfile.browser.pitch,
+            rate: speechProfile.browser.rate,
+        });
+    };
+
+    const handleClaimReward = async (missionId) => {
         const rewards = claimMissionReward(missionId);
 
         if (rewards) {
+            const rewardLine = getRewardReactionLine(rewards);
+
             updateStats({
                 diamonds: (stats.diamonds || 0) + rewards.diamonds,
                 intellect: (stats.intellect || 0) + rewards.intellect,
@@ -73,7 +159,7 @@ const Missions = ({ stats, updateStats }) => {
 
             setMissionReaction({
                 emotion: 'happy',
-                text: '受け取りありがとう。ちゃんと進んでてえらいよ。',
+                text: rewardLine,
                 kicker: 'ごほうび受け取り',
             });
             if (reactionTimerRef.current) {
@@ -87,6 +173,11 @@ const Missions = ({ stats, updateStats }) => {
             setShowRewardAnimation(rewards);
             setTimeout(() => setShowRewardAnimation(null), 2000);
             refreshMissions();
+            const rewardVoiceFile = REWARD_VOICE_FILES[Math.floor(Math.random() * REWARD_VOICE_FILES.length)];
+            const played = await playVoice(rewardVoiceFile);
+            if (!played) {
+                playRewardVoice(rewardLine);
+            }
         }
     };
 
@@ -129,6 +220,13 @@ const Missions = ({ stats, updateStats }) => {
                 </div>
 
                 <div className="missions-character-panel">
+                    <div className="missions-stage-background" aria-hidden="true">
+                        <div className="missions-stage-image"></div>
+                        <div className="missions-stage-vignette"></div>
+                        <div className="missions-stage-spark spark-left"></div>
+                        <div className="missions-stage-spark spark-right"></div>
+                        <div className="missions-stage-floor"></div>
+                    </div>
                     <div className="missions-character-glow" aria-hidden="true"></div>
                     <div className={`missions-character-stage ${renderer === 'live2d' ? 'is-live2d' : ''}`}>
                         <CharacterStage
@@ -150,7 +248,7 @@ const Missions = ({ stats, updateStats }) => {
 
                 <div className="missions-sheet-header">
                     <div className="missions-stage-title">
-                        <div className="missions-kicker">Daily Mission Room</div>
+                        <div className="missions-kicker">今日の課題ノート</div>
                         <h1 className="missions-title">デイリーミッション</h1>
                         <div className="missions-subtitle">ノアといっしょに今日のやることを片づけよう</div>
                     </div>

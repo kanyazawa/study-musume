@@ -23,6 +23,7 @@ const Ranking = lazy(() => import('../pages/Ranking'));
 const CharacterSelectPage = lazy(() => import('../pages/CharacterSelectPage'));
 const MultiplayerMatch = lazy(() => import('../pages/MultiplayerMatch'));
 const TitlePage = lazy(() => import('../pages/TitlePage'));
+const Writing = lazy(() => import('../pages/Writing'));
 
 const AppRoutes = ({ stats, updateStats, onLoginSuccess, currentUser }) => (
   <Suspense fallback={<LoadingScreen />}>
@@ -42,6 +43,7 @@ const AppRoutes = ({ stats, updateStats, onLoginSuccess, currentUser }) => (
       <Route path="/calendar" element={<CalendarPage />} />
       <Route path="/gacha" element={<Gacha stats={stats} updateStats={updateStats} />} />
       <Route path="/review" element={<Review stats={stats} updateStats={updateStats} />} />
+      <Route path="/writing" element={<Writing stats={stats} updateStats={updateStats} />} />
       <Route path="/profile" element={<Profile stats={stats} updateStats={updateStats} />} />
       <Route
         path="/login"

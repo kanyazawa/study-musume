@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap');
-
 @plugin 'tailwindcss-animate';
 
 @custom-variant dark (&:is(.dark *));
@@ -41,7 +39,11 @@
   --foreground: #F8F0FF;
   --muted-foreground: rgba(248, 240, 255, 0.5);
 
-  --font-main: 'M PLUS Rounded 1c', sans-serif;
+  --font-main: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", "Meiryo", sans-serif;
+  --font-ui: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", "Meiryo", sans-serif;
+  --font-display: "Yu Mincho Demibold", "Hiragino Mincho ProN", "Yu Mincho", "MS PMincho", serif;
+  --font-round: "Hiragino Maru Gothic ProN", "BIZ UDPGothic", "Yu Gothic UI", "Meiryo", sans-serif;
+  --font-number: "Bahnschrift", "DIN Alternate", "Arial Narrow", "Trebuchet MS", sans-serif;
 
   --radius: 0.625rem;
 
@@ -116,7 +118,7 @@
 }
 
 body {
-  font-family: var(--font-main);
+  font-family: var(--font-ui);
   background-color: #333;
   /* Dark background for desktop view */
   color: var(--uma-text);
@@ -127,6 +129,8 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  font-feature-settings: "palt" 1;
+  text-rendering: optimizeLegibility;
 }
 
 #root {

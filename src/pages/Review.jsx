@@ -24,9 +24,9 @@ const INITIAL_VISIBLE_QUESTIONS = 40;
 const VISIBLE_QUESTIONS_STEP = 40;
 const REVIEW_SESSION_SIZE = 10;
 const REVIEW_SESSION_OPTIONS = [
-    { size: 10, label: 'サクッと', eta: '約1分' },
-    { size: 20, label: 'しっかり', eta: '約2分' },
-    { size: 50, label: '集中', eta: '約5分' },
+    { size: 10, label: '放課後', eta: '約1分' },
+    { size: 20, label: '補習', eta: '約2分' },
+    { size: 50, label: '追い込み', eta: '約5分' },
 ];
 const REVIEW_BASE_DIAMONDS = 8;
 const REVIEW_BASE_INTELLECT = 12;
@@ -39,29 +39,29 @@ const EMPTY_STREAK_REWARD = { diamonds: 0, intellect: 0, label: '' };
 const getReviewStreakReward = (sessionStreak) => REVIEW_STREAK_REWARDS[sessionStreak] || EMPTY_STREAK_REWARD;
 
 const getNoaReviewRewardMessage = ({ rewardSummary, dueReduced, totalReduced, nextMilestone }) => {
-    if (!rewardSummary) return '短く回して終われる形にしてあるから、また気が向いたらすぐ戻っておいで。';
+    if (!rewardSummary) return '短い補習で切れる形にしてあるから、また気が向いたらすぐ戻っておいで。';
 
     if (rewardSummary.sessionStreak >= 5) {
         return 'ここまで来たらかなり強いよ。今日はもう十分やり切ってる。';
     }
 
     if (rewardSummary.perfectBonus && rewardSummary.ticketBonusActive) {
-        return 'パーフェクトにごほうびチケットまで乗ったね。今の一周、かなりおいしい。';
+        return 'パーフェクトにごほうびチケットまで乗ったね。今の補習、かなりおいしい。';
     }
 
     if (dueReduced >= 5) {
-        return `復習待ちを${dueReduced}件片づけたよ。ここで止めてもちゃんと前進してる。`;
+        return `弱点を${dueReduced}件回収できたよ。ここで止めてもちゃんと前進してる。`;
     }
 
     if (totalReduced > 0) {
-        return `完全習得も${totalReduced}件進んだね。負債がちゃんと軽くなってる。`;
+        return `完全習得も${totalReduced}件進んだね。ノートがちゃんと軽くなってる。`;
     }
 
     if (nextMilestone) {
         return `次はあと${Math.max(nextMilestone.sessionCount - rewardSummary.sessionStreak, 0)}セットで${nextMilestone.label}だよ。`;
     }
 
-    return 'いい区切りだよ。ここで終わっても、もう今日の復習は前より軽い。';
+    return 'いい区切りだよ。ここで終わっても、もう今日の補習は前より軽い。';
 };
 
 const Review = ({ stats, updateStats }) => {
@@ -333,7 +333,7 @@ const Review = ({ stats, updateStats }) => {
                 <button className="back-btn-review" onClick={() => navigate('/study')}>
                     <ChevronLeft size={24} />
                 </button>
-                <h2 className="review-title">📚 復習</h2>
+                <h2 className="review-title">📚 弱点ノート</h2>
                 <div className="stats-badge">
                     {reviewStats?.due || 0}件
                 </div>
@@ -341,14 +341,14 @@ const Review = ({ stats, updateStats }) => {
 
             <section className="review-hero">
                 <div className="review-hero-copy">
-                    <span className="hero-kicker">Today's Review</span>
-                    <h3>忘れかけを先に片づけよう</h3>
+                    <span className="hero-kicker">今日の補習</span>
+                    <h3>忘れかけを先に回収しよう</h3>
                     <p>
                         {reviewStats?.due
-                            ? `今日やるべき問題が ${reviewStats.due} 件あります。今回は ${Math.max(activeSessionCount, 1)} 問・${selectedSessionOption.eta} でちゃんと終われます。`
+                            ? `今日やるべき問題が ${reviewStats.due} 件あります。今回は ${Math.max(activeSessionCount, 1)} 問・${selectedSessionOption.eta} でひと区切りまで持っていけます。`
                             : filteredQuestions.length
-                                ? `今すぐの期限はありません。余裕があるうちに ${Math.max(activeSessionCount, 1)} 問だけ整えておくと後がかなり楽です。`
-                                : '復習ストックは空です。学習で間違えた問題がここに集まります。'}
+                                ? `今すぐの期限はありません。余裕があるうちに ${Math.max(activeSessionCount, 1)} 問だけ触っておくと次の授業がかなり楽です。`
+                                : '弱点ノートはまだ空です。授業でつまずいた問題がここに集まります。'}
                     </p>
                 </div>
                 <div className="review-session-options" aria-label="復習セット選択">
@@ -370,7 +370,7 @@ const Review = ({ stats, updateStats }) => {
                                 <strong>{option.size}問</strong>
                                 <span>{option.eta}</span>
                                 <span>💎 {previewRewards.diamonds} / 🧠 {previewRewards.intellect}</span>
-                                <span className="review-session-option-action">選んだらすぐ開始</span>
+                                <span className="review-session-option-action">選んだらそのまま補習開始</span>
                             </button>
                         );
                     })}
@@ -401,7 +401,7 @@ const Review = ({ stats, updateStats }) => {
                 </div>
                 <div className="review-bonus-strip">
                     <div className="review-bonus-pill is-highlight">
-                        タップしたセットでそのまま復習スタート
+                        タップしたセットでそのまま補習スタート
                     </div>
                     <div className={`review-bonus-pill ${reviewTicketsRemaining > 0 ? 'is-highlight' : 'is-muted'}`}>
                         {reviewTicketsRemaining > 0
@@ -419,7 +419,7 @@ const Review = ({ stats, updateStats }) => {
             {lastSessionSummary && (
                 <section className="review-session-summary">
                     <div className="review-session-summary-copy">
-                        <span className="hero-kicker">Session Clear</span>
+                        <span className="hero-kicker">補習リザルト</span>
                         <h3>{lastSessionSummary.answeredCount}問でいったん区切り。</h3>
                         <p>
                             {lastSessionSummary.correctCount}問正解。
@@ -483,7 +483,7 @@ const Review = ({ stats, updateStats }) => {
             {reviewStats && (
                 <div className="review-stats-bar">
                     <div className="stat-item">
-                        <span className="stat-label">復習待ち</span>
+                        <span className="stat-label">今日ぶん</span>
                         <span className="stat-value urgent">{reviewStats.byPriority.urgent}</span>
                     </div>
                     <div className="stat-item">
@@ -556,9 +556,9 @@ const Review = ({ stats, updateStats }) => {
                     <div className="empty-state">
                         <BookOpen size={48} color="#ccc" />
                         <p className="empty-text">復習する問題がありません</p>
-                        <p className="empty-hint">問題を間違えると自動で復習リストに追加されます</p>
+                        <p className="empty-hint">授業で間違えた問題が自動でここにたまります</p>
                         <button className="empty-action-btn" onClick={() => navigate('/study')}>
-                            学習に戻る
+                            授業へ戻る
                         </button>
                     </div>
                 ) : (
@@ -568,7 +568,7 @@ const Review = ({ stats, updateStats }) => {
                                 表示中 {filteredQuestions.length} 問
                             </div>
                             <div className="review-toolbar-hint">
-                                上のセットを選ぶとすぐ始まります
+                                上のセットを選ぶとそのまま補習スタート
                             </div>
                         </div>
 
@@ -607,7 +607,7 @@ const Review = ({ stats, updateStats }) => {
                                         </div>
                                     </div>
                                     <div className="card-action">
-                                        この問題から始める
+                                        この問題から補習する
                                         <ArrowRight size={16} />
                                     </div>
                                 </button>

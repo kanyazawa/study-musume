@@ -3,6 +3,7 @@
     height: 100dvh;
     overflow: hidden;
     background: linear-gradient(180deg, #fff6ef 0%, #fffefb 36%, #edf8ff 100%);
+    font-family: var(--font-ui);
 }
 
 .missions-backdrop {
@@ -117,8 +118,8 @@
     color: #a85b78;
     font-size: 0.76rem;
     font-weight: 800;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    font-family: var(--font-round);
+    letter-spacing: 0.05em;
 }
 
 .missions-title {
@@ -126,18 +127,82 @@
     color: #3a3245;
     font-size: clamp(1.9rem, 4vw, 3rem);
     line-height: 1.06;
+    font-family: var(--font-display);
+    letter-spacing: 0.04em;
 }
 
 .missions-subtitle {
     font-size: 0.98rem;
     line-height: 1.6;
     color: #6d6675;
+    font-family: var(--font-round);
 }
 
 .missions-character-panel {
     position: absolute;
     inset: 0;
     overflow: hidden;
+}
+
+.missions-stage-background {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+
+.missions-stage-image {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(180deg, rgba(43, 28, 57, 0.12) 0%, rgba(43, 28, 57, 0.04) 18%, rgba(255, 255, 255, 0) 40%),
+        url('../assets/images/bg_classroom.webp');
+    background-size: cover;
+    background-position: center 34%;
+    filter: saturate(1.08) brightness(1.02);
+    transform: scale(1.04);
+}
+
+.missions-stage-vignette {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 50% 24%, rgba(255, 244, 210, 0.38) 0%, rgba(255, 244, 210, 0) 34%),
+        linear-gradient(180deg, rgba(255, 247, 240, 0.08) 0%, rgba(255, 247, 240, 0) 42%, rgba(32, 17, 35, 0.14) 100%),
+        linear-gradient(90deg, rgba(38, 20, 44, 0.18) 0%, rgba(38, 20, 44, 0.02) 18%, rgba(38, 20, 44, 0.02) 82%, rgba(38, 20, 44, 0.18) 100%);
+}
+
+.missions-stage-spark {
+    position: absolute;
+    width: 170px;
+    height: 170px;
+    border-radius: 999px;
+    filter: blur(8px);
+    opacity: 0.8;
+}
+
+.missions-stage-spark.spark-left {
+    left: -14px;
+    top: 18%;
+    background: radial-gradient(circle, rgba(255, 200, 232, 0.62) 0%, rgba(255, 200, 232, 0.1) 42%, rgba(255, 200, 232, 0) 72%);
+}
+
+.missions-stage-spark.spark-right {
+    right: -10px;
+    top: 14%;
+    background: radial-gradient(circle, rgba(144, 224, 255, 0.62) 0%, rgba(144, 224, 255, 0.12) 40%, rgba(144, 224, 255, 0) 72%);
+}
+
+.missions-stage-floor {
+    position: absolute;
+    left: 7%;
+    right: 7%;
+    bottom: -8%;
+    height: 34%;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 50% 38%, rgba(255, 255, 255, 0.78) 0%, rgba(208, 244, 255, 0.42) 34%, rgba(149, 208, 255, 0.14) 58%, rgba(149, 208, 255, 0) 78%),
+        radial-gradient(circle at 50% 64%, rgba(123, 172, 255, 0.18) 0%, rgba(123, 172, 255, 0) 68%);
+    filter: blur(2px);
 }
 
 .missions-character-glow {
@@ -168,8 +233,8 @@
     color: #7da1b5;
     font-size: 0.76rem;
     font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-family: var(--font-round);
+    letter-spacing: 0.04em;
 }
 
 .missions-speech-card p {
@@ -220,6 +285,8 @@
     padding: 12px 12px calc(18px + env(safe-area-inset-bottom, 0px));
     border-radius: 32px 32px 0 0;
     background:
+        radial-gradient(circle at top left, rgba(255, 205, 223, 0.22) 0%, rgba(255, 205, 223, 0) 28%),
+        radial-gradient(circle at top right, rgba(147, 226, 255, 0.22) 0%, rgba(147, 226, 255, 0) 24%),
         linear-gradient(180deg, rgba(255, 252, 249, 0.78) 0%, rgba(255, 250, 246, 0.94) 11%, rgba(255, 250, 246, 0.96) 100%);
     border-top: 1px solid rgba(255, 255, 255, 0.88);
     box-shadow:
@@ -251,6 +318,14 @@
     pointer-events: none;
 }
 
+.missions-sheet .missions-stage-title::after {
+    content: '';
+    position: absolute;
+    inset: auto 12px -1px 12px;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255, 177, 194, 0), rgba(255, 177, 194, 0.55), rgba(153, 220, 255, 0));
+}
+
 .missions-sheet-grabber {
     width: 56px;
     height: 6px;
@@ -276,6 +351,7 @@
     width: fit-content;
     max-width: 100%;
     padding: 10px 12px 8px;
+    position: relative;
     border-radius: 18px;
     background: rgba(255, 255, 255, 0.64);
     box-shadow: 0 10px 22px rgba(214, 175, 153, 0.1);
@@ -284,13 +360,17 @@
 .missions-home-shortcut {
     flex-shrink: 0;
     border: 1px solid rgba(255, 214, 225, 0.92);
-    background: rgba(255, 255, 255, 0.84);
+    background: linear-gradient(135deg, rgba(255, 245, 248, 0.96) 0%, rgba(237, 248, 255, 0.92) 100%);
     color: #8a5c6d;
     border-radius: 999px;
     padding: 10px 14px;
     font-size: 0.88rem;
     font-weight: 800;
-    box-shadow: 0 10px 20px rgba(214, 175, 153, 0.14);
+    font-family: var(--font-round);
+    letter-spacing: 0.04em;
+    box-shadow:
+        0 10px 20px rgba(214, 175, 153, 0.14),
+        inset 0 1px 0 rgba(255, 255, 255, 0.92);
 }
 
 .missions-home-shortcut:hover {
@@ -334,6 +414,16 @@
     box-shadow:
         0 14px 30px rgba(214, 175, 153, 0.12),
         inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.mission-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(120deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0) 36%),
+        radial-gradient(circle at 88% 14%, rgba(255, 255, 255, 0.58) 0%, rgba(255, 255, 255, 0) 20%);
+    pointer-events: none;
 }
 
 .mission-card.completed {
@@ -390,6 +480,7 @@
     color: #3c3643;
     font-size: 1.05rem;
     font-weight: 800;
+    font-family: var(--font-round);
     margin-bottom: 4px;
 }
 
@@ -404,6 +495,7 @@
     border-radius: 999px;
     font-size: 0.8rem;
     font-weight: 800;
+    font-family: var(--font-round);
     white-space: nowrap;
 }
 
@@ -426,7 +518,8 @@
     margin-bottom: 14px;
     padding: 12px 14px;
     border-radius: 18px;
-    background: rgba(255, 255, 255, 0.72);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 251, 247, 0.72) 100%);
     border: 1px solid rgba(246, 230, 236, 0.92);
 }
 
@@ -438,6 +531,11 @@
     color: #726674;
     font-size: 0.86rem;
     font-weight: 700;
+}
+
+.mission-progress-head strong {
+    font-family: var(--font-number);
+    letter-spacing: 0.03em;
 }
 
 .mission-progress-bar {
@@ -479,6 +577,8 @@
     color: #664d12;
     font-size: 0.82rem;
     font-weight: 800;
+    font-family: var(--font-number);
+    letter-spacing: 0.03em;
     box-shadow: 0 10px 20px rgba(255, 207, 111, 0.18);
 }
 
@@ -499,6 +599,8 @@
     padding: 12px 16px;
     font-size: 0.92rem;
     font-weight: 800;
+    font-family: var(--font-round);
+    letter-spacing: 0.04em;
 }
 
 .claim-btn {
@@ -506,7 +608,9 @@
     color: #fff;
     cursor: pointer;
     background: linear-gradient(135deg, #ff9b8f 0%, #ffc66f 100%);
-    box-shadow: 0 16px 26px rgba(255, 178, 132, 0.28);
+    box-shadow:
+        0 16px 26px rgba(255, 178, 132, 0.28),
+        inset 0 1px 0 rgba(255, 244, 224, 0.42);
 }
 
 .mission-status.claimed {
@@ -546,6 +650,8 @@
     color: #5c475d;
     font-size: 1.7rem;
     font-weight: 900;
+    font-family: var(--font-display);
+    letter-spacing: 0.04em;
 }
 
 .reward-items {
@@ -561,6 +667,8 @@
     color: #5d4512;
     font-size: 1.1rem;
     font-weight: 900;
+    font-family: var(--font-number);
+    letter-spacing: 0.03em;
 }
 
 @media (max-width: 720px) {
@@ -589,6 +697,18 @@
         min-height: 340px;
         padding: 12px 12px calc(16px + env(safe-area-inset-bottom, 0px));
         border-radius: 28px 28px 0 0;
+    }
+
+    .missions-stage-image {
+        background-position: center 26%;
+        transform: scale(1.08);
+    }
+
+    .missions-stage-floor {
+        left: 2%;
+        right: 2%;
+        bottom: -6%;
+        height: 28%;
     }
 
     .missions-sheet .missions-stage-title {

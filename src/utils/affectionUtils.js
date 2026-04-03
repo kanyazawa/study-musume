@@ -1,45 +1,5 @@
 import { AFFECTION_LEVELS, AFFECTION_QUOTES, AFFECTION_QUOTES_REN } from '../data/affectionData';
-
-const HOME_REACTIONS = {
-    noah: {
-        lowTp: [
-            { emotion: 'serious', text: '無理しすぎないでよ。少し休んでからでも遅くないんだから。' },
-            { emotion: 'serious', text: '顔色、あんまり良くないわよ。今日は深呼吸してからにしなさい。' },
-        ],
-        highStreak: [
-            { emotion: 'happy', text: '連続で頑張れてるじゃない。べ、別にちょっと感心しただけよ。' },
-            { emotion: 'smile', text: 'その調子で積み上げなさいよ。今日はかなりいい感じなんだから。' },
-        ],
-        highAffection: [
-            { emotion: 'relaxed', text: '来てくれると安心するの。今日は何を一緒にやる？' },
-            { emotion: 'shy', text: 'あんたと話すと落ち着くのよね。少しだけ、ここにいて。' },
-        ],
-        default: [
-            { emotion: 'normal', text: '今日はどこから進めるの？ちゃんと付き合ってあげるわ。' },
-            { emotion: 'angry', text: 'ぼーっとしてないで、やること決めなさいよ。' },
-            { emotion: 'happy', text: '来たのね。少しだけなら、話してあげてもいいわ。' },
-        ],
-    },
-    ren: {
-        lowTp: [
-            { emotion: 'serious', text: '疲れているだろ。無理に詰め込まず、少し整えてから進もう。' },
-            { emotion: 'normal', text: '集中が切れている時は休憩も必要だ。焦るな。' },
-        ],
-        highStreak: [
-            { emotion: 'happy', text: '継続できているな。その積み重ねは確実に力になる。' },
-            { emotion: 'smile', text: '今日も続けられている。お前の努力、俺はちゃんと見てる。' },
-        ],
-        highAffection: [
-            { emotion: 'relaxed', text: 'お前が来ると少し空気が変わるな。悪くない。' },
-            { emotion: 'smile', text: '一緒にいると落ち着く。今日は何から始める？' },
-        ],
-        default: [
-            { emotion: 'normal', text: '来たか。今日も一つずつ片付けていこう。' },
-            { emotion: 'serious', text: '始めるなら集中していこう。俺も付き合う。' },
-            { emotion: 'happy', text: '少し話すくらいならいい。で、何をやる？' },
-        ],
-    },
-};
+import { HOME_REACTIONS } from '../data/homeReactions';
 
 const GIFT_REACTION_BY_RARITY = {
     noah: {
@@ -120,6 +80,33 @@ const QUIZ_REACTIONS = {
 };
 
 const pickRandom = (items) => items[Math.floor(Math.random() * items.length)];
+const lastReactionTextByKey = new Map();
+
+const pickRandomDistinct = (items, cacheKey = '') => {
+    if (!Array.isArray(items) || items.length === 0) {
+        return null;
+    }
+
+    if (!cacheKey || items.length === 1) {
+        return pickRandom(items);
+    }
+
+    const lastText = lastReactionTextByKey.get(cacheKey);
+    const filteredItems = lastText
+        ? items.filter((item) => item?.text !== lastText)
+        : items;
+    const picked = pickRandom(filteredItems.length > 0 ? filteredItems : items);
+
+    if (picked?.text) {
+        lastReactionTextByKey.set(cacheKey, picked.text);
+    }
+
+    return picked;
+};
+
+export const __resetReactionMemoryForTests = () => {
+    lastReactionTextByKey.clear();
+};
 
 const interpolateReactionText = (text, params = {}) =>
     text.replace(/\{(\w+)\}/g, (_, key) => String(params[key] ?? ''));
@@ -210,30 +197,46 @@ export const getRandomQuote = (affectionLevel, characterId = 'noah') => {
     return quotes[randomIndex];
 };
 
-export const getHomeReaction = ({ affection = 0, tp = 0, maxTp = 100, loginStreak = 0, characterId = 'noah' }) => {
+export const getHomeReaction = ({
+    affection = 0,
+    tp = 0,
+    maxTp = 100,
+    loginStreak = 0,
+    characterId = 'noah',
+    reviewDueCount = 0,
+    examDaysLeft = null,
+}) => {
     const level = getAffectionLevel(affection).level;
     const reactionSet = HOME_REACTIONS[characterId] || HOME_REACTIONS.noah;
     const tpRatio = maxTp > 0 ? tp / maxTp : 0;
 
     if (tpRatio <= 0.25) {
-        return pickRandom(reactionSet.lowTp);
+        return pickRandomDistinct(reactionSet.lowTp, `home:${characterId}:lowTp`);
+    }
+
+    if (typeof examDaysLeft === 'number' && examDaysLeft >= 0 && examDaysLeft <= 10 && reactionSet.examSoon?.length) {
+        return pickRandomDistinct(reactionSet.examSoon, `home:${characterId}:examSoon`);
+    }
+
+    if (reviewDueCount > 0 && reactionSet.reviewFocus?.length) {
+        return pickRandomDistinct(reactionSet.reviewFocus, `home:${characterId}:reviewFocus`);
     }
 
     if (loginStreak >= 3) {
-        return pickRandom(reactionSet.highStreak);
+        return pickRandomDistinct(reactionSet.highStreak, `home:${characterId}:highStreak`);
     }
 
     if (level >= 5) {
-        return pickRandom(reactionSet.highAffection);
+        return pickRandomDistinct(reactionSet.highAffection, `home:${characterId}:highAffection`);
     }
 
-    return pickRandom(reactionSet.default);
+    return pickRandomDistinct(reactionSet.default, `home:${characterId}:default`);
 };
 
 export const getGiftReaction = ({ characterId = 'noah', affection = 0, item }) => {
     const reactionSet = GIFT_REACTION_BY_RARITY[characterId] || GIFT_REACTION_BY_RARITY.noah;
     const rarityKey = reactionSet[item?.rarity] ? item.rarity : 'default';
-    const baseReaction = pickRandom(reactionSet[rarityKey]);
+    const baseReaction = pickRandomDistinct(reactionSet[rarityKey], `gift:${characterId}:${rarityKey}`);
     const level = getAffectionLevel(affection).level;
 
     if (level >= 6 && baseReaction.emotion === 'normal') {
@@ -257,8 +260,8 @@ export const getQuizReaction = ({
     const level = getAffectionLevel(affection).level;
     const difficultyKey = streak >= 2 || level >= 5 ? 'high' : 'low';
     const baseReaction = isCorrect
-        ? pickRandom(reactionSet.correct[difficultyKey])
-        : pickRandom(reactionSet.incorrect[difficultyKey]);
+        ? pickRandomDistinct(reactionSet.correct[difficultyKey], `quiz:${characterId}:correct:${difficultyKey}`)
+        : pickRandomDistinct(reactionSet.incorrect[difficultyKey], `quiz:${characterId}:incorrect:${difficultyKey}`);
 
     return {
         ...baseReaction,

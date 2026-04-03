@@ -885,6 +885,24 @@ export const STUDY_TOPICS = [
                         ]
                     }
                 ]
+            },
+            {
+                id: 'eng_writing',
+                name: 'ライティング',
+                units: [
+                    {
+                        id: 'eng_writing_eiken',
+                        name: '英検ライティング',
+                        topic: '英検ライティング',
+                        mode: 'writing',
+                        chapters: [
+                            { id: 'eng_writing_grade3', name: '英検3級', topic: '英検3級ライティング', mode: 'writing', writingLevel: 'grade3' },
+                            { id: 'eng_writing_grade_pre2', name: '英検準2級', topic: '英検準2級ライティング', mode: 'writing', writingLevel: 'grade_pre2' },
+                            { id: 'eng_writing_grade2', name: '英検2級', topic: '英検2級ライティング', mode: 'writing', writingLevel: 'grade2' },
+                            { id: 'eng_writing_grade_pre1', name: '英検準1級', topic: '英検準1級ライティング', mode: 'writing', writingLevel: 'grade_pre1' }
+                        ]
+                    }
+                ]
             }
         ]
     },

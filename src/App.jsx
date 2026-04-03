@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import MobileContainer from './components/Layout/MobileContainer';
 import AppLayout from './components/Layout/AppLayout';
@@ -17,6 +17,7 @@ import CharacterSelect from './components/CharacterSelect';
 
 function App() {
   const [stats, setStats] = useState(() => loadStats());
+  const statsRef = useRef(stats);
   const { authLoading, handleLoginSuccess, currentUser } = useAuthSync(setStats);
 
   const handleCharacterSelectComplete = (newStats) => {
@@ -26,12 +27,18 @@ function App() {
   useNotificationInit();
   useTpRecovery(setStats);
 
+  useEffect(() => {
+    statsRef.current = stats;
+  }, [stats]);
+
   const updateStats = React.useCallback((updates) => {
-    setStats((prev) => {
-      const newStats = { ...prev, ...updates };
-      saveStats(newStats);
-      return newStats;
-    });
+    const currentStats = statsRef.current || {};
+    const resolvedUpdates = typeof updates === 'function' ? updates(currentStats) : updates;
+    const newStats = { ...currentStats, ...(resolvedUpdates || {}) };
+
+    statsRef.current = newStats;
+    saveStats(newStats);
+    setStats(newStats);
   }, []);
 
   if (authLoading) {

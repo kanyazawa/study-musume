@@ -43,6 +43,8 @@
 .login-title {
     font-size: 2rem;
     font-weight: 800;
+    font-family: var(--font-display);
+    letter-spacing: 0.04em;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -54,6 +56,7 @@
     color: #666;
     font-size: 1rem;
     margin: 0;
+    font-family: var(--font-round);
 }
 
 /* Login Options */
@@ -73,6 +76,8 @@
     padding: 1rem 1.5rem;
     font-size: 1.1rem;
     font-weight: 600;
+    font-family: var(--font-ui);
+    letter-spacing: 0.02em;
     color: #333;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -125,6 +130,8 @@
     border-radius: 12px;
     padding: 0.8rem 1.5rem;
     font-size: 1rem;
+    font-family: var(--font-ui);
+    letter-spacing: 0.04em;
     color: #666;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -164,6 +171,7 @@
 .feature-item span:last-child {
     font-size: 0.8rem;
     color: #666;
+    font-family: var(--font-round);
 }
 
 /* Responsive */

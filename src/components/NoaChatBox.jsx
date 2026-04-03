@@ -5,6 +5,7 @@ import { clearNoaChatMessages, getNoaChatMessages, saveNoaChatMessages } from '.
 import { inferEmotionFromChatText } from '../utils/chatEmotionUtils';
 import { getTtsSettings, TTS_ENGINES } from '../utils/ttsSettings';
 import {
+    buildSpeechVariationProfile,
     getEngineBaseUrl,
     isEngineAvailable,
     resolveSpeakerIdForEngine,
@@ -95,9 +96,16 @@ const getLastStudyTopicName = () => {
     }
 };
 
-const speakReplyWithSettings = async (text, { onStart, onEnd } = {}) => {
+const speakReplyWithSettings = async (text, { emotion = '', onStart, onEnd } = {}) => {
     const settings = getTtsSettings();
     if (!settings.enabled) return false;
+    const speechProfile = buildSpeechVariationProfile(text, {
+        emotion,
+        browserPitch: settings.browserPitch,
+        browserRate: settings.browserRate,
+        speaker: 'noa-chat',
+        seedHint: emotion || 'chat',
+    });
 
     const engineOrder = settings.engine === TTS_ENGINES.AUTO
         ? [TTS_ENGINES.DEEPGRAM, TTS_ENGINES.AIVIS, TTS_ENGINES.VOICEVOX, TTS_ENGINES.BROWSER]
@@ -106,8 +114,7 @@ const speakReplyWithSettings = async (text, { onStart, onEnd } = {}) => {
     for (const engine of engineOrder) {
         if (engine === TTS_ENGINES.BROWSER) {
             speakWithBrowserTts(text, {
-                pitch: settings.browserPitch,
-                rate: settings.browserRate,
+                ...speechProfile.browser,
                 onStart,
                 onEnd,
             });
@@ -124,15 +131,20 @@ const speakReplyWithSettings = async (text, { onStart, onEnd } = {}) => {
         const speakerId = await resolveSpeakerIdForEngine(engine, speakerValue, {
             baseUrl,
         });
-        const success = await speakWithEngine(engine, text, speakerId, { baseUrl, onStart, onEnd });
+        const success = await speakWithEngine(engine, text, speakerId, {
+            baseUrl,
+            onStart,
+            onEnd,
+            audioQueryOverrides: speechProfile.engine.audioQueryOverrides,
+            cacheKeyHint: speechProfile.signature,
+        });
         if (success) {
             return true;
         }
     }
 
     speakWithBrowserTts(text, {
-        pitch: settings.browserPitch,
-        rate: settings.browserRate,
+        ...speechProfile.browser,
         onStart,
         onEnd,
     });
@@ -251,12 +263,13 @@ const NoaChatBox = ({
         setError('');
     };
 
-    const handleSpeak = async (text) => {
+    const handleSpeak = async (text, emotion = '') => {
         if (!text || isSpeaking) return;
 
         setIsSpeaking(true);
         try {
             await speakReplyWithSettings(text, {
+                emotion,
                 onStart: () => onAssistantSpeechStart?.(text),
                 onEnd: () => onAssistantSpeechEnd?.(text),
             });
@@ -302,6 +315,7 @@ const NoaChatBox = ({
                 setIsSpeaking(true);
                 try {
                     await speakReplyWithSettings(assistantMessage.content, {
+                        emotion: assistantMessage.emotion,
                         onStart: () => onAssistantSpeechStart?.(assistantMessage.content),
                         onEnd: () => onAssistantSpeechEnd?.(assistantMessage.content),
                     });
@@ -382,7 +396,7 @@ const NoaChatBox = ({
                                         <button
                                             type="button"
                                             className="noa-chat-voice-btn"
-                                            onClick={() => handleSpeak(message.content)}
+                                            onClick={() => handleSpeak(message.content, message.emotion)}
                                             disabled={isSpeaking}
                                         >
                                             <Volume2 size={14} />

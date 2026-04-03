@@ -5,6 +5,7 @@ import './Inventory.css';
 import { filterInventoryByType, removeFromInventory } from '../utils/itemUtils';
 import { GIFT_REACTIONS } from '../data/affectionData';
 import { checkLevelUp } from '../utils/affectionUtils';
+import { recordRelationshipMoment } from '../utils/relationshipUtils';
 
 const Inventory = ({ stats, updateStats }) => {
     const navigate = useNavigate();
@@ -39,7 +40,17 @@ const Inventory = ({ stats, updateStats }) => {
         // 好感度を更新
         updateStats({
             inventory: newInventory,
-            affection: newAffection
+            affection: newAffection,
+            ...recordRelationshipMoment({
+                ...stats,
+                inventory: newInventory,
+                affection: newAffection,
+            }, {
+                type: 'gift',
+                summary: `${selectedItem.name}をプレゼントした`,
+                detail: '相手を思って選んだ贈り物が、関係の温度をひとつ上げた。',
+                affectionDelta: selectedItem.affection,
+            }),
         });
 
         // レベルアップチェック

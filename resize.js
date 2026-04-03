@@ -1,0 +1,1 @@
+const sharp = require('sharp'); sharp('public/live2d/models/free-witch/魔女/魔女.8192/texture_00.png').resize(4096).toFile('public/live2d/models/free-witch/魔女/魔女.8192/texture_00_opt.png').then(() => console.log('Resized!')).catch(console.error);

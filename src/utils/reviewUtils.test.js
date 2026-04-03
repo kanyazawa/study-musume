@@ -22,7 +22,7 @@ describe('reviewUtils', () => {
 
     expect(summary.hasReviews).toBe(false);
     expect(summary.mode).toBe('empty');
-    expect(summary.ctaLabel).toBe('勉強へ');
+    expect(summary.ctaLabel).toBe('授業へ');
     expect(summary.reviewTicketsRemaining).toBe(3);
   });
 
@@ -89,7 +89,7 @@ describe('reviewUtils', () => {
 
     expect(summary.mode).toBe('soon');
     expect(summary.soonCount).toBe(1);
-    expect(summary.ctaLabel).toBe('1問先回り');
+    expect(summary.ctaLabel).toBe('1問だけ先回り');
     expect(summary.bonusHints.some((hint) => hint.includes('次のセットで'))).toBe(true);
   });
 });
