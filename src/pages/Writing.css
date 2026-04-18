@@ -1,0 +1,774 @@
+.writing-page {
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at top left, rgba(62, 186, 181, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(255, 196, 106, 0.24), transparent 26%),
+        linear-gradient(180deg, #f4fffc 0%, #fffdf5 42%, #eef5ff 100%);
+    color: #1b2f34;
+    padding-bottom: 2rem;
+}
+
+.writing-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.2rem;
+    background: linear-gradient(135deg, rgba(13, 90, 104, 0.96), rgba(43, 165, 154, 0.92));
+    color: white;
+    box-shadow: 0 14px 32px rgba(9, 73, 84, 0.22);
+    backdrop-filter: blur(14px);
+}
+
+.writing-back-button {
+    width: 42px;
+    height: 42px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.16);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.writing-header-copy {
+    flex: 1;
+}
+
+.writing-header-copy h1 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 900;
+}
+
+.writing-header-kicker {
+    display: inline-block;
+    margin-bottom: 0.25rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.86;
+}
+
+.writing-header-note {
+    padding: 0.45rem 0.8rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.26);
+    font-size: 0.85rem;
+    font-weight: 800;
+}
+
+.writing-hero,
+.writing-history-panel,
+.writing-panel {
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(166, 205, 212, 0.38);
+    box-shadow: 0 16px 34px rgba(38, 90, 110, 0.08);
+    backdrop-filter: blur(12px);
+}
+
+.writing-hero {
+    margin: 1rem;
+    padding: 1.15rem;
+    border-radius: 28px;
+    display: grid;
+    gap: 1rem;
+}
+
+.writing-hero-copy h2 {
+    margin: 0.35rem 0 0.5rem;
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #163239;
+}
+
+.writing-hero-copy p {
+    margin: 0;
+    color: #526a70;
+    line-height: 1.7;
+}
+
+.writing-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(229, 239, 242, 0.88);
+    color: #37616b;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.writing-chip.is-accent {
+    background: linear-gradient(135deg, #dffaf4, #fff4d8);
+    color: #16605e;
+}
+
+.writing-hero-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.8rem;
+}
+
+.writing-metric-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.95rem 1rem;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(245, 255, 252, 0.98), rgba(255, 248, 233, 0.98));
+    border: 1px solid rgba(176, 214, 206, 0.45);
+    color: #26505a;
+}
+
+.writing-metric-card span {
+    display: block;
+    font-size: 0.75rem;
+    color: #6a8086;
+}
+
+.writing-metric-card strong {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 1.05rem;
+}
+
+.writing-level-filter {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.writing-coach-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 220px;
+    gap: 1rem;
+    align-items: stretch;
+    padding: 1rem;
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(243, 255, 252, 0.98), rgba(255, 248, 232, 0.98));
+    border: 1px solid rgba(176, 214, 206, 0.45);
+    overflow: hidden;
+}
+
+.writing-coach-copy h3 {
+    margin: 0.2rem 0 0.3rem;
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: #17373d;
+}
+
+.writing-coach-copy strong {
+    display: block;
+    margin-bottom: 0.45rem;
+    color: #1d6a67;
+    font-size: 0.98rem;
+}
+
+.writing-coach-copy p {
+    margin: 0;
+    color: #4d686f;
+    line-height: 1.75;
+}
+
+.writing-coach-stage-wrap {
+    position: relative;
+    height: min(44vh, 360px);
+    min-height: 260px;
+    width: 100%;
+    max-width: 320px;
+    justify-self: center;
+    border-radius: 22px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.92), transparent 62%),
+        linear-gradient(180deg, rgba(225, 246, 242, 0.9), rgba(214, 239, 255, 0.78));
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.writing-character-stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: hidden;
+    transform: translateY(-44px);
+}
+
+.writing-character-stage > div {
+    width: 100%;
+    height: 100%;
+}
+
+.writing-character-figure {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.writing-coach-stage-wrap .character-static-stage {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+.writing-coach-stage-wrap .character-static-base-image {
+    width: auto;
+    height: 100%;
+    max-width: min(100%, 340px);
+    object-fit: contain;
+    object-position: center top;
+    filter: drop-shadow(0 14px 28px rgba(17, 55, 63, 0.24));
+}
+
+.writing-coach-stage-wrap .character-face-fx-layer {
+    inset: 0;
+}
+
+.writing-coach-stage-wrap [data-live2d-ready] {
+    width: 100%;
+    height: 100%;
+}
+
+.writing-coach-card.is-live2d .writing-character-stage {
+    transform: translateY(-58px);
+}
+
+.writing-level-pill {
+    border: 1px solid rgba(191, 215, 219, 0.85);
+    background: rgba(255, 255, 255, 0.92);
+    color: #52737a;
+    border-radius: 999px;
+    padding: 0.72rem 1rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.writing-level-pill.active {
+    background: linear-gradient(135deg, #12908a, #45c9b4);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 10px 22px rgba(18, 144, 138, 0.22);
+}
+
+.writing-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: 1rem;
+    margin: 0 1rem;
+}
+
+.writing-panel,
+.writing-history-panel {
+    border-radius: 26px;
+    padding: 1.1rem;
+}
+
+.writing-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.writing-panel-header h3,
+.writing-task-header h3,
+.writing-result-header h3 {
+    margin: 0.2rem 0 0;
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: #19353b;
+}
+
+.writing-section-kicker {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #2d9086;
+}
+
+.writing-selection-count {
+    color: #6f858b;
+    font-weight: 800;
+}
+
+.writing-prompt-list {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.writing-prompt-card {
+    width: 100%;
+    text-align: left;
+    border: 1px solid rgba(192, 218, 223, 0.8);
+    background: rgba(252, 255, 255, 0.92);
+    border-radius: 22px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.writing-prompt-card strong {
+    display: block;
+    margin-top: 0.6rem;
+    font-size: 1rem;
+    color: #17343a;
+}
+
+.writing-prompt-card p {
+    margin: 0.45rem 0 0.8rem;
+    color: #576f75;
+    line-height: 1.6;
+}
+
+.writing-prompt-card.active {
+    border-color: rgba(18, 144, 138, 0.7);
+    box-shadow: 0 14px 30px rgba(18, 144, 138, 0.12);
+    transform: translateY(-2px);
+}
+
+.writing-prompt-meta,
+.writing-task-footer,
+.writing-editor-footer,
+.writing-result-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+}
+
+.writing-prompt-meta {
+    color: #7a8c92;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.writing-task-card,
+.writing-result-card {
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(248, 255, 253, 0.98), rgba(255, 251, 243, 0.98));
+    border: 1px solid rgba(179, 216, 209, 0.45);
+    padding: 1rem;
+}
+
+.writing-task-header,
+.writing-result-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.85rem;
+}
+
+.writing-task-instruction {
+    margin: 0 0 0.9rem;
+    font-size: 1.02rem;
+    line-height: 1.7;
+    color: #20363c;
+}
+
+.writing-points {
+    display: flex;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.9rem;
+}
+
+.writing-point-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.42rem 0.72rem;
+    border-radius: 999px;
+    background: rgba(224, 245, 239, 0.95);
+    color: #1e6f69;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.writing-task-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: #60787f;
+    font-size: 0.84rem;
+    line-height: 1.6;
+}
+
+.writing-reset-button,
+.writing-submit-button {
+    border: none;
+    cursor: pointer;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+}
+
+.writing-reset-button {
+    padding: 0.65rem 0.85rem;
+    border-radius: 999px;
+    background: rgba(236, 243, 245, 0.95);
+    color: #4c666d;
+}
+
+.writing-editor-label {
+    display: block;
+    margin-bottom: 0.55rem;
+    color: #4f6f76;
+    font-weight: 800;
+}
+
+.writing-textarea {
+    width: 100%;
+    min-height: 280px;
+    resize: vertical;
+    border-radius: 22px;
+    border: 1px solid rgba(193, 218, 222, 0.85);
+    background: rgba(255, 255, 255, 0.96);
+    padding: 1rem;
+    font: inherit;
+    line-height: 1.75;
+    color: #20343a;
+    box-sizing: border-box;
+}
+
+.writing-textarea:focus {
+    outline: none;
+    border-color: #1aa299;
+    box-shadow: 0 0 0 4px rgba(26, 162, 153, 0.12);
+}
+
+.writing-word-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.7rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 800;
+}
+
+.writing-word-count.is-low {
+    background: #fff2e3;
+    color: #b36a1e;
+}
+
+.writing-word-count.is-high {
+    background: #fdecec;
+    color: #b74b4b;
+}
+
+.writing-word-count.is-good {
+    background: #e8f7ef;
+    color: #24754c;
+}
+
+.writing-word-count.is-neutral {
+    background: #edf4f6;
+    color: #567279;
+}
+
+.writing-submit-button {
+    padding: 0.9rem 1.15rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #12908a, #4fd0af);
+    color: white;
+    box-shadow: 0 12px 24px rgba(18, 144, 138, 0.22);
+}
+
+.writing-submit-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.writing-spinner {
+    animation: writing-spin 1s linear infinite;
+}
+
+@keyframes writing-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.writing-error {
+    margin: 0.9rem 0 0;
+    padding: 0.9rem 1rem;
+    border-radius: 18px;
+    background: #fff0f0;
+    color: #b44f4f;
+    border: 1px solid rgba(213, 128, 128, 0.35);
+    font-weight: 700;
+}
+
+.writing-score-badge {
+    min-width: 92px;
+    padding: 0.8rem 0.95rem;
+    border-radius: 20px;
+    text-align: center;
+}
+
+.writing-score-badge strong {
+    font-size: 1.55rem;
+    line-height: 1;
+}
+
+.writing-score-badge span {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.writing-score-badge.is-strong,
+.writing-history-score.is-strong {
+    background: #e6f8ef;
+    color: #187548;
+}
+
+.writing-score-badge.is-good,
+.writing-history-score.is-good {
+    background: #edf7ff;
+    color: #225f9e;
+}
+
+.writing-score-badge.is-grow,
+.writing-history-score.is-grow {
+    background: #fff0e7;
+    color: #b86a24;
+}
+
+.writing-result-summary {
+    margin: 0 0 1rem;
+    color: #4c666d;
+    line-height: 1.75;
+}
+
+.writing-score-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.7rem;
+    margin-bottom: 1rem;
+}
+
+.writing-score-item {
+    padding: 0.8rem 0.9rem;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(202, 221, 224, 0.85);
+}
+
+.writing-score-item span {
+    display: block;
+    font-size: 0.74rem;
+    text-transform: capitalize;
+    color: #6d848a;
+    font-weight: 800;
+}
+
+.writing-score-item strong {
+    display: block;
+    margin-top: 0.28rem;
+    font-size: 1rem;
+    color: #15343a;
+}
+
+.writing-feedback-columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+.writing-feedback-block,
+.writing-example-block {
+    padding: 0.95rem 1rem;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(202, 221, 224, 0.8);
+}
+
+.writing-feedback-block h4,
+.writing-example-block h4 {
+    margin: 0 0 0.7rem;
+    font-size: 0.95rem;
+    color: #204047;
+}
+
+.writing-feedback-block ul {
+    margin: 0;
+    padding-left: 1.2rem;
+    color: #51686f;
+    line-height: 1.75;
+}
+
+.writing-example-block {
+    margin-bottom: 0.8rem;
+}
+
+.writing-example-block.is-highlight {
+    background: linear-gradient(135deg, rgba(243, 255, 251, 0.98), rgba(255, 249, 234, 0.98));
+}
+
+.writing-example-block p {
+    margin: 0;
+    white-space: pre-wrap;
+    line-height: 1.8;
+    color: #243c42;
+}
+
+.writing-result-footer {
+    margin-top: 1rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid rgba(208, 224, 226, 0.9);
+    color: #638087;
+    font-size: 0.83rem;
+}
+
+.writing-result-footer p {
+    margin: 0;
+    font-weight: 800;
+    color: #295157;
+}
+
+.writing-history-panel {
+    margin: 1rem;
+}
+
+.writing-history-empty {
+    padding: 1.15rem;
+    border-radius: 20px;
+    background: rgba(248, 252, 253, 0.95);
+    color: #60767d;
+    line-height: 1.7;
+}
+
+.writing-history-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.writing-history-item {
+    width: 100%;
+    border: 1px solid rgba(196, 219, 223, 0.8);
+    border-radius: 22px;
+    background: rgba(253, 255, 255, 0.95);
+    padding: 1rem;
+    text-align: left;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    cursor: pointer;
+}
+
+.writing-history-main strong {
+    display: block;
+    margin: 0.55rem 0 0.35rem;
+    color: #17353b;
+}
+
+.writing-history-main p {
+    margin: 0;
+    color: #5f767d;
+    line-height: 1.6;
+}
+
+.writing-history-score {
+    min-width: 78px;
+    padding: 0.75rem 0.8rem;
+    border-radius: 18px;
+    text-align: center;
+    font-weight: 900;
+}
+
+@media (max-width: 900px) {
+    .writing-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .writing-coach-card {
+        grid-template-columns: 1fr;
+    }
+
+    .writing-hero-metrics,
+    .writing-score-grid,
+    .writing-feedback-columns {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .writing-header {
+        padding: 0.9rem 1rem;
+    }
+
+    .writing-hero,
+    .writing-panel,
+    .writing-history-panel {
+        margin-left: 0.85rem;
+        margin-right: 0.85rem;
+        border-radius: 22px;
+    }
+
+    .writing-layout {
+        margin: 0;
+        gap: 0.85rem;
+    }
+
+    .writing-task-header,
+    .writing-result-header,
+    .writing-history-item,
+    .writing-panel-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .writing-coach-stage-wrap {
+        height: min(40vh, 300px);
+        min-height: 220px;
+    }
+
+    .writing-character-stage {
+        transform: translateY(-30px);
+    }
+
+    .writing-coach-card.is-live2d .writing-character-stage {
+        transform: translateY(-42px);
+    }
+
+    .writing-editor-footer {
+        align-items: stretch;
+    }
+
+    .writing-submit-button {
+        width: 100%;
+    }
+}
