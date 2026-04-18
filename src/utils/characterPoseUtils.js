@@ -62,6 +62,10 @@ export const createHomePose = (reaction, { speaking = false } = {}) => {
         text: reaction?.text ?? '',
         live2dExpression,
         live2dFaceAccent,
+        live2dImpactMotion: reaction?.live2dImpactMotion ?? '',
+        live2dImpactStartedAt: reaction?.live2dImpactStartedAt ?? 0,
+        live2dImpactDurationMs: reaction?.live2dImpactDurationMs ?? 0,
+        live2dImpactVariant: reaction?.live2dImpactVariant ?? null,
         effect: '',
     };
 };

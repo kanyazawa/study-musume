@@ -170,6 +170,9 @@ const FaceEffectLayer = ({ mode = '', characterId = 'noah' }) => {
             <span className="character-angry-brow right" />
             <span className="character-cheek-puff left" />
             <span className="character-cheek-puff right" />
+            <span className="character-smile-cheek left" />
+            <span className="character-smile-cheek right" />
+            <span className="character-smile-mouth" />
             <span className="character-pout-mouth" />
             <span className="character-forehead-mark" />
         </div>

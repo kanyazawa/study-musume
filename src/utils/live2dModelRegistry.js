@@ -17,6 +17,12 @@ const LIVE2D_MODEL_REGISTRY = {
                 y: -0.8,
                 scale: 8.5,
             },
+            stageOverrides: {
+                home: {
+                    y: -0.15,
+                    scale: 7.25,
+                },
+            },
             expressionMap: {
                 angry: 'sq',
                 happy: 'yj',
@@ -24,7 +30,9 @@ const LIVE2D_MODEL_REGISTRY = {
                 sad: 'ku',
                 serious: 'h',
                 shy: 'zs1',
-                surprised: 'xx',
+            },
+            emotionProfileMap: {
+                angry: 'happy',
             },
             // Home uses the same model as other scenes, but we hide the controller/prop hand
             // group here so future fixes can be made in config instead of inside viewer logic.
