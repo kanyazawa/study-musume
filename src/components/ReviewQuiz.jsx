@@ -85,7 +85,7 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
     if (feedback === 'incorrect' || persistentEmotion === 'angry') {
         poseEmotion = 'angry';
     } else if (feedback === 'correct' || correctStreak >= 2 || persistentEmotion === 'happy') {
-        poseEmotion = 'happy';
+        poseEmotion = 'correct';
     } else if (reviewFaceAccent === 'star') {
         poseEmotion = renderer === 'live2d' ? 'smile' : 'happy';
     } else if (renderer === 'live2d') {
@@ -99,7 +99,7 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
     }
     const characterPose = {
         emotion: poseEmotion,
-        expression: feedback === 'correct' ? 'smile' : poseEmotion,
+        expression: feedback === 'correct' ? 'correct' : poseEmotion,
         scene: 'review',
         intensity: feedback
             ? feedback === 'correct' ? 0.74 : 0.46
@@ -110,7 +110,7 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
         speaking: feedback === 'correct',
         text: '',
         effect: feedback === 'correct' ? 'glow' : feedback === 'incorrect' ? 'shake' : '',
-        live2dEmotion: feedback === 'correct' ? 'smile' : '',
+        live2dEmotion: feedback === 'correct' ? 'correct' : '',
         live2dFaceAccent: reviewFaceAccent,
     };
     const getChainAudioSrc = useCallback((streak) => {

@@ -1,6 +1,7 @@
 const SUPPORTED_EMOTIONS = new Set([
     'normal',
     'happy',
+    'correct',
     'smile',
     'serious',
     'angry',

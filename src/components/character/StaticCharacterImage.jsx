@@ -70,6 +70,7 @@ const NOAH_EXPRESSION_IMAGES = {
     tsundere: NoaNormal,
     user: CharacterUser,
     happy: NoaHappy,
+    correct: NoaHappy,
     normal: NoaNormal,
     angry: NoaAngry,
     serious: NoaAngry,
@@ -85,6 +86,7 @@ const REN_EXPRESSION_IMAGES = {
     main: RenNormal,
     new: RenNormal,
     happy: RenHappy,
+    correct: RenHappy,
     normal: RenNormal,
     angry: RenAngry,
     serious: RenSerious,
@@ -117,6 +119,7 @@ const resolveImage = (characterId, skinId, pose = {}) => {
 const resolveFaceEffectMode = (expressionKey) => {
     switch (expressionKey) {
         case 'happy':
+        case 'correct':
         case 'smile':
             return 'sparkle';
         case 'surprised':

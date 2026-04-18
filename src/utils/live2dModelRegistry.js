@@ -18,13 +18,18 @@ const LIVE2D_MODEL_REGISTRY = {
                 scale: 8.5,
             },
             stageOverrides: {
-                home: {
-                    y: -0.15,
-                    scale: 7.25,
+                preview: {
+                    y: -0.22,
+                    scale: 6.4,
+                },
+                'preview-close': {
+                    y: -0.58,
+                    scale: 7.85,
                 },
             },
             expressionMap: {
                 angry: 'sq',
+                correct: 'yj',
                 happy: 'yj',
                 smile: 'yj',
                 sad: 'ku',

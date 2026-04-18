@@ -217,7 +217,9 @@ const getEmotionAnimationProfile = (pose = {}, modelConfig = null) => {
     const emotion = getLive2DEmotionKey(pose, modelConfig);
     const intensity = clamp(typeof pose.intensity === 'number' ? pose.intensity : 0.5, 0, 1);
     const sceneKey = getSceneKey(pose);
-    const isReviewSmile = sceneKey === 'review' && (emotion === 'happy' || emotion === 'smile');
+    const isCorrect = emotion === 'correct';
+    const isReviewMistake = sceneKey === 'review' && emotion === 'angry';
+    const isReviewSmile = sceneKey === 'review' && (emotion === 'happy' || emotion === 'smile' || isCorrect);
     const isMatchSmile = (sceneKey === 'match' || sceneKey === 'match-result') && (emotion === 'happy' || emotion === 'smile');
     const profile = {
         mouthScale: 1,
@@ -234,7 +236,26 @@ const getEmotionAnimationProfile = (pose = {}, modelConfig = null) => {
         doubleBlinkChance: 0.38,
     };
 
-    if (emotion === 'happy' || emotion === 'smile') {
+    if (isCorrect) {
+        profile.mouthScale = 1.12;
+        profile.mouthFlutterScale = 0.92;
+        profile.mouthFormBase = 0.04;
+        profile.mouthFormFlutterScale = 0.55;
+        profile.mouthLimit = 0.9;
+        profile.blinkIntervalScale = 0.9;
+        profile.blinkHoldScale = 1.08;
+        profile.blinkOpenScale = 0.94;
+        profile.doubleBlinkChance = 0.48;
+    } else if (isReviewMistake) {
+        profile.mouthScale = 0.62;
+        profile.mouthFlutterScale = 0.42;
+        profile.mouthFormBase = 0.01;
+        profile.mouthFormFlutterScale = 0.22;
+        profile.mouthFollowOut = 0.28;
+        profile.blinkIntervalScale = 1.14;
+        profile.blinkCloseScale = 1.08;
+        profile.doubleBlinkChance = 0.2;
+    } else if (emotion === 'happy' || emotion === 'smile') {
         profile.mouthScale = isMatchSmile ? 1.52 : 1.08;
         profile.mouthFlutterScale = isMatchSmile ? 0.9 : 1.12;
         profile.mouthFormBase = isMatchSmile ? 0.32 : 0.15;
@@ -489,6 +510,7 @@ const getEmotionParameterProfile = (pose = {}, modelConfig = null) => {
     const intensity = clamp(typeof pose.intensity === 'number' ? pose.intensity : 0.5, 0, 1);
     const homeBoost = isHomePose(pose) ? 1.22 : 1;
     const sceneKey = getSceneKey(pose);
+    const isReviewMistake = sceneKey === 'review' && emotion === 'angry';
     const reviewSmileBoost = sceneKey === 'review' && (emotion === 'happy' || emotion === 'smile')
         ? 1.26
         : 1;
@@ -498,6 +520,29 @@ const getEmotionParameterProfile = (pose = {}, modelConfig = null) => {
     const smileBoost = Math.max(reviewSmileBoost, matchSmileBoost);
     const mouthSmileBoost = matchSmileBoost > 1 ? matchSmileBoost : 1;
     const isReviewSmile = reviewSmileBoost > 1;
+
+    if (emotion === 'correct') {
+        return {
+            browY: (0.16 + (intensity * 0.05)) * homeBoost,
+            browForm: -((0.24 + (intensity * 0.06)) * homeBoost),
+            angleX: (0.6 + (intensity * 1.1)) * homeBoost,
+            angleY: -0.82 * homeBoost,
+            angleZ: 2.4 * homeBoost,
+            bodyAngleX: 0.2 * homeBoost,
+            bodyAngleY: -0.22 * homeBoost,
+            bodyAngleZ: 1.1 * homeBoost,
+            eyeSmile: clamp(0.46 + (intensity * 0.16), 0, 1),
+            eyeSquint: 0.03 + (intensity * 0.03),
+            eyeOpen: 0.98,
+            angry: 0,
+            mouthOpen: 0.28 + (intensity * 0.14),
+            mouthX: 0,
+            mouthFunnel: 0.48 + (intensity * 0.16),
+            mouthShrug: 0.04,
+            mouthWiden: 0,
+            jawOpen: 0.5 + (intensity * 0.18),
+        };
+    }
 
     if (emotion === 'happy' || emotion === 'smile') {
         return {
@@ -556,12 +601,12 @@ const getEmotionParameterProfile = (pose = {}, modelConfig = null) => {
             eyeSquint: 0.82 + (intensity * 0.12),
             eyeOpen: 0.84 - (intensity * 0.04),
             angry: 1.08 + (intensity * 0.12),
-            mouthOpen: 0.01,
-            mouthX: 0,
-            mouthFunnel: 0.14 + (intensity * 0.05),
-            mouthShrug: 0.08 + (intensity * 0.04),
-            mouthWiden: 0,
-            jawOpen: 0.01,
+            mouthOpen: isReviewMistake ? 0.002 : 0.01,
+            mouthX: isReviewMistake ? -(0.1 + (intensity * 0.05)) : 0,
+            mouthFunnel: isReviewMistake ? 0.08 + (intensity * 0.03) : 0.14 + (intensity * 0.05),
+            mouthShrug: isReviewMistake ? 0.1 + (intensity * 0.03) : 0.08 + (intensity * 0.04),
+            mouthWiden: isReviewMistake ? 0.01 : 0,
+            jawOpen: isReviewMistake ? 0.002 : 0.01,
         };
     }
 

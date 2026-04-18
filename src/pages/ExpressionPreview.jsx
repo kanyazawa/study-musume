@@ -3,15 +3,30 @@ import { Link } from 'react-router-dom';
 import CharacterStage from '../components/character/CharacterStage';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { getLive2DModelConfig, hasLive2DModelConfig } from '../utils/live2dModelRegistry';
+import { normalizeCharacterEmotion } from '../utils/characterPoseUtils';
 import './ExpressionPreview.css';
 
 const EMOTION_PRESETS = [
     { id: 'normal', label: '通常 emotion' },
+    { id: 'correct', label: 'correct emotion' },
     { id: 'happy', label: 'happy emotion' },
     { id: 'serious', label: 'serious emotion' },
     { id: 'angry', label: 'angry emotion' },
     { id: 'shy', label: 'shy emotion' },
     { id: 'surprised', label: 'surprised emotion' },
+];
+
+const EXPRESSION_PRESETS = [
+    { id: 'normal', label: '通常 expression' },
+    { id: 'correct', label: 'correct expression' },
+    { id: 'happy', label: 'happy expression' },
+    { id: 'smile', label: 'smile expression' },
+    { id: 'serious', label: 'serious expression' },
+    { id: 'angry', label: 'angry expression' },
+    { id: 'sad', label: 'sad expression' },
+    { id: 'relaxed', label: 'relaxed expression' },
+    { id: 'shy', label: 'shy expression' },
+    { id: 'surprised', label: 'surprised expression' },
 ];
 
 const DIRECT_EXPRESSIONS = [
@@ -36,6 +51,11 @@ const PREVIEW_MODES = [
     { id: 'composite', label: '本番どおり' },
 ];
 
+const FRAMING_MODES = [
+    { id: 'face-close', label: '顔寄り確認' },
+    { id: 'full-body', label: '全身確認' },
+];
+
 const FACE_ACCENTS = [
     { id: '', label: 'accentなし' },
     { id: 'heart', label: 'heart eyes' },
@@ -55,8 +75,10 @@ const ExpressionPreview = ({ stats }) => {
     });
 
     const [emotion, setEmotion] = useState('normal');
+    const [expression, setExpression] = useState('normal');
     const [live2dExpression, setLive2dExpression] = useState('');
     const [previewMode, setPreviewMode] = useState('expression-only');
+    const [framingMode, setFramingMode] = useState('face-close');
     const [live2dFaceAccent, setLive2dFaceAccent] = useState('');
     const mappedExpression = useMemo(() => {
         const emotionKey = String(emotion || '').trim().toLowerCase();
@@ -66,19 +88,19 @@ const ExpressionPreview = ({ stats }) => {
 
     const previewPose = useMemo(() => ({
         emotion,
-        expression: emotion,
+        expression,
         intensity: emotion === 'normal' ? 0.4 : 0.72,
         motion: null,
         idle: 'gentle',
         gaze: 'camera',
-        scene: 'home',
+        scene: framingMode === 'face-close' ? 'preview-close' : 'preview',
         speaking: false,
-        text: `emotion=${emotion} / exp=${live2dExpression || 'auto'}`,
+        text: `emotion=${emotion} / expression=${expression} / exp=${live2dExpression || 'auto'}`,
         live2dExpression,
         live2dFaceAccent,
         disableLive2DEmotionAdjustments: previewMode === 'expression-only',
         effect: '',
-    }), [emotion, live2dExpression, live2dFaceAccent, previewMode]);
+    }), [emotion, expression, framingMode, live2dExpression, live2dFaceAccent, previewMode]);
 
     return (
         <div className="expression-preview-page">
@@ -87,32 +109,50 @@ const ExpressionPreview = ({ stats }) => {
                     <p className="expression-preview-eyebrow">Live2D Expression Preview</p>
                     <h1>{characterId} の表情確認</h1>
                     <p className="expression-preview-copy">
-                        `emotion` と `exp3` を個別に切り替えて、実際の見た目を比べられます。
+                        `emotion`、立ち絵の `expression`、Live2D の `exp3` を個別に切り替えて見比べられます。
                     </p>
                 </div>
                 <Link className="expression-preview-back" to="/home">ホームへ戻る</Link>
             </header>
 
             <section className="expression-preview-stage">
-                <div className="expression-preview-character">
+                <div className={`expression-preview-character is-${framingMode}`}>
                     <CharacterStage
                         characterId={characterId}
                         renderer={renderer}
                         skinId={skinId}
-                        scene="home"
+                        scene={framingMode === 'face-close' ? 'preview-close' : 'preview'}
                         pose={previewPose}
-                        className="expression-preview-figure"
+                        className={`expression-preview-figure is-${framingMode}`}
                         imageClassName="expression-preview-image"
                     />
                 </div>
                 <div className="expression-preview-readout">
                     <span>renderer: {renderer}</span>
                     <span>mode: {previewMode}</span>
+                    <span>framing: {framingMode}</span>
                     <span>emotion: {emotion}</span>
+                    <span>expression: {expression}</span>
                     <span>live2dExpression: {live2dExpression || 'auto'}</span>
                     <span>faceAccent: {live2dFaceAccent || 'none'}</span>
                     <span>mapped exp3: {mappedExpression || 'none'}</span>
                     <span>resolved exp3: {resolvedExpression}</span>
+                </div>
+            </section>
+
+            <section className="expression-preview-panel">
+                <h2>構図</h2>
+                <div className="expression-preview-grid">
+                    {FRAMING_MODES.map((mode) => (
+                        <button
+                            key={mode.id}
+                            type="button"
+                            className={mode.id === framingMode ? 'is-active' : ''}
+                            onClick={() => setFramingMode(mode.id)}
+                        >
+                            {mode.label}
+                        </button>
+                    ))}
                 </div>
             </section>
 
@@ -141,9 +181,26 @@ const ExpressionPreview = ({ stats }) => {
                             type="button"
                             className={preset.id === emotion ? 'is-active' : ''}
                             onClick={() => {
-                                setEmotion(preset.id);
+                                const nextEmotion = normalizeCharacterEmotion(preset.id, 'normal');
+                                setEmotion(nextEmotion);
                                 setLive2dExpression('');
                             }}
+                        >
+                            {preset.label}
+                        </button>
+                    ))}
+                </div>
+            </section>
+
+            <section className="expression-preview-panel">
+                <h2>立ち絵 / expression</h2>
+                <div className="expression-preview-grid">
+                    {EXPRESSION_PRESETS.map((preset) => (
+                        <button
+                            key={preset.id}
+                            type="button"
+                            className={preset.id === expression ? 'is-active' : ''}
+                            onClick={() => setExpression(normalizeCharacterEmotion(preset.id, 'normal'))}
                         >
                             {preset.label}
                         </button>
