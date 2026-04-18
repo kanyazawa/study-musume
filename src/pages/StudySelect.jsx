@@ -278,6 +278,14 @@ const StudySelect = () => {
                                 <span className="review-label">英検ライティング</span>
                                 <span className="review-hint">問題を見てAI採点</span>
                             </button>
+                            <button
+                                className="custom-vocab-mode-btn"
+                                onClick={() => navigate('/custom-vocab')}
+                            >
+                                <span className="review-icon">📝</span>
+                                <span className="review-label">自作単語ノート</span>
+                                <span className="review-hint">単語を追加してそのまま学習</span>
+                            </button>
                         </div>
                     </>
                 )}

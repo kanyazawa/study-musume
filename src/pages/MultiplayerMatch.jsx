@@ -34,6 +34,7 @@ import {
 } from '../utils/matchUtils';
 import { addWrongQuestion } from '../utils/reviewUtils';
 import { getVocabByLevel } from '../data/vocabData';
+import { getCustomVocabStudyItems } from '../utils/customVocabUtils';
 import { useSound } from '../contexts/SoundContext';
 import { getTtsSettings, TTS_ENGINES } from '../utils/ttsSettings';
 import { getEngineBaseUrl, isEngineAvailable, resolveSpeakerIdForEngine, speakWithEngine } from '../utils/voicevoxUtils';
@@ -103,6 +104,13 @@ const SOLO_SESSION_PRESETS = [
         count: Number.POSITIVE_INFINITY,
     },
 ];
+const CUSTOM_SOLO_LEVEL = 'custom';
+const CUSTOM_SOLO_LEVEL_META = {
+    level: CUSTOM_SOLO_LEVEL,
+    label: '自作単語',
+    emoji: '📝',
+    color: '#fb923c',
+};
 
 const getSoloSessionOptions = (totalQuestions) => {
     if (totalQuestions <= 0) return [];
@@ -167,6 +175,8 @@ const sanitizeMatchQuestions = (questions, fallbackMeanings = []) => {
         }
 
         return {
+            questionId: String(question?.questionId ?? word).trim() || word,
+            subject: String(question?.subject ?? '英単語バトル').trim() || '英単語バトル',
             word,
             correctAnswer,
             options: finalOptions,
@@ -194,6 +204,8 @@ const sanitizeVocabItems = (items) => {
 const buildQuestionsFromVocabItems = (vocabItems, fallbackMeanings = []) => {
     return sanitizeMatchQuestions(
         (Array.isArray(vocabItems) ? vocabItems : []).map((item) => ({
+            questionId: item?.id || item?.questionId || item?.word,
+            subject: item?.subject || '英単語バトル',
             word: item?.word,
             correctAnswer: item?.meaning,
             options: buildQuestionOptions(item?.meaning, fallbackMeanings),
@@ -237,6 +249,14 @@ const buildSoloRoomData = ({
 
 const getLevelMeta = (level) => {
     return LEVEL_THRESHOLDS.find((threshold) => threshold.level === level) || LEVEL_THRESHOLDS[0];
+};
+
+const getSoloLevelMeta = (level) => {
+    if (level === CUSTOM_SOLO_LEVEL) {
+        return CUSTOM_SOLO_LEVEL_META;
+    }
+
+    return getLevelMeta(level);
 };
 
 const getLeadMeta = (myScore, opponentScore) => {
@@ -444,7 +464,15 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const myRankInfo = getRankFromRating(myRating);
     const nextLevelInfo = getNextLevelInfo(myRating);
     const soloLevel = queryLevel || myLevelInfo.level;
-    const soloVocabPool = useMemo(() => sanitizeVocabItems(getVocabByLevel(soloLevel)), [soloLevel]);
+    const soloLevelMeta = useMemo(() => getSoloLevelMeta(soloLevel), [soloLevel]);
+    const soloVocabPool = useMemo(
+        () => sanitizeVocabItems(
+            soloLevel === CUSTOM_SOLO_LEVEL
+                ? getCustomVocabStudyItems()
+                : getVocabByLevel(soloLevel)
+        ),
+        [soloLevel]
+    );
     const questionOptionMeanings = useMemo(
         () => soloVocabPool.map((item) => String(item?.meaning ?? '').trim()).filter(Boolean),
         [soloVocabPool]
@@ -462,6 +490,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
 
         return soloSessionOptions.find((option) => option.id === selectedSoloSessionId) || soloSessionOptions[0];
     }, [selectedSoloSessionId, soloSessionOptions]);
+    const canStartSoloSession = !isSolo || soloVocabPool.length >= 2;
     const friendBattleLevelInfo = getLevelMeta(roomData?.level || friendLevelParam);
     const matchTargetCorrect = normalizeTargetCorrect(roomData?.targetCorrect || friendTargetParam, TARGET_CORRECT);
     const battleMode = normalizeBattleMode(roomData?.battleMode || friendModeParam);
@@ -557,6 +586,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         return {
             ...basePose,
             scene: phase === 'result' ? 'match-result' : 'match',
+            expression: answerFx === 'correct' ? 'smile' : basePose.expression,
             intensity: answerFx === 'correct'
                 ? 0.95
                 : answerFx === 'wrong'
@@ -579,11 +609,18 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                             : phase === 'countdown'
                                 ? 'talk'
                                 : 'idle_home',
+            speaking: answerFx === 'correct' || basePose.speaking,
             effect: answerFx === 'wrong'
                 ? 'shake'
                 : answerFx === 'correct' || resultFx === 'victory'
                     ? 'glow'
                     : '',
+            live2dEmotion: answerFx === 'correct'
+                ? 'smile'
+                : '',
+            live2dExpression: answerFx === 'correct'
+                ? 'yj'
+                : '',
             live2dFaceAccent,
         };
     }, [answerFx, correctStreak, isPoseSpeaking, matchEmotion, persistentEmotion, phase, resultFx]);
@@ -1191,6 +1228,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     // マッチング開始
     const startMatching = useCallback(async () => {
         if (!myUid) return;
+        if (isSolo && !canStartSoloSession) return;
         if (unsubscribeRef.current) {
             unsubscribeRef.current();
             unsubscribeRef.current = null;
@@ -1284,6 +1322,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         directRoomId,
         isFriendMatch,
         isSolo,
+        canStartSoloSession,
         myCharacterId,
         myDisplayName,
         myEquippedSkin,
@@ -1429,8 +1468,8 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                 }) : prev);
             }
             addWrongQuestion({
-                subject: '英単語バトル',
-                questionId: question.word,
+                subject: question.subject || '英単語バトル',
+                questionId: question.questionId || question.word,
                 questionText: question.word,
                 correctAnswer: question.correctAnswer,
                 userAnswer: answer,
@@ -1471,8 +1510,8 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         triggerAnswerFx('wrong');
         playUiTone(165, 220, { type: 'sawtooth', gain: 0.02 });
         addWrongQuestion({
-            subject: '英単語バトル',
-            questionId: question.word,
+            subject: question.subject || '英単語バトル',
+            questionId: question.questionId || question.word,
             questionText: question.word,
             correctAnswer: question.correctAnswer,
             userAnswer: '（わからない）',
@@ -1525,8 +1564,8 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             : Promise.resolve();
 
         addWrongQuestion({
-            subject: '英単語バトル',
-            questionId: question.word,
+            subject: question.subject || '英単語バトル',
+            questionId: question.questionId || question.word,
             questionText: question.word,
             correctAnswer: question.correctAnswer,
             userAnswer: '（時間切れ）',
@@ -1713,7 +1752,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                         </div>
                         <div className="mp-rating-number">{myRating}</div>
                         <div className="mp-rating-level" style={{ color: myLevelInfo.color }}>
-                            {myLevelInfo.emoji} 出題範囲: {myLevelInfo.label}
+                            {isSolo ? soloLevelMeta.emoji : myLevelInfo.emoji} 出題範囲: {isSolo ? soloLevelMeta.label : myLevelInfo.label}
                         </div>
                         {nextLevelInfo.nextLevel && (
                             <div className="mp-rating-next">
@@ -1741,7 +1780,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                                     <h3>今回はどこで終わるか先に決める</h3>
                                 </div>
                                 <div className="mp-solo-plan-total">
-                                    {getLevelMeta(soloLevel).label} / 全{soloVocabPool.length}問
+                                    {soloLevelMeta.label} / 全{soloVocabPool.length}問
                                 </div>
                             </div>
                             <div className="mp-solo-plan-grid">
@@ -1765,10 +1804,17 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                             </div>
                         </div>
                     )}
-                    <button className="mp-start-btn" onClick={startMatching}>
+                    <button className="mp-start-btn" onClick={startMatching} disabled={!canStartSoloSession}>
                         <Swords size={24} />
                         <span>{isSolo ? `${selectedSoloSessionOption?.actualCount || 0}問で始める` : '対戦相手を探す'}</span>
                     </button>
+                    {isSolo && !canStartSoloSession && (
+                        <div className="mp-error">
+                            {soloLevel === CUSTOM_SOLO_LEVEL
+                                ? '自作単語は2語以上登録すると出題できます。'
+                                : 'このレベルは出題できる単語が不足しています。'}
+                        </div>
+                    )}
                     {error && <div className="mp-error">{error}</div>}
                 </div>
             </div>

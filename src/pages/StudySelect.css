@@ -255,6 +255,20 @@
     gap: 15px;
 }
 
+.custom-vocab-mode-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #c2410c 0%, #fb923c 100%);
+    border: none;
+    border-radius: 16px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(194, 65, 12, 0.35);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
 .review-mode-btn:hover {
     transform: translateY(-4px);
     box-shadow: 0 6px 20px rgba(126, 87, 194, 0.6);
@@ -263,6 +277,11 @@
 .writing-mode-btn:hover {
     transform: translateY(-4px);
     box-shadow: 0 6px 20px rgba(15, 118, 110, 0.5);
+}
+
+.custom-vocab-mode-btn:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 20px rgba(194, 65, 12, 0.5);
 }
 
 .review-mode-btn:active {
@@ -295,6 +314,12 @@
     }
 
     .writing-mode-btn {
+        flex-direction: column;
+        text-align: center;
+        padding: 15px;
+    }
+
+    .custom-vocab-mode-btn {
         flex-direction: column;
         text-align: center;
         padding: 15px;

@@ -1,6 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, Clock3, Flame, Target } from 'lucide-react';
-import { getReviewPriority, formatRelativeDate, formatReviewLevel, updateReviewResult } from '../utils/reviewUtils';
+import {
+    getReviewPriority,
+    formatRelativeDate,
+    formatReviewLevel,
+    getReviewScheduleChoices,
+    updateReviewResult
+} from '../utils/reviewUtils';
 import CharacterStage from './character/CharacterStage';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { useSound } from '../contexts/SoundContext';
@@ -19,8 +25,6 @@ import './ReviewQuiz.css';
  * 復習用のクイズコンポーネント
  */
 const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
-    const CORRECT_ADVANCE_DELAY_MS = 900;
-    const INCORRECT_ADVANCE_DELAY_MS = 1600;
     const { isMuted, playSE } = useSound();
     const [sessionQuestions, setSessionQuestions] = useState(() => questions);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -29,12 +33,12 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
     const [results, setResults] = useState([]); // { questionId, isCorrect }
     const [isCompleted, setIsCompleted] = useState(false);
     const [inputValue, setInputValue] = useState('');
-    const [showNextButton, setShowNextButton] = useState(false);
+    const [scheduleChoices, setScheduleChoices] = useState([]);
+    const [selectedScheduleKey, setSelectedScheduleKey] = useState(null);
     const [correctStreak, setCorrectStreak] = useState(0);
     const [persistentEmotion, setPersistentEmotion] = useState(null);
     const chainAudioCacheRef = useRef({});
     const audioContextRef = useRef(null);
-    const nextQuestionTimerRef = useRef(null);
 
     const currentQuestion = sessionQuestions[currentIndex];
     const accuracy = results.length ? Math.round((results.filter((result) => result.isCorrect).length / results.length) * 100) : 100;
@@ -64,9 +68,14 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
     });
     const showIncorrectFeedback = Boolean(currentQuestion.options && feedback === 'incorrect');
     const isChoiceQuestion = Boolean(currentQuestion.options);
+    const isAwaitingSchedule = Boolean(feedback);
+    const scheduleTitle = feedback === 'correct' ? '次はいつ出す？' : 'もう一度出すタイミングを選ぼう';
+    const scheduleHint = feedback === 'correct'
+        ? '覚えているうちに少し先まで飛ばせるよ。'
+        : '忘れ切る前にもう一度当てると定着しやすい。';
     const reviewFaceAccent = feedback === 'incorrect' || persistentEmotion === 'angry'
         ? null
-        : correctStreak >= 2 || persistentEmotion === 'happy'
+        : feedback === 'correct' || correctStreak >= 2 || persistentEmotion === 'happy'
             ? 'heart'
             : correctStreak === 1 || persistentEmotion === 'smile'
                 ? 'star'
@@ -75,7 +84,7 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
     let poseEmotion;
     if (feedback === 'incorrect' || persistentEmotion === 'angry') {
         poseEmotion = 'angry';
-    } else if (correctStreak >= 2 || persistentEmotion === 'happy') {
+    } else if (feedback === 'correct' || correctStreak >= 2 || persistentEmotion === 'happy') {
         poseEmotion = 'happy';
     } else if (reviewFaceAccent === 'star') {
         poseEmotion = renderer === 'live2d' ? 'smile' : 'happy';
@@ -90,17 +99,18 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
     }
     const characterPose = {
         emotion: poseEmotion,
-        expression: poseEmotion,
+        expression: feedback === 'correct' ? 'smile' : poseEmotion,
         scene: 'review',
         intensity: feedback
-            ? feedback === 'correct' ? 0.52 : 0.46
+            ? feedback === 'correct' ? 0.74 : 0.46
             : (currentQuestion?.wrongCount || 0) >= 3 ? 0.42 : priority === 'urgent' ? 0.4 : 0.32,
         motion: null,
         idle: 'gentle',
         gaze: 'camera',
-        speaking: false,
+        speaking: feedback === 'correct',
         text: '',
         effect: feedback === 'correct' ? 'glow' : feedback === 'incorrect' ? 'shake' : '',
+        live2dEmotion: feedback === 'correct' ? 'smile' : '',
         live2dFaceAccent: reviewFaceAccent,
     };
     const getChainAudioSrc = useCallback((streak) => {
@@ -123,15 +133,6 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
             }
         });
     }, [getChainAudioSrc]);
-
-    useEffect(() => (
-        () => {
-            if (nextQuestionTimerRef.current) {
-                clearTimeout(nextQuestionTimerRef.current);
-                nextQuestionTimerRef.current = null;
-            }
-        }
-    ), []);
 
     const playUiTone = useCallback((frequency, durationMs, { type = 'sine', gain = 0.03, delayMs = 0 } = {}) => {
         if (isMuted || typeof window === 'undefined') return;
@@ -185,18 +186,14 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
     }, [getChainAudioSrc, isMuted]);
 
     const handleNextQuestion = () => {
-        if (nextQuestionTimerRef.current) {
-            clearTimeout(nextQuestionTimerRef.current);
-            nextQuestionTimerRef.current = null;
-        }
-
         if (currentIndex + 1 < sessionQuestions.length) {
             // Next question
             setCurrentIndex(prev => prev + 1);
             setSelectedAnswer(null);
             setFeedback(null);
             setInputValue('');
-            setShowNextButton(false);
+            setScheduleChoices([]);
+            setSelectedScheduleKey(null);
         } else {
             // Quiz complete
             setTimeout(() => {
@@ -206,22 +203,28 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
         }
     };
 
+    const handleScheduleSelect = (scheduleChoice) => {
+        if (!currentQuestion || !feedback || !scheduleChoice || selectedScheduleKey) return;
+
+        const isCorrect = feedback === 'correct';
+        setSelectedScheduleKey(scheduleChoice.key);
+        updateReviewResult(currentQuestion.id, isCorrect, scheduleChoice);
+        setResults(prev => [...prev, {
+            questionId: currentQuestion.id,
+            isCorrect
+        }]);
+        handleNextQuestion();
+    };
+
     const handleAnswerSelect = (answer) => {
         if (feedback) return; // Already answered
 
         setSelectedAnswer(answer);
         const isCorrect = answer === currentQuestion.correctAnswer;
 
-        // Update review result
-        updateReviewResult(currentQuestion.id, isCorrect);
-
-        // Track result
-        setResults(prev => [...prev, {
-            questionId: currentQuestion.id,
-            isCorrect
-        }]);
-
         setFeedback(isCorrect ? 'correct' : 'incorrect');
+        setScheduleChoices(getReviewScheduleChoices(currentQuestion, isCorrect));
+        setSelectedScheduleKey(null);
         setCorrectStreak((prev) => {
             const nextStreak = isCorrect ? prev + 1 : 0;
             setPersistentEmotion(isCorrect ? (nextStreak >= 2 ? 'happy' : 'smile') : 'angry');
@@ -239,14 +242,6 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
 
             return nextStreak;
         });
-
-        if (!isCorrect && !isChoiceQuestion) {
-            setShowNextButton(true);
-        }
-
-        nextQuestionTimerRef.current = setTimeout(() => {
-            handleNextQuestion();
-        }, isCorrect ? CORRECT_ADVANCE_DELAY_MS : INCORRECT_ADVANCE_DELAY_MS);
     };
 
     const handleInputSubmit = (e) => {
@@ -283,9 +278,61 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
         setResults([]);
         setIsCompleted(false);
         setInputValue('');
-        setShowNextButton(false);
+        setScheduleChoices([]);
+        setSelectedScheduleKey(null);
         setCorrectStreak(0);
         setPersistentEmotion(null);
+    };
+
+    const renderScheduleContent = () => {
+        if (!feedback) return null;
+
+        return (
+            <div className="review-answer-result">
+                <div className={`review-feedback-banner ${feedback === 'correct' ? 'is-correct' : 'is-incorrect'}`}>
+                    {feedback === 'correct' ? '正解！' : '惜しい、ここで拾い直そう。'}
+                </div>
+                {feedback === 'incorrect' && (
+                    <div className="answer-reveal">
+                        <span className="label">正解:</span> {currentQuestion.correctAnswer}
+                    </div>
+                )}
+                <div className={`user-answer-display ${feedback === 'correct' ? 'is-correct' : ''}`}>
+                    <span className="label">あなたの回答:</span> {selectedAnswer}
+                </div>
+                {currentQuestion.userAnswer && !isChoiceQuestion && (
+                    <div className="past-answer-display">
+                        <span className="label">前回の回答:</span> {currentQuestion.userAnswer}
+                    </div>
+                )}
+
+                <div className="review-schedule-panel">
+                    <div className="review-schedule-copy">
+                        <strong>{scheduleTitle}</strong>
+                        <span>{scheduleHint}</span>
+                    </div>
+                    <div className="review-schedule-grid">
+                        {scheduleChoices.map((choice) => (
+                            <button
+                                key={choice.key}
+                                type="button"
+                                className={`review-schedule-btn ${choice.recommended ? 'is-recommended' : ''} ${choice.complete ? 'is-complete' : ''}`}
+                                onClick={() => handleScheduleSelect(choice)}
+                                disabled={Boolean(selectedScheduleKey)}
+                            >
+                                <span className="review-schedule-label">{choice.label}</span>
+                                <span className="review-schedule-meta">
+                                    {choice.description || (choice.nextReviewDate ? formatRelativeDate(choice.nextReviewDate) : 'リストから外す')}
+                                </span>
+                                {choice.recommended && (
+                                    <span className="review-schedule-recommend">おすすめ</span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     if (!currentQuestion) {
@@ -445,27 +492,12 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
                     </div>
                     {showIncorrectFeedback && (
                         <div className="review-answer-panel review-answer-panel-inline review-answer-panel-floating">
-                            <div className="review-answer-result">
-                                <div className="answer-reveal">
-                                    <span className="label">正解:</span> {currentQuestion.correctAnswer}
-                                </div>
-                                <div className="user-answer-display">
-                                    <span className="label">あなたの回答:</span> {selectedAnswer}
-                                </div>
-                                {showNextButton && (
-                                    <button
-                                        className="quiz-next-btn"
-                                        onClick={handleNextQuestion}
-                                    >
-                                        次へ進む
-                                    </button>
-                                )}
-                            </div>
+                            {renderScheduleContent()}
                         </div>
                     )}
                 </div>
 
-                <div className={`mp-bottom-area review-bottom-area ${feedback === 'incorrect' ? 'has-incorrect-feedback' : ''}`}>
+                <div className={`mp-bottom-area review-bottom-area ${isAwaitingSchedule ? 'has-incorrect-feedback' : ''}`}>
                     {currentQuestion.options ? (
                         <>
                             <div className="mp-options-grid review-options-grid">
@@ -493,14 +525,9 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
                                     );
                                 })}
                             </div>
-                            {showIncorrectFeedback && showNextButton && (
-                                <div className="review-next-action">
-                                    <button
-                                        className="quiz-next-btn review-next-btn-fixed"
-                                        onClick={handleNextQuestion}
-                                    >
-                                        次へ進む
-                                    </button>
+                            {feedback === 'correct' && (
+                                <div className="review-answer-panel review-answer-panel-inline review-next-action">
+                                    {renderScheduleContent()}
                                 </div>
                             )}
                         </>
@@ -521,27 +548,7 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
                                     </button>
                                 </form>
                             ) : (
-                                <div className="review-answer-result">
-                                    <div className="answer-reveal">
-                                        <span className="label">正解:</span> {currentQuestion.correctAnswer}
-                                    </div>
-                                    <div className="user-answer-display">
-                                        <span className="label">あなたの回答:</span> {selectedAnswer}
-                                    </div>
-                                    {currentQuestion.userAnswer && (
-                                        <div className="past-answer-display">
-                                            <span className="label">前回の回答:</span> {currentQuestion.userAnswer}
-                                        </div>
-                                    )}
-                                    {showNextButton && (
-                                        <button
-                                            className="quiz-next-btn"
-                                            onClick={handleNextQuestion}
-                                        >
-                                            次へ進む
-                                        </button>
-                                    )}
-                                </div>
+                                renderScheduleContent()
                             )}
                         </div>
                     )}

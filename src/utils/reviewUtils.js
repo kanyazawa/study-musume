@@ -7,6 +7,7 @@ import { getTodayString } from './loginBonusUtils';
 // 忘却曲線に基づく復習間隔（日数）
 const REVIEW_INTERVALS = [1, 3, 7, 14, 30];
 const MAX_REVIEW_LEVEL = 5; // レベル5で完全習得
+const MAX_ACTIVE_REVIEW_LEVEL = MAX_REVIEW_LEVEL - 1;
 const MAX_REVIEW_HISTORY = 12;
 export const REVIEW_TICKET_DAILY_LIMIT = 3;
 export const REVIEW_TICKET_BONUS_DIAMONDS = 6;
@@ -15,6 +16,51 @@ export const REVIEW_STREAK_REWARDS = {
     2: { diamonds: 5, intellect: 8, label: '2セット連続ボーナス' },
     3: { diamonds: 12, intellect: 18, label: '3セット連続ボーナス' },
     5: { diamonds: 20, intellect: 30, label: '5セット連続ボーナス' },
+};
+const MINUTE_MS = 60 * 1000;
+const HOUR_MS = 60 * MINUTE_MS;
+const DAY_MS = 24 * HOUR_MS;
+const WRONG_REVIEW_SCHEDULE_CHOICES = [
+    { key: 'retry-10m', label: '10分後', minutes: 10, recommended: true },
+    { key: 'retry-1h', label: '1時間後', hours: 1 },
+    { key: 'retry-tonight', label: '今日中', hours: 6 },
+    { key: 'retry-tomorrow', label: '明日', days: 1 },
+];
+
+const toReviewTimestamp = ({ minutes = 0, hours = 0, days = 0 }) => (
+    Date.now() + (minutes * MINUTE_MS) + (hours * HOUR_MS) + (days * DAY_MS)
+);
+
+const getReviewIntervalDays = (reviewLevel) => {
+    const normalizedLevel = Math.max(0, Math.min(REVIEW_INTERVALS.length - 1, Number(reviewLevel) || 0));
+    return REVIEW_INTERVALS[normalizedLevel] || REVIEW_INTERVALS[0];
+};
+
+const getCorrectReviewScheduleChoices = (question) => {
+    const nextLevel = Math.min((Number(question?.reviewLevel) || 0) + 1, MAX_ACTIVE_REVIEW_LEVEL);
+    const recommendedDays = getReviewIntervalDays(nextLevel);
+    const recommendedIndex = REVIEW_INTERVALS.indexOf(recommendedDays);
+    const windowStart = Math.max(0, Math.min(recommendedIndex - 1, REVIEW_INTERVALS.length - 4));
+    const dayChoices = REVIEW_INTERVALS.slice(windowStart, windowStart + 4).map((days) => ({
+        key: `correct-${days}d`,
+        label: days === 1 ? '明日' : `${days}日後`,
+        days,
+        reviewLevel: Math.min(nextLevel, MAX_ACTIVE_REVIEW_LEVEL),
+        recommended: days === recommendedDays,
+    }));
+
+    if ((Number(question?.reviewLevel) || 0) >= MAX_ACTIVE_REVIEW_LEVEL) {
+        dayChoices.push({
+            key: 'correct-complete',
+            label: '卒業',
+            description: 'ノートから外す',
+            complete: true,
+            reviewLevel: MAX_REVIEW_LEVEL,
+            recommended: false,
+        });
+    }
+
+    return dayChoices;
 };
 
 const normalizeReviewHistory = (history) => {
@@ -171,7 +217,7 @@ export const addWrongQuestion = (questionData) => {
  * @param {string} questionId - 問題ID
  * @param {boolean} isCorrect - 正解したかどうか
  */
-export const updateReviewResult = (questionId, isCorrect) => {
+export const updateReviewResult = (questionId, isCorrect, scheduleOptions = null) => {
     const questions = getReviewQuestions();
     const now = Date.now();
 
@@ -179,22 +225,31 @@ export const updateReviewResult = (questionId, isCorrect) => {
     if (questionIndex < 0) return;
 
     const question = questions[questionIndex];
-    const newLevel = isCorrect
-        ? Math.min(question.reviewLevel + 1, MAX_REVIEW_LEVEL)
-        : 0;
+    const normalizedScheduleOptions = scheduleOptions && typeof scheduleOptions === 'object'
+        ? scheduleOptions
+        : null;
+    const usedCustomSchedule = Boolean(normalizedScheduleOptions);
+    const newLevel = Number.isFinite(Number(normalizedScheduleOptions?.reviewLevel))
+        ? Number(normalizedScheduleOptions.reviewLevel)
+        : (isCorrect
+            ? Math.min(question.reviewLevel + 1, usedCustomSchedule ? MAX_ACTIVE_REVIEW_LEVEL : MAX_REVIEW_LEVEL)
+            : 0);
+    const nextReviewDate = Number.isFinite(Number(normalizedScheduleOptions?.nextReviewDate))
+        ? Number(normalizedScheduleOptions.nextReviewDate)
+        : calculateNextReviewDate(newLevel);
 
     questions[questionIndex] = {
         ...question,
         reviewLevel: newLevel,
-        nextReviewDate: calculateNextReviewDate(newLevel),
+        nextReviewDate,
         reviewHistory: [
             ...question.reviewHistory,
             { date: now, result: isCorrect ? 'correct' : 'wrong' }
         ]
     };
 
-    // レベル5（完全習得）の問題は削除
-    if (newLevel >= MAX_REVIEW_LEVEL) {
+    // 明示的に卒業させた問題だけ復習リストから外す
+    if (normalizedScheduleOptions?.complete || (!usedCustomSchedule && newLevel >= MAX_REVIEW_LEVEL)) {
         questions.splice(questionIndex, 1);
     }
 
@@ -211,8 +266,29 @@ export const updateReviewResult = (questionId, isCorrect) => {
  * @returns {number} - 次回復習日のタイムスタンプ
  */
 export const calculateNextReviewDate = (reviewLevel) => {
-    const days = REVIEW_INTERVALS[reviewLevel] || REVIEW_INTERVALS[0];
-    return Date.now() + (days * 24 * 60 * 60 * 1000);
+    const days = getReviewIntervalDays(reviewLevel);
+    return Date.now() + (days * DAY_MS);
+};
+
+/**
+ * 解答後に選べる復習スケジュール候補を返す
+ * @param {Object} question - 復習問題
+ * @param {boolean} isCorrect - 正解したかどうか
+ * @returns {Array}
+ */
+export const getReviewScheduleChoices = (question, isCorrect) => {
+    const baseChoices = isCorrect
+        ? getCorrectReviewScheduleChoices(question)
+        : WRONG_REVIEW_SCHEDULE_CHOICES;
+
+    return baseChoices.map((choice) => ({
+        ...choice,
+        nextReviewDate: choice.complete
+            ? null
+            : Number.isFinite(Number(choice.nextReviewDate))
+                ? Number(choice.nextReviewDate)
+                : toReviewTimestamp(choice),
+    }));
 };
 
 /**
@@ -558,12 +634,25 @@ export const getHomeReviewSummary = (currentStats = null) => {
 export const formatRelativeDate = (timestamp) => {
     const now = Date.now();
     const diff = timestamp - now;
-    const days = Math.floor(diff / (24 * 60 * 60 * 1000));
+    const absDiff = Math.abs(diff);
 
-    if (days < 0) return `${Math.abs(days)}日前`;
-    if (days === 0) return '今日';
-    if (days === 1) return '明日';
-    return `${days}日後`;
+    if (absDiff < HOUR_MS) {
+        const minutes = Math.max(1, Math.round(absDiff / MINUTE_MS));
+        return diff >= 0 ? `${minutes}分後` : `${minutes}分前`;
+    }
+
+    if (absDiff < DAY_MS) {
+        const hours = Math.max(1, Math.round(absDiff / HOUR_MS));
+        return diff >= 0 ? `${hours}時間後` : `${hours}時間前`;
+    }
+
+    const days = Math.max(1, Math.ceil(absDiff / DAY_MS));
+    if (diff >= 0) {
+        if (days === 1) return '明日';
+        return `${days}日後`;
+    }
+
+    return `${days}日前`;
 };
 
 /**

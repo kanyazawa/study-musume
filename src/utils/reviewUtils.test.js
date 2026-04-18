@@ -1,8 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  formatRelativeDate,
   getHomeReviewSummary,
   getRecommendedReviewQuestion,
+  getReviewQuestions,
+  getReviewScheduleChoices,
   saveReviewQuestions,
+  updateReviewResult,
 } from './reviewUtils';
 
 describe('reviewUtils', () => {
@@ -91,5 +95,57 @@ describe('reviewUtils', () => {
     expect(summary.soonCount).toBe(1);
     expect(summary.ctaLabel).toBe('1問だけ先回り');
     expect(summary.bonusHints.some((hint) => hint.includes('次のセットで'))).toBe(true);
+  });
+
+  it('allows choosing a manual next review date without graduating the card', () => {
+    const customNextReviewDate = Date.now() + 14 * 24 * 60 * 60 * 1000;
+
+    saveReviewQuestions([
+      {
+        id: 'eng-manual',
+        subject: '英語',
+        questionId: 'q4',
+        questionText: '熟語の意味を答える',
+        correctAnswer: 'give up',
+        wrongCount: 2,
+        reviewLevel: 4,
+        nextReviewDate: Date.now() - 10 * 60 * 1000,
+      },
+    ]);
+
+    updateReviewResult('eng-manual', true, {
+      nextReviewDate: customNextReviewDate,
+      reviewLevel: 4,
+    });
+
+    const updated = getReviewQuestions();
+
+    expect(updated).toHaveLength(1);
+    expect(updated[0].nextReviewDate).toBe(customNextReviewDate);
+    expect(updated[0].reviewLevel).toBe(4);
+  });
+
+  it('offers a graduate option for high-level correct answers', () => {
+    const [question] = [
+      {
+        id: 'math-mastery',
+        subject: '数学',
+        questionId: 'q5',
+        questionText: '極限を求める',
+        correctAnswer: '2',
+        wrongCount: 1,
+        reviewLevel: 4,
+        nextReviewDate: Date.now(),
+      },
+    ];
+
+    const choices = getReviewScheduleChoices(question, true);
+
+    expect(choices.some((choice) => choice.complete && choice.label === '卒業')).toBe(true);
+  });
+
+  it('formats short review delays in minutes', () => {
+    expect(formatRelativeDate(Date.now() + 10 * 60 * 1000)).toBe('10分後');
+    expect(formatRelativeDate(Date.now() - 45 * 60 * 1000)).toBe('45分前');
   });
 });
