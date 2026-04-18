@@ -39,6 +39,7 @@ capacitor.config.json
 
 # Local runtime artifacts
 .edge-headless/
+.viewer-temp/
 .tmp-deepgram-test.bin
 .vite-dev.err
 .vite-dev.out
