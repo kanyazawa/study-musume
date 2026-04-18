@@ -10,7 +10,7 @@ export const LOGIN_REWARDS = [
     { day: 4, diamonds: 5, special: null, description: '💎 ダイヤ×5' },
     { day: 5, diamonds: 10, special: null, description: '💎 ダイヤ×10' },
     { day: 6, diamonds: 15, special: null, description: '💎 ダイヤ×15' },
-    { day: 7, diamonds: 30, special: 'gacha_ticket', description: '💎 ダイヤ×30 + 🎫 ガチャチケット' },
+    { day: 7, diamonds: 30, special: null, description: '💎 ダイヤ×30' },
 ];
 
 /**

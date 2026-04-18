@@ -147,7 +147,7 @@ const Gacha = ({ stats, updateStats }) => {
                 <button className="back-btn-cute" onClick={() => navigate('/home')}>
                     <ChevronLeft size={20} />
                 </button>
-                <h2 className="gacha-title-cute">✨ ガチャ</h2>
+                <h2 className="gacha-title-cute">✨ ごほうびガチャ</h2>
                 <button className="history-btn-cute" onClick={() => setShowHistory(true)}>
                     <History size={20} />
                 </button>
@@ -167,10 +167,15 @@ const Gacha = ({ stats, updateStats }) => {
                 <div className="gacha-banner-cute">
                     <div className="banner-bg"></div>
                     <div className="banner-text">
-                        <h3>🌸 プレミアムガチャ 🌸</h3>
-                        <p>限定アイテム実装中!</p>
-                        <div className="pickup-badge">PICK UP!</div>
+                        <h3>🌸 ごほうびコレクション 🌸</h3>
+                        <p>学習で集めたダイヤで、衣装やアイテムを集めよう。</p>
+                        <div className="pickup-badge">STUDY REWARD</div>
                     </div>
+                </div>
+
+                <div className="gacha-collection-note">
+                    <h3>コレクション中心</h3>
+                    <p>衣装やアイテムなど、見た目や演出を楽しむ報酬が中心です。</p>
                 </div>
 
                 {/* 天井カウンター（コンパクト） */}
@@ -217,6 +222,7 @@ const Gacha = ({ stats, updateStats }) => {
                     </div>
                     <p className="rate-note-small">※10連でSR以上1個確定</p>
                     <p className="rate-note-small">※100回でSSR確定</p>
+                    <p className="rate-note-small">※コレクション報酬が中心です</p>
                 </details>
             </div>
 

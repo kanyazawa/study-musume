@@ -128,10 +128,10 @@ export const ACHIEVEMENTS = [
     {
         id: 'first_gacha',
         category: ACHIEVEMENT_CATEGORIES.COLLECTION,
-        name: '初めてのガチャ',
-        description: '初めてガチャを引いた',
+        name: '初めての買い物',
+        description: '初めて購買部でアイテムを交換した',
         icon: '🎁',
-        condition: { type: 'gacha_count', value: 1 },
+        condition: { type: 'shop_count', value: 1 },
         rewards: { diamonds: 10, title: 'コレクター見習い' },
         rarity: 'common',
     },

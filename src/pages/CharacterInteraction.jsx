@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Shirt, Image as ImageIcon, Gift, MessageCircle } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Shirt, Image as ImageIcon, Gift, MessageCircle, BookOpen } from 'lucide-react';
 import './CharacterInteraction.css';
 import './Dialogue.css'; // Reuse dialogue styles for consistency
 import CharacterSelect from '../components/CharacterSelect';
@@ -14,10 +14,13 @@ import { getBackgroundStyle, getOwnedSkins, getOwnedBackgrounds } from '../utils
 import { createGiftPose, normalizeCharacterEmotion } from '../utils/characterPoseUtils';
 import { filterInventoryByType, removeFromInventory } from '../utils/itemUtils';
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
-import { getRelationshipSnapshot, recordRelationshipMoment } from '../utils/relationshipUtils';
+import { getRelationshipEventState, getRelationshipSnapshot } from '../utils/relationshipUtils';
+import { getRelationshipEventsByCharacter } from '../data/relationshipEvents';
+import { applyRelationshipProgress, getUnreadRelationshipEvents } from '../utils/relationshipEventUtils';
 
 const CharacterInteraction = ({ stats, updateStats }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [mode, setMode] = useState('main'); // main, gift, costume, bg, chat
     const [expression, setExpression] = useState('normal');
     const [showCharSelect, setShowCharSelect] = useState(false);
@@ -36,6 +39,7 @@ const CharacterInteraction = ({ stats, updateStats }) => {
     const ownedSkins = getOwnedSkins(stats.inventory || []);
     const ownedBackgrounds = getOwnedBackgrounds(stats.inventory || []);
     const relationshipSnapshot = useMemo(() => getRelationshipSnapshot(stats), [stats]);
+    const relationshipEventState = useMemo(() => getRelationshipEventState(stats), [stats]);
 
     const handleEquipSkin = (skinId) => {
         updateStats({ equippedSkin: skinId });
@@ -101,39 +105,54 @@ const CharacterInteraction = ({ stats, updateStats }) => {
 
     // Filter Gifts
     const giftItems = filterInventoryByType(stats.inventory, 'gift');
+    const allRelationshipEvents = useMemo(() => getRelationshipEventsByCharacter(characterId), [characterId]);
+    const unreadRelationshipEvents = useMemo(() => getUnreadRelationshipEvents(stats), [stats]);
 
     const [givingItem, setGivingItem] = useState(null);
 
     // ... (existing code)
 
+    useEffect(() => {
+        if (location.state?.openPanel === 'events') {
+            setMode('events');
+        }
+    }, [location.state]);
+
+    const getEventStatus = (eventId) => {
+        if (!relationshipEventState.unlockedIds.includes(eventId)) return 'locked';
+        if (relationshipEventState.readIds.includes(eventId)) return 'read';
+        return 'unread';
+    };
+
+    const openRelationshipEvent = (eventId) => {
+        navigate(`/relationship-events/${eventId}`);
+    };
+
     const handleGiveGift = (item) => {
         // Set giving item for animation
         setGivingItem(item);
 
-        // Reduce inventory
-        const newInventory = removeFromInventory(stats.inventory, item.itemId, 1);
-
-        // Increase Affection
-        const newAffection = (stats.affection || 0) + item.affection;
         const reaction = getGiftReaction({
             characterId,
             affection: stats.affection || 0,
             item,
         });
 
-        updateStats({
-            inventory: newInventory,
-            affection: newAffection,
-            ...recordRelationshipMoment({
-                ...stats,
-                inventory: newInventory,
-                affection: newAffection,
+        updateStats((currentStats) => {
+            const currentInventory = currentStats?.inventory || [];
+            const reducedInventory = removeFromInventory(currentInventory, item.itemId, 1);
+            const nextAffection = (currentStats?.affection || 0) + item.affection;
+
+            return applyRelationshipProgress({
+                ...currentStats,
+                inventory: reducedInventory,
+                affection: nextAffection,
             }, {
                 type: 'gift',
                 summary: `${item.name}をプレゼントした`,
                 detail: '好みに合わせて選んだ気持ちが、しっかり届いたみたいだ。',
                 affectionDelta: item.affection,
-            }),
+            }).nextStats;
         });
 
         setGiftReaction(reaction);
@@ -223,6 +242,13 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                             <Gift size={24} />
                             <span>プレゼント</span>
                         </button>
+                        <button className="ci-btn" onClick={() => setMode('events')}>
+                            <BookOpen size={24} />
+                            <span>イベント</span>
+                            {unreadRelationshipEvents.length > 0 && (
+                                <span className="ci-badge">{unreadRelationshipEvents.length}</span>
+                            )}
+                        </button>
                     </div>
                 )}
 
@@ -259,11 +285,11 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                             autoSpeakAssistant
                             onUserMessage={(_, { emotion: nextEmotion } = {}) => {
                                 setExpression(normalizeCharacterEmotion(nextEmotion, 'normal'));
-                                updateStats?.((currentStats) => recordRelationshipMoment(currentStats, {
+                                updateStats?.((currentStats) => applyRelationshipProgress(currentStats, {
                                     type: 'chat',
                                     summary: '二人きりで話し込んだ',
                                     detail: '向き合って話すぶん、いつもより素直な空気になった。',
-                                }));
+                                }).nextStats);
                             }}
                             onAssistantReply={(replyText, { emotion: nextEmotion } = {}) => {
                                 setChatSpeechText(String(replyText || '').trim());
@@ -278,6 +304,41 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                             }}
                             onClose={() => setMode('main')}
                         />
+                    </div>
+                )}
+
+                {mode === 'events' && (
+                    <div className="ci-events-panel">
+                        <div className="ci-panel-header">
+                            <span>関係イベント</span>
+                            <button className="ci-close-small" onClick={() => setMode('main')}>×</button>
+                        </div>
+                        <div className="ci-events-list">
+                            {allRelationshipEvents.map((event) => {
+                                const status = getEventStatus(event.id);
+                                const isLocked = status === 'locked';
+
+                                return (
+                                    <button
+                                        key={event.id}
+                                        className={`ci-event-card is-${status}`}
+                                        onClick={() => !isLocked && openRelationshipEvent(event.id)}
+                                        disabled={isLocked}
+                                    >
+                                        <div className="ci-event-card-top">
+                                            <span className="ci-event-order">EP.{String(event.order).padStart(2, '0')}</span>
+                                            <span className={`ci-event-status is-${status}`}>
+                                                {status === 'locked' ? '未解放' : status === 'read' ? '既読' : 'NEW'}
+                                            </span>
+                                        </div>
+                                        <div className="ci-event-title">{isLocked ? '？？？' : event.title}</div>
+                                        <div className="ci-event-teaser">
+                                            {isLocked ? '条件を満たすと解放されます。' : event.teaser}
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
                 )}
 

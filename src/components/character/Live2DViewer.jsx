@@ -514,22 +514,28 @@ const getEmotionParameterProfile = (pose = {}, modelConfig = null) => {
             eyeOpen: matchSmileBoost > 1 ? 0.94 : 0.97,
             angry: 0,
             mouthOpen: isReviewSmile
-                ? 0.01
+                ? 0.005
                 : matchSmileBoost > 1
                 ? 0.24 + (intensity * 0.12)
                 : (0.11 + (intensity * 0.06)) * mouthSmileBoost,
             mouthX: 0,
-            mouthFunnel: matchSmileBoost > 1
+            mouthFunnel: isReviewSmile
+                ? 0.01
+                : matchSmileBoost > 1
                 ? 0.02
                 : Math.max(0.03, (0.06 + (intensity * 0.04)) - ((mouthSmileBoost - 1) * 0.08)),
-            mouthShrug: matchSmileBoost > 1
+            mouthShrug: isReviewSmile
+                ? 0.06
+                : matchSmileBoost > 1
                 ? 0.28 + (intensity * 0.12)
                 : 0.18 + (intensity * 0.12 * mouthSmileBoost),
-            mouthWiden: matchSmileBoost > 1
+            mouthWiden: isReviewSmile
+                ? 0.18
+                : matchSmileBoost > 1
                 ? Math.min(0.94, 0.7 + (intensity * 0.18))
                 : Math.min(0.86, (0.48 + (intensity * 0.14)) * mouthSmileBoost),
             jawOpen: isReviewSmile
-                ? 0.01
+                ? 0
                 : matchSmileBoost > 1
                 ? 0.46 + (intensity * 0.2)
                 : (0.26 + (intensity * 0.13)) * (1 + ((mouthSmileBoost - 1) * 0.6)),
@@ -1214,7 +1220,8 @@ const Live2DViewer = ({
                                     const elapsed = Math.max(0, (performance.now() - startedAt) / 1000);
                                     const lookupTime = totalDuration > 0 ? (elapsed % totalDuration) : elapsed;
                                     const vowel = timeline.length > 0 ? getCurrentVowel(timeline, lookupTime) : null;
-                                    const baseOpen = (vowel ? (VOWEL_OPEN_MAP[vowel] ?? 0.5) : 0.14) * profile.mouthScale;
+                                    const idleOpen = getSceneKey(currentPose) === 'review' ? 0 : 0.14;
+                                    const baseOpen = (vowel ? (VOWEL_OPEN_MAP[vowel] ?? 0.5) : idleOpen) * profile.mouthScale;
                                     const flutter = vowel
                                         ? ((Math.sin(elapsed * 12.8) * 0.05) + (Math.sin(elapsed * 8.4 + 0.8) * 0.034)) * profile.mouthFlutterScale
                                         : 0;

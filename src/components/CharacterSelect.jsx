@@ -19,6 +19,8 @@ const CharacterSelect = ({ onComplete }) => {
         // Start updates object
         const updates = {
             hasSelectedCharacter: true,
+            needsFirstPlayIntro: true,
+            hasCompletedFirstPlayIntro: false,
             equippedSkin: 'default',
             characterId: selectedId,
         };
@@ -26,6 +28,7 @@ const CharacterSelect = ({ onComplete }) => {
         const currentStats = loadStats();
         const newStats = { ...currentStats, ...updates };
         saveStats(newStats);
+        window.history.replaceState(null, '', '/opening');
         onComplete(newStats);
     };
 

@@ -386,6 +386,7 @@
 
 .character-figure.is-live2d {
     width: 100%;
+    height: 100%;
     justify-content: center;
 }
 
@@ -753,6 +754,7 @@
 
 .character-figure.is-live2d {
     width: 100%;
+    height: 100%;
     justify-content: center;
 }
 
@@ -941,7 +943,7 @@
 }
 
 .character-touch-target.motion-chest-flinch {
-    animation: homeChestFlinch 0.52s cubic-bezier(0.22, 0.9, 0.24, 1);
+    animation: homeChestFlinch var(--chest-flinch-duration, 1.14s) cubic-bezier(0.16, 0.78, 0.2, 1);
 }
 
 .speech-bubble {
@@ -1058,23 +1060,35 @@
 
 @keyframes homeChestFlinch {
     0% {
-        transform: translateY(0) scale(1) rotate(0deg);
+        transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
     }
 
-    18% {
-        transform: translateY(-22px) scale(1.05) rotate(-1.8deg);
+    8% {
+        transform: translate3d(var(--chest-flinch-anticipation-x, 3px), var(--chest-flinch-anticipation-y, 3px), 0) scale(0.996) rotate(calc(var(--chest-flinch-escape-rotate, -2deg) * -0.14));
     }
 
-    40% {
-        transform: translateY(-8px) scale(0.985) rotate(1.4deg);
+    20% {
+        transform: translate3d(var(--chest-flinch-escape-x, 14px), var(--chest-flinch-escape-y, -22px), 0) scale(var(--chest-flinch-escape-scale, 1.05)) rotate(var(--chest-flinch-escape-rotate, -2.2deg));
     }
 
-    68% {
-        transform: translateY(-4px) scale(1.01) rotate(-0.8deg);
+    44% {
+        transform: translate3d(var(--chest-flinch-recoil-x, -7px), var(--chest-flinch-recoil-y, 5px), 0) scale(var(--chest-flinch-recoil-scale, 0.988)) rotate(var(--chest-flinch-recoil-rotate, 1.55deg));
+    }
+
+    71% {
+        transform: translate3d(calc(var(--chest-flinch-recoil-x, -7px) * -0.55), calc(var(--chest-flinch-recoil-y, 5px) * -1.2), 0) scale(calc(var(--chest-flinch-settle-scale, 1.01) + 0.004)) rotate(calc(var(--chest-flinch-recoil-rotate, 1.55deg) * -0.52));
+    }
+
+    88% {
+        transform: translate3d(var(--chest-flinch-settle-x, -1px), var(--chest-flinch-settle-y, 1px), 0) scale(var(--chest-flinch-settle-scale, 1.002)) rotate(var(--chest-flinch-settle-rotate, 0.22deg));
+    }
+
+    95% {
+        transform: translate3d(calc(var(--chest-flinch-settle-x, -1px) * -0.35), 2px, 0) scale(1.001) rotate(calc(var(--chest-flinch-settle-rotate, 0.22deg) * -0.35));
     }
 
     100% {
-        transform: translateY(0) scale(1) rotate(0deg);
+        transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
     }
 }
 
@@ -1365,7 +1379,8 @@
 
 .friend-btn,
 .ranking-btn,
-.mission-btn-side {
+.mission-btn-side,
+.event-btn-side {
     width: 140px;
     height: 65px;
     color: white;
@@ -1387,6 +1402,13 @@
         inset 0 3px 8px rgba(255, 255, 255, 0.3);
 }
 
+.event-btn-side {
+    position: relative;
+    background: linear-gradient(135deg, #f48fb1 0%, #f06292 100%);
+    box-shadow: 0 6px 20px rgba(240, 98, 146, 0.45),
+        inset 0 3px 8px rgba(255, 255, 255, 0.25);
+}
+
 .mission-btn-side {
     background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);
     box-shadow: 0 6px 20px rgba(245, 175, 25, 0.5),
@@ -1395,13 +1417,15 @@
 
 .friend-btn:hover,
 .ranking-btn:hover,
-.mission-btn-side:hover {
+.mission-btn-side:hover,
+.event-btn-side:hover {
     transform: translateY(-4px);
 }
 
 .friend-btn:active,
 .ranking-btn:active,
-.mission-btn-side:active {
+.mission-btn-side:active,
+.event-btn-side:active {
     transform: translateY(-2px) scale(0.98);
 }
 
@@ -1428,7 +1452,8 @@
 .study-btn-large,
 .friend-btn,
 .ranking-btn,
-.mission-btn-side {
+.mission-btn-side,
+.event-btn-side {
     font-family: var(--font-ui);
     letter-spacing: 0.08em;
     text-transform: none;
@@ -1438,8 +1463,26 @@
 .study-btn-large span,
 .friend-btn span,
 .ranking-btn span,
-.mission-btn-side span {
+.mission-btn-side span,
+.event-btn-side span {
     transform: translateY(1px);
+}
+
+.event-btn-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #fff1f2, #ffe4ec);
+    color: #c2185b;
+    font-size: 0.7rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 18px rgba(255, 255, 255, 0.28);
 }
 
 /* Mobile Responsive */
@@ -1525,7 +1568,8 @@
 
     .friend-btn,
     .ranking-btn,
-    .mission-btn-side {
+    .mission-btn-side,
+    .event-btn-side {
         width: 120px;
         height: 55px;
         font-size: 0.9rem;

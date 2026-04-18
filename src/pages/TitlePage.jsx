@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import './TitlePage.css';
 import { useSound } from '../contexts/SoundContext';
 
-const TitlePage = () => {
+const TitlePage = ({ stats }) => {
     const navigate = useNavigate();
     const { playBGM } = useSound();
 
     const handleStart = () => {
         playBGM();
-        navigate('/home');
+        navigate(stats?.needsFirstPlayIntro ? '/opening' : '/home');
     };
 
     return (

@@ -51,6 +51,7 @@ export const loadAchievementStats = () => {
             perfectCount: 0,
             totalStudyTime: 0, // 分単位
             gachaCount: 0,
+            shopCount: 0,
             studiedSubjects: [],
             lastStudyDate: null,
             currentStreak: 0,
@@ -100,6 +101,9 @@ const checkAchievementCondition = (achievement, stats, gameStats) => {
 
         case 'gacha_count':
             return stats.gachaCount >= value;
+
+        case 'shop_count':
+            return (stats.shopCount || 0) >= value;
 
         case 'inventory_count':
             return (gameStats?.inventory || []).length >= value;
@@ -227,6 +231,16 @@ export const updateStatsOnStudy = (studyData) => {
 export const updateStatsOnGacha = () => {
     const stats = loadAchievementStats();
     stats.gachaCount = (stats.gachaCount || 0) + 1;
+    saveAchievementStats(stats);
+    return stats;
+};
+
+/**
+ * 購買部で交換した回数を更新
+ */
+export const updateStatsOnShop = () => {
+    const stats = loadAchievementStats();
+    stats.shopCount = (stats.shopCount || 0) + 1;
     saveAchievementStats(stats);
     return stats;
 };

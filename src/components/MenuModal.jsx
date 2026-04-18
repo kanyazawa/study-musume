@@ -40,7 +40,7 @@ const MENU_ITEMS = [
     { id: 'block', label: 'ブロックリスト', icon: <Ban />, iconClass: 'icon-ban' },
     { id: 'account', label: 'アカウント連携', icon: <Smartphone />, iconClass: 'icon-card' },
     { id: 'support', label: 'サポート', icon: <HelpCircle />, iconClass: 'icon-help' },
-    { id: 'shop', label: 'ダイヤ購入', icon: <Gem />, iconClass: 'icon-gem' },
+    { id: 'shop', label: '購買部', icon: <Gem />, iconClass: 'icon-gem' },
     { id: 'title', label: 'タイトルへ', icon: <LogOut />, iconClass: 'icon-back' },
 ];
 
@@ -86,6 +86,9 @@ const MenuModal = ({ onClose, stats, updateStats }) => {
         } else if (itemId === 'items') {
             onClose();
             navigate('/inventory');
+        } else if (itemId === 'shop') {
+            onClose();
+            navigate('/shop');
         }
         // 他のメニューアイテムの処理はここに追加
     };

@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Inventory.css';
 
+import ItemVisual from '../components/ItemVisual';
 import { filterInventoryByType, removeFromInventory } from '../utils/itemUtils';
 import { GIFT_REACTIONS } from '../data/affectionData';
 import { checkLevelUp } from '../utils/affectionUtils';
-import { recordRelationshipMoment } from '../utils/relationshipUtils';
+import { applyRelationshipProgress } from '../utils/relationshipEventUtils';
 
 const Inventory = ({ stats, updateStats }) => {
     const navigate = useNavigate();
@@ -34,23 +35,22 @@ const Inventory = ({ stats, updateStats }) => {
         const oldAffection = stats.affection;
         const newAffection = oldAffection + selectedItem.affection;
 
-        // インベントリからアイテムを削除
-        const newInventory = removeFromInventory(stats.inventory, selectedItem.itemId, 1);
-
         // 好感度を更新
-        updateStats({
-            inventory: newInventory,
-            affection: newAffection,
-            ...recordRelationshipMoment({
-                ...stats,
-                inventory: newInventory,
-                affection: newAffection,
+        updateStats((currentStats) => {
+            const currentInventory = currentStats?.inventory || [];
+            const reducedInventory = removeFromInventory(currentInventory, selectedItem.itemId, 1);
+            const nextAffection = (currentStats?.affection || 0) + selectedItem.affection;
+
+            return applyRelationshipProgress({
+                ...currentStats,
+                inventory: reducedInventory,
+                affection: nextAffection,
             }, {
                 type: 'gift',
                 summary: `${selectedItem.name}をプレゼントした`,
                 detail: '相手を思って選んだ贈り物が、関係の温度をひとつ上げた。',
                 affectionDelta: selectedItem.affection,
-            }),
+            }).nextStats;
         });
 
         // レベルアップチェック
@@ -134,7 +134,12 @@ const Inventory = ({ stats, updateStats }) => {
                                 }`}
                             onClick={() => handleItemClick(item)}
                         >
-                            <div className="item-icon">{item.emoji}</div>
+                            <ItemVisual
+                                item={item}
+                                className="item-icon"
+                                fallbackText={item.name.charAt(0)}
+                                alt={item.name}
+                            />
                             <div className="item-name">{item.name}</div>
                             <div className="item-quantity">×{item.quantity}</div>
                             {(stats.equippedSkin === item.itemId || stats.equippedBackground === item.itemId) && (
@@ -155,7 +160,12 @@ const Inventory = ({ stats, updateStats }) => {
                         <button className="modal-close" onClick={closeModal}>×</button>
 
                         <div className={`modal-icon rarity-${selectedItem.rarity}`}>
-                            {selectedItem.emoji}
+                            <ItemVisual
+                                item={selectedItem}
+                                className="modal-item-visual"
+                                fallbackText={selectedItem.name.charAt(0)}
+                                alt={selectedItem.name}
+                            />
                         </div>
 
                         <h2 className="modal-title">{selectedItem.name}</h2>

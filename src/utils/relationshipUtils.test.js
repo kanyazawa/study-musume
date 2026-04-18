@@ -12,6 +12,7 @@ describe('relationshipUtils', () => {
         });
 
         expect(updated.relationshipDaily.chat).toBe(1);
+        expect(updated.relationshipTotals.chat).toBe(1);
         expect(updated.relationshipMoments).toHaveLength(1);
         expect(updated.relationshipMoments[0].summary).toBe('少し長く雑談した');
     });

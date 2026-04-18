@@ -18,7 +18,7 @@ import { parseCsvTable } from '../utils/csvUtils';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { createDialoguePose } from '../utils/characterPoseUtils';
 import { getTtsSettings, TTS_ENGINES } from '../utils/ttsSettings';
-import { recordRelationshipMoment } from '../utils/relationshipUtils';
+import { applyRelationshipProgress } from '../utils/relationshipEventUtils';
 
 import BgClassroom from '../assets/images/bg_classroom.webp';
 
@@ -572,11 +572,11 @@ const Dialogue = ({ stats, updateStats }) => {
     const finishStudy = async () => {
         if (type === 'talk') {
             if (updateStats) {
-                updateStats((currentStats) => recordRelationshipMoment(currentStats, {
+                updateStats((currentStats) => applyRelationshipProgress(currentStats, {
                     type: 'chat',
                     summary: '少し長く会話した',
                     detail: '向き合って話す時間が、そのまま距離の近さになっている。',
-                }));
+                }).nextStats);
             }
             navigate('/character');
             return;
@@ -649,39 +649,36 @@ const Dialogue = ({ stats, updateStats }) => {
             correctAnswers: correctAnswers
         });
 
-        let updatedStats = { ...stats };
-
         if (updateStats) {
-            const currentTp = stats?.tp || 0;
-            const newTp = Math.max(0, currentTp - TP_COST);
-            const currentIntellect = stats?.intellect || 0;
+            let finalizedStats = null;
 
-            updatedStats = {
-                ...stats,
-                tp: newTp,
-                intellect: currentIntellect + INTELLECT_REWARD,
-                totalStudyTime: (stats?.totalStudyTime || 0) + sessionDurationMinutes, // Fix cumulative
-                totalSessions: (stats?.totalSessions || 0) + 1
-            };
+            updateStats((currentStats) => {
+                const currentTp = currentStats?.tp || 0;
+                const newTp = Math.max(0, currentTp - TP_COST);
+                const currentIntellect = currentStats?.intellect || 0;
+                const baseUpdatedStats = {
+                    ...currentStats,
+                    tp: newTp,
+                    lastTpUpdateTime: Date.now(),
+                    intellect: currentIntellect + INTELLECT_REWARD,
+                    totalStudyTime: (currentStats?.totalStudyTime || 0) + sessionDurationMinutes,
+                    totalSessions: (currentStats?.totalSessions || 0) + 1,
+                };
 
-            updateStats({
-                tp: newTp,
-                lastTpUpdateTime: Date.now(),
-                intellect: currentIntellect + INTELLECT_REWARD,
-                totalStudyTime: updatedStats.totalStudyTime,
-                totalSessions: updatedStats.totalSessions,
-                ...recordRelationshipMoment(updatedStats, {
+                finalizedStats = applyRelationshipProgress(baseUpdatedStats, {
                     type: 'study',
                     summary: `${subjectInfo.unit || subjectInfo.subject || '勉強'}を一緒に進めた`,
                     detail: isPerfect
                         ? '息がぴったり合って、かなり手応えのある勉強時間になった。'
                         : '一緒に取り組んだ時間が、じわっと信頼につながっている。',
-                }),
+                }).nextStats;
+
+                return finalizedStats;
             });
 
             // Sync to Firestore (if logged in)
             const currentUser = getCurrentUser();
-            if (currentUser) {
+            if (currentUser && finalizedStats) {
                 await saveStudyCompletion(
                     currentUser.uid,
                     {
@@ -689,12 +686,12 @@ const Dialogue = ({ stats, updateStats }) => {
                         duration: sessionDurationMinutes,
                         date: new Date().toISOString().split('T')[0]
                     },
-                    updatedStats
+                    finalizedStats
                 );
             }
 
             // Check for new achievements
-            const newAchievements = checkForNewAchievements(stats);
+            const newAchievements = finalizedStats ? checkForNewAchievements(finalizedStats) : checkForNewAchievements(stats);
 
             let message = `勉強完了！\nTP -${TP_COST}\n学力 +${INTELLECT_REWARD}`;
             if (newAchievements.length > 0) {
@@ -879,10 +876,10 @@ const Dialogue = ({ stats, updateStats }) => {
         if (isCorrect) {
             // Increment Stats (Affection & Intellect)
             if (updateStats) {
-                updateStats({
-                    affection: (stats?.affection || 0) + 5,
-                    intellect: (stats?.intellect || 0) + 10
-                });
+                updateStats((currentStats) => ({
+                    affection: (currentStats?.affection || 0) + 5,
+                    intellect: (currentStats?.intellect || 0) + 10,
+                }));
             }
 
             // Show Feedback Overlay

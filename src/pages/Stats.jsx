@@ -522,9 +522,9 @@ const Stats = ({ stats = {} }) => {
                         </div>
                         <span className="nav-center-label-v0">ホーム</span>
                     </button>
-                    <button className="nav-item-v0" onClick={() => navigate('/gacha')}>
+                    <button className="nav-item-v0" onClick={() => navigate('/shop')}>
                         <Sparkles size={20} />
-                        <span className="text-[10px] font-bold">ガチャ</span>
+                        <span className="text-[10px] font-bold">購買部</span>
                     </button>
                     <button className="nav-item-v0" onClick={() => navigate('/characters')}>
                         <Users size={20} />

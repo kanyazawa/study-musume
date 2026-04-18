@@ -22,6 +22,7 @@ import { inferEmotionFromChatText } from '../utils/chatEmotionUtils';
 import { getEnabledHomeTouchAreas, getHomeTouchReaction } from '../data/homeTouchReactions';
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
 import { getHomeReviewSummary } from '../utils/reviewUtils';
+import { getUnreadRelationshipEvents } from '../utils/relationshipEventUtils';
 import { useSound } from '../contexts/SoundContext';
 
 const inferHomeEmotion = ({ emotion, speech, tp, maxTp, affectionLevel, examDate }) => {
@@ -123,9 +124,12 @@ const Home = ({ stats, updateStats }) => {
     const [isTalkAnimating, setIsTalkAnimating] = useState(false);
     const [speechNonce, setSpeechNonce] = useState(0);
     const [touchMotion, setTouchMotion] = useState('');
+    const [touchMotionStyle, setTouchMotionStyle] = useState(null);
+    const [live2dImpact, setLive2dImpact] = useState(null);
     const talkAnimationTimerRef = useRef(null);
     const userInputEmotionTimerRef = useRef(null);
     const touchMotionTimerRef = useRef(null);
+    const live2dImpactTimerRef = useRef(null);
     const touchAreaTapGuardRef = useRef(0);
     const interactionDedupRef = useRef({ key: '', timestamp: 0 });
     const speechPriorityLockRef = useRef(0);
@@ -154,9 +158,10 @@ const Home = ({ stats, updateStats }) => {
             ...(activeHomeReaction || {}),
             emotion: homeEmotion,
             text: speech,
+            ...(live2dImpact || {}),
         }, { speaking: isTalkAnimating }),
         speechNonce,
-    }), [activeHomeReaction, homeEmotion, isTalkAnimating, speech, speechNonce]);
+    }), [activeHomeReaction, homeEmotion, isTalkAnimating, live2dImpact, speech, speechNonce]);
 
     const getCountdownDisplay = () => {
         if (!examDate) {
@@ -188,6 +193,7 @@ const Home = ({ stats, updateStats }) => {
     const countdownDisplay = getCountdownDisplay();
     const homeReviewSummary = useMemo(() => getHomeReviewSummary(stats), [stats]);
     const homeTouchAreas = useMemo(() => getEnabledHomeTouchAreas(characterId), [characterId]);
+    const unreadRelationshipEvents = useMemo(() => getUnreadRelationshipEvents(stats), [stats]);
     const examDaysLeft = useMemo(() => {
         if (!examDate) return null;
 
@@ -248,15 +254,87 @@ const Home = ({ stats, updateStats }) => {
             clearTimeout(touchMotionTimerRef.current);
             touchMotionTimerRef.current = null;
         }
+        if (live2dImpactTimerRef.current) {
+            clearTimeout(live2dImpactTimerRef.current);
+            live2dImpactTimerRef.current = null;
+        }
 
         const nextMotion = areaId === 'chest' ? 'chest-flinch' : areaId === 'hair' ? 'hair-sway' : 'face-bounce';
-        const duration = areaId === 'chest' ? 520 : 320;
+        const createChestFlinchVariant = () => {
+            const side = Math.random() < 0.5 ? -1 : 1;
+            const durationMs = 1180 + Math.round(Math.random() * 240);
+            const intensity = 0.92 + (Math.random() * 0.22);
+            const lift = 0.88 + (Math.random() * 0.26);
+            const twist = 0.84 + (Math.random() * 0.26);
+            const settle = 0.82 + (Math.random() * 0.24);
+            const anticipation = 0.82 + (Math.random() * 0.28);
+            const lag = 0.9 + (Math.random() * 0.22);
+            const escapeX = side * Math.round((10 + Math.random() * 6) * intensity);
+            const escapeY = -Math.round((17 + Math.random() * 8) * lift);
+            const recoilX = side * -Math.round((4 + Math.random() * 4) * settle);
+            const recoilY = Math.round(3 + Math.random() * 4);
+            const settleX = side * Math.round(1 + Math.random() * 2);
+            const settleY = -Math.round(1 + Math.random() * 2);
+            const anticipationX = side * Math.round(1 + Math.random() * 2);
+            const anticipationY = Math.round(2 + Math.random() * 2);
+            const escapeRotate = side * -(1.8 + Math.random() * 1.1) * twist;
+            const recoilRotate = side * (0.9 + Math.random() * 0.9) * settle;
+            const settleRotate = side * -(0.18 + Math.random() * 0.32);
+
+            return {
+                durationMs,
+                live2d: {
+                    side,
+                    intensity,
+                    lift,
+                    twist,
+                    settle,
+                    anticipation,
+                    lag,
+                },
+                css: {
+                    '--chest-flinch-duration': `${durationMs + 180}ms`,
+                    '--chest-flinch-anticipation-x': `${anticipationX}px`,
+                    '--chest-flinch-anticipation-y': `${anticipationY}px`,
+                    '--chest-flinch-escape-x': `${escapeX}px`,
+                    '--chest-flinch-escape-y': `${escapeY}px`,
+                    '--chest-flinch-recoil-x': `${recoilX}px`,
+                    '--chest-flinch-recoil-y': `${recoilY}px`,
+                    '--chest-flinch-settle-x': `${settleX}px`,
+                    '--chest-flinch-settle-y': `${settleY}px`,
+                    '--chest-flinch-escape-rotate': `${escapeRotate.toFixed(2)}deg`,
+                    '--chest-flinch-recoil-rotate': `${recoilRotate.toFixed(2)}deg`,
+                    '--chest-flinch-settle-rotate': `${settleRotate.toFixed(2)}deg`,
+                    '--chest-flinch-escape-scale': (1.032 + (Math.random() * 0.02)).toFixed(3),
+                    '--chest-flinch-recoil-scale': (0.989 + (Math.random() * 0.015)).toFixed(3),
+                    '--chest-flinch-settle-scale': (1.002 + (Math.random() * 0.01)).toFixed(3),
+                },
+            };
+        };
+        const chestVariant = areaId === 'chest' ? createChestFlinchVariant() : null;
+        const duration = chestVariant?.durationMs ?? (areaId === 'chest' ? 980 : 320);
 
         setTouchMotion(nextMotion);
+        setTouchMotionStyle(chestVariant?.css ?? null);
+        if (areaId === 'chest') {
+            setLive2dImpact({
+                live2dImpactMotion: 'chest-flinch',
+                live2dImpactStartedAt: performance.now(),
+                live2dImpactDurationMs: duration,
+                live2dImpactVariant: chestVariant?.live2d ?? null,
+            });
+            live2dImpactTimerRef.current = setTimeout(() => {
+                setLive2dImpact(null);
+                live2dImpactTimerRef.current = null;
+            }, duration + 160);
+        } else {
+            setLive2dImpact(null);
+        }
         touchMotionTimerRef.current = setTimeout(() => {
             setTouchMotion('');
+            setTouchMotionStyle(null);
             touchMotionTimerRef.current = null;
-        }, duration);
+        }, duration + (areaId === 'chest' ? 160 : 0));
     }, []);
 
     const isDuplicateInteraction = useCallback((key, windowMs = 700) => {
@@ -462,6 +540,10 @@ const Home = ({ stats, updateStats }) => {
                 clearTimeout(touchMotionTimerRef.current);
                 touchMotionTimerRef.current = null;
             }
+            if (live2dImpactTimerRef.current) {
+                clearTimeout(live2dImpactTimerRef.current);
+                live2dImpactTimerRef.current = null;
+            }
         }
     ), [stopTalkAnimation, stopVoice]);
 
@@ -615,6 +697,7 @@ const Home = ({ stats, updateStats }) => {
                 >
                     <div
                         className={`character-touch-target ${touchMotion ? `motion-${touchMotion}` : ''}`}
+                        style={touchMotionStyle || undefined}
                         onPointerUp={handleCharacterTap}
                         role="button"
                         tabIndex={0}
@@ -682,6 +765,15 @@ const Home = ({ stats, updateStats }) => {
 
                 {/* Social Buttons (Right Side) */}
                 <div className="social-buttons">
+                    <button
+                        className="event-btn-side"
+                        onClick={() => navigate('/character', { state: { openPanel: 'events' } })}
+                    >
+                        <span>📖 イベ</span>
+                        {unreadRelationshipEvents.length > 0 && (
+                            <strong className="event-btn-badge">{unreadRelationshipEvents.length}</strong>
+                        )}
+                    </button>
                     <button className="mission-btn-side" onClick={() => navigate('/missions')}>
                         <span>📋 課題</span>
                     </button>

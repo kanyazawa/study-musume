@@ -29,6 +29,8 @@ export const getDefaultStats = () => ({
     // キャラクター選択
     characterId: 'noah', // default: 'noah'
     hasSelectedCharacter: false, // 初回選択が完了しているか
+    needsFirstPlayIntro: false,
+    hasCompletedFirstPlayIntro: false,
     characterRenderer: 'auto',
     characterQuality: 'high',
     // ログインボーナス
@@ -51,7 +53,18 @@ export const getDefaultStats = () => ({
         study: 0,
         gift: 0,
     },
+    relationshipTotals: {
+        talk: 0,
+        chat: 0,
+        study: 0,
+        gift: 0,
+    },
     relationshipMoments: [],
+    relationshipEvents: {
+        unlockedIds: [],
+        readIds: [],
+        notifiedIds: [],
+    },
     relationshipLastInteractionAt: null,
 });
 
@@ -63,6 +76,7 @@ export const getDefaultStats = () => ({
 const SYNC_KEYS = [
     'gameStats',
     'reviewQuestions',
+    'customVocabEntries',
     'studyHistory',
     'gachaHistory',
     'pityCounter',

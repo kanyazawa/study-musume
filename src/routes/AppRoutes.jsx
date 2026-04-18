@@ -10,11 +10,12 @@ const Goal = lazy(() => import('../pages/Goal'));
 const Inventory = lazy(() => import('../pages/Inventory'));
 const Story = lazy(() => import('../pages/Story'));
 const StoryReader = lazy(() => import('../pages/StoryReader'));
+const RelationshipEventReader = lazy(() => import('../pages/RelationshipEventReader'));
 const Stats = lazy(() => import('../pages/Stats'));
 const StatsPageV0 = lazy(() => import('../pages/StatsPageV0'));
 const Missions = lazy(() => import('../pages/Missions'));
 const CalendarPage = lazy(() => import('../pages/CalendarPage'));
-const Gacha = lazy(() => import('../pages/Gacha'));
+const Shop = lazy(() => import('../pages/Shop'));
 const Review = lazy(() => import('../pages/Review'));
 const Profile = lazy(() => import('../pages/Profile'));
 const Login = lazy(() => import('../pages/Login'));
@@ -23,27 +24,54 @@ const Ranking = lazy(() => import('../pages/Ranking'));
 const CharacterSelectPage = lazy(() => import('../pages/CharacterSelectPage'));
 const MultiplayerMatch = lazy(() => import('../pages/MultiplayerMatch'));
 const TitlePage = lazy(() => import('../pages/TitlePage'));
+const OpeningIntro = lazy(() => import('../pages/OpeningIntro'));
 const Writing = lazy(() => import('../pages/Writing'));
+const ExpressionPreview = lazy(() => import('../pages/ExpressionPreview'));
+const CustomVocab = lazy(() => import('../pages/CustomVocab'));
+const CustomVocabFlashcards = lazy(() => import('../pages/CustomVocabFlashcards'));
 
 const AppRoutes = ({ stats, updateStats, onLoginSuccess, currentUser }) => (
   <Suspense fallback={<LoadingScreen />}>
     <Routes>
-      <Route path="/" element={<TitlePage />} />
-      <Route path="/home" element={<Home stats={stats} updateStats={updateStats} />} />
+      <Route path="/" element={<TitlePage stats={stats} />} />
+      <Route
+        path="/opening"
+        element={
+          stats?.needsFirstPlayIntro
+            ? <OpeningIntro stats={stats} updateStats={updateStats} />
+            : <Navigate to="/home" replace />
+        }
+      />
+      <Route
+        path="/home"
+        element={
+          stats?.needsFirstPlayIntro
+            ? <Navigate to="/opening" replace />
+            : <Home stats={stats} updateStats={updateStats} />
+        }
+      />
       <Route path="/study" element={<StudySelect stats={stats} />} />
       <Route path="/dialogue" element={<Dialogue stats={stats} updateStats={updateStats} />} />
       <Route path="/character" element={<CharacterInteraction stats={stats} updateStats={updateStats} />} />
       <Route path="/inventory" element={<Inventory stats={stats} updateStats={updateStats} />} />
       <Route path="/story" element={<Story stats={stats} />} />
       <Route path="/story/:episodeId" element={<StoryReader stats={stats} />} />
+      <Route
+        path="/relationship-events/:eventId"
+        element={<RelationshipEventReader stats={stats} updateStats={updateStats} />}
+      />
       <Route path="/goal" element={<Goal stats={stats} updateStats={updateStats} />} />
       <Route path="/stats" element={<Stats stats={stats} />} />
       <Route path="/stats-v0" element={<StatsPageV0 />} />
       <Route path="/missions" element={<Missions stats={stats} updateStats={updateStats} />} />
       <Route path="/calendar" element={<CalendarPage />} />
-      <Route path="/gacha" element={<Gacha stats={stats} updateStats={updateStats} />} />
+      <Route path="/shop" element={<Shop stats={stats} updateStats={updateStats} />} />
+      <Route path="/gacha" element={<Navigate to="/shop" replace />} />
       <Route path="/review" element={<Review stats={stats} updateStats={updateStats} />} />
       <Route path="/writing" element={<Writing stats={stats} updateStats={updateStats} />} />
+      <Route path="/expression-preview" element={<ExpressionPreview stats={stats} />} />
+      <Route path="/custom-vocab" element={<CustomVocab stats={stats} />} />
+      <Route path="/custom-vocab/flashcards" element={<CustomVocabFlashcards stats={stats} />} />
       <Route path="/profile" element={<Profile stats={stats} updateStats={updateStats} />} />
       <Route
         path="/login"

@@ -235,6 +235,7 @@ export const ALL_ITEMS = [
         emoji: '🌅',
         probability: 2,
         description: '夕焼けに染まる美しい教室。特別な雰囲気。',
+        previewImageName: 'bg_sunset_shop.jpg',
         bgStyle: 'linear-gradient(135deg, #ff9a56 0%, #ff6a88 50%, #a86aa4 100%)'
     },
     {
@@ -388,6 +389,42 @@ export const ALL_ITEMS = [
         probability: 1,
         description: '夜空を彩る大輪の花火。',
         bgStyle: 'linear-gradient(to bottom, #000000, #434343)'
+    },
+    {
+        id: 'voice_cheer_pack',
+        type: 'voice',
+        name: '応援ボイスパック',
+        rarity: 'SR',
+        emoji: '🎤',
+        previewImageName: 'voice_cheer_pack_shop.jpg',
+        description: 'ホームや学習の節目で、やさしく背中を押してくれるボイスセット。'
+    },
+    {
+        id: 'voice_goodnight_pack',
+        type: 'voice',
+        name: 'おやすみボイス',
+        rarity: 'SR',
+        emoji: '🌙',
+        previewImageName: 'voice_goodnight_pack_shop.jpg',
+        description: '一日の終わりにぴったりの、落ち着いた声のボイスセット。'
+    },
+    {
+        id: 'special_name_call_ticket',
+        type: 'special',
+        name: '名前呼びチケット',
+        rarity: 'SSR',
+        emoji: '🎫',
+        previewImageName: 'special_name_call_ticket_shop.jpg',
+        description: '将来的な特別演出用のチケット。大事に取っておきたい一枚。'
+    },
+    {
+        id: 'special_memory_album',
+        type: 'special',
+        name: '思い出アルバム',
+        rarity: 'SR',
+        emoji: '📔',
+        previewImageName: 'special_memory_album_shop.jpg',
+        description: '特別な会話やイベントをまとめて見返せる記念アイテム。'
     },
 
     // --- 新キャラチケット (SSR) ---

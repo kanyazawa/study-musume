@@ -1,0 +1,85 @@
+.relationship-event-reader {
+    height: 100%;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    user-select: none;
+    background: #08111f;
+}
+
+.relationship-event-background {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at top right, rgba(255, 169, 210, 0.26), transparent 30%),
+        radial-gradient(circle at left center, rgba(125, 211, 252, 0.2), transparent 34%),
+        linear-gradient(180deg, rgba(14, 26, 45, 0.45), rgba(7, 12, 24, 0.7)),
+        url('../assets/images/bg_classroom.webp');
+    background-size: cover;
+    background-position: center;
+    filter: brightness(0.78);
+}
+
+.relationship-event-header {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    z-index: 120;
+    display: grid;
+    gap: 8px;
+}
+
+.relationship-event-chip {
+    display: inline-flex;
+    width: fit-content;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    color: #fef3ff;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.relationship-event-title {
+    color: white;
+    font-size: 24px;
+    font-weight: 800;
+    text-shadow: 0 4px 16px rgba(0, 0, 0, 0.42);
+}
+
+.relationship-event-character {
+    position: absolute;
+    inset: auto 0 -15%;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+}
+
+.relationship-event-textbox {
+    position: absolute;
+    left: 50%;
+    bottom: 36px;
+    transform: translateX(-50%);
+    width: min(92%, 720px);
+    padding: 22px 26px;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(10, 17, 31, 0.8);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.36);
+    z-index: 120;
+}
+
+@media (max-width: 480px) {
+    .relationship-event-title {
+        font-size: 20px;
+    }
+
+    .relationship-event-textbox {
+        width: calc(100% - 20px);
+        padding: 18px 18px;
+    }
+}

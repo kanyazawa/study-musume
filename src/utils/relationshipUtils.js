@@ -9,6 +9,17 @@ const DEFAULT_DAILY_STATE = {
     study: 0,
     gift: 0,
 };
+const DEFAULT_TOTALS_STATE = {
+    talk: 0,
+    chat: 0,
+    study: 0,
+    gift: 0,
+};
+const DEFAULT_EVENT_STATE = {
+    unlockedIds: [],
+    readIds: [],
+    notifiedIds: [],
+};
 
 const STAGE_COPY = [
     { maxLevel: 1, text: 'まだ少しぎこちない時期。声をかける回数が、そのまま安心感につながる。' },
@@ -50,6 +61,23 @@ export const getRelationshipMoments = (stats = {}) =>
 export const getRelationshipDaily = (stats = {}, timestamp = Date.now()) =>
     sanitizeDailyState(stats?.relationshipDaily, timestamp);
 
+export const getRelationshipTotals = (stats = {}) => ({
+    ...DEFAULT_TOTALS_STATE,
+    ...(stats?.relationshipTotals || {}),
+});
+
+export const getRelationshipEventState = (stats = {}) => ({
+    unlockedIds: Array.isArray(stats?.relationshipEvents?.unlockedIds)
+        ? stats.relationshipEvents.unlockedIds
+        : DEFAULT_EVENT_STATE.unlockedIds,
+    readIds: Array.isArray(stats?.relationshipEvents?.readIds)
+        ? stats.relationshipEvents.readIds
+        : DEFAULT_EVENT_STATE.readIds,
+    notifiedIds: Array.isArray(stats?.relationshipEvents?.notifiedIds)
+        ? stats.relationshipEvents.notifiedIds
+        : DEFAULT_EVENT_STATE.notifiedIds,
+});
+
 export const recordRelationshipMoment = (stats = {}, momentInput = {}) => {
     const timestamp = Number.isFinite(momentInput?.timestamp) ? momentInput.timestamp : Date.now();
     const type = RELATIONSHIP_TYPES.includes(momentInput?.type) ? momentInput.type : 'talk';
@@ -59,10 +87,15 @@ export const recordRelationshipMoment = (stats = {}, momentInput = {}) => {
         ? Number(momentInput.affectionDelta)
         : 0;
     const currentDaily = getRelationshipDaily(stats, timestamp);
+    const currentTotals = getRelationshipTotals(stats);
 
     const nextDaily = {
         ...currentDaily,
         [type]: (currentDaily[type] || 0) + 1,
+    };
+    const nextTotals = {
+        ...currentTotals,
+        [type]: (currentTotals[type] || 0) + 1,
     };
 
     const nextMoment = {
@@ -97,6 +130,7 @@ export const recordRelationshipMoment = (stats = {}, momentInput = {}) => {
 
     return {
         relationshipDaily: nextDaily,
+        relationshipTotals: nextTotals,
         relationshipMoments: nextMoments,
         relationshipLastInteractionAt: timestamp,
     };
