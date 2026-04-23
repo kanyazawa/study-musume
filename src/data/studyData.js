@@ -125,32 +125,217 @@ export const STUDY_DATA = {
     }
 };
 
-// 最後に学習したトピックを取得する関数
-export const getLastStudyTopic = () => {
-    const lastTopic = localStorage.getItem('lastStudyTopic');
-    if (lastTopic) {
-        return JSON.parse(lastTopic);
+export const LAST_STUDY_TOPIC_STORAGE_KEY = 'lastStudyTopic';
+
+const isBrowserStorageAvailable = () => (
+    typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+);
+
+const sanitizeRelativeRoute = (routePath) => {
+    const value = String(routePath || '').trim();
+    if (!value || !value.startsWith('/') || value.startsWith('//')) {
+        return '';
     }
-    // デフォルト値
+
+    return value;
+};
+
+export const buildStudyRouteFromItem = (item) => {
+    if (!item) return '';
+
+    if (item.level) {
+        return `/multiplayer-match?mode=solo&level=${encodeURIComponent(item.level)}`;
+    }
+
+    if (item.mode === 'writing') {
+        return `/writing${item.writingLevel ? `?level=${encodeURIComponent(item.writingLevel)}` : ''}`;
+    }
+
+    if (item.mode === 'reading') {
+        return `/reading${item.readingLevel ? `?level=${encodeURIComponent(item.readingLevel)}` : ''}`;
+    }
+
+    if (item.id === 'eng_vocab_basic' || item.topic === '英単語') {
+        return '/multiplayer-match?mode=solo';
+    }
+
+    if (item.topic) {
+        return `/dialogue?topic=${encodeURIComponent(item.topic)}`;
+    }
+
+    return '';
+};
+
+export const getLevelLabel = (level) => {
+    const labels = {
+        grade5: '英検5級',
+        grade4: '英検4級',
+        grade3: '英検3級',
+        grade_pre2: '英検準2級',
+        grade2: '英検2級',
+        grade_pre1: '英検準1級',
+        grade1: '英検1級',
+        custom: '自作単語',
+    };
+
+    return labels[level] || '';
+};
+
+const inferRouteFromLegacyTopic = (topic) => {
+    if (!topic) return '';
+
+    if (topic.routePath) {
+        return sanitizeRelativeRoute(topic.routePath);
+    }
+
+    if (topic.mode === 'writing' || topic.chapterId === 'eng_writing') {
+        return `/writing${topic.level ? `?level=${encodeURIComponent(topic.level)}` : ''}`;
+    }
+
+    if (topic.mode === 'reading' || topic.chapterId === 'eng_reading') {
+        return `/reading${topic.level ? `?level=${encodeURIComponent(topic.level)}` : ''}`;
+    }
+
+    if (topic.mode === 'vocab' || topic.level || topic.chapterId === 'eng_vocab') {
+        return `/multiplayer-match?mode=solo${topic.level ? `&level=${encodeURIComponent(topic.level)}` : ''}`;
+    }
+
+    if (topic.topicName) {
+        return `/dialogue?topic=${encodeURIComponent(topic.topicName)}`;
+    }
+
+    return '';
+};
+
+export const normalizeLastStudyTopic = (topic) => {
+    if (!topic || typeof topic !== 'object') {
+        return null;
+    }
+
+    const routePath = inferRouteFromLegacyTopic(topic);
+    if (!routePath) {
+        return null;
+    }
+
+    const topicName = String(topic.topicName || topic.name || '').trim();
+    const chapterName = String(topic.chapterName || topic.categoryName || topic.modeLabel || '').trim();
+    const subjectName = String(topic.subjectName || topic.subject || '').trim();
+    const label = String(topic.resumeLabel || topic.label || topicName || chapterName || '前回の続き').trim();
+
     return {
-        subject: 'physics',
-        chapterId: 'mechanics',
-        topicId: 'equation_of_motion',
-        topicName: '運動方程式',
-        chapterName: '力学'
+        subject: String(topic.subject || '').trim(),
+        subjectName,
+        chapterId: String(topic.chapterId || topic.categoryId || '').trim(),
+        topicId: String(topic.topicId || topic.id || '').trim(),
+        topicName: topicName || label,
+        chapterName,
+        categoryName: String(topic.categoryName || '').trim(),
+        unitName: String(topic.unitName || '').trim(),
+        mode: String(topic.mode || '').trim(),
+        modeLabel: String(topic.modeLabel || '').trim(),
+        level: String(topic.level || '').trim(),
+        routePath,
+        resumeLabel: label,
+        savedAt: Number(topic.savedAt || Date.now()),
     };
 };
 
-// トピック学習完了時に保存する関数
-export const saveLastStudyTopic = (subject, chapterId, topicId, topicName, chapterName) => {
-    const data = {
+// 最後に学習したトピックを取得する関数
+export const getLastStudyTopic = () => {
+    if (!isBrowserStorageAvailable()) {
+        return null;
+    }
+
+    try {
+        const lastTopic = window.localStorage.getItem(LAST_STUDY_TOPIC_STORAGE_KEY);
+        if (!lastTopic) {
+            return null;
+        }
+
+        return normalizeLastStudyTopic(JSON.parse(lastTopic));
+    } catch {
+        return null;
+    }
+};
+
+// トピック学習開始時/完了時に保存する関数
+export const saveLastStudyTopic = (subject, chapterId, topicId, topicName, chapterName, options = {}) => {
+    if (!isBrowserStorageAvailable()) {
+        return null;
+    }
+
+    const data = normalizeLastStudyTopic({
         subject,
         chapterId,
         topicId,
         topicName,
-        chapterName
-    };
-    localStorage.setItem('lastStudyTopic', JSON.stringify(data));
+        chapterName,
+        ...options,
+        routePath: sanitizeRelativeRoute(options.routePath) || inferRouteFromLegacyTopic({
+            subject,
+            chapterId,
+            topicId,
+            topicName,
+            chapterName,
+            ...options,
+        }),
+        savedAt: Date.now(),
+    });
+
+    if (!data) {
+        return null;
+    }
+
+    window.localStorage.setItem(LAST_STUDY_TOPIC_STORAGE_KEY, JSON.stringify(data));
+    return data;
+};
+
+export const saveLastStudyTopicFromItem = (item, context = {}) => {
+    const routePath = buildStudyRouteFromItem(item);
+    if (!routePath) {
+        return null;
+    }
+
+    const mode = item.level
+        ? 'vocab'
+        : item.mode || (item.id === 'eng_vocab_basic' || item.topic === '英単語' ? 'vocab' : 'lesson');
+    const levelLabel = item.level ? getLevelLabel(item.level) : '';
+    const topicName = item.topic || item.name || levelLabel || '前回の続き';
+    const unitName = context.unitName || context.unit?.name || '';
+    const categoryName = context.categoryName || context.category?.name || '';
+    const subjectName = context.subjectName || context.subject?.name || '';
+    const modeLabel = mode === 'vocab'
+        ? '英単語'
+        : mode === 'writing'
+            ? '英検ライティング'
+            : mode === 'reading'
+                ? '長文読解'
+                : categoryName;
+    const resumeLabel = item.level
+        ? `${levelLabel || item.name}の単語`
+        : item.mode === 'writing'
+            ? `${item.name || topicName}`
+            : item.mode === 'reading'
+                ? `${item.name || topicName}`
+                : topicName;
+
+    return saveLastStudyTopic(
+        context.subject?.id || context.subjectId || '',
+        context.category?.id || context.categoryId || '',
+        item.id || item.topic || '',
+        topicName,
+        modeLabel || unitName,
+        {
+            routePath,
+            subjectName,
+            categoryName,
+            unitName,
+            mode,
+            modeLabel,
+            level: item.level || item.writingLevel || item.readingLevel || '',
+            resumeLabel,
+        }
+    );
 };
 
 // 進捗データを取得する関数

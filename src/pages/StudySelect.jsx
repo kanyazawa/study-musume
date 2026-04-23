@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import './StudySelect.css';
 import { STUDY_TOPICS } from '../data/studyTopics';
+import { saveLastStudyTopicFromItem } from '../data/studyData';
 
 const StudySelect = () => {
     const navigate = useNavigate();
@@ -18,6 +19,12 @@ const StudySelect = () => {
     const [searchQuery, setSearchQuery] = useState('');
 
     const navigateToStudyItem = (item) => {
+        saveLastStudyTopicFromItem(item, {
+            subject: selectedSubject,
+            category: selectedCategory,
+            unit: selectedUnit,
+        });
+
         if (item.level) {
             navigate(`/multiplayer-match?mode=solo&level=${item.level}`);
         } else if (item.mode === 'writing') {
@@ -29,6 +36,15 @@ const StudySelect = () => {
         } else {
             navigate(`/dialogue?topic=${item.topic}`);
         }
+    };
+
+    const handleDirectModeClick = (item, path) => {
+        saveLastStudyTopicFromItem(item, {
+            subject: selectedSubject,
+            category: selectedCategory,
+            unit: selectedUnit,
+        });
+        navigate(path);
     };
 
     // パンくずリスト
@@ -267,7 +283,12 @@ const StudySelect = () => {
                             </button>
                             <button
                                 className="writing-mode-btn"
-                                onClick={() => navigate('/reading')}
+                                onClick={() => handleDirectModeClick({
+                                    id: 'eng_reading',
+                                    name: '長文読解',
+                                    topic: '長文読解',
+                                    mode: 'reading',
+                                }, '/reading')}
                             >
                                 <span className="review-icon">R</span>
                                 <span className="review-label">長文読解</span>
@@ -275,7 +296,12 @@ const StudySelect = () => {
                             </button>
                             <button
                                 className="writing-mode-btn"
-                                onClick={() => navigate('/writing')}
+                                onClick={() => handleDirectModeClick({
+                                    id: 'eng_writing',
+                                    name: '英検ライティング',
+                                    topic: '英検ライティング',
+                                    mode: 'writing',
+                                }, '/writing')}
                             >
                                 <span className="review-icon">W</span>
                                 <span className="review-label">英検ライティング</span>

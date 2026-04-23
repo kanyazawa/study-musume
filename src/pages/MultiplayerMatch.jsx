@@ -34,6 +34,7 @@ import {
 } from '../utils/matchUtils';
 import { addWrongQuestion } from '../utils/reviewUtils';
 import { getVocabByLevel } from '../data/vocabData';
+import { saveLastStudyTopic } from '../data/studyData';
 import { getCustomVocabStudyItems } from '../utils/customVocabUtils';
 import { useSound } from '../contexts/SoundContext';
 import { getTtsSettings, TTS_ENGINES } from '../utils/ttsSettings';
@@ -465,6 +466,22 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const nextLevelInfo = getNextLevelInfo(myRating);
     const soloLevel = queryLevel || myLevelInfo.level;
     const soloLevelMeta = useMemo(() => getSoloLevelMeta(soloLevel), [soloLevel]);
+    useEffect(() => {
+        if (!isSolo) {
+            return;
+        }
+
+        saveLastStudyTopic('english', 'eng_vocab', `eng_vocab_${soloLevel}`, soloLevelMeta.label, '英単語', {
+            routePath: `/multiplayer-match?mode=solo&level=${encodeURIComponent(soloLevel)}`,
+            subjectName: '英語',
+            categoryName: '単語',
+            unitName: '英単語',
+            mode: 'vocab',
+            modeLabel: '英単語',
+            level: soloLevel,
+            resumeLabel: `${soloLevelMeta.label}の単語`,
+        });
+    }, [isSolo, soloLevel, soloLevelMeta.label]);
     const soloVocabPool = useMemo(
         () => sanitizeVocabItems(
             soloLevel === CUSTOM_SOLO_LEVEL

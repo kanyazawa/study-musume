@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, BookOpenText, CheckCircle2 } from 'lucide-react';
 import TappableVocabText from '../components/TappableVocabText';
 import { READING_PASSAGES, getReadingPassageById, getReadingPassagesByLevel } from '../data/readingPassages';
+import { saveLastStudyTopic } from '../data/studyData';
 import { saveStudySession } from '../utils/studyHistoryUtils';
 import { updateMissionsOnStudy } from '../utils/missionUtils';
 import './Reading.css';
@@ -51,7 +52,7 @@ const saveCustomReadingPassages = (passages) => {
     localStorage.setItem(CUSTOM_READING_STORAGE_KEY, JSON.stringify(passages));
 };
 
-const Reading = ({ stats, updateStats }) => {
+const Reading = ({ updateStats }) => {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const initialLevel = searchParams.get('level') || '';
@@ -70,6 +71,28 @@ const Reading = ({ stats, updateStats }) => {
         || fallbackPassage;
     const [answers, setAnswers] = useState({});
     const [isFinished, setIsFinished] = useState(false);
+
+    useEffect(() => {
+        if (!selectedPassage?.id) {
+            return;
+        }
+
+        const params = new URLSearchParams();
+        if (selectedPassage.level) {
+            params.set('level', selectedPassage.level);
+        }
+        params.set('passage', selectedPassage.id);
+
+        saveLastStudyTopic('english', 'eng_reading', selectedPassage.id, selectedPassage.title, '長文読解', {
+            routePath: `/reading?${params.toString()}`,
+            subjectName: '英語',
+            categoryName: '読解',
+            mode: 'reading',
+            modeLabel: '長文読解',
+            level: selectedPassage.level || initialLevel,
+            resumeLabel: `${selectedPassage.label || '長文'} ${selectedPassage.title}`,
+        });
+    }, [initialLevel, selectedPassage]);
 
     useEffect(() => {
         if (!visiblePassages.some((passage) => passage.id === selectedPassageId)) {

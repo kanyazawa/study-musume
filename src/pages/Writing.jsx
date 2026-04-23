@@ -190,7 +190,17 @@ const Writing = ({ stats }) => {
         setDraft(getWritingDraft(selectedPrompt.id));
         setError('');
         sessionStartedAtRef.current = Date.now();
-    }, [selectedPrompt?.id]);
+
+        saveLastStudyTopic('english', 'eng_writing', selectedPrompt.id, selectedPrompt.title, '英検ライティング', {
+            routePath: `/writing?level=${encodeURIComponent(selectedPrompt.level)}`,
+            subjectName: '英語',
+            categoryName: 'ライティング',
+            mode: 'writing',
+            modeLabel: '英検ライティング',
+            level: selectedPrompt.level,
+            resumeLabel: `${selectedPrompt.levelLabel} ${selectedPrompt.title}`,
+        });
+    }, [selectedPrompt]);
 
     useEffect(() => {
         if (!selectedPrompt?.id) return;
@@ -330,7 +340,15 @@ const Writing = ({ stats }) => {
         const durationSeconds = Math.max(60, Math.round((Date.now() - sessionStartedAtRef.current) / 1000));
 
         try {
-            saveLastStudyTopic('english', 'eng_writing', selectedPrompt.id, selectedPrompt.title, '英検ライティング');
+            saveLastStudyTopic('english', 'eng_writing', selectedPrompt.id, selectedPrompt.title, '英検ライティング', {
+                routePath: `/writing?level=${encodeURIComponent(selectedPrompt.level)}`,
+                subjectName: '英語',
+                categoryName: 'ライティング',
+                mode: 'writing',
+                modeLabel: '英検ライティング',
+                level: selectedPrompt.level,
+                resumeLabel: `${selectedPrompt.levelLabel} ${selectedPrompt.title}`,
+            });
 
             const response = await requestWritingEvaluation({
                 promptId: selectedPrompt.id,
