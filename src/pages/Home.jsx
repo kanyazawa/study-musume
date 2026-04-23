@@ -23,7 +23,6 @@ import { getEnabledHomeTouchAreas, getHomeTouchReaction } from '../data/homeTouc
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
 import { getHomeReviewSummary } from '../utils/reviewUtils';
 import { getUnreadRelationshipEvents } from '../utils/relationshipEventUtils';
-import { getCustomVocabCount } from '../utils/customVocabUtils';
 import { useSound } from '../contexts/SoundContext';
 import { getLastStudyTopic } from '../data/studyData';
 import {
@@ -75,7 +74,6 @@ const Home = ({ stats, updateStats }) => {
     const [touchMotionStyle, setTouchMotionStyle] = useState(null);
     const [live2dImpact, setLive2dImpact] = useState(null);
     const [lastStudyTopic, setLastStudyTopic] = useState(() => getLastStudyTopic());
-    const [customVocabCount, setCustomVocabCount] = useState(() => getCustomVocabCount());
     const talkAnimationTimerRef = useRef(null);
     const userInputEmotionTimerRef = useRef(null);
     const touchMotionTimerRef = useRef(null);
@@ -468,24 +466,10 @@ const Home = ({ stats, updateStats }) => {
             if (event.key === 'lastStudyTopic') {
                 setLastStudyTopic(getLastStudyTopic());
             }
-
-            if (event.key === 'customVocabEntries') {
-                setCustomVocabCount(getCustomVocabCount());
-            }
         };
 
         window.addEventListener('storage', handleStorage);
         return () => window.removeEventListener('storage', handleStorage);
-    }, []);
-
-    useEffect(() => {
-        const refreshHomePlanCounts = () => {
-            setLastStudyTopic(getLastStudyTopic());
-            setCustomVocabCount(getCustomVocabCount());
-        };
-
-        window.addEventListener('focus', refreshHomePlanCounts);
-        return () => window.removeEventListener('focus', refreshHomePlanCounts);
     }, []);
 
     useEffect(() => {
@@ -589,81 +573,6 @@ const Home = ({ stats, updateStats }) => {
         return detail ? `${detail}を再開` : '前回の学習を再開';
     };
 
-    const todayPlan = useMemo(() => {
-        const reviewTask = {
-            key: 'review',
-            tone: homeReviewSummary.mode || 'empty',
-            kicker: homeReviewSummary.priorityLabel,
-            title: homeReviewSummary.hasReviews ? homeReviewSummary.headline : '弱点ノートを育てる',
-            body: homeReviewSummary.hasReviews
-                ? homeReviewSummary.body
-                : '授業やバトルで間違えた問題を集めると、ここから復習を始められるよ。',
-            actionLabel: homeReviewSummary.hasReviews ? homeReviewSummary.ctaLabel : '授業へ',
-        };
-        const resumeTask = {
-            key: 'resume',
-            tone: lastStudyTopic ? 'resume' : 'study',
-            kicker: lastStudyTopic ? '前回の続き' : 'まず一歩',
-            title: lastStudyTopic ? lastStudyTopic.resumeLabel : '今日の授業を選ぶ',
-            body: lastStudyTopic
-                ? [lastStudyTopic.modeLabel, lastStudyTopic.subjectName].filter(Boolean).join(' / ') || '前回の学習地点からすぐ再開できます。'
-                : '迷ったら授業一覧から、英単語・読解・ライティングを選ぼう。',
-            actionLabel: lastStudyTopic ? '続きから' : '授業へ',
-        };
-        const vocabTask = {
-            key: 'vocab',
-            tone: customVocabCount > 0 ? 'vocab' : 'reading',
-            kicker: customVocabCount > 0 ? '自作単語' : '単語を増やす',
-            title: customVocabCount > 0 ? `${customVocabCount}語を軽く確認` : '読解で新しい単語を拾う',
-            body: customVocabCount > 0
-                ? '自分で追加した単語は、短いカード練習で温め直せるよ。'
-                : '長文を読みながら、気になった英単語をタップして単語帳へ追加できます。',
-            actionLabel: customVocabCount > 0 ? '単語カード' : '読解へ',
-        };
-        const writingTask = {
-            key: 'writing',
-            tone: 'writing',
-            kicker: '仕上げ',
-            title: '英作文を1本だけ書く',
-            body: '時間がある日は、AI採点で表現の穴を見つけよう。',
-            actionLabel: '書く',
-        };
-
-        const tasks = [reviewTask, resumeTask, vocabTask, writingTask];
-        const primaryKey = homeReviewSummary.due > 0
-            ? 'review'
-            : lastStudyTopic
-                ? 'resume'
-                : customVocabCount > 0
-                    ? 'vocab'
-                    : 'review';
-        const primary = tasks.find((task) => task.key === primaryKey) || tasks[0];
-        const secondary = tasks.filter((task) => task.key !== primary.key).slice(0, 3);
-
-        return { primary, secondary };
-    }, [customVocabCount, homeReviewSummary, lastStudyTopic]);
-
-    const handleTodayTask = (taskKey) => {
-        if (taskKey === 'review') {
-            handleOpenRecommendedReview();
-            return;
-        }
-
-        if (taskKey === 'resume') {
-            handleResumeStudy();
-            return;
-        }
-
-        if (taskKey === 'vocab') {
-            navigate(customVocabCount > 0 ? '/custom-vocab/flashcards' : '/reading');
-            return;
-        }
-
-        if (taskKey === 'writing') {
-            navigate('/writing');
-        }
-    };
-
     return (
         <div className="home-screen">
             {/* Menu Modal */}
@@ -761,50 +670,39 @@ const Home = ({ stats, updateStats }) => {
                     </div>
                 </div>
 
-                <section className={`today-plan-card is-${todayPlan.primary.tone}`} aria-label="今日やること">
-                    <div className="today-plan-header">
-                        <div>
-                            <span className="today-plan-kicker">Today Plan</span>
-                            <h2>今日やること</h2>
-                        </div>
-                        <button
-                            type="button"
-                            className={`today-plan-review-pill is-${homeReviewSummary.mode}`}
-                            onClick={handleOpenRecommendedReview}
-                            aria-label={getReviewShortcutLabel()}
-                            title={getReviewShortcutLabel()}
-                        >
-                            <span>弱点</span>
-                            <strong>{homeReviewSummary.hasReviews ? homeReviewSummary.due : 0}</strong>
-                        </button>
-                    </div>
+                <button
+                    type="button"
+                    className={`home-review-card is-${homeReviewSummary.mode}`}
+                    onClick={handleOpenRecommendedReview}
+                    aria-label={getReviewShortcutLabel()}
+                    title={getReviewShortcutLabel()}
+                >
+                    <span className={`home-review-priority-dot is-${homeReviewSummary.mode}`} aria-hidden="true" />
+                    <span className="home-review-title">弱点回収</span>
+                    <span className="home-review-value" aria-hidden="true">
+                        {homeReviewSummary.hasReviews
+                            ? `${homeReviewSummary.due}件`
+                            : 'GO'}
+                    </span>
+                    {homeReviewSummary.reviewSetsToday > 0 && (
+                        <span className="home-review-streak" aria-hidden="true">
+                            {homeReviewSummary.reviewSetsToday}
+                        </span>
+                    )}
+                </button>
 
+                {lastStudyTopic && (
                     <button
                         type="button"
-                        className="today-plan-primary"
-                        onClick={() => handleTodayTask(todayPlan.primary.key)}
+                        className="home-resume-card"
+                        onClick={handleResumeStudy}
+                        aria-label={getResumeStudyLabel()}
+                        title={getResumeStudyLabel()}
                     >
-                        <span className="today-plan-primary-kicker">{todayPlan.primary.kicker}</span>
-                        <strong>{todayPlan.primary.title}</strong>
-                        <span>{todayPlan.primary.body}</span>
-                        <em>{todayPlan.primary.actionLabel}</em>
+                        <span className="home-resume-title">続きから</span>
+                        <span className="home-resume-value" aria-hidden="true">GO</span>
                     </button>
-
-                    <div className="today-plan-shortcuts">
-                        {todayPlan.secondary.map((task) => (
-                            <button
-                                key={task.key}
-                                type="button"
-                                className={`today-plan-shortcut is-${task.tone}`}
-                                onClick={() => handleTodayTask(task.key)}
-                                title={task.body}
-                            >
-                                <span>{task.kicker}</span>
-                                <strong>{task.actionLabel}</strong>
-                            </button>
-                        ))}
-                    </div>
-                </section>
+                )}
 
                 {/* Character Figure */}
                 <div
@@ -870,22 +768,10 @@ const Home = ({ stats, updateStats }) => {
                 </div>
 
                 {/* Action Buttons */}
-                <div className={`action-area ${lastStudyTopic ? 'has-resume' : ''}`}>
+                <div className="action-area">
                     <button className="battle-btn-large" onClick={() => navigate('/multiplayer-match')}>
                         <span>⚔️ 単語バトル</span>
                     </button>
-                    {lastStudyTopic && (
-                        <button
-                            type="button"
-                            className="resume-study-btn-large"
-                            onClick={handleResumeStudy}
-                            aria-label={getResumeStudyLabel()}
-                            title={getResumeStudyLabel()}
-                        >
-                            <span className="resume-study-main">▶ 続きから</span>
-                            <span className="resume-study-sub">{lastStudyTopic.resumeLabel}</span>
-                        </button>
-                    )}
                     <button className="study-btn-large" onClick={() => navigate('/study')}>
                         <span>📚 授業へ</span>
                     </button>
