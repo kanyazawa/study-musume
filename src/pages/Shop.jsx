@@ -1,6 +1,19 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock3, HelpCircle, Diamond, X, Check } from 'lucide-react';
+import {
+    ArrowLeft,
+    Clock3,
+    HelpCircle,
+    Diamond,
+    X,
+    Check,
+    Shirt,
+    Image as ImageIcon,
+    Volume2,
+    Sparkles,
+    PackageCheck,
+    Wand2,
+} from 'lucide-react';
 import { ALL_ITEMS } from '../data/itemData';
 import ItemVisual from '../components/ItemVisual';
 import { updateStatsOnShop } from '../utils/achievementUtils';
@@ -8,7 +21,48 @@ import './Shop.css';
 
 const SHOP_HISTORY_KEY = 'shop_purchase_history';
 
-const CATEGORIES = ['おすすめ', '衣装', '背景', 'ボイス', '特別'];
+const CATEGORIES = ['おすすめ', '衣装', '背景', 'ボイス', 'アクセ', '特別'];
+
+const RARITY_LABELS = {
+    SSR: 'プレミアム',
+    SR: 'レア',
+    R: 'ベーシック',
+    N_PLUS: 'ノーマル+',
+    N: 'ノーマル',
+};
+
+const PRODUCT_DETAIL_COPY = {
+    skin: {
+        icon: Shirt,
+        headline: '着せ替えでホームの雰囲気を変えられます',
+        usage: '交換後はアイテムボックスから装備できます。',
+        highlights: ['キャラ画面で装備可能', 'ホームや学習画面に反映', 'Live2D未対応時は静止画で表示'],
+    },
+    background: {
+        icon: ImageIcon,
+        headline: 'お気に入りの場所で一緒に過ごせます',
+        usage: '交換後はアイテムボックスから背景を変更できます。',
+        highlights: ['背景プレビューつき', 'ホームの空気感を変更', '衣装と組み合わせ可能'],
+    },
+    voice: {
+        icon: Volume2,
+        headline: '学習の節目を彩るボイスコレクションです',
+        usage: '交換後はコレクションとして保持されます。演出追加にあわせて使える予定です。',
+        highlights: ['ボイス演出用アイテム', 'コレクション対象', '今後のホーム演出に拡張予定'],
+    },
+    accessory: {
+        icon: Sparkles,
+        headline: 'Live2Dの見た目にワンポイントを足せます',
+        usage: '交換後はアイテムボックスから装備できます。ホームのLive2D表示に反映されます。',
+        highlights: ['Live2Dパーツ連動', 'アイテムボックスで着脱', '衣装や背景と組み合わせ可能'],
+    },
+    special: {
+        icon: Sparkles,
+        headline: '特別な演出や思い出を残すための記念アイテムです',
+        usage: '交換後は大切な特別アイテムとして保存されます。',
+        highlights: ['限定感のある記念品', '思い出演出向け', 'コレクション対象'],
+    },
+};
 
 const SHOP_CATALOG = [
     { itemId: 'skin_casual', price: 320, category: '衣装' },
@@ -20,6 +74,8 @@ const SHOP_CATALOG = [
     { itemId: 'bg_sunset', price: 420, category: '背景' },
     { itemId: 'voice_cheer_pack', price: 360, category: 'ボイス' },
     { itemId: 'voice_goodnight_pack', price: 340, category: 'ボイス' },
+    { itemId: 'accessory_glasses', price: 180, category: 'アクセ' },
+    { itemId: 'accessory_witch_hat', price: 420, category: 'アクセ' },
     { itemId: 'special_name_call_ticket', price: 520, category: '特別' },
     { itemId: 'special_memory_album', price: 480, category: '特別' },
 ];
@@ -67,12 +123,25 @@ const getCategoryLabel = (type) => {
             return '背景';
         case 'voice':
             return 'ボイス';
+        case 'accessory':
+            return 'アクセ';
         case 'special':
             return '特別';
         default:
             return 'おすすめ';
     }
 };
+
+const getProductDetailCopy = (product) => {
+    return PRODUCT_DETAIL_COPY[product?.type] || {
+        icon: PackageCheck,
+        headline: '学習を少し楽しくしてくれるアイテムです',
+        usage: '交換後はアイテムボックスで確認できます。',
+        highlights: ['アイテムボックスに追加', '所持数を管理', '必要なタイミングで使用'],
+    };
+};
+
+const getRarityLabel = (rarity) => RARITY_LABELS[rarity] || rarity || 'ITEM';
 
 const Shop = ({ stats, updateStats, onClose }) => {
     const navigate = useNavigate();
@@ -165,6 +234,120 @@ const Shop = ({ stats, updateStats, onClose }) => {
         setPurchaseComplete(true);
         setShowConfirmDialog(false);
         updateStatsOnShop();
+    };
+
+    const renderProductDetail = () => {
+        if (!selectedProduct) return null;
+
+        const owned = ownedIds.has(selectedProduct.id);
+        const detail = getProductDetailCopy(selectedProduct);
+        const DetailIcon = detail.icon;
+        const balanceAfterPurchase = diamonds - selectedProduct.price;
+
+        return (
+            <div className={`product-detail-shell product-detail-${selectedProduct.type}`}>
+                <div className="product-detail-hero">
+                    <div className="product-detail-art">
+                        <ItemVisual
+                            item={selectedProduct}
+                            className="preview-image"
+                            fallbackText={selectedProduct.name.charAt(0)}
+                            alt={selectedProduct.name}
+                        />
+                    </div>
+                    <div className="product-detail-badges">
+                        <span className={`detail-rarity rarity-${selectedProduct.rarity}`}>
+                            {selectedProduct.rarity}
+                        </span>
+                        <span className="detail-category">
+                            <DetailIcon size={14} />
+                            {selectedProduct.category}
+                        </span>
+                    </div>
+                </div>
+
+                <div className="product-detail-body">
+                    <div className="modal-header-block">
+                        <span className="modal-category">{getRarityLabel(selectedProduct.rarity)}</span>
+                        <h2 className="modal-title">{selectedProduct.name}</h2>
+                    </div>
+
+                    <p className="detail-headline">{detail.headline}</p>
+                    <p className="modal-description">{selectedProduct.description}</p>
+
+                    <div className="detail-highlight-grid">
+                        {detail.highlights.map((highlight) => (
+                            <div key={highlight} className="detail-highlight-card">
+                                <Wand2 size={15} />
+                                <span>{highlight}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    {selectedProduct.type === 'voice' && (
+                        <div className="voice-preview-panel" aria-label="ボイスプレビューのイメージ">
+                            <Volume2 size={18} />
+                            <div className="voice-wave" aria-hidden="true">
+                                <span />
+                                <span />
+                                <span />
+                                <span />
+                                <span />
+                            </div>
+                            <span>ボイスパック</span>
+                        </div>
+                    )}
+
+                    <div className="detail-usage-note">
+                        <PackageCheck size={16} />
+                        <span>{detail.usage}</span>
+                    </div>
+
+                    <div className="detail-purchase-summary">
+                        <div>
+                            <span className="summary-label">価格</span>
+                            <strong className="summary-price">
+                                <Diamond size={16} className="diamond-icon-small" />
+                                {selectedProduct.price}
+                            </strong>
+                        </div>
+                        {!owned && (
+                            <div>
+                                <span className="summary-label">交換後</span>
+                                <strong className={balanceAfterPurchase < 0 ? 'summary-balance insufficient' : 'summary-balance'}>
+                                    {balanceAfterPurchase.toLocaleString()} ダイヤ
+                                </strong>
+                            </div>
+                        )}
+                    </div>
+
+                    {purchaseComplete ? (
+                        <div className="purchase-complete">
+                            <Check size={20} />
+                            <span>交換しました</span>
+                        </div>
+                    ) : owned ? (
+                        <div className="already-owned">
+                            <Check size={16} />
+                            <span>所持しています</span>
+                        </div>
+                    ) : (
+                        <button
+                            className={`purchase-btn ${diamonds < selectedProduct.price ? 'disabled' : ''}`}
+                            onClick={() => setShowConfirmDialog(true)}
+                            disabled={diamonds < selectedProduct.price}
+                        >
+                            <Diamond size={18} className="diamond-icon" />
+                            <span>{selectedProduct.price} で交換する</span>
+                        </button>
+                    )}
+
+                    {!owned && diamonds < selectedProduct.price && (
+                        <p className="insufficient-notice">ダイヤが不足しています</p>
+                    )}
+                </div>
+            </div>
+        );
     };
 
     return (
@@ -261,50 +444,7 @@ const Shop = ({ stats, updateStats, onClose }) => {
                             <X size={20} />
                         </button>
 
-                        <div className="modal-content">
-                            <div className="modal-preview">
-                                <ItemVisual
-                                    item={selectedProduct}
-                                    className="preview-image"
-                                    fallbackText={selectedProduct.name.charAt(0)}
-                                    alt={selectedProduct.name}
-                                />
-                            </div>
-
-                            <div className="modal-info">
-                                <div className="modal-header-block">
-                                    <span className="modal-category">{selectedProduct.category}</span>
-                                    <h2 className="modal-title">{selectedProduct.name}</h2>
-                                </div>
-
-                                <p className="modal-description">{selectedProduct.description}</p>
-
-                                {purchaseComplete ? (
-                                    <div className="purchase-complete">
-                                        <Check size={20} />
-                                        <span>交換しました</span>
-                                    </div>
-                                ) : ownedIds.has(selectedProduct.id) ? (
-                                    <div className="already-owned">
-                                        <Check size={16} />
-                                        <span>所持しています</span>
-                                    </div>
-                                ) : (
-                                    <button
-                                        className={`purchase-btn ${diamonds < selectedProduct.price ? 'disabled' : ''}`}
-                                        onClick={() => setShowConfirmDialog(true)}
-                                        disabled={diamonds < selectedProduct.price}
-                                    >
-                                        <Diamond size={18} className="diamond-icon" />
-                                        <span>{selectedProduct.price} で交換する</span>
-                                    </button>
-                                )}
-
-                                {!ownedIds.has(selectedProduct.id) && diamonds < selectedProduct.price && (
-                                    <p className="insufficient-notice">ダイヤが不足しています</p>
-                                )}
-                            </div>
-                        </div>
+                        <div className="modal-content">{renderProductDetail()}</div>
                     </div>
                 </div>
             )}

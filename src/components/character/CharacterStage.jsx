@@ -7,6 +7,7 @@ const CharacterStage = ({
     characterId = 'noah',
     renderer = 'image',
     skinId = 'default',
+    accessoryIds = [],
     pose = {},
     scene = 'default',
     className = '',
@@ -21,6 +22,7 @@ const CharacterStage = ({
     const stagedPose = {
         ...pose,
         scene: pose?.scene || scene,
+        accessoryIds: pose?.accessoryIds || accessoryIds,
     };
     const imageFallback = (
         <StaticCharacterImage

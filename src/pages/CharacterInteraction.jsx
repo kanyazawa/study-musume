@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Shirt, Image as ImageIcon, Gift, MessageCircle, BookOpen } from 'lucide-react';
+import { ArrowLeft, Shirt, Image as ImageIcon, Gift, MessageCircle, BookOpen, Sparkles } from 'lucide-react';
 import './CharacterInteraction.css';
 import './Dialogue.css'; // Reuse dialogue styles for consistency
 import CharacterSelect from '../components/CharacterSelect';
@@ -21,7 +21,7 @@ import { applyRelationshipProgress, getUnreadRelationshipEvents } from '../utils
 const CharacterInteraction = ({ stats, updateStats }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const [mode, setMode] = useState('main'); // main, gift, costume, bg, chat
+    const [mode, setMode] = useState('main'); // main, gift, costume, bg, accessory, chat
     const [expression, setExpression] = useState('normal');
     const [showCharSelect, setShowCharSelect] = useState(false);
     const [giftReaction, setGiftReaction] = useState(null);
@@ -38,6 +38,8 @@ const CharacterInteraction = ({ stats, updateStats }) => {
     // Owned Cosmetics
     const ownedSkins = getOwnedSkins(stats.inventory || []);
     const ownedBackgrounds = getOwnedBackgrounds(stats.inventory || []);
+    const ownedAccessories = filterInventoryByType(stats.inventory || [], 'accessory');
+    const equippedAccessories = stats?.equippedAccessories || [];
     const relationshipSnapshot = useMemo(() => getRelationshipSnapshot(stats), [stats]);
     const relationshipEventState = useMemo(() => getRelationshipEventState(stats), [stats]);
 
@@ -47,6 +49,19 @@ const CharacterInteraction = ({ stats, updateStats }) => {
 
     const handleEquipBackground = (bgId) => {
         updateStats({ equippedBackground: bgId });
+    };
+
+    const handleToggleAccessory = (accessoryId) => {
+        updateStats((currentStats) => {
+            const currentAccessories = currentStats?.equippedAccessories || [];
+            const isEquipped = currentAccessories.includes(accessoryId);
+
+            return {
+                equippedAccessories: isEquipped
+                    ? currentAccessories.filter((itemId) => itemId !== accessoryId)
+                    : [...new Set([...currentAccessories, accessoryId])],
+            };
+        });
     };
 
     const characterId = stats.characterId || 'noah';
@@ -174,8 +189,8 @@ const CharacterInteraction = ({ stats, updateStats }) => {
             {isDefaultBg && <div className="room-background"></div>}
 
             {/* Back Button */}
-            <button className="ci-back-btn" onClick={() => navigate('/home')}>
-                <ArrowLeft size={32} color="white" />
+            <button className="ci-back-btn" type="button" aria-label="ホームに戻る" onClick={() => navigate('/home')}>
+                <ArrowLeft size={24} />
             </button>
 
             <section className="ci-relationship-card" aria-label="関係メモ">
@@ -215,6 +230,7 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                     characterId={characterId}
                     renderer={renderer}
                     skinId={stats.equippedSkin || 'default'}
+                    accessoryIds={stats.equippedAccessories || []}
                     scene="interaction"
                     pose={interactionPose}
                     className="character-interaction"
@@ -223,27 +239,31 @@ const CharacterInteraction = ({ stats, updateStats }) => {
             </div>
 
             {/* Bottom Control Panel (Study Scene Style) */}
-            <div className="ci-control-panel dialogue-box">
+            <div className={`ci-control-panel dialogue-box is-${mode}`}>
                 {mode === 'main' && (
                     <div className="ci-menu-buttons">
-                        <button className="ci-btn" onClick={() => setMode('costume')}>
-                            <Shirt size={24} />
+                        <button className="ci-btn" type="button" onClick={() => setMode('costume')}>
+                            <Shirt size={22} />
                             <span>衣装</span>
                         </button>
-                        <button className="ci-btn" onClick={() => setMode('chat')}>
-                            <MessageCircle size={24} />
+                        <button className="ci-btn ci-btn-primary" type="button" onClick={() => setMode('chat')}>
+                            <MessageCircle size={22} />
                             <span>話す</span>
                         </button>
-                        <button className="ci-btn" onClick={() => setMode('bg')}>
-                            <ImageIcon size={24} />
+                        <button className="ci-btn" type="button" onClick={() => setMode('bg')}>
+                            <ImageIcon size={22} />
                             <span>背景</span>
                         </button>
-                        <button className="ci-btn" onClick={() => setMode('gift')}>
-                            <Gift size={24} />
+                        <button className="ci-btn" type="button" onClick={() => setMode('accessory')}>
+                            <Sparkles size={22} />
+                            <span>アクセ</span>
+                        </button>
+                        <button className="ci-btn" type="button" onClick={() => setMode('gift')}>
+                            <Gift size={22} />
                             <span>プレゼント</span>
                         </button>
-                        <button className="ci-btn" onClick={() => setMode('events')}>
-                            <BookOpen size={24} />
+                        <button className="ci-btn" type="button" onClick={() => setMode('events')}>
+                            <BookOpen size={22} />
                             <span>イベント</span>
                             {unreadRelationshipEvents.length > 0 && (
                                 <span className="ci-badge">{unreadRelationshipEvents.length}</span>
@@ -257,20 +277,20 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                     <div className="ci-gift-panel">
                         <div className="ci-panel-header">
                             <span>プレゼントを渡す</span>
-                            <button className="ci-close-small" onClick={() => setMode('main')}>×</button>
+                            <button className="ci-close-small" type="button" aria-label="閉じる" onClick={() => setMode('main')}>×</button>
                         </div>
                         <div className="ci-gift-list">
                             {giftItems.length === 0 ? (
                                 <p className="no-items">プレゼントを持っていません</p>
                             ) : (
                                 giftItems.map((item, idx) => (
-                                    <div key={idx} className="ci-gift-item" onClick={() => handleGiveGift(item)}>
+                                    <button key={idx} className="ci-gift-item" type="button" onClick={() => handleGiveGift(item)}>
                                         <span className="ci-gift-emoji">{item.emoji}</span>
                                         <div className="ci-gift-info">
                                             <span className="ci-gift-name">{item.name}</span>
                                             <span className="ci-gift-count">x{item.quantity}</span>
                                         </div>
-                                    </div>
+                                    </button>
                                 ))
                             )}
                         </div>
@@ -311,7 +331,7 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                     <div className="ci-events-panel">
                         <div className="ci-panel-header">
                             <span>関係イベント</span>
-                            <button className="ci-close-small" onClick={() => setMode('main')}>×</button>
+                            <button className="ci-close-small" type="button" aria-label="閉じる" onClick={() => setMode('main')}>×</button>
                         </div>
                         <div className="ci-events-list">
                             {allRelationshipEvents.map((event) => {
@@ -353,13 +373,14 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                     <div className="ci-gift-panel">
                         <div className="ci-panel-header">
                             <span>衣装を着替える</span>
-                            <button className="ci-close-small" onClick={() => setMode('main')}>×</button>
+                            <button className="ci-close-small" type="button" aria-label="閉じる" onClick={() => setMode('main')}>×</button>
                         </div>
                         <div className="ci-gift-list">
                             {ownedSkins.map((item, idx) => (
-                                <div
+                                <button
                                     key={idx}
                                     className={`ci-gift-item ${stats.equippedSkin === item.id ? 'equipped' : ''}`}
+                                    type="button"
                                     onClick={() => handleEquipSkin(item.id)}
                                 >
                                     <span className="ci-gift-emoji">{item.emoji}</span>
@@ -367,7 +388,7 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                                         <span className="ci-gift-name">{item.name}</span>
                                         {stats.equippedSkin === item.id && <span className="equipped-badge">装備中</span>}
                                     </div>
-                                </div>
+                                </button>
                             ))}
                         </div>
                     </div>
@@ -378,13 +399,14 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                     <div className="ci-gift-panel">
                         <div className="ci-panel-header">
                             <span>背景を変更する</span>
-                            <button className="ci-close-small" onClick={() => setMode('main')}>×</button>
+                            <button className="ci-close-small" type="button" aria-label="閉じる" onClick={() => setMode('main')}>×</button>
                         </div>
                         <div className="ci-gift-list">
                             {ownedBackgrounds.map((item, idx) => (
-                                <div
+                                <button
                                     key={idx}
                                     className={`ci-gift-item ${stats.equippedBackground === item.id ? 'equipped' : ''}`}
+                                    type="button"
                                     onClick={() => handleEquipBackground(item.id)}
                                 >
                                     <span className="ci-gift-emoji">{item.emoji}</span>
@@ -392,8 +414,43 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                                         <span className="ci-gift-name">{item.name}</span>
                                         {stats.equippedBackground === item.id && <span className="equipped-badge">装備中</span>}
                                     </div>
-                                </div>
+                                </button>
                             ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Accessory Selection Mode */}
+                {mode === 'accessory' && (
+                    <div className="ci-gift-panel">
+                        <div className="ci-panel-header">
+                            <span>アクセを切り替える</span>
+                            <button className="ci-close-small" type="button" aria-label="閉じる" onClick={() => setMode('main')}>×</button>
+                        </div>
+                        <div className="ci-gift-list">
+                            {ownedAccessories.length === 0 ? (
+                                <div className="no-items">購買部でアクセを交換するとここに表示されます</div>
+                            ) : (
+                                ownedAccessories.map((item, idx) => {
+                                    const isEquipped = equippedAccessories.includes(item.itemId);
+
+                                    return (
+                                        <button
+                                            key={`${item.itemId}-${idx}`}
+                                            className={`ci-gift-item ${isEquipped ? 'equipped' : ''}`}
+                                            type="button"
+                                            onClick={() => handleToggleAccessory(item.itemId)}
+                                        >
+                                            <span className="ci-gift-emoji">{item.emoji}</span>
+                                            <div className="ci-gift-info">
+                                                <span className="ci-gift-name">{item.name}</span>
+                                                {!isEquipped && <span className="ci-gift-count">未装備</span>}
+                                                {isEquipped && <span className="equipped-badge">装備中</span>}
+                                            </div>
+                                        </button>
+                                    );
+                                })
+                            )}
                         </div>
                     </div>
                 )}

@@ -20,6 +20,7 @@ export const getDefaultStats = () => ({
     inventory: [],
     equippedSkin: 'default',
     equippedBackground: 'default',
+    equippedAccessories: [],
     selectedTitle: null,
     // プロフィールカスタマイズ
     characterName: 'さくら',

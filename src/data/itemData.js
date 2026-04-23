@@ -409,6 +409,39 @@ export const ALL_ITEMS = [
         description: '一日の終わりにぴったりの、落ち着いた声のボイスセット。'
     },
     {
+        id: 'accessory_glasses',
+        type: 'accessory',
+        name: 'クラシック眼鏡',
+        rarity: 'SR',
+        emoji: '👓',
+        probability: 4,
+        description: '知的な雰囲気を足せる丸眼鏡。Live2D表示では眼鏡パーツが反映されます。',
+        live2dParts: {
+            Part53: 1
+        }
+    },
+    {
+        id: 'accessory_witch_hat',
+        type: 'accessory',
+        name: '魔女帽子',
+        rarity: 'SSR',
+        emoji: '🎩',
+        probability: 2,
+        description: '少しミステリアスな雰囲気になる魔女帽子。Live2D表示では帽子パーツが反映されます。',
+        live2dParts: {
+            Part42: 1,
+            Part43: 1,
+            Part45: 1,
+            Part149: 1,
+            ArtMesh201_Skinning: 1,
+            Part71: 1,
+            ArtMesh202_Skinning: 1,
+            Part72: 1,
+            ArtMesh203_Skinning: 1,
+            Part73: 1
+        }
+    },
+    {
         id: 'special_name_call_ticket',
         type: 'special',
         name: '名前呼びチケット',

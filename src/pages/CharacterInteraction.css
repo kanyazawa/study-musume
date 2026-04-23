@@ -490,3 +490,405 @@
         padding: 10px 12px;
     }
 }
+
+/* Character screen UI refresh */
+.character-interaction-screen {
+    overflow: hidden;
+    background-color: #d7edf7;
+}
+
+.character-interaction-screen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, transparent 34%),
+        linear-gradient(0deg, rgba(39, 49, 60, 0.2) 0%, transparent 45%);
+}
+
+.room-background {
+    filter: saturate(1.04) brightness(0.96);
+    transform: scale(1.01);
+}
+
+.ci-back-btn {
+    top: max(14px, env(safe-area-inset-top, 0px));
+    left: 14px;
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(255, 255, 255, 0.48);
+    border-radius: 50%;
+    background: rgba(34, 41, 53, 0.48);
+    color: #ffffff;
+    box-shadow: 0 10px 22px rgba(28, 35, 48, 0.2);
+    backdrop-filter: blur(12px);
+}
+
+.ci-back-btn:active {
+    transform: scale(0.96);
+}
+
+.ci-relationship-card {
+    top: max(14px, env(safe-area-inset-top, 0px));
+    right: 14px;
+    z-index: 96;
+    width: min(236px, calc(100% - 78px));
+    gap: 6px;
+    padding: 10px 11px;
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    border-radius: 8px;
+    background: rgba(255, 252, 247, 0.86);
+    box-shadow: 0 16px 32px rgba(56, 65, 82, 0.16);
+    backdrop-filter: blur(14px);
+}
+
+.ci-relationship-card-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.ci-relationship-card-label {
+    color: #7d5365;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+}
+
+.ci-relationship-card-rhythm {
+    flex: 0 0 auto;
+    padding: 3px 7px;
+    border: 1px solid rgba(125, 83, 101, 0.13);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    color: #356a7d;
+    font-size: 0.66rem;
+}
+
+.ci-relationship-card-stage {
+    color: #503748;
+    font-size: 0.98rem;
+    line-height: 1.25;
+}
+
+.ci-relationship-card-copy,
+.ci-relationship-card-latest-detail,
+.ci-relationship-card-footer span {
+    color: #665867;
+    font-size: 0.7rem;
+    line-height: 1.45;
+}
+
+.ci-relationship-card-latest {
+    padding: 7px 8px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.58);
+}
+
+.ci-relationship-card-latest-title {
+    color: #4c6375;
+    font-size: 0.72rem;
+}
+
+.ci-control-panel.dialogue-box {
+    bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+    z-index: 90;
+    width: calc(100% - 24px);
+    max-width: 456px;
+    min-height: 0;
+    max-height: min(48vh, 360px);
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    border-radius: 8px;
+    background: rgba(255, 252, 246, 0.91);
+    box-shadow: 0 20px 44px rgba(31, 41, 55, 0.22);
+    backdrop-filter: blur(16px);
+    color: #2f3d4c;
+}
+
+.ci-control-panel.is-main {
+    max-height: none;
+}
+
+.ci-control-panel.is-chat {
+    padding: 0;
+    max-height: min(62vh, 480px);
+    overflow: hidden;
+}
+
+.ci-menu-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.ci-btn {
+    min-width: 0;
+    min-height: 66px;
+    flex: none;
+    justify-content: center;
+    padding: 8px 6px;
+    border: 1px solid rgba(113, 132, 151, 0.18);
+    border-radius: 8px;
+    background: linear-gradient(180deg, #ffffff, #f4f8fb);
+    color: #33485b;
+    box-shadow: 0 8px 18px rgba(48, 67, 84, 0.1);
+}
+
+.ci-btn svg {
+    flex: 0 0 auto;
+    color: #52748e;
+}
+
+.ci-btn span {
+    max-width: 100%;
+    font-size: 0.76rem;
+    line-height: 1.15;
+    white-space: nowrap;
+}
+
+.ci-btn-primary {
+    border-color: rgba(255, 116, 153, 0.32);
+    background: linear-gradient(180deg, #fff3f5, #ffe4ea);
+    color: #8d3f5d;
+}
+
+.ci-btn-primary svg {
+    color: #d65980;
+}
+
+.ci-btn:focus-visible,
+.ci-gift-item:focus-visible,
+.ci-event-card:focus-visible,
+.ci-close-small:focus-visible,
+.ci-back-btn:focus-visible {
+    outline: 3px solid rgba(78, 207, 255, 0.55);
+    outline-offset: 2px;
+}
+
+.ci-panel-header {
+    margin-bottom: 10px;
+    color: #26394a;
+    font-size: 0.95rem;
+}
+
+.ci-close-small {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(56, 70, 83, 0.08);
+    color: #4a5a66;
+    font-size: 22px;
+    line-height: 1;
+}
+
+.ci-gift-panel,
+.ci-events-panel {
+    min-height: 180px;
+    max-height: 100%;
+}
+
+.ci-gift-list,
+.ci-events-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 0 2px 4px;
+    scrollbar-width: thin;
+}
+
+.ci-gift-item {
+    width: 100%;
+    min-height: 62px;
+    padding: 9px 10px;
+    border: 1px solid rgba(108, 122, 137, 0.15);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.78);
+    color: #28394a;
+    text-align: left;
+    box-shadow: 0 8px 16px rgba(43, 55, 68, 0.08);
+    transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+
+.ci-gift-item:active {
+    transform: scale(0.98);
+    background: #eef6fa;
+}
+
+.ci-gift-item.equipped {
+    border: 1px solid rgba(52, 211, 153, 0.55);
+    background: linear-gradient(180deg, #ffffff, #ecfff7);
+}
+
+.ci-gift-emoji {
+    flex: 0 0 auto;
+    font-size: 1.55rem;
+    line-height: 1;
+}
+
+.ci-gift-info {
+    min-width: 0;
+    gap: 2px;
+}
+
+.ci-gift-name {
+    overflow: hidden;
+    color: #26394a;
+    font-size: 0.78rem;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ci-gift-count,
+.equipped-badge {
+    color: #687685;
+    font-size: 0.66rem;
+}
+
+.equipped-badge {
+    color: #15915e;
+}
+
+.no-items {
+    grid-column: 1 / -1;
+    align-self: center;
+    margin: 16px 0 0;
+    padding: 14px 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.55);
+    color: #596575;
+    font-size: 0.82rem;
+}
+
+.ci-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    min-width: 18px;
+    height: 18px;
+    background: #e84d78;
+    box-shadow: 0 4px 10px rgba(232, 77, 120, 0.24);
+    font-size: 0.66rem;
+}
+
+.ci-event-card {
+    border: 1px solid rgba(108, 122, 137, 0.16);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.78);
+    color: #26394a;
+    box-shadow: 0 8px 16px rgba(43, 55, 68, 0.08);
+}
+
+.ci-event-order {
+    color: #657483;
+}
+
+.ci-event-status.is-unread {
+    background: rgba(232, 77, 120, 0.12);
+    color: #bd365f;
+}
+
+.ci-event-status.is-read {
+    background: rgba(52, 211, 153, 0.14);
+    color: #167c55;
+}
+
+.ci-event-status.is-locked {
+    background: rgba(82, 102, 122, 0.1);
+    color: #708090;
+}
+
+.ci-event-title {
+    color: #26394a;
+    font-size: 0.93rem;
+}
+
+.ci-event-teaser {
+    color: #5d6874;
+    font-size: 0.78rem;
+}
+
+.character-interaction-screen .character-figure {
+    z-index: 12;
+    height: calc(100% - 66px);
+}
+
+.character-interaction-screen .char-image {
+    filter: drop-shadow(0 14px 18px rgba(49, 57, 72, 0.2));
+}
+
+.gift-effect-overlay {
+    z-index: 120;
+    width: min(86%, 360px);
+}
+
+.gift-effect-content {
+    padding: 18px 20px;
+    border: 1px solid rgba(255, 128, 171, 0.58);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 18px 34px rgba(77, 52, 66, 0.22);
+}
+
+.gift-effect-message {
+    color: #344252;
+    font-size: 0.98rem;
+    line-height: 1.55;
+}
+
+@media (max-width: 480px) {
+    .ci-relationship-card {
+        top: max(12px, env(safe-area-inset-top, 0px));
+        right: 12px;
+        width: min(202px, calc(100% - 74px));
+        padding: 9px;
+    }
+
+    .ci-relationship-card-copy,
+    .ci-relationship-card-footer {
+        display: none;
+    }
+
+    .ci-relationship-card-stage {
+        font-size: 0.9rem;
+    }
+
+    .ci-relationship-card-latest-detail {
+        font-size: 0.66rem;
+    }
+
+    .ci-control-panel.dialogue-box {
+        bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+        width: calc(100% - 16px);
+        padding: 10px;
+    }
+
+    .ci-control-panel.is-chat {
+        padding: 0;
+    }
+
+    .ci-menu-buttons {
+        gap: 7px;
+    }
+
+    .ci-btn {
+        min-height: 60px;
+        padding: 7px 4px;
+    }
+
+    .ci-btn span {
+        font-size: 0.7rem;
+    }
+
+    .ci-gift-panel,
+    .ci-events-panel {
+        min-height: 172px;
+    }
+
+    .ci-gift-item {
+        min-height: 58px;
+        padding: 8px;
+    }
+}

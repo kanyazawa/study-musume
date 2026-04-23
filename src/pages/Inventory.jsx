@@ -16,6 +16,7 @@ const Inventory = ({ stats, updateStats }) => {
 
     // タイプ別にアイテムをフィルタリング
     const filteredItems = filterInventoryByType(stats.inventory, selectedType);
+    const equippedAccessories = stats?.equippedAccessories || [];
 
     // アイテム詳細モーダルを開く
     const handleItemClick = (item) => {
@@ -117,6 +118,12 @@ const Inventory = ({ stats, updateStats }) => {
                 >
                     🖼️ 背景
                 </button>
+                <button
+                    className={`tab ${selectedType === 'accessory' ? 'active' : ''}`}
+                    onClick={() => setSelectedType('accessory')}
+                >
+                    👓 アクセ
+                </button>
             </div>
 
             {/* アイテムリスト */}
@@ -127,29 +134,34 @@ const Inventory = ({ stats, updateStats }) => {
                         {/* リンク削除 */}
                     </div>
                 ) : (
-                    filteredItems.map((item, index) => (
-                        <div
-                            key={`${item.itemId}-${index}`}
-                            className={`item-card rarity-${item.rarity} ${stats.equippedSkin === item.itemId || stats.equippedBackground === item.itemId ? 'equipped' : ''
-                                }`}
-                            onClick={() => handleItemClick(item)}
-                        >
-                            <ItemVisual
-                                item={item}
-                                className="item-icon"
-                                fallbackText={item.name.charAt(0)}
-                                alt={item.name}
-                            />
-                            <div className="item-name">{item.name}</div>
-                            <div className="item-quantity">×{item.quantity}</div>
-                            {(stats.equippedSkin === item.itemId || stats.equippedBackground === item.itemId) && (
-                                <div className="equipped-badge">装備中</div>
-                            )}
-                            <div className={`item-rarity rarity-${item.rarity}`}>
-                                {item.rarity}
+                    filteredItems.map((item, index) => {
+                        const isEquipped = stats.equippedSkin === item.itemId
+                            || stats.equippedBackground === item.itemId
+                            || equippedAccessories.includes(item.itemId);
+
+                        return (
+                            <div
+                                key={`${item.itemId}-${index}`}
+                                className={`item-card rarity-${item.rarity} ${isEquipped ? 'equipped' : ''}`}
+                                onClick={() => handleItemClick(item)}
+                            >
+                                <ItemVisual
+                                    item={item}
+                                    className="item-icon"
+                                    fallbackText={item.name.charAt(0)}
+                                    alt={item.name}
+                                />
+                                <div className="item-name">{item.name}</div>
+                                <div className="item-quantity">×{item.quantity}</div>
+                                {isEquipped && (
+                                    <div className="equipped-badge">装備中</div>
+                                )}
+                                <div className={`item-rarity rarity-${item.rarity}`}>
+                                    {item.rarity}
+                                </div>
                             </div>
-                        </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
 
@@ -182,6 +194,9 @@ const Inventory = ({ stats, updateStats }) => {
                             {selectedItem.type === 'boost' && (
                                 <p>⚡ 経験値 ×{selectedItem.multiplier} ({selectedItem.duration}分)</p>
                             )}
+                            {selectedItem.type === 'accessory' && (
+                                <p>👓 Live2Dアクセサリー</p>
+                            )}
                             <p>所持数: {selectedItem.quantity}</p>
                         </div>
 
@@ -206,6 +221,34 @@ const Inventory = ({ stats, updateStats }) => {
                                 closeModal();
                             }}>
                                 背景を変更する 🖼️
+                            </button>
+                        )}
+
+                        {selectedItem.type === 'accessory' && !equippedAccessories.includes(selectedItem.itemId) && (
+                            <button className="equip-btn" onClick={() => {
+                                updateStats((currentStats) => {
+                                    const currentAccessories = currentStats?.equippedAccessories || [];
+                                    return {
+                                        ...currentStats,
+                                        equippedAccessories: [...new Set([...currentAccessories, selectedItem.itemId])],
+                                    };
+                                });
+                                closeModal();
+                            }}>
+                                装備する 👓
+                            </button>
+                        )}
+
+                        {selectedItem.type === 'accessory' && equippedAccessories.includes(selectedItem.itemId) && (
+                            <button className="equip-btn" onClick={() => {
+                                updateStats((currentStats) => ({
+                                    ...currentStats,
+                                    equippedAccessories: (currentStats?.equippedAccessories || [])
+                                        .filter((itemId) => itemId !== selectedItem.itemId),
+                                }));
+                                closeModal();
+                            }}>
+                                外す 👓
                             </button>
                         )}
                     </div>
