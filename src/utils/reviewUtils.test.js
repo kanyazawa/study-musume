@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  formatNextCorrectReviewProgress,
   formatRelativeDate,
+  formatReviewInterval,
+  formatReviewProgress,
+  formatWrongReviewProgress,
   getHomeReviewSummary,
   getRecommendedReviewQuestion,
   getReviewQuestions,
@@ -125,6 +129,58 @@ describe('reviewUtils', () => {
     expect(updated[0].reviewLevel).toBe(4);
   });
 
+  it('automatically extends the next review interval after a correct answer', () => {
+    saveReviewQuestions([
+      {
+        id: 'eng-auto-correct',
+        subject: '英語',
+        questionId: 'q-auto-1',
+        questionText: '単語の意味を答える',
+        correctAnswer: 'improve',
+        wrongCount: 1,
+        reviewLevel: 1,
+        nextReviewDate: Date.now() - 10 * 60 * 1000,
+      },
+    ]);
+
+    updateReviewResult('eng-auto-correct', true);
+
+    const [updated] = getReviewQuestions();
+
+    expect(updated.reviewLevel).toBe(2);
+    expect(updated.nextReviewDate).toBe(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    expect(updated.reviewHistory.at(-1)).toEqual({
+      date: Date.now(),
+      result: 'correct',
+    });
+  });
+
+  it('resets the review level after a wrong answer', () => {
+    saveReviewQuestions([
+      {
+        id: 'eng-auto-wrong',
+        subject: '英語',
+        questionId: 'q-auto-2',
+        questionText: '単語の意味を答える',
+        correctAnswer: 'restore',
+        wrongCount: 2,
+        reviewLevel: 3,
+        nextReviewDate: Date.now() - 10 * 60 * 1000,
+      },
+    ]);
+
+    updateReviewResult('eng-auto-wrong', false);
+
+    const [updated] = getReviewQuestions();
+
+    expect(updated.reviewLevel).toBe(0);
+    expect(updated.nextReviewDate).toBe(Date.now() + 24 * 60 * 60 * 1000);
+    expect(updated.reviewHistory.at(-1)).toEqual({
+      date: Date.now(),
+      result: 'wrong',
+    });
+  });
+
   it('offers a graduate option for high-level correct answers', () => {
     const [question] = [
       {
@@ -147,5 +203,14 @@ describe('reviewUtils', () => {
   it('formats short review delays in minutes', () => {
     expect(formatRelativeDate(Date.now() + 10 * 60 * 1000)).toBe('10分後');
     expect(formatRelativeDate(Date.now() - 45 * 60 * 1000)).toBe('45分前');
+  });
+
+  it('formats review spacing as user-facing progress labels', () => {
+    expect(formatReviewInterval(0)).toBe('1日間隔');
+    expect(formatReviewInterval(2)).toBe('7日間隔');
+    expect(formatReviewProgress(1)).toBe('今は3日間隔');
+    expect(formatNextCorrectReviewProgress(1)).toBe('正解で7日間隔');
+    expect(formatNextCorrectReviewProgress(4)).toBe('正解で完全習得');
+    expect(formatWrongReviewProgress()).toBe('ミスで1日間隔に戻る');
   });
 });

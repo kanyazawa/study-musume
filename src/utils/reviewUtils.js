@@ -560,7 +560,6 @@ export const getHomeReviewSummary = (currentStats = null) => {
     const urgentCount = stats.byPriority?.urgent || 0;
     const soonCount = stats.byPriority?.soon || 0;
     const laterCount = stats.byPriority?.later || 0;
-    const priority = getReviewPriority(recommendedQuestion.nextReviewDate);
     const basePreview = String(recommendedQuestion.questionText || '').replace(/\s+/g, ' ').trim();
     const recommendedPreview = basePreview.length > 42 ? `${basePreview.slice(0, 42)}...` : basePreview;
 
@@ -664,3 +663,46 @@ export const formatReviewLevel = (level) => {
     const labels = ['初回', '2回目', '3回目', '4回目', '5回目', '完全習得'];
     return labels[level] || '不明';
 };
+
+/**
+ * 復習レベルに対応する間隔を文字列に変換
+ * @param {number} level - 復習レベル
+ * @returns {string} - 間隔文字列
+ */
+export const formatReviewInterval = (level) => {
+    const normalizedLevel = Math.max(0, Math.min(MAX_REVIEW_LEVEL, Number(level) || 0));
+    if (normalizedLevel >= MAX_REVIEW_LEVEL) return '完全習得';
+
+    const days = getReviewIntervalDays(normalizedLevel);
+    return `${days}日間隔`;
+};
+
+/**
+ * 復習カード向けの進捗ラベルを返す
+ * @param {number} level - 復習レベル
+ * @returns {string}
+ */
+export const formatReviewProgress = (level) => {
+    const normalizedLevel = Math.max(0, Math.min(MAX_REVIEW_LEVEL, Number(level) || 0));
+    if (normalizedLevel >= MAX_REVIEW_LEVEL) return '完全習得';
+
+    return `今は${formatReviewInterval(normalizedLevel)}`;
+};
+
+/**
+ * 正解時に伸びる次の間隔ラベルを返す
+ * @param {number} level - 復習レベル
+ * @returns {string}
+ */
+export const formatNextCorrectReviewProgress = (level) => {
+    const normalizedLevel = Math.max(0, Math.min(MAX_REVIEW_LEVEL, Number(level) || 0));
+    if (normalizedLevel >= MAX_ACTIVE_REVIEW_LEVEL) return '正解で完全習得';
+
+    return `正解で${formatReviewInterval(normalizedLevel + 1)}`;
+};
+
+/**
+ * 不正解時に戻る間隔ラベルを返す
+ * @returns {string}
+ */
+export const formatWrongReviewProgress = () => `ミスで${formatReviewInterval(0)}に戻る`;

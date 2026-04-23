@@ -6,7 +6,9 @@ import {
     getReviewPriority,
     formatRelativeDate,
     getReviewStats,
-    formatReviewLevel,
+    formatReviewProgress,
+    formatNextCorrectReviewProgress,
+    formatWrongReviewProgress,
     sortReviewQuestions,
     buildReviewSessionOrder,
     getNormalizedDailyReviewProgress,
@@ -593,7 +595,9 @@ const Review = ({ stats, updateStats }) => {
                                         {question.questionText}
                                     </div>
                                     <div className="question-meta-row">
-                                        <span className="review-level-chip">{formatReviewLevel(question.reviewLevel)}</span>
+                                        <span className="review-level-chip">{formatReviewProgress(question.reviewLevel)}</span>
+                                        <span className="review-growth-chip">{formatNextCorrectReviewProgress(question.reviewLevel)}</span>
+                                        <span className="review-reset-chip">{formatWrongReviewProgress()}</span>
                                         {question.userAnswer && (
                                             <span className="last-answer-chip">前回: {question.userAnswer}</span>
                                         )}
@@ -603,7 +607,7 @@ const Review = ({ stats, updateStats }) => {
                                             ❌ {question.wrongCount}回間違えた
                                         </div>
                                         <div className="next-review">
-                                            📅 {formatRelativeDate(question.nextReviewDate)}
+                                            📅 次回 {formatRelativeDate(question.nextReviewDate)}
                                         </div>
                                     </div>
                                     <div className="card-action">

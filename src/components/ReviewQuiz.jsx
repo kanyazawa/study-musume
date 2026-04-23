@@ -3,8 +3,9 @@ import { ChevronLeft, Clock3, Flame, Target } from 'lucide-react';
 import {
     getReviewPriority,
     formatRelativeDate,
-    formatReviewLevel,
-    getReviewScheduleChoices,
+    formatReviewProgress,
+    formatNextCorrectReviewProgress,
+    formatWrongReviewProgress,
     updateReviewResult
 } from '../utils/reviewUtils';
 import CharacterStage from './character/CharacterStage';
@@ -17,8 +18,21 @@ import battleChain3Audio from '../assets/audio/chains/battle-chain-3.mp3';
 import battleChain4Audio from '../assets/audio/chains/battle-chain-4.mp3';
 import battleChain5Audio from '../assets/audio/chains/battle-chain-5.mp3';
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
+import { resolveReviewCharacterPose } from '../utils/reviewExpressionState';
 import '../pages/MultiplayerMatch.css';
 import './ReviewQuiz.css';
+
+const REVIEW_TUTORIAL_STORAGE_KEY = 'hasSeenReviewTutorial';
+
+const hasSeenReviewTutorial = () => {
+    if (typeof window === 'undefined') return true;
+
+    try {
+        return window.localStorage.getItem(REVIEW_TUTORIAL_STORAGE_KEY) === 'true';
+    } catch {
+        return true;
+    }
+};
 
 /**
  * ReviewQuiz Component
@@ -33,12 +47,12 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
     const [results, setResults] = useState([]); // { questionId, isCorrect }
     const [isCompleted, setIsCompleted] = useState(false);
     const [inputValue, setInputValue] = useState('');
-    const [scheduleChoices, setScheduleChoices] = useState([]);
-    const [selectedScheduleKey, setSelectedScheduleKey] = useState(null);
     const [correctStreak, setCorrectStreak] = useState(0);
     const [persistentEmotion, setPersistentEmotion] = useState(null);
+    const [showTutorial, setShowTutorial] = useState(() => !hasSeenReviewTutorial());
     const chainAudioCacheRef = useRef({});
     const audioContextRef = useRef(null);
+    const autoAdvanceTimeoutRef = useRef(null);
 
     const currentQuestion = sessionQuestions[currentIndex];
     const accuracy = results.length ? Math.round((results.filter((result) => result.isCorrect).length / results.length) * 100) : 100;
@@ -68,51 +82,16 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
     });
     const showIncorrectFeedback = Boolean(currentQuestion.options && feedback === 'incorrect');
     const isChoiceQuestion = Boolean(currentQuestion.options);
-    const isAwaitingSchedule = Boolean(feedback);
-    const scheduleTitle = feedback === 'correct' ? '次はいつ出す？' : 'もう一度出すタイミングを選ぼう';
-    const scheduleHint = feedback === 'correct'
-        ? '覚えているうちに少し先まで飛ばせるよ。'
-        : '忘れ切る前にもう一度当てると定着しやすい。';
-    const reviewFaceAccent = feedback === 'incorrect' || persistentEmotion === 'angry'
-        ? null
-        : feedback === 'correct' || correctStreak >= 2 || persistentEmotion === 'happy'
-            ? 'heart'
-            : correctStreak === 1 || persistentEmotion === 'smile'
-                ? 'star'
-                : null;
-    const visibleReviewFaceAccent = renderer === 'live2d' ? null : reviewFaceAccent;
-    let poseEmotion;
-    if (feedback === 'incorrect' || persistentEmotion === 'angry') {
-        poseEmotion = 'angry';
-    } else if (feedback === 'correct' || correctStreak >= 2 || persistentEmotion === 'happy') {
-        poseEmotion = 'correct';
-    } else if (reviewFaceAccent === 'star') {
-        poseEmotion = renderer === 'live2d' ? 'smile' : 'happy';
-    } else if (renderer === 'live2d') {
-        poseEmotion = 'normal';
-    } else if ((currentQuestion?.wrongCount || 0) >= 3) {
-        poseEmotion = 'serious';
-    } else if (priority === 'urgent') {
-        poseEmotion = 'surprised';
-    } else {
-        poseEmotion = 'relaxed';
-    }
-    const characterPose = {
-        emotion: poseEmotion,
-        expression: feedback === 'correct' ? 'correct' : poseEmotion,
-        scene: 'review',
-        intensity: feedback
-            ? feedback === 'correct' ? 0.74 : 0.46
-            : (currentQuestion?.wrongCount || 0) >= 3 ? 0.42 : priority === 'urgent' ? 0.4 : 0.32,
-        motion: null,
-        idle: 'gentle',
-        gaze: 'camera',
-        speaking: feedback === 'correct',
-        text: '',
-        effect: feedback === 'correct' ? 'glow' : feedback === 'incorrect' ? 'shake' : '',
-        live2dEmotion: feedback === 'correct' ? 'correct' : '',
-        live2dFaceAccent: reviewFaceAccent,
-    };
+    const isShowingFeedback = Boolean(feedback);
+    const tutorialActionLabel = hasSeenReviewTutorial() ? '復習に戻る' : 'はじめる';
+    const { characterPose, visibleReviewFaceAccent } = resolveReviewCharacterPose({
+        renderer,
+        feedback,
+        persistentEmotion,
+        correctStreak,
+        wrongCount: currentQuestion?.wrongCount || 0,
+        priority,
+    });
     const getChainAudioSrc = useCallback((streak) => {
         if (streak <= 1) return battleChain1Audio;
         if (streak === 2) return battleChain2Audio;
@@ -133,6 +112,12 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
             }
         });
     }, [getChainAudioSrc]);
+
+    useEffect(() => () => {
+        if (autoAdvanceTimeoutRef.current) {
+            clearTimeout(autoAdvanceTimeoutRef.current);
+        }
+    }, []);
 
     const playUiTone = useCallback((frequency, durationMs, { type = 'sine', gain = 0.03, delayMs = 0 } = {}) => {
         if (isMuted || typeof window === 'undefined') return;
@@ -185,15 +170,27 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
         audio.play().catch(() => { });
     }, [getChainAudioSrc, isMuted]);
 
+    const closeTutorial = () => {
+        try {
+            window.localStorage.setItem(REVIEW_TUTORIAL_STORAGE_KEY, 'true');
+        } catch {
+            // localStorage が使えない環境でも、その場では閉じられるようにする。
+        }
+        setShowTutorial(false);
+    };
+
     const handleNextQuestion = () => {
+        if (autoAdvanceTimeoutRef.current) {
+            clearTimeout(autoAdvanceTimeoutRef.current);
+            autoAdvanceTimeoutRef.current = null;
+        }
+
         if (currentIndex + 1 < sessionQuestions.length) {
             // Next question
             setCurrentIndex(prev => prev + 1);
             setSelectedAnswer(null);
             setFeedback(null);
             setInputValue('');
-            setScheduleChoices([]);
-            setSelectedScheduleKey(null);
         } else {
             // Quiz complete
             setTimeout(() => {
@@ -203,28 +200,13 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
         }
     };
 
-    const handleScheduleSelect = (scheduleChoice) => {
-        if (!currentQuestion || !feedback || !scheduleChoice || selectedScheduleKey) return;
-
-        const isCorrect = feedback === 'correct';
-        setSelectedScheduleKey(scheduleChoice.key);
-        updateReviewResult(currentQuestion.id, isCorrect, scheduleChoice);
-        setResults(prev => [...prev, {
-            questionId: currentQuestion.id,
-            isCorrect
-        }]);
-        handleNextQuestion();
-    };
-
     const handleAnswerSelect = (answer) => {
-        if (feedback) return; // Already answered
+        if (feedback || showTutorial) return; // Already answered or tutorial is open
 
         setSelectedAnswer(answer);
         const isCorrect = answer === currentQuestion.correctAnswer;
 
         setFeedback(isCorrect ? 'correct' : 'incorrect');
-        setScheduleChoices(getReviewScheduleChoices(currentQuestion, isCorrect));
-        setSelectedScheduleKey(null);
         setCorrectStreak((prev) => {
             const nextStreak = isCorrect ? prev + 1 : 0;
             setPersistentEmotion(isCorrect ? (nextStreak >= 2 ? 'happy' : 'smile') : 'angry');
@@ -242,10 +224,21 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
 
             return nextStreak;
         });
+
+        updateReviewResult(currentQuestion.id, isCorrect);
+        setResults(prev => [...prev, {
+            questionId: currentQuestion.id,
+            isCorrect
+        }]);
+        autoAdvanceTimeoutRef.current = setTimeout(() => {
+            autoAdvanceTimeoutRef.current = null;
+            handleNextQuestion();
+        }, isCorrect ? 800 : 1400);
     };
 
     const handleInputSubmit = (e) => {
         e.preventDefault();
+        if (showTutorial) return;
         if (!inputValue.trim()) return;
 
         // Simple normalization for answer check
@@ -278,13 +271,11 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
         setResults([]);
         setIsCompleted(false);
         setInputValue('');
-        setScheduleChoices([]);
-        setSelectedScheduleKey(null);
         setCorrectStreak(0);
         setPersistentEmotion(null);
     };
 
-    const renderScheduleContent = () => {
+    const renderFeedbackContent = () => {
         if (!feedback) return null;
 
         return (
@@ -306,30 +297,10 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
                     </div>
                 )}
 
-                <div className="review-schedule-panel">
-                    <div className="review-schedule-copy">
-                        <strong>{scheduleTitle}</strong>
-                        <span>{scheduleHint}</span>
-                    </div>
-                    <div className="review-schedule-grid">
-                        {scheduleChoices.map((choice) => (
-                            <button
-                                key={choice.key}
-                                type="button"
-                                className={`review-schedule-btn ${choice.recommended ? 'is-recommended' : ''} ${choice.complete ? 'is-complete' : ''}`}
-                                onClick={() => handleScheduleSelect(choice)}
-                                disabled={Boolean(selectedScheduleKey)}
-                            >
-                                <span className="review-schedule-label">{choice.label}</span>
-                                <span className="review-schedule-meta">
-                                    {choice.description || (choice.nextReviewDate ? formatRelativeDate(choice.nextReviewDate) : 'リストから外す')}
-                                </span>
-                                {choice.recommended && (
-                                    <span className="review-schedule-recommend">おすすめ</span>
-                                )}
-                            </button>
-                        ))}
-                    </div>
+                <div className={`review-auto-next-message ${feedback === 'incorrect' ? 'is-reset' : ''}`}>
+                    {feedback === 'correct'
+                        ? '復習間隔を伸ばして次へ進みます。'
+                        : '復習間隔をリセットして次へ進みます。'}
                 </div>
             </div>
         );
@@ -425,7 +396,46 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
                     <ChevronLeft size={18} />
                     戻る
                 </button>
+                <button
+                    className="review-help-btn"
+                    type="button"
+                    onClick={() => setShowTutorial(true)}
+                    aria-label="復習の説明を見る"
+                    title="復習の説明"
+                >
+                    ?
+                </button>
             </div>
+
+            {showTutorial && (
+                <div className="review-tutorial-overlay" role="dialog" aria-modal="true" aria-labelledby="review-tutorial-title">
+                    <div className="review-tutorial-panel">
+                        <div className="review-tutorial-kicker">弱点ノート</div>
+                        <h2 id="review-tutorial-title">答えるだけで復習間隔を調整するよ</h2>
+                        <p>
+                            正解できた単語や問題は、次に出るタイミングが少し先に伸びます。
+                            間違えたらレベルを戻して、近いうちにもう一度出します。
+                        </p>
+                        <div className="review-tutorial-steps">
+                            <div className="review-tutorial-step">
+                                <span>1</span>
+                                <strong>まず答える</strong>
+                            </div>
+                            <div className="review-tutorial-step">
+                                <span>2</span>
+                                <strong>正解で間隔アップ</strong>
+                            </div>
+                            <div className="review-tutorial-step">
+                                <span>3</span>
+                                <strong>ミスでリセット</strong>
+                            </div>
+                        </div>
+                        <button className="review-tutorial-start-btn" type="button" onClick={closeTutorial}>
+                            {tutorialActionLabel}
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <div className={`mp-character-area ${renderer === 'live2d' ? 'is-live2d' : ''}`}>
                 <CharacterStage
@@ -470,7 +480,10 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
                             {priorityLabel}
                         </div>
                         <div className="mp-question-pill">
-                            {formatReviewLevel(currentQuestion.reviewLevel)}
+                            {formatReviewProgress(currentQuestion.reviewLevel)}
+                        </div>
+                        <div className="mp-question-pill mp-question-pill-growth">
+                            {formatNextCorrectReviewProgress(currentQuestion.reviewLevel)}
                         </div>
                         <div className="mp-question-pill">
                             <Flame size={14} />
@@ -487,17 +500,17 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
                             {currentQuestion.options ? '正しい答えを選ぼう' : '答えを入力しよう'}
                         </p>
                         <div className="review-question-subhint">
-                            復習期限: {formatRelativeDate(currentQuestion.nextReviewDate)}
+                            次回 {formatRelativeDate(currentQuestion.nextReviewDate)} · {formatWrongReviewProgress()}
                         </div>
                     </div>
                     {showIncorrectFeedback && (
                         <div className="review-answer-panel review-answer-panel-inline review-answer-panel-floating">
-                            {renderScheduleContent()}
+                            {renderFeedbackContent()}
                         </div>
                     )}
                 </div>
 
-                <div className={`mp-bottom-area review-bottom-area ${isAwaitingSchedule ? 'has-incorrect-feedback' : ''}`}>
+                <div className={`mp-bottom-area review-bottom-area ${isShowingFeedback ? 'has-incorrect-feedback' : ''}`}>
                     {currentQuestion.options ? (
                         <>
                             <div className="mp-options-grid review-options-grid">
@@ -527,7 +540,7 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
                             </div>
                             {feedback === 'correct' && (
                                 <div className="review-answer-panel review-answer-panel-inline review-next-action">
-                                    {renderScheduleContent()}
+                                    {renderFeedbackContent()}
                                 </div>
                             )}
                         </>
@@ -548,7 +561,7 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
                                     </button>
                                 </form>
                             ) : (
-                                renderScheduleContent()
+                                renderFeedbackContent()
                             )}
                         </div>
                     )}

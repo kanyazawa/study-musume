@@ -527,6 +527,8 @@
 }
 
 .review-level-chip,
+.review-growth-chip,
+.review-reset-chip,
 .last-answer-chip {
     display: inline-flex;
     align-items: center;
@@ -539,6 +541,16 @@
 .review-level-chip {
     background: #edf4ff;
     color: #5170b8;
+}
+
+.review-growth-chip {
+    background: #e8f6ee;
+    color: #3d8c60;
+}
+
+.review-reset-chip {
+    background: #fff1f1;
+    color: #b54c4c;
 }
 
 .last-answer-chip {
