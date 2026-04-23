@@ -40,7 +40,7 @@ import { getTtsSettings, TTS_ENGINES } from '../utils/ttsSettings';
 import { getEngineBaseUrl, isEngineAvailable, resolveSpeakerIdForEngine, speakWithEngine } from '../utils/voicevoxUtils';
 import CharacterStage from '../components/character/CharacterStage';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
-import { createHomePose } from '../utils/characterPoseUtils';
+import { resolveMatchCharacterPose } from '../utils/matchExpressionState';
 import './MultiplayerMatch.css';
 
 // Background & Character Images
@@ -571,78 +571,17 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         resultFx,
         roomData,
     ]);
-    const matchPose = useMemo(() => {
-        const basePose = createHomePose({ emotion: matchEmotion, text: '' }, { speaking: isPoseSpeaking });
-        const live2dFaceAccent = answerFx === 'wrong' || persistentEmotion === 'angry'
-            ? null
-            : answerFx === 'correct'
-                ? (persistentEmotion === 'happy' || correctStreak >= 2 ? 'heart' : 'star')
-                : persistentEmotion === 'happy'
-                    ? 'heart'
-                    : persistentEmotion === 'smile'
-                        ? 'star'
-                        : null;
-
-        return {
-            ...basePose,
-            scene: phase === 'result' ? 'match-result' : 'match',
-            expression: answerFx === 'correct' ? 'smile' : basePose.expression,
-            intensity: answerFx === 'correct'
-                ? 0.95
-                : answerFx === 'wrong'
-                    ? 0.86
-                    : resultFx === 'victory'
-                        ? 0.92
-                        : matchEmotion === 'happy' || matchEmotion === 'smile'
-                            ? 0.72
-                            : matchEmotion === 'serious' || matchEmotion === 'angry' || matchEmotion === 'surprised'
-                                ? 0.68
-                                : basePose.intensity,
-            motion: answerFx === 'correct'
-                ? 'talk_soft'
-                : answerFx === 'wrong'
-                    ? 'present_accept'
-                    : resultFx === 'victory'
-                        ? 'present_happy'
-                        : isPoseSpeaking
-                            ? basePose.motion
-                            : phase === 'countdown'
-                                ? 'talk'
-                                : 'idle_home',
-            speaking: answerFx === 'correct' || basePose.speaking,
-            effect: answerFx === 'wrong'
-                ? 'shake'
-                : answerFx === 'correct' || resultFx === 'victory'
-                    ? 'glow'
-                    : '',
-            live2dEmotion: answerFx === 'correct'
-                ? 'smile'
-                : '',
-            live2dExpression: answerFx === 'correct'
-                ? 'yj'
-                : '',
-            live2dFaceAccent,
-        };
-    }, [answerFx, correctStreak, isPoseSpeaking, matchEmotion, persistentEmotion, phase, resultFx]);
-    const matchFaceAccent = useMemo(() => {
-        if (answerFx === 'wrong' || persistentEmotion === 'angry') {
-            return 'angry';
-        }
-
-        if (answerFx === 'correct') {
-            return persistentEmotion === 'happy' || correctStreak >= 2 ? 'heart' : 'star';
-        }
-
-        if (persistentEmotion === 'happy') {
-            return 'heart';
-        }
-
-        if (persistentEmotion === 'smile') {
-            return 'star';
-        }
-
-        return null;
-    }, [answerFx, correctStreak, persistentEmotion]);
+    const matchExpressionState = useMemo(() => resolveMatchCharacterPose({
+            answerFx,
+            correctStreak,
+            isPoseSpeaking,
+            matchEmotion,
+            persistentEmotion,
+            phase,
+            resultFx,
+        }), [answerFx, correctStreak, isPoseSpeaking, matchEmotion, persistentEmotion, phase, resultFx]);
+    const matchPose = matchExpressionState.matchPose;
+    const matchFaceAccent = matchExpressionState.matchFaceAccent;
     const visibleFaceAccent = renderer === 'live2d' && matchFaceAccent !== 'angry'
         ? null
         : matchFaceAccent;

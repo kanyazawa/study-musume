@@ -150,6 +150,64 @@
     font-size: 13px;
 }
 
+.expression-preview-debug {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.expression-preview-debug-card {
+    padding: 14px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.075);
+    border: 1px solid rgba(255, 255, 255, 0.11);
+}
+
+.expression-preview-debug-card.is-wide {
+    grid-column: span 2;
+}
+
+.expression-preview-debug-card h2 {
+    margin: 0 0 10px;
+    color: #95ddff;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.expression-preview-debug-grid {
+    display: grid;
+    grid-template-columns: minmax(96px, 0.8fr) minmax(0, 1.2fr);
+    gap: 8px 10px;
+    align-items: center;
+}
+
+.expression-preview-debug-grid span,
+.expression-preview-meter-grid span {
+    color: rgba(247, 248, 255, 0.72);
+    font-size: 12px;
+}
+
+.expression-preview-debug-grid strong,
+.expression-preview-meter-grid strong {
+    color: #f7f8ff;
+    font-size: 12px;
+    word-break: break-word;
+}
+
+.expression-preview-meter-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.expression-preview-meter-grid span {
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: rgba(12, 17, 28, 0.44);
+}
+
 .expression-preview-panel {
     margin-top: 16px;
     padding: 16px;
@@ -225,6 +283,18 @@
     }
 
     .expression-preview-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .expression-preview-debug {
+        grid-template-columns: 1fr;
+    }
+
+    .expression-preview-debug-card.is-wide {
+        grid-column: auto;
+    }
+
+    .expression-preview-meter-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }

@@ -24,68 +24,13 @@ import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
 import { getHomeReviewSummary } from '../utils/reviewUtils';
 import { getUnreadRelationshipEvents } from '../utils/relationshipEventUtils';
 import { useSound } from '../contexts/SoundContext';
-
-const inferHomeEmotion = ({ emotion, speech, tp, maxTp, affectionLevel, examDate }) => {
-    if (emotion && emotion !== 'normal') {
-        return emotion;
-    }
-
-    const normalizedSpeech = String(speech || '').toLowerCase();
-    const tpRatio = maxTp > 0 ? tp / maxTp : 0;
-
-    if (tpRatio <= 0.25) {
-        return 'serious';
-    }
-
-    if (examDate) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const target = new Date(`${examDate}T00:00:00`);
-        if (!Number.isNaN(target.getTime())) {
-            const remainingDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-            if (remainingDays >= 0 && remainingDays <= 7) {
-                return 'serious';
-            }
-        }
-    }
-
-    if (
-        normalizedSpeech.includes('嬉') ||
-        normalizedSpeech.includes('安心') ||
-        normalizedSpeech.includes('ありがと') ||
-        normalizedSpeech.includes('一緒') ||
-        normalizedSpeech.includes('いい感じ') ||
-        normalizedSpeech.includes('落ち着')
-    ) {
-        return 'happy';
-    }
-
-    if (
-        normalizedSpeech.includes('深呼吸') ||
-        normalizedSpeech.includes('無理') ||
-        normalizedSpeech.includes('休') ||
-        normalizedSpeech.includes('集中')
-    ) {
-        return 'serious';
-    }
-
-    if (affectionLevel >= 5) {
-        return 'happy';
-    }
-
-    return 'normal';
-};
-
-const toVisibleHomeEmotion = (emotion) => {
-    switch (emotion) {
-        case 'smile':
-            return 'happy';
-        case 'sad':
-            return 'serious';
-        default:
-            return emotion || 'normal';
-    }
-};
+import {
+    HOME_EXPRESSION_LAYER,
+    createHomeExpressionLayer,
+    inferHomeEmotion,
+    resolveHomeExpressionLayers,
+    toVisibleHomeEmotion,
+} from '../utils/homeExpressionLayers';
 
 const Home = ({ stats, updateStats }) => {
     // Default stats if not provided (fallback)
@@ -98,7 +43,8 @@ const Home = ({ stats, updateStats }) => {
         diamonds = 0,
         affection = 0,
         equippedSkin = 'default',
-        equippedBackground = 'default'
+        equippedBackground = 'default',
+        equippedAccessories = [],
     } = stats || {};
 
     const loginStreak = stats?.loginStreak || 0;
@@ -116,7 +62,7 @@ const Home = ({ stats, updateStats }) => {
     const navigate = useNavigate();
     const { playVoice, stopVoice } = useSound();
     const [speech, setSpeech] = useState("");
-    const [emotion, setEmotion] = useState('normal');
+    const [baseHomeEmotion, setBaseHomeEmotion] = useState('normal');
     const [activeHomeReaction, setActiveHomeReaction] = useState(null);
     const [userInputEmotion, setUserInputEmotion] = useState(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -145,23 +91,40 @@ const Home = ({ stats, updateStats }) => {
     const affectionLevelInfo = getAffectionLevel(affection);
     const affectionProgress = getAffectionProgress(affection);
     const examDate = stats?.examDate || '';
-    const homeEmotion = useMemo(() => toVisibleHomeEmotion(inferHomeEmotion({
-        emotion: userInputEmotion || emotion,
+    const homeExpressionLayers = useMemo(() => [
+        activeHomeReaction
+            ? createHomeExpressionLayer(HOME_EXPRESSION_LAYER.REACTION, {
+                emotion: activeHomeReaction.emotion,
+                pose: activeHomeReaction,
+            })
+            : null,
+        userInputEmotion
+            ? createHomeExpressionLayer(HOME_EXPRESSION_LAYER.USER_INPUT, {
+                emotion: userInputEmotion,
+            })
+            : null,
+        live2dImpact
+            ? createHomeExpressionLayer(HOME_EXPRESSION_LAYER.IMPACT, {
+                pose: live2dImpact,
+            })
+            : null,
+    ].filter(Boolean), [activeHomeReaction, live2dImpact, userInputEmotion]);
+    const homeExpressionState = useMemo(() => resolveHomeExpressionLayers({
+        baseEmotion: baseHomeEmotion,
         speech,
         tp,
         maxTp,
         affectionLevel: affectionLevelInfo.level,
         examDate,
-    })), [affectionLevelInfo.level, emotion, examDate, maxTp, speech, tp, userInputEmotion]);
+        layers: homeExpressionLayers,
+    }), [affectionLevelInfo.level, baseHomeEmotion, examDate, homeExpressionLayers, maxTp, speech, tp]);
     const homePose = useMemo(() => ({
         ...createHomePose({
-            ...(activeHomeReaction || {}),
-            emotion: homeEmotion,
+            ...homeExpressionState.pose,
             text: speech,
-            ...(live2dImpact || {}),
         }, { speaking: isTalkAnimating }),
         speechNonce,
-    }), [activeHomeReaction, homeEmotion, isTalkAnimating, live2dImpact, speech, speechNonce]);
+    }), [homeExpressionState.pose, isTalkAnimating, speech, speechNonce]);
 
     const getCountdownDisplay = () => {
         if (!examDate) {
@@ -373,7 +336,7 @@ const Home = ({ stats, updateStats }) => {
         });
         setActiveHomeReaction(reaction);
         setSpeech(reaction.text);
-        setEmotion(toVisibleHomeEmotion(reaction.emotion || 'normal'));
+        setBaseHomeEmotion(toVisibleHomeEmotion(reaction.emotion || 'normal'));
         startTimedTalkAnimation(reaction.text);
 
         const played = reaction.voice
@@ -417,7 +380,7 @@ const Home = ({ stats, updateStats }) => {
 
         setActiveHomeReaction(reaction);
         setSpeech(reaction.text);
-        setEmotion(toVisibleHomeEmotion(reaction.emotion || 'normal'));
+        setBaseHomeEmotion(toVisibleHomeEmotion(reaction.emotion || 'normal'));
         startTimedTalkAnimation(reaction.text);
 
         const played = reaction.voice
@@ -484,13 +447,13 @@ const Home = ({ stats, updateStats }) => {
             text: nextSpeech,
         });
         setSpeech(nextSpeech);
-        setEmotion(visibleReplyEmotion);
+        setBaseHomeEmotion(visibleReplyEmotion);
         if (animate) {
             startTimedTalkAnimation(nextSpeech);
         } else {
             stopTalkAnimation();
         }
-    }, [affectionLevelInfo.level, examDate, maxTp, setEmotion, setSpeech, startTimedTalkAnimation, stopTalkAnimation, tp]);
+    }, [affectionLevelInfo.level, examDate, maxTp, setBaseHomeEmotion, setSpeech, startTimedTalkAnimation, stopTalkAnimation, tp]);
 
     useEffect(() => {
         const latestReply = getLatestNoaAssistantMessageEntry('general');
@@ -707,6 +670,7 @@ const Home = ({ stats, updateStats }) => {
                             characterId={characterId}
                             renderer={renderer}
                             skinId={equippedSkin}
+                            accessoryIds={equippedAccessories}
                             scene="home"
                             pose={homePose}
                             className="character-home"
