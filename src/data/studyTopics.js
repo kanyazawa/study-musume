@@ -887,6 +887,23 @@ export const STUDY_TOPICS = [
                 ]
             },
             {
+                id: 'eng_reading',
+                name: '読解',
+                units: [
+                    {
+                        id: 'eng_reading_long',
+                        name: '長文読解',
+                        topic: '長文読解',
+                        mode: 'reading',
+                        chapters: [
+                            { id: 'eng_reading_grade3', name: '英検3級レベル', topic: '英検3級長文', mode: 'reading', readingLevel: 'grade3' },
+                            { id: 'eng_reading_grade_pre2', name: '英検準2級レベル', topic: '英検準2級長文', mode: 'reading', readingLevel: 'grade_pre2' },
+                            { id: 'eng_reading_grade2', name: '英検2級レベル', topic: '英検2級長文', mode: 'reading', readingLevel: 'grade2' }
+                        ]
+                    }
+                ]
+            },
+            {
                 id: 'eng_writing',
                 name: 'ライティング',
                 units: [

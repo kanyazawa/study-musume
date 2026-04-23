@@ -17,6 +17,20 @@ const StudySelect = () => {
     // 検索
     const [searchQuery, setSearchQuery] = useState('');
 
+    const navigateToStudyItem = (item) => {
+        if (item.level) {
+            navigate(`/multiplayer-match?mode=solo&level=${item.level}`);
+        } else if (item.mode === 'writing') {
+            navigate(`/writing${item.writingLevel ? `?level=${item.writingLevel}` : ''}`);
+        } else if (item.mode === 'reading') {
+            navigate(`/reading${item.readingLevel ? `?level=${item.readingLevel}` : ''}`);
+        } else if (item.id === 'eng_vocab_basic' || item.topic === '英単語') {
+            navigate('/multiplayer-match?mode=solo');
+        } else {
+            navigate(`/dialogue?topic=${item.topic}`);
+        }
+    };
+
     // パンくずリスト
     const breadcrumbs = [];
     if (selectedSubject) {
@@ -61,13 +75,7 @@ const StudySelect = () => {
             setSearchQuery('');
         } else {
             // 章がない場合は直接学習へ
-            if (unit.id === 'eng_vocab_basic' || unit.topic === '英単語') {
-                navigate(`/multiplayer-match?mode=solo`);
-            } else if (unit.mode === 'writing') {
-                navigate(`/writing${unit.writingLevel ? `?level=${unit.writingLevel}` : ''}`);
-            } else {
-                navigate(`/dialogue?topic=${unit.topic}`);
-            }
+            navigateToStudyItem(unit);
         }
     };
 
@@ -79,26 +87,13 @@ const StudySelect = () => {
             setCurrentLevel('section');
             setSearchQuery('');
         } else {
-            if (chapter.level) {
-                // クイズレベルが設定されている場合（例: 英検5級など）はソロモードへ
-                navigate(`/multiplayer-match?mode=solo&level=${chapter.level}`);
-            } else if (chapter.mode === 'writing') {
-                navigate(`/writing${chapter.writingLevel ? `?level=${chapter.writingLevel}` : ''}`);
-            } else {
-                navigate(`/dialogue?topic=${chapter.topic}`);
-            }
+            navigateToStudyItem(chapter);
         }
     };
 
     // 節（セクション）選択
     const handleSectionClick = (section) => {
-        if (section.level) {
-            navigate(`/multiplayer-match?mode=solo&level=${section.level}`);
-        } else if (section.mode === 'writing') {
-            navigate(`/writing${section.writingLevel ? `?level=${section.writingLevel}` : ''}`);
-        } else {
-            navigate(`/dialogue?topic=${section.topic}`);
-        }
+        navigateToStudyItem(section);
     };
 
     // 戻る
@@ -272,9 +267,17 @@ const StudySelect = () => {
                             </button>
                             <button
                                 className="writing-mode-btn"
+                                onClick={() => navigate('/reading')}
+                            >
+                                <span className="review-icon">R</span>
+                                <span className="review-label">長文読解</span>
+                                <span className="review-hint">読んで単語も拾う</span>
+                            </button>
+                            <button
+                                className="writing-mode-btn"
                                 onClick={() => navigate('/writing')}
                             >
-                                <span className="review-icon">✍️</span>
+                                <span className="review-icon">W</span>
                                 <span className="review-label">英検ライティング</span>
                                 <span className="review-hint">問題を見てAI採点</span>
                             </button>
@@ -282,7 +285,7 @@ const StudySelect = () => {
                                 className="custom-vocab-mode-btn"
                                 onClick={() => navigate('/custom-vocab')}
                             >
-                                <span className="review-icon">📝</span>
+                                <span className="review-icon">N</span>
                                 <span className="review-label">自作単語ノート</span>
                                 <span className="review-hint">単語を追加してそのまま学習</span>
                             </button>

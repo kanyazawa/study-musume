@@ -26,6 +26,7 @@ const MultiplayerMatch = lazy(() => import('../pages/MultiplayerMatch'));
 const TitlePage = lazy(() => import('../pages/TitlePage'));
 const OpeningIntro = lazy(() => import('../pages/OpeningIntro'));
 const Writing = lazy(() => import('../pages/Writing'));
+const Reading = lazy(() => import('../pages/Reading'));
 const ExpressionPreview = lazy(() => import('../pages/ExpressionPreview'));
 const CustomVocab = lazy(() => import('../pages/CustomVocab'));
 const CustomVocabFlashcards = lazy(() => import('../pages/CustomVocabFlashcards'));
@@ -69,6 +70,7 @@ const AppRoutes = ({ stats, updateStats, onLoginSuccess, currentUser }) => (
       <Route path="/gacha" element={<Navigate to="/shop" replace />} />
       <Route path="/review" element={<Review stats={stats} updateStats={updateStats} />} />
       <Route path="/writing" element={<Writing stats={stats} updateStats={updateStats} />} />
+      <Route path="/reading" element={<Reading stats={stats} updateStats={updateStats} />} />
       <Route path="/expression-preview" element={<ExpressionPreview stats={stats} />} />
       <Route path="/custom-vocab" element={<CustomVocab stats={stats} />} />
       <Route path="/custom-vocab/flashcards" element={<CustomVocabFlashcards stats={stats} />} />

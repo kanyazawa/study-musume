@@ -14,6 +14,7 @@ import { getCurrentUser } from '../firebase/auth';
 import { convertTone } from '../utils/toneUtils';
 import { getQuizReaction } from '../utils/affectionUtils';
 import CharacterStage from '../components/character/CharacterStage';
+import TappableVocabText from '../components/TappableVocabText';
 import { parseCsvTable } from '../utils/csvUtils';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { createDialoguePose } from '../utils/characterPoseUtils';
@@ -1065,9 +1066,7 @@ const Dialogue = ({ stats, updateStats }) => {
 
             <div className="dialogue-box">
                 <div className="name-tag">{isQuiz ? 'Question' : getDisplayName(line.speaker)}</div>
-                <div className="dialogue-text">
-                    {line.text}
-                </div>
+                <TappableVocabText text={line.text} className="dialogue-text" />
 
                 {/* TTS Button */}
                 <button

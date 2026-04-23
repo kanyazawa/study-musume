@@ -1,0 +1,146 @@
+.tappable-vocab-text {
+    white-space: pre-wrap;
+}
+
+.tappable-vocab-word {
+    appearance: none;
+    border: 0;
+    border-radius: 0.45em;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    letter-spacing: inherit;
+    line-height: inherit;
+    margin: 0 -0.05em;
+    padding: 0 0.08em;
+    text-align: inherit;
+    text-shadow: inherit;
+    transition: background 0.16s ease, box-shadow 0.16s ease, color 0.16s ease;
+}
+
+.tappable-vocab-word:hover,
+.tappable-vocab-word:focus-visible {
+    background: rgba(255, 235, 59, 0.28);
+    box-shadow: 0 0 0 2px rgba(255, 235, 59, 0.32);
+    outline: none;
+}
+
+.tappable-vocab-word:active {
+    background: rgba(255, 213, 79, 0.42);
+}
+
+.vocab-capture-panel {
+    position: fixed;
+    left: 50%;
+    bottom: 18px;
+    z-index: 1000;
+    width: min(92vw, 380px);
+    transform: translateX(-50%);
+    pointer-events: auto;
+}
+
+.vocab-capture-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.82);
+    border-radius: 22px;
+    background:
+        linear-gradient(135deg, rgba(255, 252, 235, 0.98), rgba(233, 251, 255, 0.96)),
+        #fff;
+    box-shadow: 0 18px 45px rgba(28, 36, 55, 0.26);
+    color: #273142;
+    padding: 16px;
+}
+
+.vocab-capture-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.vocab-capture-kicker {
+    color: #ef7f9c;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.vocab-capture-close {
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(39, 49, 66, 0.09);
+    color: #273142;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.vocab-capture-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    color: #556071;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.vocab-capture-field input {
+    width: 100%;
+    border: 1px solid rgba(55, 72, 98, 0.18);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.86);
+    color: #1f2937;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 10px 12px;
+}
+
+.vocab-capture-field input:focus {
+    border-color: #5bbfd7;
+    box-shadow: 0 0 0 3px rgba(91, 191, 215, 0.18);
+    outline: none;
+}
+
+.vocab-capture-feedback {
+    margin: 0;
+    color: #657186;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+.vocab-capture-submit {
+    border: 0;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #ff9fba, #62c7dd);
+    box-shadow: 0 8px 18px rgba(98, 199, 221, 0.28);
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 900;
+    padding: 11px 14px;
+}
+
+.vocab-capture-submit:hover {
+    filter: brightness(1.03);
+    transform: translateY(-1px);
+}
+
+@media (max-width: 420px) {
+    .vocab-capture-panel {
+        bottom: 10px;
+        width: calc(100vw - 20px);
+    }
+
+    .vocab-capture-card {
+        border-radius: 18px;
+        padding: 14px;
+    }
+}

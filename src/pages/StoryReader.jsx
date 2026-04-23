@@ -4,6 +4,7 @@ import './StoryReader.css';
 
 import { getEpisodeById } from '../data/storyData';
 import CharacterStage from '../components/character/CharacterStage';
+import TappableVocabText from '../components/TappableVocabText';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { createStoryPose } from '../utils/characterPoseUtils';
 
@@ -82,7 +83,7 @@ const StoryReader = ({ stats }) => {
             {/* テキストボックス */}
             <div className="story-textbox">
                 <div className="speaker-name">{displaySpeaker}</div>
-                <div className="story-text">{scene.text}</div>
+                <TappableVocabText text={scene.text} className="story-text" />
             </div>
 
             {/* コントロール */}
