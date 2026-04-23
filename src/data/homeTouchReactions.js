@@ -20,7 +20,7 @@ const HOME_TOUCH_STYLE_MAP = {
 };
 
 const buildTouchVoicePath = (characterId, area, id) =>
-    `tts-generated/home-touch/${characterId}/${area}/${id}.mp3`;
+    `/audio/tts-generated/home-touch/${characterId}/${area}/${id}.mp3`;
 
 const withTouchMeta = (characterId, area, items) => items.map((item, index) => {
     const id = item.id || `${characterId}-${area}-${String(index + 1).padStart(2, '0')}`;

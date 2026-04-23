@@ -21,7 +21,7 @@ const HOME_REACTION_STYLE_MAP = {
     },
 };
 
-const buildHomeReactionVoicePath = (characterId, id) => `tts-generated/home-reactions/${characterId}/${id}.mp3`;
+const buildHomeReactionVoicePath = (characterId, id) => `/audio/tts-generated/home-reactions/${characterId}/${id}.mp3`;
 
 const withHomeReactionMeta = (characterId, bucket, items) => items.map((item, index) => {
     const id = item.id || `${characterId}-${bucket}-${String(index + 1).padStart(2, '0')}`;
