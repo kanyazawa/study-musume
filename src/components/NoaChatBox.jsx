@@ -3,6 +3,7 @@ import { LoaderCircle, RefreshCcw, SendHorizontal, Volume2, X } from 'lucide-rea
 import './NoaChatBox.css';
 import { clearNoaChatMessages, getNoaChatMessages, saveNoaChatMessages } from '../utils/chatHistory';
 import { inferEmotionFromChatText } from '../utils/chatEmotionUtils';
+import { useSound } from '../contexts/SoundContext';
 import { getTtsSettings, TTS_ENGINES } from '../utils/ttsSettings';
 import {
     buildSpeechVariationProfile,
@@ -202,6 +203,7 @@ const NoaChatBox = ({
     onAssistantSpeechStart = null,
     onAssistantSpeechEnd = null,
 }) => {
+    const { acquireVoiceFocus } = useSound();
     const lastStudyTopicName = useMemo(() => getLastStudyTopicName(), []);
     const starterMessages = useMemo(() => [buildStarterMessage()], []);
     const [isOpen, setIsOpen] = useState(false);
@@ -268,11 +270,18 @@ const NoaChatBox = ({
 
         setIsSpeaking(true);
         try {
-            await speakReplyWithSettings(text, {
+            const releaseVoiceFocus = acquireVoiceFocus();
+            const started = await speakReplyWithSettings(text, {
                 emotion,
                 onStart: () => onAssistantSpeechStart?.(text),
-                onEnd: () => onAssistantSpeechEnd?.(text),
+                onEnd: () => {
+                    releaseVoiceFocus();
+                    onAssistantSpeechEnd?.(text);
+                },
             });
+            if (!started) {
+                releaseVoiceFocus();
+            }
         } finally {
             setIsSpeaking(false);
         }
@@ -314,11 +323,18 @@ const NoaChatBox = ({
             if (autoSpeakAssistant) {
                 setIsSpeaking(true);
                 try {
-                    await speakReplyWithSettings(assistantMessage.content, {
+                    const releaseVoiceFocus = acquireVoiceFocus();
+                    const started = await speakReplyWithSettings(assistantMessage.content, {
                         emotion: assistantMessage.emotion,
                         onStart: () => onAssistantSpeechStart?.(assistantMessage.content),
-                        onEnd: () => onAssistantSpeechEnd?.(assistantMessage.content),
+                        onEnd: () => {
+                            releaseVoiceFocus();
+                            onAssistantSpeechEnd?.(assistantMessage.content);
+                        },
                     });
+                    if (!started) {
+                        releaseVoiceFocus();
+                    }
                 } finally {
                     setIsSpeaking(false);
                 }

@@ -9,7 +9,7 @@ import LoginBonusModal from '../components/LoginBonusModal';
 import NoaChatBox from '../components/NoaChatBox';
 
 // Utils
-import { getAffectionLevel, getAffectionProgress, getHomeReaction } from '../utils/affectionUtils';
+import { getAffectionLevel, getAffectionProgress, getHomeReaction, getNextLevel } from '../utils/affectionUtils';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { getBackgroundStyle } from '../utils/cosmeticUtils';
 import { createHomePose } from '../utils/characterPoseUtils';
@@ -92,6 +92,10 @@ const Home = ({ stats, updateStats }) => {
     // 好感度レベルを取得
     const affectionLevelInfo = getAffectionLevel(affection);
     const affectionProgress = getAffectionProgress(affection);
+    const nextAffectionLevelInfo = getNextLevel(affectionLevelInfo.level);
+    const affectionProgressLabel = nextAffectionLevelInfo
+        ? `${Number(affection).toLocaleString()} / ${Number(nextAffectionLevelInfo.points).toLocaleString()}`
+        : `${Number(affection).toLocaleString()} / MAX`;
     const examDate = stats?.examDate || '';
     const homeExpressionLayers = useMemo(() => [
         activeHomeReaction
@@ -626,6 +630,7 @@ const Home = ({ stats, updateStats }) => {
                                     <div className="affection-bar-fill" style={{ width: `${affectionProgress}%` }}></div>
                                 </div>
                                 <span className="affection-level">Lv.{affectionLevelInfo.level}</span>
+                                <span className="affection-points">{affectionProgressLabel}</span>
                             </div>
                         </div>
                     </div>
@@ -691,19 +696,6 @@ const Home = ({ stats, updateStats }) => {
                     )}
                 </button>
 
-                {lastStudyTopic && (
-                    <button
-                        type="button"
-                        className="home-resume-card"
-                        onClick={handleResumeStudy}
-                        aria-label={getResumeStudyLabel()}
-                        title={getResumeStudyLabel()}
-                    >
-                        <span className="home-resume-title">続きから</span>
-                        <span className="home-resume-value" aria-hidden="true">GO</span>
-                    </button>
-                )}
-
                 {/* Character Figure */}
                 <div
                     className={`character-figure ${renderer === 'live2d' ? 'is-live2d' : ''}`}
@@ -768,10 +760,24 @@ const Home = ({ stats, updateStats }) => {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="action-area">
+                <div className={`action-area${lastStudyTopic ? ' has-resume' : ''}`}>
                     <button className="battle-btn-large" onClick={() => navigate('/multiplayer-match')}>
                         <span>⚔️ 単語バトル</span>
                     </button>
+                    {lastStudyTopic && (
+                        <button
+                            type="button"
+                            className="resume-study-btn-large"
+                            onClick={handleResumeStudy}
+                            aria-label={getResumeStudyLabel()}
+                            title={getResumeStudyLabel()}
+                        >
+                            <span className="resume-study-main">▶ 前回の続きから</span>
+                            <span className="resume-study-sub">
+                                {lastStudyTopic.resumeLabel || lastStudyTopic.topicName || '前回の学習'}
+                            </span>
+                        </button>
+                    )}
                     <button className="study-btn-large" onClick={() => navigate('/study')}>
                         <span>📚 授業へ</span>
                     </button>

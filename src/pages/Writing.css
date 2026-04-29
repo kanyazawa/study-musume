@@ -1,39 +1,41 @@
 .writing-page {
     min-height: 100vh;
     background:
-        radial-gradient(circle at top left, rgba(62, 186, 181, 0.18), transparent 28%),
-        radial-gradient(circle at top right, rgba(255, 196, 106, 0.24), transparent 26%),
-        linear-gradient(180deg, #f4fffc 0%, #fffdf5 42%, #eef5ff 100%);
+        radial-gradient(circle at top left, rgba(67, 188, 180, 0.2), transparent 26%),
+        radial-gradient(circle at top right, rgba(255, 214, 132, 0.22), transparent 24%),
+        radial-gradient(circle at 50% 30%, rgba(166, 214, 255, 0.18), transparent 24%),
+        linear-gradient(180deg, #f5fffc 0%, #fffdf6 45%, #eef6ff 100%);
     color: #1b2f34;
-    padding-bottom: 2rem;
+    padding-bottom: 2.5rem;
 }
 
 .writing-header {
     position: sticky;
     top: 0;
-    z-index: 20;
+    z-index: 30;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
     padding: 1rem 1.2rem;
-    background: linear-gradient(135deg, rgba(13, 90, 104, 0.96), rgba(43, 165, 154, 0.92));
-    color: white;
-    box-shadow: 0 14px 32px rgba(9, 73, 84, 0.22);
-    backdrop-filter: blur(14px);
+    background: rgba(245, 255, 251, 0.72);
+    border-bottom: 1px solid rgba(179, 216, 209, 0.45);
+    box-shadow: 0 10px 32px rgba(17, 78, 93, 0.08);
+    backdrop-filter: blur(18px);
 }
 
 .writing-back-button {
-    width: 42px;
-    height: 42px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.16);
-    color: white;
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(165, 206, 214, 0.8);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.86);
+    color: #1d5965;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    box-shadow: 0 8px 20px rgba(22, 84, 96, 0.08);
 }
 
 .writing-header-copy {
@@ -44,22 +46,27 @@
     margin: 0;
     font-size: 1.3rem;
     font-weight: 900;
+    color: #16343a;
 }
 
 .writing-header-kicker {
     display: inline-block;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.24rem;
     font-size: 0.72rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    opacity: 0.86;
+    color: #5f8488;
 }
 
 .writing-header-note {
-    padding: 0.45rem 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.48rem 0.82rem;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.16);
-    border: 1px solid rgba(255, 255, 255, 0.26);
+    background: linear-gradient(135deg, rgba(20, 144, 139, 0.12), rgba(255, 214, 132, 0.2));
+    border: 1px solid rgba(113, 187, 179, 0.38);
+    color: #145b5f;
     font-size: 0.85rem;
     font-weight: 800;
 }
@@ -67,38 +74,49 @@
 .writing-hero,
 .writing-history-panel,
 .writing-panel {
-    background: rgba(255, 255, 255, 0.82);
-    border: 1px solid rgba(166, 205, 212, 0.38);
-    box-shadow: 0 16px 34px rgba(38, 90, 110, 0.08);
-    backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(174, 212, 219, 0.42);
+    box-shadow: 0 18px 40px rgba(38, 90, 110, 0.08);
+    backdrop-filter: blur(14px);
 }
 
 .writing-hero {
     margin: 1rem;
     padding: 1.15rem;
-    border-radius: 28px;
+    border-radius: 30px;
     display: grid;
-    gap: 1rem;
+    gap: 1.15rem;
+}
+
+.writing-hero-overview,
+.writing-hero-support {
+    grid-template-columns: minmax(280px, 0.92fr) minmax(0, 1.08fr);
+}
+
+.writing-hero-overview {
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.95fr);
 }
 
 .writing-hero-copy h2 {
-    margin: 0.35rem 0 0.5rem;
-    font-size: 1.5rem;
+    margin: 0.35rem 0 0.55rem;
+    font-size: 1.55rem;
     font-weight: 900;
+    line-height: 1.18;
     color: #163239;
 }
 
 .writing-hero-copy p {
     margin: 0;
+    max-width: 640px;
     color: #526a70;
-    line-height: 1.7;
+    line-height: 1.72;
 }
 
 .writing-chip {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    padding: 0.35rem 0.75rem;
+    padding: 0.38rem 0.76rem;
     border-radius: 999px;
     background: rgba(229, 239, 242, 0.88);
     color: #37616b;
@@ -107,25 +125,29 @@
 }
 
 .writing-chip.is-accent {
-    background: linear-gradient(135deg, #dffaf4, #fff4d8);
+    background: linear-gradient(135deg, #dffaf4, #fff2d7);
     color: #16605e;
 }
 
 .writing-hero-metrics {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.8rem;
+    gap: 0.85rem;
 }
 
 .writing-metric-card {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.95rem 1rem;
-    border-radius: 20px;
-    background: linear-gradient(135deg, rgba(245, 255, 252, 0.98), rgba(255, 248, 233, 0.98));
+    padding: 1rem;
+    border-radius: 22px;
+    background: linear-gradient(135deg, rgba(247, 255, 253, 0.98), rgba(255, 249, 235, 0.98));
     border: 1px solid rgba(176, 214, 206, 0.45);
     color: #26505a;
+}
+
+.writing-metric-card svg {
+    flex-shrink: 0;
 }
 
 .writing-metric-card span {
@@ -146,36 +168,140 @@
     flex-wrap: wrap;
 }
 
+.writing-hero-sidecard {
+    display: grid;
+    gap: 1rem;
+}
+
+.writing-level-block,
+.writing-flow-card {
+    padding: 1rem;
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(247, 253, 255, 0.82));
+    border: 1px solid rgba(183, 218, 223, 0.55);
+}
+
+.writing-level-block h3 {
+    margin: 0.25rem 0 0.8rem;
+    color: #18353b;
+    font-size: 1.08rem;
+}
+
+.writing-flow-list {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 0.85rem;
+}
+
+.writing-flow-item {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.writing-flow-step {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #12908a, #57ceb2);
+    color: white;
+    font-weight: 900;
+    box-shadow: 0 12px 22px rgba(18, 144, 138, 0.2);
+}
+
+.writing-flow-item strong {
+    display: block;
+    margin-bottom: 0.18rem;
+    color: #1d4047;
+}
+
+.writing-flow-item p {
+    margin: 0;
+    color: #60777e;
+    line-height: 1.65;
+    font-size: 0.88rem;
+}
+
+.writing-level-pill {
+    border: 1px solid rgba(191, 215, 219, 0.85);
+    background: rgba(255, 255, 255, 0.92);
+    color: #52737a;
+    border-radius: 999px;
+    padding: 0.72rem 1rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.writing-level-pill.active {
+    background: linear-gradient(135deg, #12908a, #45c9b4);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 12px 24px rgba(18, 144, 138, 0.22);
+}
+
 .writing-coach-card {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 220px;
+    grid-template-columns: minmax(0, 1.15fr) 240px;
     gap: 1rem;
     align-items: stretch;
     padding: 1rem;
-    border-radius: 24px;
-    background: linear-gradient(135deg, rgba(243, 255, 252, 0.98), rgba(255, 248, 232, 0.98));
+    border-radius: 26px;
+    background: linear-gradient(135deg, rgba(243, 255, 252, 0.98), rgba(255, 247, 230, 0.98));
     border: 1px solid rgba(176, 214, 206, 0.45);
     overflow: hidden;
 }
 
+.writing-coach-copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
 .writing-coach-copy h3 {
-    margin: 0.2rem 0 0.3rem;
-    font-size: 1.3rem;
+    margin: 0.2rem 0 0.7rem;
+    font-size: 1.4rem;
     font-weight: 900;
     color: #17373d;
 }
 
+.writing-coach-status {
+    position: relative;
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.9rem;
+    padding: 0.62rem 0.9rem;
+    border-radius: 999px;
+    background: rgba(255, 226, 184, 0.48);
+    color: #76541a;
+}
+
+.writing-coach-status::after {
+    content: '';
+    position: absolute;
+    left: 1.15rem;
+    bottom: -0.28rem;
+    width: 0.72rem;
+    height: 0.72rem;
+    background: rgba(255, 226, 184, 0.48);
+    transform: rotate(45deg);
+    border-radius: 0.16rem;
+}
+
 .writing-coach-copy strong {
-    display: block;
-    margin-bottom: 0.45rem;
-    color: #1d6a67;
     font-size: 0.98rem;
 }
 
 .writing-coach-copy p {
     margin: 0;
+    max-width: 38rem;
     color: #4d686f;
-    line-height: 1.75;
+    line-height: 1.78;
 }
 
 .writing-coach-stage-wrap {
@@ -185,26 +311,36 @@
     width: 100%;
     max-width: 320px;
     justify-self: center;
-    border-radius: 22px;
+    border-radius: 24px;
     display: flex;
     align-items: flex-end;
     justify-content: center;
     background:
         radial-gradient(circle at top, rgba(255, 255, 255, 0.92), transparent 62%),
-        linear-gradient(180deg, rgba(225, 246, 242, 0.9), rgba(214, 239, 255, 0.78));
+        linear-gradient(180deg, rgba(225, 246, 242, 0.94), rgba(214, 239, 255, 0.82));
     overflow: hidden;
     isolation: isolate;
 }
 
+.writing-coach-stage-wrap::before {
+    content: '';
+    position: absolute;
+    inset: auto 12% 8% 12%;
+    height: 26%;
+    background: radial-gradient(circle, rgba(34, 95, 104, 0.24), transparent 70%);
+    filter: blur(18px);
+}
+
 .writing-character-stage {
     position: relative;
+    z-index: 1;
     width: 100%;
     height: 100%;
     display: flex;
     align-items: flex-end;
     justify-content: center;
     overflow: hidden;
-    transform: translateY(-44px);
+    transform: translateY(-40px);
 }
 
 .writing-character-stage > div {
@@ -248,37 +384,30 @@
 }
 
 .writing-coach-card.is-live2d .writing-character-stage {
-    transform: translateY(-58px);
-}
-
-.writing-level-pill {
-    border: 1px solid rgba(191, 215, 219, 0.85);
-    background: rgba(255, 255, 255, 0.92);
-    color: #52737a;
-    border-radius: 999px;
-    padding: 0.72rem 1rem;
-    font-weight: 800;
-    cursor: pointer;
-}
-
-.writing-level-pill.active {
-    background: linear-gradient(135deg, #12908a, #45c9b4);
-    color: white;
-    border-color: transparent;
-    box-shadow: 0 10px 22px rgba(18, 144, 138, 0.22);
+    transform: translateY(-56px);
 }
 
 .writing-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.04fr) minmax(0, 1fr);
     gap: 1rem;
     margin: 0 1rem;
 }
 
 .writing-panel,
 .writing-history-panel {
-    border-radius: 26px;
+    border-radius: 28px;
     padding: 1.1rem;
+}
+
+.writing-panel.is-prompts {
+    background:
+        linear-gradient(180deg, rgba(238, 252, 249, 0.9), rgba(255, 255, 255, 0.82));
+}
+
+.writing-panel.is-editor {
+    background:
+        linear-gradient(180deg, rgba(255, 250, 240, 0.92), rgba(255, 255, 255, 0.82));
 }
 
 .writing-panel-header {
@@ -293,7 +422,7 @@
 .writing-task-header h3,
 .writing-result-header h3 {
     margin: 0.2rem 0 0;
-    font-size: 1.15rem;
+    font-size: 1.16rem;
     font-weight: 900;
     color: #19353b;
 }
@@ -313,7 +442,7 @@
 
 .writing-prompt-list {
     display: grid;
-    gap: 0.75rem;
+    gap: 0.8rem;
     margin-bottom: 1rem;
 }
 
@@ -321,36 +450,60 @@
     width: 100%;
     text-align: left;
     border: 1px solid rgba(192, 218, 223, 0.8);
-    background: rgba(252, 255, 255, 0.92);
+    background: rgba(252, 255, 255, 0.9);
     border-radius: 22px;
     padding: 1rem;
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
+.writing-prompt-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 26px rgba(29, 103, 113, 0.08);
+}
+
+.writing-prompt-card.active {
+    border-color: rgba(18, 144, 138, 0.7);
+    box-shadow: 0 16px 32px rgba(18, 144, 138, 0.12);
+    transform: translateY(-2px);
+}
+
+.writing-prompt-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.8rem;
+}
+
+.writing-prompt-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.writing-prompt-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
+}
+
 .writing-prompt-card strong {
     display: block;
-    margin-top: 0.6rem;
     font-size: 1rem;
     color: #17343a;
 }
 
 .writing-prompt-card p {
-    margin: 0.45rem 0 0.8rem;
+    margin: 0.55rem 0 0.85rem;
     color: #576f75;
     line-height: 1.6;
-}
-
-.writing-prompt-card.active {
-    border-color: rgba(18, 144, 138, 0.7);
-    box-shadow: 0 14px 30px rgba(18, 144, 138, 0.12);
-    transform: translateY(-2px);
 }
 
 .writing-prompt-meta,
 .writing-task-footer,
 .writing-editor-footer,
-.writing-result-footer {
+.writing-result-footer,
+.writing-history-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -364,9 +517,28 @@
     font-weight: 700;
 }
 
+.writing-prompt-meta span,
+.writing-task-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.writing-prompt-arrow {
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+    color: #7a949a;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.writing-prompt-card.active .writing-prompt-arrow {
+    color: #12908a;
+    transform: translateX(2px);
+}
+
 .writing-task-card,
 .writing-result-card {
-    border-radius: 24px;
+    border-radius: 26px;
     background: linear-gradient(135deg, rgba(248, 255, 253, 0.98), rgba(255, 251, 243, 0.98));
     border: 1px solid rgba(179, 216, 209, 0.45);
     padding: 1rem;
@@ -378,13 +550,28 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
-    margin-bottom: 0.85rem;
+    margin-bottom: 0.9rem;
+}
+
+.writing-task-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+}
+
+.writing-task-instruction-card {
+    margin-bottom: 0.95rem;
+    border-radius: 20px;
+    border: 1px solid rgba(201, 223, 226, 0.8);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 0.95rem 1rem;
 }
 
 .writing-task-instruction {
-    margin: 0 0 0.9rem;
-    font-size: 1.02rem;
-    line-height: 1.7;
+    margin: 0;
+    font-size: 1.04rem;
+    line-height: 1.72;
     color: #20363c;
 }
 
@@ -392,7 +579,7 @@
     display: flex;
     gap: 0.55rem;
     flex-wrap: wrap;
-    margin-bottom: 0.9rem;
+    margin-bottom: 0.95rem;
 }
 
 .writing-point-tag {
@@ -407,9 +594,6 @@
 }
 
 .writing-task-meta {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
     color: #60787f;
     font-size: 0.84rem;
     line-height: 1.6;
@@ -427,10 +611,28 @@
 }
 
 .writing-reset-button {
-    padding: 0.65rem 0.85rem;
+    padding: 0.7rem 0.95rem;
     border-radius: 999px;
     background: rgba(236, 243, 245, 0.95);
     color: #4c666d;
+}
+
+.writing-editor-intro {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.95rem;
+    padding: 0.9rem 1rem;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(255, 241, 214, 0.72), rgba(232, 250, 245, 0.72));
+    color: #4f666d;
+    border: 1px solid rgba(214, 220, 180, 0.42);
+}
+
+.writing-editor-intro p {
+    margin: 0;
+    line-height: 1.65;
+    font-size: 0.88rem;
 }
 
 .writing-editor-label {
@@ -444,12 +646,12 @@
     width: 100%;
     min-height: 280px;
     resize: vertical;
-    border-radius: 22px;
+    border-radius: 24px;
     border: 1px solid rgba(193, 218, 222, 0.85);
     background: rgba(255, 255, 255, 0.96);
     padding: 1rem;
     font: inherit;
-    line-height: 1.75;
+    line-height: 1.78;
     color: #20343a;
     box-sizing: border-box;
 }
@@ -460,14 +662,23 @@
     box-shadow: 0 0 0 4px rgba(26, 162, 153, 0.12);
 }
 
+.writing-editor-footer {
+    margin-top: 0.85rem;
+}
+
 .writing-word-count {
     display: inline-flex;
     align-items: center;
-    gap: 0.55rem;
-    padding: 0.7rem 0.9rem;
+    gap: 0.45rem;
+    padding: 0.72rem 0.92rem;
     border-radius: 999px;
     font-size: 0.85rem;
     font-weight: 800;
+}
+
+.writing-word-count strong {
+    font-size: 0.8rem;
+    opacity: 0.88;
 }
 
 .writing-word-count.is-low {
@@ -490,8 +701,15 @@
     color: #567279;
 }
 
+.writing-autosave-note {
+    margin-left: auto;
+    color: #7a8f95;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
 .writing-submit-button {
-    padding: 0.9rem 1.15rem;
+    padding: 0.95rem 1.2rem;
     border-radius: 999px;
     background: linear-gradient(135deg, #12908a, #4fd0af);
     color: white;
@@ -528,76 +746,137 @@
     font-weight: 700;
 }
 
-.writing-score-badge {
-    min-width: 92px;
-    padding: 0.8rem 0.95rem;
-    border-radius: 20px;
-    text-align: center;
+.writing-result-hero {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
 }
 
-.writing-score-badge strong {
-    font-size: 1.55rem;
+.writing-result-ribbon {
+    display: inline-flex;
+    width: fit-content;
+    margin-bottom: 0.85rem;
+    padding: 0.38rem 0.7rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #12908a, #4fd0af);
+    color: white;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.writing-score-ring {
+    --score-angle: 0deg;
+    width: 108px;
+    height: 108px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    background:
+        conic-gradient(currentColor 0deg var(--score-angle), rgba(208, 225, 228, 0.55) var(--score-angle) 360deg);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+.writing-score-ring-inner {
+    width: 78px;
+    height: 78px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.96);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 20px rgba(20, 78, 87, 0.08);
+}
+
+.writing-score-ring-inner strong {
+    font-size: 1.7rem;
     line-height: 1;
 }
 
-.writing-score-badge span {
-    display: block;
-    margin-top: 0.15rem;
-    font-size: 0.82rem;
+.writing-score-ring-inner span {
+    margin-top: 0.18rem;
+    font-size: 0.8rem;
     font-weight: 700;
+    color: #68848c;
 }
 
-.writing-score-badge.is-strong,
+.writing-score-ring.is-strong,
 .writing-history-score.is-strong {
-    background: #e6f8ef;
     color: #187548;
 }
 
-.writing-score-badge.is-good,
+.writing-score-ring.is-good,
 .writing-history-score.is-good {
-    background: #edf7ff;
     color: #225f9e;
 }
 
-.writing-score-badge.is-grow,
+.writing-score-ring.is-grow,
 .writing-history-score.is-grow {
-    background: #fff0e7;
     color: #b86a24;
 }
 
-.writing-result-summary {
-    margin: 0 0 1rem;
+.writing-result-hero-copy strong {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 1.06rem;
+    color: #1d3f46;
+}
+
+.writing-result-hero-copy p {
+    margin: 0;
     color: #4c666d;
-    line-height: 1.75;
+    line-height: 1.72;
 }
 
 .writing-score-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.7rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem;
     margin-bottom: 1rem;
 }
 
 .writing-score-item {
-    padding: 0.8rem 0.9rem;
-    border-radius: 18px;
+    padding: 0.85rem 0.9rem;
+    border-radius: 20px;
     background: rgba(255, 255, 255, 0.9);
     border: 1px solid rgba(202, 221, 224, 0.85);
 }
 
-.writing-score-item span {
-    display: block;
+.writing-score-item-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-bottom: 0.55rem;
+}
+
+.writing-score-item-top span {
     font-size: 0.74rem;
     text-transform: capitalize;
     color: #6d848a;
     font-weight: 800;
 }
 
-.writing-score-item strong {
-    display: block;
-    margin-top: 0.28rem;
-    font-size: 1rem;
+.writing-score-item-top strong {
+    font-size: 0.95rem;
     color: #15343a;
+}
+
+.writing-score-bar {
+    height: 0.48rem;
+    border-radius: 999px;
+    background: rgba(222, 232, 235, 0.75);
+    overflow: hidden;
+}
+
+.writing-score-bar-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #1ba39b, #64d7b9);
 }
 
 .writing-feedback-columns {
@@ -609,14 +888,27 @@
 
 .writing-feedback-block,
 .writing-example-block {
-    padding: 0.95rem 1rem;
-    border-radius: 20px;
+    padding: 1rem;
+    border-radius: 22px;
     background: rgba(255, 255, 255, 0.92);
     border: 1px solid rgba(202, 221, 224, 0.8);
 }
 
+.writing-feedback-block.is-positive {
+    background: rgba(232, 247, 239, 0.78);
+    border-color: rgba(104, 181, 127, 0.24);
+}
+
+.writing-feedback-block.is-grow {
+    background: rgba(255, 245, 228, 0.78);
+    border-color: rgba(212, 170, 102, 0.25);
+}
+
 .writing-feedback-block h4,
 .writing-example-block h4 {
+    display: flex;
+    align-items: center;
+    gap: 0.42rem;
     margin: 0 0 0.7rem;
     font-size: 0.95rem;
     color: #204047;
@@ -646,7 +938,7 @@
 
 .writing-result-footer {
     margin-top: 1rem;
-    padding-top: 0.9rem;
+    padding-top: 0.95rem;
     border-top: 1px solid rgba(208, 224, 226, 0.9);
     color: #638087;
     font-size: 0.83rem;
@@ -672,7 +964,8 @@
 
 .writing-history-list {
     display: grid;
-    gap: 0.75rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.8rem;
 }
 
 .writing-history-item {
@@ -683,10 +976,22 @@
     padding: 1rem;
     text-align: left;
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
+    flex-direction: column;
+    gap: 0.95rem;
     cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.writing-history-item:hover {
+    transform: translateY(-2px);
+    border-color: rgba(18, 144, 138, 0.34);
+    box-shadow: 0 14px 28px rgba(24, 93, 106, 0.08);
+}
+
+.writing-history-date {
+    color: #7b9095;
+    font-size: 0.75rem;
+    font-weight: 700;
 }
 
 .writing-history-main strong {
@@ -696,17 +1001,46 @@
 }
 
 .writing-history-main p {
+    display: -webkit-box;
     margin: 0;
     color: #5f767d;
     line-height: 1.6;
+    overflow: hidden;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
 
 .writing-history-score {
-    min-width: 78px;
-    padding: 0.75rem 0.8rem;
+    width: fit-content;
+    padding: 0.72rem 0.82rem;
     border-radius: 18px;
-    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
     font-weight: 900;
+    background: rgba(237, 247, 255, 0.95);
+}
+
+.writing-history-score.is-strong {
+    background: #e6f8ef;
+}
+
+.writing-history-score.is-good {
+    background: #edf7ff;
+}
+
+.writing-history-score.is-grow {
+    background: #fff0e7;
+}
+
+@media (max-width: 1100px) {
+    .writing-hero-overview {
+        grid-template-columns: 1fr;
+    }
+
+    .writing-history-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 900px) {
@@ -718,9 +1052,17 @@
         grid-template-columns: 1fr;
     }
 
+    .writing-hero-support {
+        grid-template-columns: 1fr;
+    }
+
     .writing-hero-metrics,
     .writing-score-grid,
     .writing-feedback-columns {
+        grid-template-columns: 1fr;
+    }
+
+    .writing-history-list {
         grid-template-columns: 1fr;
     }
 }
@@ -730,42 +1072,60 @@
         padding: 0.9rem 1rem;
     }
 
+    .writing-header-note {
+        font-size: 0.78rem;
+        padding: 0.42rem 0.7rem;
+    }
+
+    .writing-level-block,
+    .writing-flow-card {
+        border-radius: 20px;
+    }
+
     .writing-hero,
     .writing-panel,
     .writing-history-panel {
         margin-left: 0.85rem;
         margin-right: 0.85rem;
-        border-radius: 22px;
+        border-radius: 24px;
+    }
+
+    .writing-hero-copy h2 {
+        font-size: 1.36rem;
     }
 
     .writing-layout {
-        margin: 0;
-        gap: 0.85rem;
+        margin: 0 0.85rem;
     }
 
+    .writing-panel-header,
     .writing-task-header,
     .writing-result-header,
-    .writing-history-item,
-    .writing-panel-header {
-        flex-direction: column;
+    .writing-editor-footer {
         align-items: flex-start;
+        flex-direction: column;
     }
 
     .writing-coach-stage-wrap {
-        height: min(40vh, 300px);
         min-height: 220px;
+        height: min(38vh, 300px);
     }
 
     .writing-character-stage {
-        transform: translateY(-30px);
+        transform: translateY(-24px);
     }
 
     .writing-coach-card.is-live2d .writing-character-stage {
-        transform: translateY(-42px);
+        transform: translateY(-36px);
     }
 
-    .writing-editor-footer {
-        align-items: stretch;
+    .writing-result-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .writing-autosave-note {
+        margin-left: 0;
     }
 
     .writing-submit-button {

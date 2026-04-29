@@ -1,0 +1,15 @@
+{
+  "note": "Rough visual grouping from atlas-connected-component export. Curated entries are hand-labeled; everything else falls back to misc.",
+  "totalComponents": 400,
+  "curatedComponents": 83,
+  "categoryCounts": {
+    "accessories": 8,
+    "body": 7,
+    "clothing": 26,
+    "effects": 2,
+    "face_skin": 6,
+    "hair": 24,
+    "hat": 9,
+    "misc": 318
+  }
+}

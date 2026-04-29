@@ -194,7 +194,8 @@ const StaticCharacterImage = ({
     const filter = getSkinFilter(skinId);
     const shouldKeepSkinFilter = !usesExpressionVariant;
     const faceEffectConfig = FACE_EFFECT_CONFIG[characterId];
-    const faceEffectMode = faceEffectConfig ? resolveFaceEffectMode(expressionKey) : '';
+    const isCompactScene = pose?.scene === 'missions';
+    const faceEffectMode = faceEffectConfig && !isCompactScene ? resolveFaceEffectMode(expressionKey) : '';
 
     return (
         <div className={['character-static-stage', className].filter(Boolean).join(' ')} style={style}>

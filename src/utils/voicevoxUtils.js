@@ -6,6 +6,7 @@
 import { Capacitor } from '@capacitor/core';
 import { getTtsSettings, TTS_ENGINES } from './ttsSettings';
 import { estimateSpeechDuration } from './lipSync';
+import { loadSoundSettings } from './soundSettings';
 
 const DEFAULT_ENGINE_BASE_URLS = {
     [TTS_ENGINES.DEEPGRAM]: '/api/tts',
@@ -79,6 +80,11 @@ const getSeededOffset = (seed, offset = 0) => ((((seed >> offset) & 0xff) / 255)
 const getNormalizedEmotion = (...values) => String(values.filter(Boolean).join(' '))
     .trim()
     .toLowerCase();
+
+const getCurrentVoicePlaybackVolume = () => {
+    const { isMuted, voiceVolume } = loadSoundSettings();
+    return isMuted ? 0 : voiceVolume;
+};
 
 const buildVariationSignature = (parts = {}) => JSON.stringify(parts);
 
@@ -476,6 +482,7 @@ export const speakWithEngine = async (
                         const audioBlob = audioCache.get(cacheKey);
                         const audioUrl = URL.createObjectURL(audioBlob);
                         const audio = new Audio(audioUrl);
+                        audio.volume = getCurrentVoicePlaybackVolume();
                         let started = false;
                         const handleStart = () => {
                             if (started) return;
@@ -512,6 +519,7 @@ export const speakWithEngine = async (
 
                     const audioUrl = URL.createObjectURL(audioBlob);
                     const audio = new Audio(audioUrl);
+                    audio.volume = getCurrentVoicePlaybackVolume();
                     let started = false;
                     const handleStart = () => {
                         if (started) return;
@@ -545,6 +553,7 @@ export const speakWithEngine = async (
             const audioBlob = audioCache.get(cacheKey);
             const audioUrl = URL.createObjectURL(audioBlob);
             const audio = new Audio(audioUrl);
+            audio.volume = getCurrentVoicePlaybackVolume();
             let started = false;
             const handleStart = () => {
                 if (started) return;
@@ -587,6 +596,7 @@ export const speakWithEngine = async (
 
         const audioUrl = URL.createObjectURL(audioBlob);
         const audio = new Audio(audioUrl);
+        audio.volume = getCurrentVoicePlaybackVolume();
         let started = false;
         const handleStart = () => {
             if (started) return;
@@ -703,6 +713,7 @@ export const speakWithBrowserTts = (text, { pitch = 1.3, rate = 1.0, isMale = fa
     utterance.lang = 'ja-JP';
     utterance.pitch = pitch;
     utterance.rate = rate;
+    utterance.volume = getCurrentVoicePlaybackVolume();
     const estimatedDurationMs = Math.max(1400, estimateSpeechDuration(text) * 1000);
     let started = false;
     let finished = false;

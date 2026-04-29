@@ -1,0 +1,999 @@
+{
+  "generatedAt": "2026-04-27T10:55:03.221Z",
+  "model": "魔女",
+  "outputDir": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch",
+  "captures": [
+    {
+      "slug": "full",
+      "label": "Full Model",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\full.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": false
+      },
+      "partIds": [],
+      "partNames": []
+    },
+    {
+      "slug": "hat",
+      "label": "Hat",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\hat.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part42",
+        "Part43",
+        "Part45",
+        "Part44",
+        "Part46",
+        "ArtMesh201_Skinning",
+        "Part71",
+        "ArtMesh202_Skinning",
+        "Part72",
+        "ArtMesh203_Skinning",
+        "Part73",
+        "ArtMesh193_Skinning",
+        "Part78",
+        "ArtMesh194_Skinning",
+        "Part77",
+        "ArtMesh195_Skinning",
+        "Part76",
+        "Part41",
+        "Part"
+      ],
+      "partNames": [
+        "黑帽子",
+        "帽子装饰",
+        "帽子",
+        "蝴蝶结",
+        "坠饰",
+        "帽子2(蒙皮)",
+        "帽子2(旋转)",
+        "帽子3(蒙皮)",
+        "帽子3(旋转)",
+        "帽子4(蒙皮)",
+        "帽子4(旋转)",
+        "坠饰1(蒙皮)",
+        "坠饰1(旋转)",
+        "坠饰2(蒙皮)",
+        "坠饰2(旋转)",
+        "坠饰3(蒙皮)",
+        "坠饰3(旋转)",
+        "人物",
+        "组 1"
+      ],
+      "roots": [
+        "Part42"
+      ]
+    },
+    {
+      "slug": "earrings",
+      "label": "Earrings",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\earrings.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part47",
+        "Part48",
+        "Part49",
+        "ArtMesh473_Skinning",
+        "Part169",
+        "ArtMesh211_Skinning",
+        "Part168",
+        "Part41",
+        "Part"
+      ],
+      "partNames": [
+        "耳环",
+        "右",
+        "左",
+        "耳环(蒙皮)",
+        "耳环(旋转)",
+        "耳环(蒙皮)",
+        "耳环(旋转)",
+        "人物",
+        "组 1"
+      ],
+      "roots": [
+        "Part47"
+      ]
+    },
+    {
+      "slug": "bangs",
+      "label": "Bangs",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\bangs.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part54",
+        "Part55",
+        "Part170",
+        "Part56",
+        "Part57",
+        "Part61",
+        "Part58",
+        "Part59",
+        "Part60",
+        "Part52",
+        "Part41",
+        "Part"
+      ],
+      "partNames": [
+        "刘海",
+        "刘海蝴蝶结",
+        "llll",
+        "阴影",
+        "刘海",
+        "阴影",
+        "中",
+        "右",
+        "左",
+        "头",
+        "人物",
+        "组 1"
+      ],
+      "roots": [
+        "Part54"
+      ]
+    },
+    {
+      "slug": "bang_bow",
+      "label": "Bang Bow",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\bang_bow.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part55",
+        "Part56",
+        "Part54",
+        "Part52",
+        "Part41",
+        "Part"
+      ],
+      "partNames": [
+        "刘海蝴蝶结",
+        "阴影",
+        "刘海",
+        "头",
+        "人物",
+        "组 1"
+      ],
+      "roots": [
+        "Part55"
+      ]
+    },
+    {
+      "slug": "face",
+      "label": "Face",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\face.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part94",
+        "Part150",
+        "Part52",
+        "Part41",
+        "Part"
+      ],
+      "partNames": [
+        "脸",
+        "部件150",
+        "头",
+        "人物",
+        "组 1"
+      ],
+      "roots": [
+        "Part94"
+      ]
+    },
+    {
+      "slug": "left_eye",
+      "label": "Left Eye",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\left_eye.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part91",
+        "Part89",
+        "Part52",
+        "Part41",
+        "Part"
+      ],
+      "partNames": [
+        "左眼",
+        "默认五官",
+        "头",
+        "人物",
+        "组 1"
+      ],
+      "roots": [
+        "Part91"
+      ]
+    },
+    {
+      "slug": "right_eye",
+      "label": "Right Eye",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\right_eye.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part90",
+        "Part89",
+        "Part52",
+        "Part41",
+        "Part"
+      ],
+      "partNames": [
+        "右眼",
+        "默认五官",
+        "头",
+        "人物",
+        "组 1"
+      ],
+      "roots": [
+        "Part90"
+      ]
+    },
+    {
+      "slug": "mouth",
+      "label": "Mouth",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\mouth.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part92",
+        "Part93",
+        "Part89",
+        "Part52",
+        "Part41",
+        "Part"
+      ],
+      "partNames": [
+        "嘴巴",
+        "口腔",
+        "默认五官",
+        "头",
+        "人物",
+        "组 1"
+      ],
+      "roots": [
+        "Part92"
+      ]
+    },
+    {
+      "slug": "glasses",
+      "label": "Glasses",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\glasses.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part53",
+        "ArtMesh224_Skinning",
+        "Part69",
+        "ArtMesh225_Skinning",
+        "Part70",
+        "Part52",
+        "Part41",
+        "Part"
+      ],
+      "partNames": [
+        "眼镜",
+        "挂坠1(蒙皮)",
+        "挂坠1(旋转)",
+        "挂坠2(蒙皮)",
+        "挂坠2(旋转)",
+        "头",
+        "人物",
+        "组 1"
+      ],
+      "roots": [
+        "Part53"
+      ]
+    },
+    {
+      "slug": "angry_overlay",
+      "label": "Angry Overlay",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\angry_overlay.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part63",
+        "Part62",
+        "Part52",
+        "Part41",
+        "Part"
+      ],
+      "partNames": [
+        "生气",
+        "表情",
+        "头",
+        "人物",
+        "组 1"
+      ],
+      "roots": [
+        "Part63"
+      ]
+    },
+    {
+      "slug": "tear_overlay",
+      "label": "Tear Overlay",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\tear_overlay.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part64",
+        "Part65",
+        "Part66",
+        "Part62",
+        "Part52",
+        "Part41",
+        "Part"
+      ],
+      "partNames": [
+        "泪眼",
+        "右",
+        "左",
+        "表情",
+        "头",
+        "人物",
+        "组 1"
+      ],
+      "roots": [
+        "Part64"
+      ]
+    },
+    {
+      "slug": "heart_eyes_overlay",
+      "label": "Heart Eyes Overlay",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\heart_eyes_overlay.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part67",
+        "Part62",
+        "Part52",
+        "Part41",
+        "Part"
+      ],
+      "partNames": [
+        "爱心眼",
+        "表情",
+        "头",
+        "人物",
+        "组 1"
+      ],
+      "roots": [
+        "Part67"
+      ]
+    },
+    {
+      "slug": "star_eyes_overlay",
+      "label": "Star Eyes Overlay",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\star_eyes_overlay.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part68",
+        "Part62",
+        "Part52",
+        "Part41",
+        "Part"
+      ],
+      "partNames": [
+        "星星眼",
+        "表情",
+        "头",
+        "人物",
+        "组 1"
+      ],
+      "roots": [
+        "Part68"
+      ]
+    },
+    {
+      "slug": "braid",
+      "label": "Braid",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\braid.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part51",
+        "ArtMesh220_Skinning",
+        "Part14",
+        "ArtMesh221_Skinning",
+        "Part13",
+        "ArtMesh222_Skinning",
+        "Part12",
+        "Part41",
+        "Part"
+      ],
+      "partNames": [
+        "辫子",
+        "1(蒙皮)",
+        "1(旋转)",
+        "2(蒙皮)",
+        "2(旋转)",
+        "辫子阴影(蒙皮)",
+        "辫子阴影(旋转)",
+        "人物",
+        "组 1"
+      ],
+      "roots": [
+        "Part51"
+      ]
+    },
+    {
+      "slug": "back_hair",
+      "label": "Back Hair",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\back_hair.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part139",
+        "Part145",
+        "Part146",
+        "Part147",
+        "Part148",
+        "Part154",
+        "Part155",
+        "Part156",
+        "Part157",
+        "ArtMesh741_Skinning",
+        "Part164",
+        "ArtMesh742_Skinning",
+        "Part159",
+        "ArtMesh743_Skinning",
+        "Part165",
+        "ArtMesh30_Skinning",
+        "Part160",
+        "ArtMesh31_Skinning",
+        "Part158",
+        "ArtMesh32_Skinning",
+        "Part161",
+        "ArtMesh744_Skinning",
+        "Part166",
+        "ArtMesh745_Skinning",
+        "Part167",
+        "ArtMesh34_Skinning",
+        "Part163",
+        "ArtMesh35_Skinning",
+        "Part162",
+        "Part41",
+        "Part"
+      ],
+      "partNames": [
+        "后发",
+        "长发",
+        "右",
+        "左",
+        "后发",
+        "长发",
+        "长发",
+        "左",
+        "后发",
+        "1(蒙皮)",
+        "1(旋转)",
+        "2(蒙皮)",
+        "2(旋转)",
+        "5(蒙皮)",
+        "5(旋转)",
+        "1(蒙皮)",
+        "1(旋转)",
+        "2(蒙皮)",
+        "2(旋转)",
+        "5(蒙皮)",
+        "5(旋转)",
+        "5(蒙皮)",
+        "5(旋转)",
+        "8(蒙皮)",
+        "8(旋转)",
+        "5(蒙皮)",
+        "5(旋转)",
+        "8(蒙皮)",
+        "8(旋转)",
+        "人物",
+        "组 1"
+      ],
+      "roots": [
+        "Part139"
+      ]
+    },
+    {
+      "slug": "short_hair",
+      "label": "Short Hair",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\short_hair.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part140"
+      ],
+      "partNames": [
+        "Part140"
+      ],
+      "roots": [
+        "Part140"
+      ]
+    },
+    {
+      "slug": "long_hair",
+      "label": "Long Hair",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\long_hair.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part145",
+        "Part146",
+        "Part147",
+        "Part148",
+        "Part154",
+        "Part155",
+        "Part156",
+        "Part157",
+        "ArtMesh741_Skinning",
+        "Part164",
+        "ArtMesh742_Skinning",
+        "Part159",
+        "ArtMesh743_Skinning",
+        "Part165",
+        "ArtMesh30_Skinning",
+        "Part160",
+        "ArtMesh31_Skinning",
+        "Part158",
+        "ArtMesh32_Skinning",
+        "Part161",
+        "ArtMesh744_Skinning",
+        "Part166",
+        "ArtMesh745_Skinning",
+        "Part167",
+        "ArtMesh34_Skinning",
+        "Part163",
+        "ArtMesh35_Skinning",
+        "Part162",
+        "Part139",
+        "Part41",
+        "Part"
+      ],
+      "partNames": [
+        "长发",
+        "右",
+        "左",
+        "后发",
+        "长发",
+        "长发",
+        "左",
+        "后发",
+        "1(蒙皮)",
+        "1(旋转)",
+        "2(蒙皮)",
+        "2(旋转)",
+        "5(蒙皮)",
+        "5(旋转)",
+        "1(蒙皮)",
+        "1(旋转)",
+        "2(蒙皮)",
+        "2(旋转)",
+        "5(蒙皮)",
+        "5(旋转)",
+        "5(蒙皮)",
+        "5(旋转)",
+        "8(蒙皮)",
+        "8(旋转)",
+        "5(蒙皮)",
+        "5(旋转)",
+        "8(蒙皮)",
+        "8(旋转)",
+        "后发",
+        "人物",
+        "组 1"
+      ],
+      "roots": [
+        "Part145"
+      ]
+    },
+    {
+      "slug": "upper_body",
+      "label": "Upper Body",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\upper_body.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part97",
+        "Part98",
+        "Part100",
+        "Part103",
+        "Part105",
+        "Part112",
+        "Part99",
+        "Part101",
+        "Part102",
+        "Part104",
+        "Part106",
+        "Part113",
+        "Part115",
+        "Part107",
+        "Part108",
+        "Part114",
+        "Part116",
+        "Part95",
+        "Part41",
+        "Part"
+      ],
+      "partNames": [
+        "上半身",
+        "上衣",
+        "袖子",
+        "胸口",
+        "动作大臂",
+        "胳膊",
+        "衣服",
+        "右袖子",
+        "左袖子",
+        "蝴蝶结",
+        "通用",
+        "右手",
+        "左手",
+        "右大臂",
+        "左大臂",
+        "手",
+        "手",
+        "身体",
+        "人物",
+        "组 1"
+      ],
+      "roots": [
+        "Part97"
+      ]
+    },
+    {
+      "slug": "waist_decor",
+      "label": "Waist Decor",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\waist_decor.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part96",
+        "Part109",
+        "Part95",
+        "Part41",
+        "Part"
+      ],
+      "partNames": [
+        "腰带装饰",
+        "''",
+        "身体",
+        "人物",
+        "组 1"
+      ],
+      "roots": [
+        "Part96"
+      ]
+    },
+    {
+      "slug": "lower_body",
+      "label": "Lower Body",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\lower_body.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part117",
+        "Part118",
+        "Part119",
+        "Part124",
+        "Part125",
+        "Part120",
+        "ArtMesh728_Skinning",
+        "Part153",
+        "Part122",
+        "ArtMesh604_Skinning",
+        "Part151",
+        "ArtMesh607_Skinning",
+        "Part111",
+        "ArtMesh610_Skinning",
+        "Part110",
+        "Part126",
+        "Part132",
+        "Part121",
+        "Part123",
+        "Part127",
+        "Part129",
+        "Part131",
+        "Part133",
+        "Part135",
+        "Part137",
+        "ArtMesh729_Skinning",
+        "Part152",
+        "Part128",
+        "Part130",
+        "Part134",
+        "Part136",
+        "ArtMesh618_Skinning",
+        "Part83",
+        "ArtMesh619_Skinning",
+        "Part82",
+        "ArtMesh644_Skinning",
+        "Part15",
+        "ArtMesh645_Skinning",
+        "Part81",
+        "Part95",
+        "Part41",
+        "Part"
+      ],
+      "partNames": [
+        "下半身",
+        "腰带绑带",
+        "裙撑",
+        "短裙",
+        "腿",
+        "右裙",
+        "1(蒙皮)",
+        "1(旋转)",
+        "左裙",
+        "4(蒙皮)",
+        "4(旋转)",
+        "7(蒙皮)",
+        "7(旋转)",
+        "10(蒙皮)",
+        "10(旋转)",
+        "右",
+        "左",
+        "下摆",
+        "下摆",
+        "鞋子",
+        "右袜子",
+        "右腿",
+        "鞋子",
+        "右袜子",
+        "右腿",
+        "1(蒙皮)",
+        "1(旋转)",
+        "蝴蝶结",
+        "蝴蝶结",
+        "蝴蝶结",
+        "蝴蝶结",
+        "4(蒙皮)",
+        "4(旋转)",
+        "5(蒙皮)",
+        "5(旋转)",
+        "4(蒙皮)",
+        "4(旋转)",
+        "5(蒙皮)",
+        "5(旋转)",
+        "身体",
+        "人物",
+        "组 1"
+      ],
+      "roots": [
+        "Part117"
+      ]
+    },
+    {
+      "slug": "staff",
+      "label": "Staff",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\staff.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part84",
+        "Part85",
+        "Part86",
+        "Part87",
+        "Part88",
+        "Part171",
+        "Part172",
+        "ArtMesh88_Skinning",
+        "Part176",
+        "ArtMesh52_Skinning",
+        "Part177",
+        "ArtMesh58_Skinning",
+        "Part178",
+        "ArtMesh59_Skinning",
+        "Part173",
+        "ArtMesh62_Skinning",
+        "Part174",
+        "ArtMesh68_Skinning",
+        "Part175"
+      ],
+      "partNames": [
+        "法杖",
+        "幽灵火",
+        "装饰",
+        "武器",
+        "吊坠",
+        "右",
+        "左",
+        "1(蒙皮)",
+        "1(旋转)",
+        "4(蒙皮)",
+        "4(旋转)",
+        "10(蒙皮)",
+        "10(旋转)",
+        "1(蒙皮)",
+        "1(旋转)",
+        "4(蒙皮)",
+        "4(旋转)",
+        "10(蒙皮)",
+        "10(旋转)"
+      ],
+      "roots": [
+        "Part84"
+      ]
+    },
+    {
+      "slug": "ghost_fire",
+      "label": "Ghost Fire",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\ghost_fire.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part85",
+        "Part84"
+      ],
+      "partNames": [
+        "幽灵火",
+        "法杖"
+      ],
+      "roots": [
+        "Part85"
+      ]
+    },
+    {
+      "slug": "small_ghost",
+      "label": "Small Ghost",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\small_ghost.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part2",
+        "Part3",
+        "Part4",
+        "Part5",
+        "Part6",
+        "ArtMesh21_Skinning",
+        "Part9",
+        "ArtMesh25_Skinning",
+        "Part8",
+        "ArtMesh29_Skinning",
+        "Part7",
+        "Part"
+      ],
+      "partNames": [
+        "小幽灵",
+        "特效",
+        "1",
+        "2",
+        "3",
+        "小幽灵(蒙皮)",
+        "小幽灵(旋转)",
+        "小幽灵(蒙皮)",
+        "小幽灵(旋转)",
+        "小幽灵(蒙皮)",
+        "小幽灵(旋转)",
+        "组 1"
+      ],
+      "roots": [
+        "Part2"
+      ]
+    },
+    {
+      "slug": "pendant",
+      "label": "Pendant",
+      "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\parts\\pendant.png",
+      "size": {
+        "width": 900,
+        "height": 1200,
+        "blank": true
+      },
+      "partIds": [
+        "Part88",
+        "Part171",
+        "Part172",
+        "ArtMesh88_Skinning",
+        "Part176",
+        "ArtMesh52_Skinning",
+        "Part177",
+        "ArtMesh58_Skinning",
+        "Part178",
+        "ArtMesh59_Skinning",
+        "Part173",
+        "ArtMesh62_Skinning",
+        "Part174",
+        "ArtMesh68_Skinning",
+        "Part175",
+        "Part87",
+        "Part84"
+      ],
+      "partNames": [
+        "吊坠",
+        "右",
+        "左",
+        "1(蒙皮)",
+        "1(旋转)",
+        "4(蒙皮)",
+        "4(旋转)",
+        "10(蒙皮)",
+        "10(旋转)",
+        "1(蒙皮)",
+        "1(旋转)",
+        "4(蒙皮)",
+        "4(旋转)",
+        "10(蒙皮)",
+        "10(旋转)",
+        "武器",
+        "法杖"
+      ],
+      "roots": [
+        "Part88"
+      ]
+    }
+  ]
+}

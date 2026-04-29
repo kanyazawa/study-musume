@@ -5,6 +5,7 @@ import {
     getCustomVocabStudyItems,
     removeCustomVocabEntry,
 } from './customVocabUtils';
+import { addWrongQuestion, getReviewQuestions } from './reviewUtils';
 
 describe('customVocabUtils', () => {
     beforeEach(() => {
@@ -50,6 +51,31 @@ describe('customVocabUtils', () => {
                 word: 'orbit',
                 meaning: '軌道',
                 subject: '自作単語',
+            }),
+        ]);
+    });
+
+    it('does not add custom vocab entries to review until a quiz miss is recorded', () => {
+        const entry = addCustomVocabEntry({ word: 'orbit', meaning: '軌道' }).entry;
+
+        expect(getReviewQuestions()).toEqual([]);
+
+        addWrongQuestion({
+            subject: '自作単語',
+            questionId: entry.id,
+            questionText: entry.word,
+            correctAnswer: entry.meaning,
+            userAnswer: '惑星',
+            options: ['軌道', '惑星'],
+        });
+
+        expect(getReviewQuestions()).toEqual([
+            expect.objectContaining({
+                subject: '自作単語',
+                questionId: entry.id,
+                questionText: 'orbit',
+                correctAnswer: '軌道',
+                userAnswer: '惑星',
             }),
         ]);
     });

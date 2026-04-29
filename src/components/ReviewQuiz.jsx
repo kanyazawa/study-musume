@@ -6,7 +6,8 @@ import {
     formatReviewProgress,
     formatNextCorrectReviewProgress,
     formatWrongReviewProgress,
-    updateReviewResult
+    updateReviewResult,
+    getReviewChallengeProgressPreview,
 } from '../utils/reviewUtils';
 import CharacterStage from './character/CharacterStage';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
@@ -38,8 +39,8 @@ const hasSeenReviewTutorial = () => {
  * ReviewQuiz Component
  * 復習用のクイズコンポーネント
  */
-const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
-    const { isMuted, playSE } = useSound();
+const ReviewQuiz = ({ questions, stats, dailyChallenge, onComplete, getRewardSummary }) => {
+    const { isMuted, playSE, voiceVolume, acquireVoiceFocus } = useSound();
     const [sessionQuestions, setSessionQuestions] = useState(() => questions);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
@@ -48,6 +49,7 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
     const [isCompleted, setIsCompleted] = useState(false);
     const [inputValue, setInputValue] = useState('');
     const [correctStreak, setCorrectStreak] = useState(0);
+    const [maxCorrectStreak, setMaxCorrectStreak] = useState(0);
     const [persistentEmotion, setPersistentEmotion] = useState(null);
     const [showTutorial, setShowTutorial] = useState(() => !hasSeenReviewTutorial());
     const chainAudioCacheRef = useRef({});
@@ -166,9 +168,14 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
             chainAudioCacheRef.current[voiceSrc] = audio;
         }
 
-        audio.volume = 0.75;
-        audio.play().catch(() => { });
-    }, [getChainAudioSrc, isMuted]);
+        const releaseVoiceFocus = acquireVoiceFocus();
+        audio.volume = voiceVolume;
+        audio.onended = releaseVoiceFocus;
+        audio.onerror = releaseVoiceFocus;
+        audio.play().catch(() => {
+            releaseVoiceFocus();
+        });
+    }, [acquireVoiceFocus, getChainAudioSrc, isMuted, voiceVolume]);
 
     const closeTutorial = () => {
         try {
@@ -209,6 +216,7 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
         setFeedback(isCorrect ? 'correct' : 'incorrect');
         setCorrectStreak((prev) => {
             const nextStreak = isCorrect ? prev + 1 : 0;
+            setMaxCorrectStreak((currentMax) => Math.max(currentMax, nextStreak));
             setPersistentEmotion(isCorrect ? (nextStreak >= 2 ? 'happy' : 'smile') : 'angry');
 
             if (isCorrect) {
@@ -258,6 +266,15 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
     };
 
     const correctCount = results.filter(r => r.isCorrect).length;
+    const sessionChallengeProgress = dailyChallenge
+        ? getReviewChallengeProgressPreview(dailyChallenge, {
+            answeredCount: results.length,
+            correctCount,
+            accuracy: results.length ? Math.round((correctCount / results.length) * 100) : 0,
+            maxCombo: maxCorrectStreak,
+            dueReduced: 0,
+        })
+        : 0;
     const incorrectRetryQuestions = useMemo(() => {
         const wrongIds = new Set(results.filter((result) => !result.isCorrect).map((result) => result.questionId));
         return sessionQuestions.filter((question) => wrongIds.has(question.id));
@@ -272,6 +289,7 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
         setIsCompleted(false);
         setInputValue('');
         setCorrectStreak(0);
+        setMaxCorrectStreak(0);
         setPersistentEmotion(null);
     };
 
@@ -315,7 +333,7 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
                     <p className="completion-coach-message">
                         問題の読み込みに失敗したので、いったん復習リストに戻します。
                     </p>
-                    <button className="finish-btn" onClick={() => onComplete({ results, completed: false })}>
+                    <button className="finish-btn" onClick={() => onComplete({ results, completed: false, maxCorrectStreak })}>
                         復習リストに戻る
                     </button>
                 </div>
@@ -358,12 +376,22 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
                             <div className="completion-reward-row">
                                 <div className="completion-reward-chip">💎 +{rewardSummary.diamonds}</div>
                                 <div className="completion-reward-chip">🧠 +{rewardSummary.intellect}</div>
+                                {maxCorrectStreak >= 2 && (
+                                    <div className="completion-reward-chip">🔥 MAX {maxCorrectStreak}チェイン</div>
+                                )}
                             </div>
                             {rewardSummary.bonusLabels?.length > 0 && (
                                 <div className="completion-bonus-row">
                                     {rewardSummary.bonusLabels.map((label) => (
                                         <div key={label} className="completion-bonus-chip">{label}</div>
                                     ))}
+                                </div>
+                            )}
+                            {dailyChallenge && (
+                                <div className="completion-bonus-row">
+                                    <div className="completion-bonus-chip">
+                                        {`🕹️ ${dailyChallenge.title} ${sessionChallengeProgress} / ${dailyChallenge.target}${dailyChallenge.unit}`}
+                                    </div>
                                 </div>
                             )}
                         </>
@@ -376,7 +404,7 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
                             間違えた {incorrectRetryQuestions.length} 問だけもう一度
                         </button>
                     )}
-                    <button className="finish-btn" onClick={() => onComplete({ results, completed: true })}>
+                    <button className="finish-btn" onClick={() => onComplete({ results, completed: true, maxCorrectStreak })}>
                         復習リストに戻る
                     </button>
                 </div>
@@ -392,7 +420,7 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
             />
 
             <div className="review-topbar review-topbar-plain">
-                <button className="quiz-back-btn" onClick={() => onComplete({ results, completed: false })}>
+                <button className="quiz-back-btn" onClick={() => onComplete({ results, completed: false, maxCorrectStreak })}>
                     <ChevronLeft size={18} />
                     戻る
                 </button>
@@ -485,6 +513,10 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
                         <div className="mp-question-pill mp-question-pill-growth">
                             {formatNextCorrectReviewProgress(currentQuestion.reviewLevel)}
                         </div>
+                        <div className={`mp-question-pill review-chain-pill ${correctStreak >= 2 ? 'is-hot' : ''}`}>
+                            <Flame size={14} />
+                            {correctStreak > 0 ? `${correctStreak}チェイン` : 'チェイン待機'}
+                        </div>
                         <div className="mp-question-pill">
                             <Flame size={14} />
                             ミス {currentQuestion.wrongCount}回
@@ -503,6 +535,23 @@ const ReviewQuiz = ({ questions, stats, onComplete, getRewardSummary }) => {
                             次回 {formatRelativeDate(currentQuestion.nextReviewDate)} · {formatWrongReviewProgress()}
                         </div>
                     </div>
+                    {dailyChallenge && (
+                        <div className={`review-inline-challenge ${dailyChallenge.claimed ? 'is-complete' : ''}`}>
+                            <div className="review-inline-challenge-head">
+                                <span>DAILY CHALLENGE</span>
+                                <strong>{dailyChallenge.progress > 0 || sessionChallengeProgress > 0
+                                    ? `${sessionChallengeProgress} / ${dailyChallenge.target}${dailyChallenge.unit}`
+                                    : `0 / ${dailyChallenge.target}${dailyChallenge.unit}`}</strong>
+                            </div>
+                            <div className="review-inline-challenge-title">{dailyChallenge.title}</div>
+                            <div className="review-inline-challenge-bar" aria-hidden="true">
+                                <div
+                                    className="review-inline-challenge-fill"
+                                    style={{ width: `${Math.min((sessionChallengeProgress / dailyChallenge.target) * 100, 100)}%` }}
+                                />
+                            </div>
+                        </div>
+                    )}
                     {showIncorrectFeedback && (
                         <div className="review-answer-panel review-answer-panel-inline review-answer-panel-floating">
                             {renderFeedbackContent()}

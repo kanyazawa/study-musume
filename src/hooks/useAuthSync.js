@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { subscribeToAuthState, handleRedirectResult } from '../firebase/auth';
 import { auth } from '../firebase/config';
 import { syncOnLogin, uploadAllSaveData } from '../firebase/sync';
-import { loadStats, registerCloudSync } from '../utils/saveUtils';
+import { claimPendingReferralRewards } from '../firebase/referrals';
+import { applyRewardToStats } from '../utils/referralUtils';
+import { loadStats, registerCloudSync, saveStats } from '../utils/saveUtils';
 import { isNativeIOSApp } from '../native/nativeGoogleAuth';
 
 export const useAuthSync = (setStats) => {
@@ -40,6 +42,13 @@ export const useAuthSync = (setStats) => {
         if (syncResult.success && syncResult.source === 'cloud') {
           setStats(loadStats());
           console.log('Restored data from cloud');
+        }
+
+        const pendingReferralResult = await claimPendingReferralRewards(user.uid);
+        if (pendingReferralResult.success && pendingReferralResult.reward) {
+          const nextStats = applyRewardToStats(loadStats(), pendingReferralResult.reward);
+          saveStats(nextStats);
+          setStats(nextStats);
         }
 
         redirectToHomeIfNeeded();

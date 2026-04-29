@@ -94,7 +94,16 @@ const MenuModal = ({ onClose, stats, updateStats }) => {
     };
 
     const SettingsPanel = () => {
-        const { isMuted, volume, toggleMute, changeVolume } = useSound();
+        const {
+            isMuted,
+            bgmVolume,
+            seVolume,
+            voiceVolume,
+            toggleMute,
+            changeBgmVolume,
+            changeSeVolume,
+            changeVoiceVolume,
+        } = useSound();
         const rendererOptions = [
             { value: 'auto', label: '自動', description: 'Live2D試作があれば優先し、なければ画像表示を使います。' },
             { value: 'live2d', label: 'Live2D', description: 'モデルが未配置なら自動で他の表示にフォールバックします。' },
@@ -110,6 +119,32 @@ const MenuModal = ({ onClose, stats, updateStats }) => {
             if (!updateStats) return;
             updateStats(updates);
         };
+
+        const renderVolumeSlider = (label, value, onChange) => (
+            <div style={{ marginTop: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <strong>{label}</strong>
+                    <span style={{ color: '#666', fontSize: '13px' }}>
+                        {Math.round((isMuted ? 0 : value) * 100)}%
+                    </span>
+                </div>
+                <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={isMuted ? 0 : value}
+                    onChange={(e) => onChange(parseFloat(e.target.value))}
+                    style={{
+                        width: '100%',
+                        height: '6px',
+                        borderRadius: '3px',
+                        accentColor: '#ff80ab',
+                        cursor: 'pointer',
+                    }}
+                />
+            </div>
+        );
 
         return (
             <div className="menu-modal-overlay" onClick={() => setShowSettings(false)}>
@@ -131,27 +166,15 @@ const MenuModal = ({ onClose, stats, updateStats }) => {
                                         color: '#ff80ab'
                                     }}
                                 >
-                                    {isMuted || volume === 0 ? <VolumeX size={32} /> : <Volume2 size={32} />}
+                                    {isMuted ? <VolumeX size={32} /> : <Volume2 size={32} />}
                                 </button>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="1"
-                                    step="0.01"
-                                    value={isMuted ? 0 : volume}
-                                    onChange={(e) => changeVolume(parseFloat(e.target.value))}
-                                    style={{
-                                        flex: 1,
-                                        height: '6px',
-                                        borderRadius: '3px',
-                                        accentColor: '#ff80ab',
-                                        cursor: 'pointer'
-                                    }}
-                                />
-                                <span style={{ width: '40px', textAlign: 'right', fontWeight: 'bold' }}>
-                                    {Math.round((isMuted ? 0 : volume) * 100)}%
-                                </span>
+                                <div style={{ color: '#555', fontSize: '14px', lineHeight: 1.5 }}>
+                                    会話中はBGMが少し下がります。下の3つを別々に調整できます。
+                                </div>
                             </div>
+                            {renderVolumeSlider('BGM', bgmVolume, changeBgmVolume)}
+                            {renderVolumeSlider('SE', seVolume, changeSeVolume)}
+                            {renderVolumeSlider('Voice', voiceVolume, changeVoiceVolume)}
                         </div>
                         <div className="settings-section" style={{ marginTop: '24px' }}>
                             <h3>読み上げ設定</h3>

@@ -32,7 +32,7 @@ const Dialogue = ({ stats, updateStats }) => {
     const topic = searchParams.get('topic') || 'start';
     const type = searchParams.get('type') || 'study'; // 'study' or 'talk'
     const navigate = useNavigate();
-    const { playSE, playVoice } = useSound();
+    const { playSE, playVoice, acquireVoiceFocus } = useSound();
 
     // Character Selection Logic
     const characterId = stats?.characterId || 'noah';
@@ -49,6 +49,7 @@ const Dialogue = ({ stats, updateStats }) => {
     const [characterSpeaking, setCharacterSpeaking] = useState(false);
     const [characterSpeechText, setCharacterSpeechText] = useState('');
     const characterSpeakTimerRef = useRef(null);
+    const activeSpeechReleaseRef = useRef(null);
     const ttsAvailabilityRef = useRef({ deepgram: false, aivis: false, voicevox: false });
     const preferredRenderer = stats?.characterRenderer;
     const renderer = resolveCharacterRenderer({
@@ -386,6 +387,8 @@ const Dialogue = ({ stats, updateStats }) => {
             characterSpeakTimerRef.current = null;
         }
 
+        activeSpeechReleaseRef.current?.();
+        activeSpeechReleaseRef.current = null;
         setCharacterSpeaking(false);
         setIsSpeaking(false);
     }, []);
@@ -760,6 +763,8 @@ const Dialogue = ({ stats, updateStats }) => {
             setCharacterSpeaking(true);
         };
         const handleSpeechEnd = () => {
+            activeSpeechReleaseRef.current?.();
+            activeSpeechReleaseRef.current = null;
             setIsSpeaking(false);
             setCharacterSpeaking(false);
         };
@@ -775,6 +780,8 @@ const Dialogue = ({ stats, updateStats }) => {
         const speakerId = await resolveLineSpeakerId(targetLine, chosenEngine, ttsSettings);
 
         if (chosenEngine !== TTS_ENGINES.BROWSER) {
+            activeSpeechReleaseRef.current?.();
+            activeSpeechReleaseRef.current = acquireVoiceFocus();
             const success = await speakWithEngine(chosenEngine, targetLine.text, speakerId, {
                 baseUrl: getEngineBaseUrl(chosenEngine, ttsSettings),
                 onStart: handleSpeechStart,
@@ -783,15 +790,18 @@ const Dialogue = ({ stats, updateStats }) => {
                 cacheKeyHint: speechProfile.signature,
             });
             if (success) return true;
+            handleSpeechEnd();
         }
 
+        activeSpeechReleaseRef.current?.();
+        activeSpeechReleaseRef.current = acquireVoiceFocus();
         speakWithBrowserTts(targetLine.text, {
             ...speechProfile.browser,
             onStart: handleSpeechStart,
             onEnd: handleSpeechEnd,
         });
         return true;
-    }, [buildLineSpeechProfile, playVoice, resolveLineSpeakerId]);
+    }, [acquireVoiceFocus, buildLineSpeechProfile, playVoice, resolveLineSpeakerId]);
 
     const handleSpeak = async (e) => {
         e.stopPropagation(); // Prevent advancing dialogue

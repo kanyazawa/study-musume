@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, UserPlus, Search, Check, X } from 'lucide-react';
+import { ArrowLeft, Users, UserPlus, Search, Check, X, Gift, Copy, Ticket } from 'lucide-react';
 import { getCurrentUser } from '../firebase/auth';
 import {
     searchUserByFriendCode,
@@ -13,6 +13,7 @@ import {
 } from '../firebase/friends';
 import { getUserProfile } from '../firebase/auth';
 import { createFriendRoom, subscribeToFriendInvites } from '../firebase/matching';
+import { redeemReferralCode } from '../firebase/referrals';
 import {
     FRIEND_MATCH_MODE_OPTIONS,
     FRIEND_MATCH_TARGET_OPTIONS,
@@ -21,16 +22,25 @@ import {
     normalizeTargetCorrect,
 } from '../utils/matchUtils';
 import { DEFAULT_RATING, getLevelFromRating, LEVEL_THRESHOLDS } from '../utils/ratingUtils';
+import {
+    REFERRAL_REWARD,
+    applyRewardToStats,
+    buildReferralInviteMessage,
+    getReferralSummary,
+    normalizeReferralCode,
+} from '../utils/referralUtils';
 import './Friends.css';
 
-const Friends = ({ stats }) => {
+const Friends = ({ stats, updateStats }) => {
     const navigate = useNavigate();
     const defaultBattleLevel = getLevelFromRating(stats?.multiplayerRating || DEFAULT_RATING).level;
     const [currentUser, setCurrentUser] = useState(null);
     const [myFriendCode, setMyFriendCode] = useState('');
     const [myDisplayName, setMyDisplayName] = useState('');
+    const [profile, setProfile] = useState(null);
     const [searchCode, setSearchCode] = useState('');
     const [searchResult, setSearchResult] = useState(null);
+    const [referralCode, setReferralCode] = useState('');
     const [friends, setFriends] = useState([]);
     const [pendingRequests, setPendingRequests] = useState([]);
     const [battleInvites, setBattleInvites] = useState([]);
@@ -71,6 +81,7 @@ const Friends = ({ stats }) => {
         ]);
 
         if (profileResult.success) {
+            setProfile(profileResult.data);
             setMyFriendCode(profileResult.data.friendCode || '');
             setMyDisplayName(profileResult.data.displayName || '');
         } else {
@@ -242,6 +253,77 @@ const Friends = ({ stats }) => {
         }
     };
 
+    const copyInviteMessage = async () => {
+        const inviteMessage = buildReferralInviteMessage({
+            displayName: myDisplayName || currentUser?.displayName || 'トレーナー',
+            code: myFriendCode,
+        });
+
+        try {
+            if (navigator.share) {
+                await navigator.share({
+                    title: 'Study Musume 招待',
+                    text: inviteMessage,
+                });
+                showMessage('招待メッセージを共有しました！', 'success');
+                return;
+            }
+
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(inviteMessage);
+            } else {
+                const input = document.createElement('textarea');
+                input.value = inviteMessage;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+            }
+
+            showMessage('招待メッセージをコピーしました！', 'success');
+        } catch (error) {
+            if (error?.name === 'AbortError') {
+                return;
+            }
+            showMessage('招待メッセージの共有に失敗しました', 'error');
+        }
+    };
+
+    const handleRedeemReferral = async () => {
+        if (!currentUser) return;
+
+        const normalizedCode = normalizeReferralCode(referralCode);
+        if (!normalizedCode) {
+            showMessage('招待コードを入力してください', 'error');
+            return;
+        }
+
+        setLoading(true);
+        const result = await redeemReferralCode({
+            inviteeUid: currentUser.uid,
+            inviteeDisplayName: myDisplayName || currentUser.displayName || 'トレーナー',
+            inviterCode: normalizedCode,
+        });
+
+        if (result.success) {
+            if (updateStats) {
+                updateStats((currentStats) => applyRewardToStats(currentStats, result.reward));
+            }
+            setReferralCode('');
+            showMessage(
+                `${result.inviter.displayName} さんの招待特典を受け取りました！ 💎${result.reward.diamonds} / 🧠${result.reward.intellect}`,
+                'success'
+            );
+            loadUserData(currentUser.uid);
+        } else {
+            showMessage(result.error || '招待コードの特典を受け取れませんでした', 'error');
+        }
+        setLoading(false);
+    };
+
+    const referralSummary = getReferralSummary(profile || {});
+    const hasUsedReferralCode = Boolean(referralSummary.referredByCode);
+
     if (!currentUser) {
         return null;
     }
@@ -266,6 +348,67 @@ const Friends = ({ stats }) => {
                     <span className="code">{myFriendCode}</span>
                     <span className="copy-hint">タップでコピー</span>
                 </div>
+                <div className="invite-actions">
+                    <button className="invite-action-btn primary" onClick={copyInviteMessage} disabled={loading}>
+                        <Gift size={18} />
+                        招待メッセージを共有
+                    </button>
+                    <button className="invite-action-btn" onClick={copyFriendCode} disabled={loading}>
+                        <Copy size={18} />
+                        コードだけコピー
+                    </button>
+                </div>
+            </div>
+
+            <div className="referral-card">
+                <div className="referral-card-header">
+                    <div>
+                        <div className="referral-badge">招待報酬</div>
+                        <h2>友だち招待でごほうび</h2>
+                        <p>
+                            招待が成立すると、お互いに 💎{REFERRAL_REWARD.diamonds} と 🧠{REFERRAL_REWARD.intellect} を受け取れます。
+                        </p>
+                    </div>
+                    <div className="referral-icon">
+                        <Ticket size={26} />
+                    </div>
+                </div>
+
+                <div className="referral-stats">
+                    <div className="referral-stat">
+                        <span className="referral-stat-value">{referralSummary.inviteCount}</span>
+                        <span className="referral-stat-label">成立した招待</span>
+                    </div>
+                    <div className="referral-stat">
+                        <span className="referral-stat-value">{referralSummary.pendingClaims}</span>
+                        <span className="referral-stat-label">次回反映予定</span>
+                    </div>
+                </div>
+
+                {hasUsedReferralCode ? (
+                    <div className="referral-status success">
+                        招待コード入力済み: {referralSummary.referredByCode}
+                    </div>
+                ) : (
+                    <div className="referral-entry">
+                        <label htmlFor="referral-code-input">招待された人はこちら</label>
+                        <div className="referral-entry-row">
+                            <input
+                                id="referral-code-input"
+                                type="text"
+                                placeholder="招待コードを入力"
+                                value={referralCode}
+                                onChange={(e) => setReferralCode(normalizeReferralCode(e.target.value))}
+                                maxLength={6}
+                                disabled={loading}
+                            />
+                            <button onClick={handleRedeemReferral} disabled={loading}>
+                                受け取る
+                            </button>
+                        </div>
+                        <p className="referral-entry-note">招待コードの入力は1回だけです。</p>
+                    </div>
+                )}
             </div>
 
             {/* Tabs */}

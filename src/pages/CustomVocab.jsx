@@ -68,7 +68,7 @@ const CustomVocab = () => {
                 <div className="custom-vocab-heading">
                     <span className="custom-vocab-kicker">My Deck</span>
                     <h1>自作単語ノート</h1>
-                    <p>気になった単語を自分で追加して、そのまま暗記テストに回せます。</p>
+                    <p>気になった単語を自分で追加して、そのまま暗記テストに回せます。追加しただけでは弱点ノートに入らず、クイズで取りこぼした語だけ復習へ回ります。</p>
                 </div>
             </header>
 
@@ -81,7 +81,7 @@ const CustomVocab = () => {
                 <div className="custom-vocab-stat-card">
                     <span>おすすめの使い方</span>
                     <strong>授業で出た未知語を即追加</strong>
-                    <small>間違えたものは弱点ノートにも送られます</small>
+                    <small>追加直後はここで覚えて、間違えた語だけ弱点ノートで回収</small>
                 </div>
                 <div className="custom-vocab-mode-stack">
                     <button
@@ -102,6 +102,9 @@ const CustomVocab = () => {
                         <Play size={18} />
                         {canStartQuiz ? 'クイズで学ぶ' : '2語以上でクイズ開始'}
                     </button>
+                    <small className="custom-vocab-mode-note">
+                        弱点ノートに送られるのは、クイズで間違えた語だけです。
+                    </small>
                 </div>
             </section>
 

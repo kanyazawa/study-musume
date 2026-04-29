@@ -1,0 +1,551 @@
+{
+  "name": "school-girl-guide-curated",
+  "extractedAt": "TEMPLATE",
+  "sourceImage": "./school-girl-guide.png",
+  "preset": "scripts/presets/live2d-guide-sheet-default.json",
+  "canvas": {
+    "width": 1536,
+    "height": 3072
+  },
+  "output": {
+    "psd": "./school-girl-guide-curated.psd",
+    "preview": "./school-girl-guide-curated-preview.png"
+  },
+  "children": [
+    {
+      "name": "00_reference",
+      "opened": true,
+      "children": [
+        {
+          "name": "guide_sheet_reference",
+          "source": "./school-girl-guide.png",
+          "left": 0,
+          "top": 0,
+          "hidden": true,
+          "opacity": 0.35
+        }
+      ]
+    },
+    {
+      "name": "01_face",
+      "opened": true,
+      "children": [
+        {
+          "name": "face_base",
+          "source": "parts/01_face/face_base.png",
+          "left": 420,
+          "top": 110
+        },
+        {
+          "name": "face_shadow",
+          "source": "parts/01_face/face_shadow.png",
+          "left": 422,
+          "top": 118
+        },
+        {
+          "name": "neck",
+          "source": "parts/01_face/neck.png",
+          "left": 560,
+          "top": 420
+        },
+        {
+          "name": "brow_L",
+          "source": "parts/01_face/brow_L.png",
+          "left": 505,
+          "top": 172
+        },
+        {
+          "name": "brow_R",
+          "source": "parts/01_face/brow_R.png",
+          "left": 628,
+          "top": 172
+        },
+        {
+          "name": "eye_white_L",
+          "source": "parts/01_face/eye_white_L.png",
+          "left": 492,
+          "top": 220
+        },
+        {
+          "name": "eye_white_R",
+          "source": "parts/01_face/eye_white_R.png",
+          "left": 621,
+          "top": 220
+        },
+        {
+          "name": "eye_iris_L",
+          "source": "parts/01_face/eye_iris_L.png",
+          "left": 509,
+          "top": 228
+        },
+        {
+          "name": "eye_iris_R",
+          "source": "parts/01_face/eye_iris_R.png",
+          "left": 636,
+          "top": 228
+        },
+        {
+          "name": "eye_highlight_L",
+          "source": "parts/01_face/eye_highlight_L.png",
+          "left": 516,
+          "top": 232
+        },
+        {
+          "name": "eye_highlight_R",
+          "source": "parts/01_face/eye_highlight_R.png",
+          "left": 643,
+          "top": 232
+        },
+        {
+          "name": "eyelid_upper_L",
+          "source": "parts/01_face/eyelid_upper_L.png",
+          "left": 490,
+          "top": 212
+        },
+        {
+          "name": "eyelid_upper_R",
+          "source": "parts/01_face/eyelid_upper_R.png",
+          "left": 619,
+          "top": 212
+        },
+        {
+          "name": "eyelid_lower_L",
+          "source": "parts/01_face/eyelid_lower_L.png",
+          "left": 494,
+          "top": 243
+        },
+        {
+          "name": "eyelid_lower_R",
+          "source": "parts/01_face/eyelid_lower_R.png",
+          "left": 623,
+          "top": 243
+        },
+        {
+          "name": "mouth_base",
+          "source": "parts/01_face/mouth_base.png",
+          "left": 568,
+          "top": 324
+        },
+        {
+          "name": "mouth_open",
+          "source": "parts/01_face/mouth_open.png",
+          "left": 567,
+          "top": 324,
+          "hidden": true
+        },
+        {
+          "name": "mouth_inner",
+          "source": "parts/01_face/mouth_inner.png",
+          "left": 572,
+          "top": 332,
+          "hidden": true
+        },
+        {
+          "name": "blush",
+          "source": "parts/01_face/blush.png",
+          "left": 470,
+          "top": 282,
+          "hidden": true,
+          "opacity": 0.8
+        }
+      ]
+    },
+    {
+      "name": "02_hair",
+      "opened": true,
+      "children": [
+        {
+          "name": "hair_back",
+          "source": "parts/02_hair/hair_back.png",
+          "left": 345,
+          "top": 34
+        },
+        {
+          "name": "hair_back_L",
+          "source": "parts/02_hair/hair_back_L.png",
+          "left": 335,
+          "top": 78
+        },
+        {
+          "name": "hair_back_R",
+          "source": "parts/02_hair/hair_back_R.png",
+          "left": 721,
+          "top": 78
+        },
+        {
+          "name": "hair_side_L",
+          "source": "parts/02_hair/hair_side_L.png",
+          "left": 378,
+          "top": 154
+        },
+        {
+          "name": "hair_side_R",
+          "source": "parts/02_hair/hair_side_R.png",
+          "left": 720,
+          "top": 154
+        },
+        {
+          "name": "hair_front_center",
+          "source": "parts/02_hair/hair_front_center.png",
+          "left": 511,
+          "top": 84
+        },
+        {
+          "name": "hair_front_L",
+          "source": "parts/02_hair/hair_front_L.png",
+          "left": 430,
+          "top": 96
+        },
+        {
+          "name": "hair_front_R",
+          "source": "parts/02_hair/hair_front_R.png",
+          "left": 666,
+          "top": 96
+        },
+        {
+          "name": "hair_tip_L",
+          "source": "parts/02_hair/hair_tip_L.png",
+          "left": 330,
+          "top": 370
+        },
+        {
+          "name": "hair_tip_R",
+          "source": "parts/02_hair/hair_tip_R.png",
+          "left": 746,
+          "top": 370
+        },
+        {
+          "name": "ahoge",
+          "source": "parts/02_hair/ahoge.png",
+          "left": 457,
+          "top": 46
+        }
+      ]
+    },
+    {
+      "name": "03_body",
+      "opened": true,
+      "children": [
+        {
+          "name": "torso_base",
+          "source": "parts/03_body/torso_base.png",
+          "left": 398,
+          "top": 434
+        },
+        {
+          "name": "shirt_collar_L",
+          "source": "parts/03_body/shirt_collar_L.png",
+          "left": 504,
+          "top": 444
+        },
+        {
+          "name": "shirt_collar_R",
+          "source": "parts/03_body/shirt_collar_R.png",
+          "left": 596,
+          "top": 444
+        },
+        {
+          "name": "ribbon_center",
+          "source": "parts/03_body/ribbon_center.png",
+          "left": 552,
+          "top": 500
+        },
+        {
+          "name": "ribbon_L",
+          "source": "parts/03_body/ribbon_L.png",
+          "left": 497,
+          "top": 494
+        },
+        {
+          "name": "ribbon_R",
+          "source": "parts/03_body/ribbon_R.png",
+          "left": 600,
+          "top": 494
+        },
+        {
+          "name": "cardigan_inner",
+          "source": "parts/03_body/cardigan_inner.png",
+          "left": 436,
+          "top": 488
+        },
+        {
+          "name": "hoodie_body",
+          "source": "parts/03_body/hoodie_body.png",
+          "left": 302,
+          "top": 426
+        },
+        {
+          "name": "hoodie_hem",
+          "source": "parts/03_body/hoodie_hem.png",
+          "left": 325,
+          "top": 1112
+        },
+        {
+          "name": "hoodie_zipper_L",
+          "source": "parts/03_body/hoodie_zipper_L.png",
+          "left": 494,
+          "top": 482
+        },
+        {
+          "name": "hoodie_zipper_R",
+          "source": "parts/03_body/hoodie_zipper_R.png",
+          "left": 640,
+          "top": 482
+        },
+        {
+          "name": "hoodie_string_L",
+          "source": "parts/03_body/hoodie_string_L.png",
+          "left": 432,
+          "top": 531
+        },
+        {
+          "name": "hoodie_string_R",
+          "source": "parts/03_body/hoodie_string_R.png",
+          "left": 709,
+          "top": 531
+        },
+        {
+          "name": "hoodie_hood",
+          "source": "parts/03_body/hoodie_hood.png",
+          "left": 374,
+          "top": 420
+        }
+      ]
+    },
+    {
+      "name": "04_arms_hands",
+      "opened": true,
+      "children": [
+        {
+          "name": "arm_upper_L",
+          "source": "parts/04_arms_hands/arm_upper_L.png",
+          "left": 218,
+          "top": 598
+        },
+        {
+          "name": "arm_upper_R",
+          "source": "parts/04_arms_hands/arm_upper_R.png",
+          "left": 795,
+          "top": 598
+        },
+        {
+          "name": "sleeve_L",
+          "source": "parts/04_arms_hands/sleeve_L.png",
+          "left": 189,
+          "top": 535
+        },
+        {
+          "name": "sleeve_R",
+          "source": "parts/04_arms_hands/sleeve_R.png",
+          "left": 792,
+          "top": 535
+        },
+        {
+          "name": "cuff_L",
+          "source": "parts/04_arms_hands/cuff_L.png",
+          "left": 198,
+          "top": 1224
+        },
+        {
+          "name": "cuff_R",
+          "source": "parts/04_arms_hands/cuff_R.png",
+          "left": 838,
+          "top": 1224
+        },
+        {
+          "name": "hand_L",
+          "source": "parts/04_arms_hands/hand_L.png",
+          "left": 98,
+          "top": 1322
+        },
+        {
+          "name": "hand_R",
+          "source": "parts/04_arms_hands/hand_R.png",
+          "left": 934,
+          "top": 1322
+        }
+      ]
+    },
+    {
+      "name": "05_lower_body",
+      "opened": true,
+      "children": [
+        {
+          "name": "skirt_base",
+          "source": "parts/05_lower_body/skirt_base.png",
+          "left": 352,
+          "top": 1126
+        },
+        {
+          "name": "skirt_front_L",
+          "source": "parts/05_lower_body/skirt_front_L.png",
+          "left": 354,
+          "top": 1148
+        },
+        {
+          "name": "skirt_front_C",
+          "source": "parts/05_lower_body/skirt_front_C.png",
+          "left": 520,
+          "top": 1156
+        },
+        {
+          "name": "skirt_front_R",
+          "source": "parts/05_lower_body/skirt_front_R.png",
+          "left": 673,
+          "top": 1148
+        },
+        {
+          "name": "leg_L",
+          "source": "parts/05_lower_body/leg_L.png",
+          "left": 404,
+          "top": 1338
+        },
+        {
+          "name": "leg_R",
+          "source": "parts/05_lower_body/leg_R.png",
+          "left": 634,
+          "top": 1338
+        },
+        {
+          "name": "sock_L",
+          "source": "parts/05_lower_body/sock_L.png",
+          "left": 417,
+          "top": 2208
+        },
+        {
+          "name": "sock_R",
+          "source": "parts/05_lower_body/sock_R.png",
+          "left": 628,
+          "top": 2208
+        },
+        {
+          "name": "shoe_L",
+          "source": "parts/05_lower_body/shoe_L.png",
+          "left": 384,
+          "top": 2648
+        },
+        {
+          "name": "shoe_R",
+          "source": "parts/05_lower_body/shoe_R.png",
+          "left": 617,
+          "top": 2648
+        }
+      ]
+    },
+    {
+      "name": "06_expressions",
+      "opened": false,
+      "children": [
+        {
+          "name": "exp_eye_smile_L",
+          "source": "parts/06_expressions/exp_eye_smile_L.png",
+          "left": 492,
+          "top": 222,
+          "hidden": true
+        },
+        {
+          "name": "exp_eye_smile_R",
+          "source": "parts/06_expressions/exp_eye_smile_R.png",
+          "left": 621,
+          "top": 222,
+          "hidden": true
+        },
+        {
+          "name": "exp_eye_closed_L",
+          "source": "parts/06_expressions/exp_eye_closed_L.png",
+          "left": 490,
+          "top": 218,
+          "hidden": true
+        },
+        {
+          "name": "exp_eye_closed_R",
+          "source": "parts/06_expressions/exp_eye_closed_R.png",
+          "left": 619,
+          "top": 218,
+          "hidden": true
+        },
+        {
+          "name": "exp_brow_angry_L",
+          "source": "parts/06_expressions/exp_brow_angry_L.png",
+          "left": 502,
+          "top": 168,
+          "hidden": true
+        },
+        {
+          "name": "exp_brow_angry_R",
+          "source": "parts/06_expressions/exp_brow_angry_R.png",
+          "left": 628,
+          "top": 168,
+          "hidden": true
+        },
+        {
+          "name": "exp_brow_sad_L",
+          "source": "parts/06_expressions/exp_brow_sad_L.png",
+          "left": 502,
+          "top": 170,
+          "hidden": true
+        },
+        {
+          "name": "exp_brow_sad_R",
+          "source": "parts/06_expressions/exp_brow_sad_R.png",
+          "left": 628,
+          "top": 170,
+          "hidden": true
+        },
+        {
+          "name": "exp_mouth_smile",
+          "source": "parts/06_expressions/exp_mouth_smile.png",
+          "left": 567,
+          "top": 323,
+          "hidden": true
+        },
+        {
+          "name": "exp_mouth_open_small",
+          "source": "parts/06_expressions/exp_mouth_open_small.png",
+          "left": 567,
+          "top": 323,
+          "hidden": true
+        },
+        {
+          "name": "exp_mouth_open_wide",
+          "source": "parts/06_expressions/exp_mouth_open_wide.png",
+          "left": 566,
+          "top": 322,
+          "hidden": true
+        },
+        {
+          "name": "exp_mouth_sad",
+          "source": "parts/06_expressions/exp_mouth_sad.png",
+          "left": 567,
+          "top": 324,
+          "hidden": true
+        },
+        {
+          "name": "exp_blush_soft",
+          "source": "parts/06_expressions/exp_blush_soft.png",
+          "left": 470,
+          "top": 282,
+          "hidden": true,
+          "opacity": 0.65
+        },
+        {
+          "name": "exp_blush_shy",
+          "source": "parts/06_expressions/exp_blush_shy.png",
+          "left": 464,
+          "top": 278,
+          "hidden": true,
+          "opacity": 0.8
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "template": true,
+    "templateFor": "front-facing school girl with hoodie",
+    "notes": [
+      "Replace source paths with extracted part PNGs before building PSD.",
+      "Adjust left/top after extracting real component bounds.",
+      "Paint hidden geometry such as forehead behind bangs before Cubism rigging."
+    ]
+  }
+}

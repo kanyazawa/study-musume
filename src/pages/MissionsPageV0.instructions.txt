@@ -1,0 +1,13 @@
+Paste target:
+- Open `src/pages/MissionsPageV0.jsx`
+- Find `function MissionV0Prototype()`
+- Replace only that function body first
+- Preview at `/missions-v0`
+
+Available mock data:
+- `mockMissionSummary`
+- `mockMissions`
+
+If v0 outputs a full page component with `export default function ...`:
+- Either move its JSX into `MissionV0Prototype`
+- Or temporarily replace the whole file contents if that is faster

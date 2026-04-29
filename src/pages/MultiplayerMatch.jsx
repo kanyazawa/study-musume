@@ -315,6 +315,68 @@ const getFinishReasonLabel = (finishReason, isSolo) => {
     }
 };
 
+const getSoloAccuracyReaction = ({ accuracy = 0, answeredCount = 0, clearedSoloRetry = false, isRetrySession = false } = {}) => {
+    if (answeredCount <= 0) {
+        return 'まだウォームアップ段階です。次は最初の1問から落ち着いていきましょう。';
+    }
+
+    if (clearedSoloRetry) {
+        return 'いい仕上がりです。苦手だったところまで、ちゃんと回収できました。';
+    }
+
+    if (accuracy <= 50) {
+        return isRetrySession
+            ? 'まだ甘いです。間違えたところ、ちゃんと復習しなさいよ。'
+            : '5割以下はちょっと心配です。間違えたところ、ちゃんと復習しなさいよ。';
+    }
+
+    if (accuracy <= 70) {
+        return '惜しいです。苦手な単語だけもう一回見直せば、かなり変わってきます。';
+    }
+
+    if (accuracy <= 85) {
+        return 'かなりいい感じです。この調子で正答率を安定させていきましょう。';
+    }
+
+    if (accuracy < 100) {
+        return 'よくできました。このペースなら、かなりしっかり定着していきそうです。';
+    }
+
+    return isRetrySession
+        ? '完璧です。苦手克服チャレンジもきれいに決めました。'
+        : '全問正解です。しっかり身についていますね。';
+};
+
+const getSoloResultNotice = ({
+    accuracy = 0,
+    answeredCount = 0,
+    totalQuestions = 0,
+    soloRetryQuestions = [],
+    isManualExit = false,
+    clearedSoloRetry = false,
+    isRetrySession = false,
+    sessionLabel = '',
+    sourceQuestionCount = 0,
+} = {}) => {
+    const reaction = getSoloAccuracyReaction({
+        accuracy,
+        answeredCount,
+        clearedSoloRetry,
+        isRetrySession,
+    });
+    const retryCount = Array.isArray(soloRetryQuestions) ? soloRetryQuestions.length : 0;
+
+    if (isManualExit) {
+        return `${reaction} ${answeredCount} / ${totalQuestions}問で今回は終了。${retryCount > 0 ? `間違えた${retryCount}問だけ続けて見直せます。` : 'ここで終えても今回の進み具合は見えています。'}`;
+    }
+
+    if (clearedSoloRetry) {
+        return `${reaction} 苦手克服チャレンジ成功。今回は取りこぼしを全部回収できました。`;
+    }
+
+    return `${reaction} ${isRetrySession ? '苦手克服チャレンジ完了。' : `${sessionLabel || `${totalQuestions}問セット`}完了。`}${sourceQuestionCount > totalQuestions ? ` このレベル全${sourceQuestionCount}問のうち、今回は${totalQuestions}問で区切りました。` : ` 全${totalQuestions}問を確認しました。`}${retryCount > 0 ? ` 間違えた${retryCount}問だけ苦手克服チャレンジに進めます。` : ' 全問正解です。'}`;
+};
+
 const getChainMeta = (streak) => {
     if (streak < 1) return null;
 
@@ -363,7 +425,7 @@ const getChainMeta = (streak) => {
 const MultiplayerMatch = ({ stats, updateStats }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { isMuted, playSE } = useSound();
+    const { isMuted, playSE, voiceVolume, acquireVoiceFocus } = useSound();
     const searchParams = new URLSearchParams(location.search);
     const isSolo = searchParams.get('mode') === 'solo';
     const isNativePlatform = Capacitor.isNativePlatform();
@@ -673,13 +735,15 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             chainAudioCacheRef.current[voiceSrc] = audio;
         }
 
-        audio.volume = volume;
+        const releaseVoiceFocus = acquireVoiceFocus();
+        audio.volume = Math.max(0, Math.min(1, volume * voiceVolume));
 
         const startLipSync = () => {
             setIsCharacterSpeaking(true);
         };
 
         const stopLipSync = () => {
+            releaseVoiceFocus();
             setIsCharacterSpeaking(false);
         };
 
@@ -691,12 +755,14 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             console.error('Chain voice playback error:', err);
             stopLipSync();
         });
-    }, [isMuted, isNativePlatform]);
+    }, [acquireVoiceFocus, isMuted, isNativePlatform, voiceVolume]);
 
     const speakBattleVoice = useCallback(async (text, settings, speakerValue) => {
         if (!text || !speakerValue) {
             return false;
         }
+
+        const releaseVoiceFocus = acquireVoiceFocus();
 
         const engineOrder = settings.engine === TTS_ENGINES.AUTO
             ? [TTS_ENGINES.DEEPGRAM, TTS_ENGINES.AIVIS, TTS_ENGINES.VOICEVOX]
@@ -717,14 +783,18 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                 ? settings.deepgramVoiceModel
                 : speakerValue;
             const speakerId = await resolveSpeakerIdForEngine(engine, resolvedSpeakerValue, { baseUrl });
-            const success = await speakWithEngine(engine, text, speakerId, { baseUrl });
+            const success = await speakWithEngine(engine, text, speakerId, {
+                baseUrl,
+                onEnd: releaseVoiceFocus,
+            });
             if (success) {
                 return true;
             }
         }
 
+        releaseVoiceFocus();
         return false;
-    }, []);
+    }, [acquireVoiceFocus]);
 
     const clearChainCallout = useCallback(() => {
         clearTimeout(chainCalloutTimeoutRef.current);
@@ -805,18 +875,18 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             const battleVoiceText = meta.callout || '正解！';
             void speakBattleVoice(battleVoiceText, ttsSettings, preferredBattleSpeaker).then((success) => {
                 if (!success && meta.voiceSrc) {
-                    playChainVoiceClip(meta.voiceSrc, ttsSettings.volume !== undefined ? ttsSettings.volume : 0.8);
+                    playChainVoiceClip(meta.voiceSrc);
                 }
             }).catch(() => {
                 if (meta.voiceSrc) {
-                    playChainVoiceClip(meta.voiceSrc, ttsSettings.volume !== undefined ? ttsSettings.volume : 0.8);
+                    playChainVoiceClip(meta.voiceSrc);
                 }
             });
             return;
         }
 
         if (meta.voiceSrc) {
-            playChainVoiceClip(meta.voiceSrc, ttsSettings.volume !== undefined ? ttsSettings.volume : 0.8);
+            playChainVoiceClip(meta.voiceSrc);
         }
     }, [isMuted, playChainVoiceClip, speakBattleVoice]);
 
@@ -1169,7 +1239,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             totalQuestionCount: totalCount || safeQuestions.length,
             sourceQuestionCount: sourceCount || safeQuestions.length,
         }));
-        setPhase('countdown');
+        setPhase('playing');
     }, [
         myDisplayName,
         myEquippedSkin,
@@ -1302,7 +1372,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     }, [isFriendMatch, myUid, phase, startMatching]);
 
     useEffect(() => {
-        if (!isSolo || isNativePlatform || phase !== 'countdown' || roomData?.questions?.length !== soloInitialBatchSize) {
+        if (!isSolo || isNativePlatform || phase !== 'playing' || roomData?.questions?.length !== soloInitialBatchSize) {
             return;
         }
 
@@ -2212,6 +2282,19 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             ? soloWrongQuestionIndices.map((index) => roomData.questions[index]).filter(Boolean)
             : [];
         const clearedSoloRetry = Boolean(isSolo && roomData.soloRetry && soloRetryQuestions.length === 0);
+        const soloResultNotice = isSolo
+            ? getSoloResultNotice({
+                accuracy: mySummary.accuracy,
+                answeredCount: mySummary.answeredCount,
+                totalQuestions,
+                soloRetryQuestions,
+                isManualExit,
+                clearedSoloRetry,
+                isRetrySession: Boolean(roomData.soloRetry),
+                sessionLabel: roomData.sessionLabel,
+                sourceQuestionCount,
+            })
+            : '';
         const finishReasonLabel = getFinishReasonLabel(roomData.finishReason, isSolo);
         const resultLevelInfo = getLevelMeta(roomData.level || friendLevelParam);
         const hasRematchRoom = Boolean(roomData.rematchRoomId);
@@ -2264,17 +2347,15 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                         <h1>学習結果</h1>
                     </div>
                     <div className="mp-matching-content">
-                        <div className="mp-error-panel">
+                        <div className="mp-error-panel mp-error-panel-solo-result">
                             <div className="mp-error-icon">{isManualExit ? '☕' : '🎉'}</div>
                             <h2>{isManualExit ? 'ここで一区切り！' : 'お疲れ様！'}</h2>
                             <p>{mySummary.correctCount} / {totalQuestions} 問正解</p>
                             <p>正答率 {mySummary.accuracy}% ・ 最高 {highestCorrectStreak} CHAIN</p>
-                            <p>
-                                {roomData.soloRetry
-                                    ? '苦手克服チャレンジ完了。'
-                                    : `${roomData.sessionLabel || `${totalQuestions}問セット`} 完了。`}
-                                {sourceQuestionCount > totalQuestions ? ` 全${sourceQuestionCount}問のうち今回は${totalQuestions}問で区切りました。` : ''}
-                            </p>
+                            <div className="mp-result-noa-line is-compact">
+                                <div className="mp-result-noa-kicker">NOA</div>
+                                <p className="mp-result-noa-text">{soloResultNotice}</p>
+                            </div>
                             <div className="mp-error-actions">
                                 {soloRetryQuestions.length > 0 && (
                                     <button
@@ -2310,7 +2391,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                         <span />
                     </div>
                 )}
-                <div className={`mp-result-content ${resultClass}`}>
+                <div className={`mp-result-content ${resultClass} ${isSolo ? 'is-solo-showcase' : ''}`}>
                     
                     <div className={`mp-result-character-bg ${renderer === 'live2d' ? 'is-live2d' : ''}`}>
                         {shouldRenderMatchCharacter && (isSolo || finalMyScore >= opScore) && (
@@ -2325,8 +2406,17 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                             />
                         )}
                     </div>
+
+                    {!resultNotice && isSolo && (
+                        <div className="mp-result-noa-stage">
+                            <div className="mp-result-noa-line">
+                                <div className="mp-result-noa-kicker">NOA</div>
+                                <p className="mp-result-noa-text">{soloResultNotice}</p>
+                            </div>
+                        </div>
+                    )}
                     
-                    <div className="mp-result-panel">
+                    <div className={`mp-result-panel ${isSolo ? 'is-solo-showcase' : ''}`}>
                         <div className="mp-result-emoji">{resultEmoji}</div>
                         <h2 className="mp-result-text">{resultText}</h2>
                         <div className="mp-result-detail">{finishReasonLabel}</div>
@@ -2334,7 +2424,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                             <div className="mp-result-detail">{battleModeLabel} / {resultLevelInfo.label} / {matchTargetCorrect}問先取</div>
                         )}
 
-                        <div className="mp-result-scores">
+                        <div className={`mp-result-scores ${isSolo ? 'is-solo-showcase' : ''}`}>
                             <div className="mp-result-player mp-result-me">
                                 <div className="mp-result-player-name">{myDisplayName}</div>
                                 <div className="mp-result-player-score">
@@ -2352,14 +2442,14 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                             )}
                         </div>
 
-                        <div className={`mp-result-summary-grid ${isSolo ? 'is-solo' : ''}`}>
-                            <div className="mp-result-summary-card">
+                        <div className={`mp-result-summary-grid ${isSolo ? 'is-solo is-solo-showcase' : ''}`}>
+                            <div className={`mp-result-summary-card ${isSolo ? 'is-solo-showcase' : ''}`}>
                                 <div className="mp-result-summary-label">自分の正答率</div>
                                 <div className="mp-result-summary-value">{mySummary.accuracy}%</div>
                                 <div className="mp-result-summary-sub">{mySummary.correctCount} / {Math.max(mySummary.answeredCount, finalMyScore)} 正解</div>
                             </div>
                             {isSolo && (
-                                <div className="mp-result-summary-card">
+                                <div className="mp-result-summary-card is-solo-showcase">
                                     <div className="mp-result-summary-label">最高チェーン</div>
                                     <div className="mp-result-summary-value">{highestCorrectStreak}</div>
                                     <div className="mp-result-summary-sub">
@@ -2367,7 +2457,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                                     </div>
                                 </div>
                             )}
-                            <div className="mp-result-summary-card">
+                            <div className={`mp-result-summary-card ${isSolo ? 'is-solo-showcase' : ''}`}>
                                 <div className="mp-result-summary-label">{isSolo ? '回答数' : '相手の正答率'}</div>
                                 <div className="mp-result-summary-value">{isSolo ? `${mySummary.answeredCount}問` : `${opponentSummary.accuracy}%`}</div>
                                 <div className="mp-result-summary-sub">
@@ -2393,15 +2483,6 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                         {resultNotice && (
                             <div className="mp-result-notice">
                                 {resultNotice}
-                            </div>
-                        )}
-                        {!resultNotice && isSolo && (
-                            <div className="mp-result-notice">
-                                {isManualExit
-                                    ? `${mySummary.answeredCount} / ${totalQuestions}問で今回は終了。${soloRetryQuestions.length > 0 ? `間違えた${soloRetryQuestions.length}問だけ続けて見直せます。` : 'ここで終えても今回の進み具合は見えています。'}`
-                                    : clearedSoloRetry
-                                    ? '苦手克服チャレンジ成功。今回は取りこぼしを全部回収できました。'
-                                    : `${roomData.soloRetry ? '苦手克服チャレンジ完了。' : `${roomData.sessionLabel || `${totalQuestions}問セット`}完了。`}${sourceQuestionCount > totalQuestions ? ` このレベル全${sourceQuestionCount}問のうち、今回は${totalQuestions}問で区切りました。` : ` 全${totalQuestions}問を確認しました。`}${soloRetryQuestions.length > 0 ? ` 間違えた${soloRetryQuestions.length}問だけ苦手克服チャレンジに進めます。` : ' 全問正解です。'}`}
                             </div>
                         )}
                         {!resultNotice && isFriendMatch && hasRematchRoom && !rematchRequestedByMe && (

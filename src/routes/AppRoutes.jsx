@@ -14,6 +14,7 @@ const RelationshipEventReader = lazy(() => import('../pages/RelationshipEventRea
 const Stats = lazy(() => import('../pages/Stats'));
 const StatsPageV0 = lazy(() => import('../pages/StatsPageV0'));
 const Missions = lazy(() => import('../pages/Missions'));
+const MissionsPageV0 = lazy(() => import('../pages/MissionsPageV0'));
 const CalendarPage = lazy(() => import('../pages/CalendarPage'));
 const Shop = lazy(() => import('../pages/Shop'));
 const Review = lazy(() => import('../pages/Review'));
@@ -65,6 +66,7 @@ const AppRoutes = ({ stats, updateStats, onLoginSuccess, currentUser }) => (
       <Route path="/stats" element={<Stats stats={stats} />} />
       <Route path="/stats-v0" element={<StatsPageV0 />} />
       <Route path="/missions" element={<Missions stats={stats} updateStats={updateStats} />} />
+      <Route path="/missions-v0" element={<MissionsPageV0 />} />
       <Route path="/calendar" element={<CalendarPage />} />
       <Route path="/shop" element={<Shop stats={stats} updateStats={updateStats} />} />
       <Route path="/gacha" element={<Navigate to="/shop" replace />} />
@@ -79,7 +81,7 @@ const AppRoutes = ({ stats, updateStats, onLoginSuccess, currentUser }) => (
         path="/login"
         element={currentUser ? <Navigate to="/home" replace /> : <Login onLoginSuccess={onLoginSuccess} />}
       />
-      <Route path="/friends" element={<Friends stats={stats} />} />
+      <Route path="/friends" element={<Friends stats={stats} updateStats={updateStats} />} />
       <Route path="/ranking" element={<Ranking />} />
       <Route path="/character-select" element={<CharacterSelectPage updateStats={updateStats} />} />
       <Route

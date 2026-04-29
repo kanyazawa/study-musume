@@ -38,6 +38,15 @@ const ensureUserDocument = async (user) => {
             email: user.email,
             photoURL: user.photoURL,
             friendCode: friendCode,
+            referralInviteCount: 0,
+            referralPendingClaims: 0,
+            referralPendingDiamonds: 0,
+            referralPendingIntellect: 0,
+            referralTotalDiamonds: 0,
+            referralTotalIntellect: 0,
+            referredByUid: null,
+            referredByCode: '',
+            referralClaimedAt: null,
             createdAt: serverTimestamp(),
             lastLoginAt: serverTimestamp()
         });

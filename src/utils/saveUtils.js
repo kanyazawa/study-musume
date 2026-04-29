@@ -43,6 +43,8 @@ export const getDefaultStats = () => ({
     reviewRewardDate: null,
     reviewSetsToday: 0,
     reviewTicketsRemaining: 3,
+    reviewChallengeDate: null,
+    reviewChallenge: null,
     // TP回復システム
     lastTpUpdateTime: Date.now(),
     // マルチプレイ対戦レート

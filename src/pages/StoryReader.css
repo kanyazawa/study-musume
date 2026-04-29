@@ -43,8 +43,28 @@
     /* 足元を隠すためさらに下げる */
     left: 50%;
     transform: translateX(-50%);
+    width: min(96vw, 720px);
+    height: 95vh;
     z-index: 10;
     animation: slideUpChar 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: visible;
+}
+
+.story-character.is-live2d {
+    bottom: -8%;
+    width: min(112vw, 820px);
+    height: 104vh;
+}
+
+.story-character.is-live2d > *,
+.story-character.is-live2d .character-story,
+.story-character.is-live2d .character-image,
+.story-character.is-live2d [data-live2d-ready] {
+    width: 100%;
+    height: 100%;
 }
 
 .character-image {

@@ -1,14 +1,22 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-    BarChart3,
+    AlertCircle,
+    BookOpen,
     BookText,
     CheckCircle2,
     ChevronLeft,
+    ChevronRight,
+    Clock3,
     FilePenLine,
+    History,
     LoaderCircle,
+    MessageCircle,
+    PenLine,
     RotateCcw,
     Sparkles,
+    Target,
+    Trophy,
 } from 'lucide-react';
 import CharacterStage from '../components/character/CharacterStage';
 import { EIKEN_WRITING_PROMPTS, WRITING_LEVELS } from '../data/eikenWritingPrompts';
@@ -133,6 +141,37 @@ const CHARACTER_LABELS = {
     ren: 'レン',
 };
 
+const BREAKDOWN_LABELS = {
+    content: 'Content',
+    organization: 'Organization',
+    vocabulary: 'Vocabulary',
+    grammar: 'Grammar',
+};
+
+const PRACTICE_FLOW = [
+    {
+        label: '1',
+        title: '問題選択',
+        text: '級とテーマを選んで、書く内容を固めます。',
+    },
+    {
+        label: '2',
+        title: '英文作成',
+        text: '語数を見ながら、理由が伝わる形に整えます。',
+    },
+    {
+        label: '3',
+        title: 'AI採点',
+        text: '4観点の評価と書き直し例で次の一手を確認します。',
+    },
+];
+
+const getResultHeadline = (score) => {
+    if (score >= 12) return '合格ライン到達！';
+    if (score >= PASSING_SCORE) return 'かなり安定しています';
+    return 'もう少しで合格ラインです';
+};
+
 const Writing = ({ stats }) => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -218,6 +257,7 @@ const Writing = ({ stats }) => {
         [history, selectedPrompt?.id]
     );
     const currentResult = latestEvaluation?.promptId === selectedPrompt?.id ? latestEvaluation : latestSavedForPrompt;
+    const currentEvaluation = currentResult?.evaluation || null;
     const recentHistory = history.slice(0, 5);
     const coachState = useMemo(() => {
         if (isSubmitting) {
@@ -319,6 +359,9 @@ const Writing = ({ stats }) => {
         text: coachState.line,
         live2dFaceAccent: coachState.faceAccent,
     }), [coachState]);
+    const scoreAngle = currentEvaluation
+        ? `${Math.max(0, Math.min(1, currentEvaluation.overallScore / Math.max(currentEvaluation.maxScore || 16, 1))) * 360}deg`
+        : '0deg';
 
     const handleClearDraft = () => {
         if (!selectedPrompt?.id) return;
@@ -409,76 +452,104 @@ const Writing = ({ stats }) => {
             </header>
 
             <section className="writing-hero">
-                <div className="writing-hero-copy">
-                    <span className="writing-chip is-accent">練習用の英検風問題</span>
-                    <h2>問題を選んで、そのまま英文を書いて採点</h2>
-                    <p>
-                        4観点のスコア、改善ポイント、書き直し例、模範解答までまとめて返します。
-                        公式採点ではなく、練習用の参考評価です。
-                    </p>
-                </div>
+                <div className="writing-hero-overview">
+                    <div className="writing-hero-copy">
+                        <span className="writing-chip is-accent">練習用の英検風問題</span>
+                        <h2>問題を選んで、そのまま英文を書いて採点</h2>
+                        <p>
+                            4観点のスコア、改善ポイント、書き直し例、模範解答までまとめて返します。
+                            公式採点ではなく、練習用の参考評価です。
+                        </p>
+                    </div>
 
-                <div className="writing-hero-metrics">
-                    <div className="writing-metric-card">
-                        <BarChart3 size={18} />
-                        <div>
-                            <span>平均スコア</span>
-                            <strong>{summary.averageScore}/16</strong>
+                    <div className="writing-hero-metrics">
+                        <div className="writing-metric-card">
+                            <Target size={18} />
+                            <div>
+                                <span>平均スコア</span>
+                                <strong>{summary.averageScore}/16</strong>
+                            </div>
+                        </div>
+                        <div className="writing-metric-card">
+                            <Trophy size={18} />
+                            <div>
+                                <span>最高スコア</span>
+                                <strong>{summary.bestScore}/16</strong>
+                            </div>
+                        </div>
+                        <div className="writing-metric-card">
+                            <FilePenLine size={18} />
+                            <div>
+                                <span>提出回数</span>
+                                <strong>{summary.attempts}回</strong>
+                            </div>
                         </div>
                     </div>
-                    <div className="writing-metric-card">
-                        <CheckCircle2 size={18} />
-                        <div>
-                            <span>最高スコア</span>
-                            <strong>{summary.bestScore}/16</strong>
-                        </div>
-                    </div>
-                    <div className="writing-metric-card">
-                        <FilePenLine size={18} />
-                        <div>
-                            <span>提出回数</span>
-                            <strong>{summary.attempts}回</strong>
-                        </div>
-                    </div>
                 </div>
 
-                <div className="writing-level-filter" aria-label="級フィルター">
-                    {WRITING_LEVELS.map((level) => (
-                        <button
-                            key={level.id}
-                            type="button"
-                            className={`writing-level-pill ${selectedLevel === level.id ? 'active' : ''}`}
-                            onClick={() => setSelectedLevel(level.id)}
-                        >
-                            {level.label}
-                        </button>
-                    ))}
-                </div>
+                <div className="writing-hero-support">
+                    <div className="writing-hero-sidecard">
+                        <div className="writing-level-block">
+                            <span className="writing-section-kicker">Level Filter</span>
+                            <h3>級を切り替える</h3>
+                            <div className="writing-level-filter" aria-label="級フィルター">
+                                {WRITING_LEVELS.map((level) => (
+                                    <button
+                                        key={level.id}
+                                        type="button"
+                                        className={`writing-level-pill ${selectedLevel === level.id ? 'active' : ''}`}
+                                        onClick={() => setSelectedLevel(level.id)}
+                                    >
+                                        {level.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
 
-                <div className={`writing-coach-card ${renderer === 'live2d' ? 'is-live2d' : ''}`}>
-                    <div className="writing-coach-copy">
-                        <span className="writing-section-kicker">Coach</span>
-                        <h3>{characterLabel}</h3>
-                        <strong>{coachState.title}</strong>
-                        <p>{coachState.line}</p>
+                        <div className="writing-flow-card">
+                            <span className="writing-section-kicker">Practice Flow</span>
+                            <div className="writing-flow-list">
+                                {PRACTICE_FLOW.map((item) => (
+                                    <div key={item.label} className="writing-flow-item">
+                                        <span className="writing-flow-step">{item.label}</span>
+                                        <div>
+                                            <strong>{item.title}</strong>
+                                            <p>{item.text}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
-                    <div className="writing-coach-stage-wrap">
-                        <CharacterStage
-                            characterId={characterId}
-                            renderer={renderer}
-                            skinId={skinId}
-                            scene="writing"
-                            pose={coachPose}
-                            className="writing-character-stage"
-                            imageClassName="writing-character-figure"
-                            alt={`${characterLabel} coach`}
-                        />
+
+                    <div className={`writing-coach-card ${renderer === 'live2d' ? 'is-live2d' : ''}`}>
+                        <div className="writing-coach-copy">
+                            <span className="writing-section-kicker">Coach</span>
+                            <h3>{characterLabel}</h3>
+                            <div className="writing-coach-status">
+                                {isSubmitting ? <LoaderCircle size={16} className="writing-spinner" /> : <MessageCircle size={16} />}
+                                <strong>{coachState.title}</strong>
+                            </div>
+                            <p>{coachState.line}</p>
+                        </div>
+                        <div className="writing-coach-stage-wrap">
+                            <CharacterStage
+                                characterId={characterId}
+                                renderer={renderer}
+                                skinId={skinId}
+                                scene="writing"
+                                pose={coachPose}
+                                className="writing-character-stage"
+                                imageClassName="writing-character-figure"
+                                alt={`${characterLabel} coach`}
+                            />
+                        </div>
                     </div>
                 </div>
             </section>
 
             <div className="writing-layout">
-                <section className="writing-panel">
+                <section className="writing-panel is-prompts">
                     <div className="writing-panel-header">
                         <div>
                             <span className="writing-section-kicker">Prompt Select</span>
@@ -495,12 +566,19 @@ const Writing = ({ stats }) => {
                                 className={`writing-prompt-card ${selectedPrompt?.id === prompt.id ? 'active' : ''}`}
                                 onClick={() => setSelectedPromptId(prompt.id)}
                             >
-                                <span className="writing-chip">{prompt.levelLabel}</span>
-                                <strong>{prompt.title}</strong>
-                                <p>{prompt.instruction}</p>
-                                <div className="writing-prompt-meta">
-                                    <span>{prompt.minWords}-{prompt.maxWords} words</span>
-                                    <span>{prompt.timeLimitMinutes} min</span>
+                                <div className="writing-prompt-row">
+                                    <div className="writing-prompt-main">
+                                        <div className="writing-prompt-head">
+                                            <span className="writing-chip">{prompt.levelLabel}</span>
+                                            <strong>{prompt.title}</strong>
+                                        </div>
+                                        <p>{prompt.instruction}</p>
+                                        <div className="writing-prompt-meta">
+                                            <span><BookText size={14} />{prompt.minWords}-{prompt.maxWords} words</span>
+                                            <span><Clock3 size={14} />{prompt.timeLimitMinutes} min</span>
+                                        </div>
+                                    </div>
+                                    <ChevronRight size={18} className="writing-prompt-arrow" />
                                 </div>
                             </button>
                         ))}
@@ -511,12 +589,16 @@ const Writing = ({ stats }) => {
                             <div className="writing-task-header">
                                 <div>
                                     <span className="writing-section-kicker">Current Task</span>
-                                    <h3>{selectedPrompt.title}</h3>
+                                    <div className="writing-task-title-row">
+                                        <h3>{selectedPrompt.title}</h3>
+                                        <span className="writing-chip is-accent">{selectedPrompt.levelLabel}</span>
+                                    </div>
                                 </div>
-                                <span className="writing-chip is-accent">{selectedPrompt.levelLabel}</span>
                             </div>
 
-                            <p className="writing-task-instruction">{selectedPrompt.instruction}</p>
+                            <div className="writing-task-instruction-card">
+                                <p className="writing-task-instruction">{selectedPrompt.instruction}</p>
+                            </div>
 
                             <div className="writing-points">
                                 {selectedPrompt.points.map((point) => (
@@ -532,6 +614,10 @@ const Writing = ({ stats }) => {
                                     <span>{selectedPrompt.minWords}-{selectedPrompt.maxWords} words</span>
                                 </div>
                                 <div className="writing-task-meta">
+                                    <Clock3 size={16} />
+                                    <span>{selectedPrompt.timeLimitMinutes} min</span>
+                                </div>
+                                <div className="writing-task-meta">
                                     <Sparkles size={16} />
                                     <span>{selectedPrompt.supportJa}</span>
                                 </div>
@@ -540,7 +626,7 @@ const Writing = ({ stats }) => {
                     )}
                 </section>
 
-                <section className="writing-panel">
+                <section className="writing-panel is-editor">
                     <div className="writing-panel-header">
                         <div>
                             <span className="writing-section-kicker">Write</span>
@@ -550,6 +636,11 @@ const Writing = ({ stats }) => {
                             <RotateCcw size={14} />
                             <span>下書きを消す</span>
                         </button>
+                    </div>
+
+                    <div className="writing-editor-intro">
+                        <Sparkles size={16} />
+                        <p>立場を先に、理由をあとに。短くても筋が通っていればしっかり評価されます。</p>
                     </div>
 
                     <form className="writing-editor" onSubmit={handleSubmit}>
@@ -567,6 +658,7 @@ const Writing = ({ stats }) => {
 
                         <div className="writing-editor-footer">
                             <div className={`writing-word-count ${getWordCountTone(wordCount, selectedPrompt)}`}>
+                                {(selectedPrompt && wordCount < selectedPrompt.minWords) || !selectedPrompt ? <AlertCircle size={15} /> : <CheckCircle2 size={15} />}
                                 <span>{wordCount} words</span>
                                 {selectedPrompt && (
                                     <strong>
@@ -574,6 +666,7 @@ const Writing = ({ stats }) => {
                                     </strong>
                                 )}
                             </div>
+                            <span className="writing-autosave-note">自動保存中</span>
                             <button
                                 type="submit"
                                 className="writing-submit-button"
@@ -587,65 +680,81 @@ const Writing = ({ stats }) => {
 
                     {error && <p className="writing-error">{error}</p>}
 
-                    {currentResult && (
+                    {currentEvaluation && (
                         <article className="writing-result-card">
+                            <div className="writing-result-ribbon">AI Feedback</div>
                             <div className="writing-result-header">
                                 <div>
                                     <span className="writing-section-kicker">Feedback</span>
                                     <h3>今回の採点結果</h3>
                                 </div>
-                                <div className={`writing-score-badge ${getScoreTone(currentResult.evaluation.overallScore)}`}>
-                                    <strong>{currentResult.evaluation.overallScore}</strong>
-                                    <span>/ {currentResult.evaluation.maxScore}</span>
+                            </div>
+
+                            <div className="writing-result-hero">
+                                <div
+                                    className={`writing-score-ring ${getScoreTone(currentEvaluation.overallScore)}`}
+                                    style={{ '--score-angle': scoreAngle }}
+                                >
+                                    <div className="writing-score-ring-inner">
+                                        <strong>{currentEvaluation.overallScore}</strong>
+                                        <span>/ {currentEvaluation.maxScore}</span>
+                                    </div>
+                                </div>
+                                <div className="writing-result-hero-copy">
+                                    <strong>{getResultHeadline(currentEvaluation.overallScore)}</strong>
+                                    <p>{currentEvaluation.summary}</p>
                                 </div>
                             </div>
 
-                            <p className="writing-result-summary">{currentResult.evaluation.summary}</p>
-
                             <div className="writing-score-grid">
-                                {Object.entries(currentResult.evaluation.breakdown).map(([key, value]) => (
+                                {Object.entries(currentEvaluation.breakdown).map(([key, value]) => (
                                     <div key={key} className="writing-score-item">
-                                        <span>{key}</span>
-                                        <strong>{value}/4</strong>
+                                        <div className="writing-score-item-top">
+                                            <span>{BREAKDOWN_LABELS[key] || key}</span>
+                                            <strong>{value}/4</strong>
+                                        </div>
+                                        <div className="writing-score-bar">
+                                            <div className="writing-score-bar-fill" style={{ width: `${(value / 4) * 100}%` }} />
+                                        </div>
                                     </div>
                                 ))}
                             </div>
 
                             <div className="writing-feedback-columns">
-                                <div className="writing-feedback-block">
-                                    <h4>よかった点</h4>
+                                <div className="writing-feedback-block is-positive">
+                                    <h4><CheckCircle2 size={16} />よかった点</h4>
                                     <ul>
-                                        {currentResult.evaluation.strengths.map((item) => (
+                                        {currentEvaluation.strengths.map((item) => (
                                             <li key={item}>{item}</li>
                                         ))}
                                     </ul>
                                 </div>
-                                <div className="writing-feedback-block">
-                                    <h4>次に直したい点</h4>
+                                <div className="writing-feedback-block is-grow">
+                                    <h4><PenLine size={16} />次に直したい点</h4>
                                     <ul>
-                                        {currentResult.evaluation.improvements.map((item) => (
+                                        {currentEvaluation.improvements.map((item) => (
                                             <li key={item}>{item}</li>
                                         ))}
                                     </ul>
                                 </div>
                             </div>
 
-                            {currentResult.evaluation.revisedAnswer && (
+                            {currentEvaluation.revisedAnswer && (
                                 <div className="writing-example-block">
-                                    <h4>あなたの答案を整えた例</h4>
-                                    <p>{currentResult.evaluation.revisedAnswer}</p>
+                                    <h4><BookOpen size={16} />あなたの答案を整えた例</h4>
+                                    <p>{currentEvaluation.revisedAnswer}</p>
                                 </div>
                             )}
 
-                            {currentResult.evaluation.modelAnswer && (
+                            {currentEvaluation.modelAnswer && (
                                 <div className="writing-example-block is-highlight">
-                                    <h4>模範解答例</h4>
-                                    <p>{currentResult.evaluation.modelAnswer}</p>
+                                    <h4><Sparkles size={16} />模範解答例</h4>
+                                    <p>{currentEvaluation.modelAnswer}</p>
                                 </div>
                             )}
 
                             <div className="writing-result-footer">
-                                <p>{currentResult.evaluation.encouragement}</p>
+                                <p>{currentEvaluation.encouragement}</p>
                                 <span>
                                     {formatDateTime(currentResult.evaluatedAt)}
                                     {currentResult.provider ? ` ・ ${currentResult.provider}` : ''}
@@ -682,12 +791,16 @@ const Writing = ({ stats }) => {
                                 }}
                             >
                                 <div className="writing-history-main">
-                                    <span className="writing-chip">{entry.levelLabel}</span>
+                                    <div className="writing-history-top">
+                                        <span className="writing-chip">{entry.levelLabel}</span>
+                                        <span className="writing-history-date">{formatDateTime(entry.evaluatedAt)}</span>
+                                    </div>
                                     <strong>{entry.promptTitle}</strong>
                                     <p>{entry.evaluation?.summary}</p>
                                 </div>
                                 <div className={`writing-history-score ${getScoreTone(entry.evaluation?.overallScore || 0)}`}>
-                                    {entry.evaluation?.overallScore || 0}/16
+                                    <History size={15} />
+                                    <span>{entry.evaluation?.overallScore || 0}/16</span>
                                 </div>
                             </button>
                         ))}

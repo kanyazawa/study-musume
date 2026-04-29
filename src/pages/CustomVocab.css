@@ -77,6 +77,13 @@
     gap: 12px;
 }
 
+.custom-vocab-mode-note {
+    color: #6c7281;
+    font-size: 0.84rem;
+    line-height: 1.5;
+    text-align: center;
+}
+
 .custom-vocab-stat-card,
 .custom-vocab-form-section,
 .custom-vocab-list-section {

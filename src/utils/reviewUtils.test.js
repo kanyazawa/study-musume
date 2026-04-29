@@ -5,10 +5,14 @@ import {
   formatReviewInterval,
   formatReviewProgress,
   formatWrongReviewProgress,
+  getActiveReviewChallenge,
   getHomeReviewSummary,
   getRecommendedReviewQuestion,
+  getReviewChallengeProgressPreview,
+  getReviewChallengeSyncPatch,
   getReviewQuestions,
   getReviewScheduleChoices,
+  applyReviewChallengeProgress,
   saveReviewQuestions,
   updateReviewResult,
 } from './reviewUtils';
@@ -198,6 +202,72 @@ describe('reviewUtils', () => {
     const choices = getReviewScheduleChoices(question, true);
 
     expect(choices.some((choice) => choice.complete && choice.label === '卒業')).toBe(true);
+  });
+
+  it('generates and syncs a deterministic daily review challenge', () => {
+    saveReviewQuestions([
+      {
+        id: 'challenge-seed',
+        subject: '英語',
+        questionId: 'q-seed',
+        questionText: '意味を答える',
+        correctAnswer: 'improve',
+        wrongCount: 1,
+        reviewLevel: 0,
+        nextReviewDate: Date.now() - 5 * 60 * 1000,
+      },
+    ]);
+
+    const challenge = getActiveReviewChallenge(null, {
+      total: 1,
+      due: 1,
+      bySubject: { 英語: 1 },
+      byPriority: { urgent: 1, soon: 0, later: 0 },
+    });
+    const syncPatch = getReviewChallengeSyncPatch({}, {
+      total: 1,
+      due: 1,
+      bySubject: { 英語: 1 },
+      byPriority: { urgent: 1, soon: 0, later: 0 },
+    });
+
+    expect(challenge).toBeTruthy();
+    expect(challenge.id).toContain('review-challenge-2023-11-14');
+    expect(syncPatch.reviewChallengeDate).toBe('2023-11-14');
+    expect(syncPatch.reviewChallenge).toEqual(challenge);
+  });
+
+  it('updates challenge progress and grants the reward only once', () => {
+    const stats = {
+      reviewChallengeDate: '2023-11-14',
+      reviewChallenge: {
+        id: 'review-challenge-2023-11-14-combo',
+        type: 'combo',
+        title: '3連続正解チャレンジ',
+        description: 'チェインをつないでテンポよく正解しよう。',
+        target: 3,
+        unit: '連続',
+        tracking: 'max',
+        progress: 1,
+        completed: false,
+        claimed: false,
+        reward: { diamonds: 10, intellect: 16 },
+      },
+    };
+
+    const preview = getReviewChallengeProgressPreview(stats.reviewChallenge, { maxCombo: 3 });
+    const firstResult = applyReviewChallengeProgress(stats, { maxCombo: 3 });
+    const secondResult = applyReviewChallengeProgress({
+      ...stats,
+      reviewChallenge: firstResult.challenge,
+    }, { maxCombo: 4 });
+
+    expect(preview).toBe(3);
+    expect(firstResult.newlyCompleted).toBe(true);
+    expect(firstResult.reward).toEqual({ diamonds: 10, intellect: 16 });
+    expect(firstResult.challenge.claimed).toBe(true);
+    expect(secondResult.newlyCompleted).toBe(false);
+    expect(secondResult.reward).toBeNull();
   });
 
   it('formats short review delays in minutes', () => {

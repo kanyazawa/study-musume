@@ -17,6 +17,12 @@ export const REVIEW_STREAK_REWARDS = {
     3: { diamonds: 12, intellect: 18, label: '3セット連続ボーナス' },
     5: { diamonds: 20, intellect: 30, label: '5セット連続ボーナス' },
 };
+export const REVIEW_CHALLENGE_REWARDS = {
+    combo: { diamonds: 10, intellect: 16 },
+    accuracy: { diamonds: 12, intellect: 18 },
+    due: { diamonds: 14, intellect: 24 },
+    finish: { diamonds: 10, intellect: 20 },
+};
 const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
@@ -73,6 +79,135 @@ const normalizeReviewHistory = (history) => {
             date: Number(entry.date),
             result: entry.result,
         }));
+};
+
+const getDailyChallengeSeed = (today) => (
+    String(today || '')
+        .split('')
+        .reduce((sum, char) => sum + char.charCodeAt(0), 0)
+);
+
+const clampChallengeProgress = (value, target) => {
+    const normalizedTarget = Math.max(1, Number(target) || 1);
+    return Math.max(0, Math.min(normalizedTarget, Number(value) || 0));
+};
+
+const createChallengeTemplate = (reviewStats = {}) => {
+    const totalQuestions = Math.max(0, Number(reviewStats.total) || 0);
+    const dueQuestions = Math.max(0, Number(reviewStats.due) || 0);
+    const comboTarget = Math.max(1, Math.min(totalQuestions || 3, totalQuestions >= 18 ? 4 : 3));
+    const accuracyTarget = totalQuestions >= 10 ? 80 : 70;
+    const finishTarget = Math.max(1, Math.min(totalQuestions || 5, totalQuestions >= 10 ? 10 : 5));
+    const availableTemplates = [
+        {
+            type: 'combo',
+            title: `${comboTarget}連続正解チャレンジ`,
+            description: 'チェインをつないでテンポよく正解しよう。',
+            target: comboTarget,
+            unit: '連続',
+            tracking: 'max',
+            reward: REVIEW_CHALLENGE_REWARDS.combo,
+        },
+        {
+            type: 'accuracy',
+            title: `正答率${accuracyTarget}%チャレンジ`,
+            description: '1セットで安定して正解を積み上げよう。',
+            target: accuracyTarget,
+            unit: '%',
+            tracking: 'max',
+            reward: REVIEW_CHALLENGE_REWARDS.accuracy,
+        },
+        {
+            type: 'finish',
+            title: `${finishTarget}問完走チャレンジ`,
+            description: '短くても最後まで走り切って報酬を回収しよう。',
+            target: finishTarget,
+            unit: '問',
+            tracking: 'sum',
+            reward: REVIEW_CHALLENGE_REWARDS.finish,
+        },
+    ];
+
+    if (dueQuestions > 0) {
+        const dueTarget = dueQuestions >= 5 ? 5 : Math.min(3, dueQuestions);
+        availableTemplates.push({
+            type: 'due',
+            title: `期限切れ${dueTarget}問回収`,
+            description: '今日ぶんの弱点を先に片づけてノートを軽くしよう。',
+            target: dueTarget,
+            unit: '問',
+            tracking: 'sum',
+            reward: REVIEW_CHALLENGE_REWARDS.due,
+        });
+    }
+
+    const seed = getDailyChallengeSeed(getTodayString());
+    return availableTemplates[seed % availableTemplates.length];
+};
+
+const normalizeReviewChallenge = (challenge) => {
+    if (!challenge || typeof challenge !== 'object') return null;
+
+    const type = String(challenge.type || '').trim();
+    const target = Math.max(1, Number(challenge.target) || 0);
+    if (!type || !target) return null;
+
+    return {
+        id: String(challenge.id || ''),
+        type,
+        title: String(challenge.title || '').trim(),
+        description: String(challenge.description || '').trim(),
+        target,
+        unit: String(challenge.unit || '').trim() || '問',
+        tracking: challenge.tracking === 'sum' ? 'sum' : 'max',
+        progress: clampChallengeProgress(challenge.progress, target),
+        completed: Boolean(challenge.completed),
+        claimed: Boolean(challenge.claimed),
+        reward: {
+            diamonds: Math.max(0, Number(challenge.reward?.diamonds) || 0),
+            intellect: Math.max(0, Number(challenge.reward?.intellect) || 0),
+        },
+    };
+};
+
+const buildDailyReviewChallenge = (reviewStats = {}) => {
+    const today = getTodayString();
+    const template = createChallengeTemplate(reviewStats);
+
+    return normalizeReviewChallenge({
+        id: `review-challenge-${today}-${template.type}`,
+        ...template,
+        progress: 0,
+        completed: false,
+        claimed: false,
+    });
+};
+
+const resolveChallengeMetricValue = (challenge, sessionMetrics = {}) => {
+    switch (challenge?.type) {
+        case 'combo':
+            return Math.max(0, Number(sessionMetrics.maxCombo) || 0);
+        case 'accuracy':
+            return Math.max(0, Number(sessionMetrics.accuracy) || 0);
+        case 'due':
+            return Math.max(0, Number(sessionMetrics.dueReduced) || 0);
+        case 'finish':
+            return Math.max(0, Number(sessionMetrics.answeredCount) || 0);
+        default:
+            return 0;
+    }
+};
+
+export const getReviewChallengeProgressPreview = (challenge, sessionMetrics = {}) => {
+    const normalizedChallenge = normalizeReviewChallenge(challenge);
+    if (!normalizedChallenge) return 0;
+
+    const metricValue = resolveChallengeMetricValue(normalizedChallenge, sessionMetrics);
+    const nextProgress = normalizedChallenge.tracking === 'sum'
+        ? normalizedChallenge.progress + metricValue
+        : Math.max(normalizedChallenge.progress, metricValue);
+
+    return clampChallengeProgress(nextProgress, normalizedChallenge.target);
 };
 
 const normalizeReviewQuestion = (question, index) => {
@@ -498,6 +633,99 @@ export const getNormalizedDailyReviewProgress = (stats) => {
                 )
             )
             : REVIEW_TICKET_DAILY_LIMIT,
+    };
+};
+
+/**
+ * 今日のデイリーチャレンジを取得
+ * @param {Object} [stats]
+ * @param {Object} [reviewStats]
+ * @returns {Object|null}
+ */
+export const getActiveReviewChallenge = (stats = null, reviewStats = getReviewStats()) => {
+    const today = getTodayString();
+    const storedChallenge = normalizeReviewChallenge(stats?.reviewChallenge);
+    const hasReviewStock = Math.max(0, Number(reviewStats?.total) || 0) > 0;
+
+    if (stats?.reviewChallengeDate === today && storedChallenge) {
+        return storedChallenge;
+    }
+
+    if (!hasReviewStock) {
+        return null;
+    }
+
+    return buildDailyReviewChallenge(reviewStats);
+};
+
+/**
+ * 保存済みチャレンジを今日の内容に同期するための差分を返す
+ * @param {Object} [stats]
+ * @param {Object} [reviewStats]
+ * @returns {Object|null}
+ */
+export const getReviewChallengeSyncPatch = (stats = null, reviewStats = getReviewStats()) => {
+    const today = getTodayString();
+    const challenge = getActiveReviewChallenge(stats, reviewStats);
+    const storedChallenge = normalizeReviewChallenge(stats?.reviewChallenge);
+    const isAlreadySynced = stats?.reviewChallengeDate === today
+        && storedChallenge
+        && JSON.stringify(storedChallenge) === JSON.stringify(challenge);
+
+    if (isAlreadySynced) {
+        return null;
+    }
+
+    return {
+        reviewChallengeDate: today,
+        reviewChallenge: challenge,
+    };
+};
+
+/**
+ * セッション結果を反映したチャレンジ進捗を返す
+ * @param {Object} [stats]
+ * @param {Object} [sessionMetrics]
+ * @param {Object} [reviewStats]
+ * @returns {{challenge: Object|null, reward: Object|null, updates: Object, newlyCompleted: boolean}}
+ */
+export const applyReviewChallengeProgress = (stats = null, sessionMetrics = {}, reviewStats = getReviewStats()) => {
+    const today = getTodayString();
+    const currentChallenge = getActiveReviewChallenge(stats, reviewStats);
+
+    if (!currentChallenge) {
+        return {
+            challenge: null,
+            reward: null,
+            updates: {
+                reviewChallengeDate: today,
+                reviewChallenge: null,
+            },
+            newlyCompleted: false,
+        };
+    }
+
+    const nextProgress = getReviewChallengeProgressPreview(currentChallenge, sessionMetrics);
+    const completed = nextProgress >= currentChallenge.target;
+    const newlyCompleted = completed && !currentChallenge.completed;
+    const reward = newlyCompleted && !currentChallenge.claimed
+        ? currentChallenge.reward
+        : null;
+    const nextChallenge = {
+        ...currentChallenge,
+        progress: nextProgress,
+        completed: currentChallenge.completed || completed,
+        claimed: currentChallenge.claimed || Boolean(reward),
+    };
+
+    return {
+        challenge: nextChallenge,
+        reward,
+        updates: {
+            reviewChallengeDate: today,
+            reviewChallenge: nextChallenge,
+        },
+        newlyCompleted,
     };
 };
 

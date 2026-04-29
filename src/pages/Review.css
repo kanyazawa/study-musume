@@ -80,6 +80,79 @@
     gap: 1rem;
 }
 
+.review-daily-challenge {
+    margin: 0 1rem 1rem;
+    padding: 1rem 1.05rem;
+    border-radius: 22px;
+    background:
+        linear-gradient(135deg, rgba(255, 248, 233, 0.98), rgba(255, 255, 255, 0.95)),
+        linear-gradient(120deg, #ffe4b5, #eef7ff);
+    border: 1px solid rgba(241, 180, 79, 0.3);
+    box-shadow: 0 14px 30px rgba(214, 137, 36, 0.1);
+    display: grid;
+    gap: 0.9rem;
+}
+
+.review-daily-challenge.is-complete {
+    border-color: rgba(101, 181, 116, 0.35);
+    box-shadow: 0 14px 30px rgba(101, 181, 116, 0.12);
+}
+
+.review-daily-challenge-copy h3 {
+    margin: 0 0 0.38rem;
+    font-size: 1.08rem;
+    color: #4d321b;
+}
+
+.review-daily-challenge-copy p {
+    margin: 0;
+    color: #6c5947;
+    line-height: 1.65;
+    font-size: 0.92rem;
+}
+
+.review-daily-challenge-status {
+    display: grid;
+    gap: 0.7rem;
+}
+
+.review-daily-challenge-progress-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    color: #8a6943;
+    font-size: 0.84rem;
+    font-weight: 800;
+}
+
+.review-daily-challenge-progress-head strong {
+    color: #3f2d1f;
+    font-size: 0.96rem;
+}
+
+.review-daily-challenge-bar {
+    width: 100%;
+    height: 12px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.84);
+    border: 1px solid rgba(243, 195, 112, 0.28);
+}
+
+.review-daily-challenge-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #ff9a3d 0%, #ffd35d 100%);
+    box-shadow: 0 6px 18px rgba(255, 154, 61, 0.26);
+}
+
+.review-daily-challenge-reward-row {
+    display: flex;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
 .review-session-options {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

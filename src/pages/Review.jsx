@@ -17,6 +17,9 @@ import {
     REVIEW_TICKET_BONUS_DIAMONDS,
     REVIEW_TICKET_BONUS_INTELLECT,
     REVIEW_TICKET_DAILY_LIMIT,
+    getActiveReviewChallenge,
+    getReviewChallengeSyncPatch,
+    applyReviewChallengeProgress,
 } from '../utils/reviewUtils';
 import { STUDY_TOPICS } from '../data/studyTopics';
 import './Review.css';
@@ -128,7 +131,19 @@ const Review = ({ stats, updateStats }) => {
         }
     }, [location.state]);
 
+    useEffect(() => {
+        if (!reviewStats || !updateStats) {
+            return;
+        }
+
+        const challengeSyncPatch = getReviewChallengeSyncPatch(stats, reviewStats);
+        if (challengeSyncPatch) {
+            updateStats(challengeSyncPatch);
+        }
+    }, [reviewStats, stats, updateStats]);
+
     const { reviewSetsToday, reviewTicketsRemaining } = getNormalizedDailyReviewProgress(stats);
+    const dailyChallenge = reviewStats ? getActiveReviewChallenge(stats, reviewStats) : null;
 
     const getSessionRewards = (results = [], overrides = {}) => {
         const answeredCount = results.length;
@@ -239,7 +254,7 @@ const Review = ({ stats, updateStats }) => {
         navigate(location.pathname, { replace: true, state: null });
     }, [filteredQuestions, isQuizMode, location.pathname, location.state, navigate, startReview]);
 
-    const handleQuizComplete = ({ results = [], completed = false } = {}) => {
+    const handleQuizComplete = ({ results = [], completed = false, maxCorrectStreak = 0 } = {}) => {
         if (completed && results.length > 0) {
             const dailyProgress = getNormalizedDailyReviewProgress(stats);
             const rewardSummary = getSessionRewards(results, {
@@ -255,22 +270,36 @@ const Review = ({ stats, updateStats }) => {
             const dueReduced = Math.max(dueBefore - dueAfter, 0);
             const totalReduced = Math.max(totalBefore - totalAfter, 0);
             const nextMilestone = getNextReviewStreakMilestone(rewardSummary.sessionStreak);
+            const sessionAccuracy = results.length
+                ? Math.round((rewardSummary.correctCount / results.length) * 100)
+                : 0;
+            const challengeOutcome = applyReviewChallengeProgress(stats, {
+                answeredCount: results.length,
+                correctCount: rewardSummary.correctCount,
+                accuracy: sessionAccuracy,
+                maxCombo: maxCorrectStreak,
+                dueReduced,
+            }, reviewStats);
+            const challengeReward = challengeOutcome.reward;
 
             if (updateStats) {
                 updateStats({
-                    diamonds: (stats?.diamonds || 0) + rewardSummary.diamonds,
-                    intellect: (stats?.intellect || 0) + rewardSummary.intellect,
+                    diamonds: (stats?.diamonds || 0) + rewardSummary.diamonds + (challengeReward?.diamonds || 0),
+                    intellect: (stats?.intellect || 0) + rewardSummary.intellect + (challengeReward?.intellect || 0),
                     reviewRewardDate: dailyProgress.today,
                     reviewSetsToday: dailyProgress.reviewSetsToday + 1,
                     reviewTicketsRemaining: Math.max(
                         dailyProgress.reviewTicketsRemaining - (rewardSummary.ticketBonusActive ? 1 : 0),
                         0
                     ),
+                    ...challengeOutcome.updates,
                 });
             }
 
             setLastSessionSummary({
                 ...rewardSummary,
+                totalDiamonds: rewardSummary.diamonds + (challengeReward?.diamonds || 0),
+                totalIntellect: rewardSummary.intellect + (challengeReward?.intellect || 0),
                 dueBefore,
                 dueAfter,
                 dueReduced,
@@ -278,6 +307,8 @@ const Review = ({ stats, updateStats }) => {
                 totalAfter,
                 totalReduced,
                 nextMilestone,
+                challenge: challengeOutcome.challenge,
+                challengeReward,
                 coachMessage: getNoaReviewRewardMessage({
                     rewardSummary,
                     dueReduced,
@@ -320,6 +351,7 @@ const Review = ({ stats, updateStats }) => {
                         key={quizQuestions.map((question) => question.id).join('-')}
                         questions={quizQuestions}
                         stats={stats}
+                        dailyChallenge={dailyChallenge}
                         getRewardSummary={getSessionRewards}
                         onComplete={handleQuizComplete}
                     />
@@ -418,6 +450,35 @@ const Review = ({ stats, updateStats }) => {
                 </div>
             </section>
 
+            {dailyChallenge && (
+                <section className={`review-daily-challenge ${dailyChallenge.claimed ? 'is-complete' : ''}`}>
+                    <div className="review-daily-challenge-copy">
+                        <span className="hero-kicker">Daily Challenge</span>
+                        <h3>{dailyChallenge.title}</h3>
+                        <p>{dailyChallenge.description}</p>
+                    </div>
+                    <div className="review-daily-challenge-status">
+                        <div className="review-daily-challenge-progress-head">
+                            <span>{dailyChallenge.claimed ? '達成済み' : '進行状況'}</span>
+                            <strong>{dailyChallenge.progress} / {dailyChallenge.target}{dailyChallenge.unit}</strong>
+                        </div>
+                        <div className="review-daily-challenge-bar" aria-hidden="true">
+                            <div
+                                className="review-daily-challenge-fill"
+                                style={{ width: `${Math.min((dailyChallenge.progress / dailyChallenge.target) * 100, 100)}%` }}
+                            />
+                        </div>
+                        <div className="review-daily-challenge-reward-row">
+                            <span className="review-bonus-pill">💎 {dailyChallenge.reward.diamonds}</span>
+                            <span className="review-bonus-pill">🧠 {dailyChallenge.reward.intellect}</span>
+                            <span className={`review-bonus-pill ${dailyChallenge.claimed ? 'is-highlight' : ''}`}>
+                                {dailyChallenge.claimed ? 'クリア済み' : '今日限定'}
+                            </span>
+                        </div>
+                    </div>
+                </section>
+            )}
+
             {lastSessionSummary && (
                 <section className="review-session-summary">
                     <div className="review-session-summary-copy">
@@ -431,11 +492,11 @@ const Review = ({ stats, updateStats }) => {
                     <div className="review-session-summary-rewards">
                         <div className="hero-chip">
                             <span className="hero-chip-label">獲得</span>
-                            <strong>💎 {lastSessionSummary.diamonds}</strong>
+                            <strong>💎 {lastSessionSummary.totalDiamonds}</strong>
                         </div>
                         <div className="hero-chip">
                             <span className="hero-chip-label">知力</span>
-                            <strong>🧠 {lastSessionSummary.intellect}</strong>
+                            <strong>🧠 {lastSessionSummary.totalIntellect}</strong>
                         </div>
                         <div className="hero-chip">
                             <span className="hero-chip-label">今日の連続セット</span>
@@ -448,13 +509,18 @@ const Review = ({ stats, updateStats }) => {
                             </div>
                         )}
                     </div>
-                    {lastSessionSummary.bonusLabels.length > 0 && (
+                    {(lastSessionSummary.bonusLabels.length > 0 || lastSessionSummary.challengeReward) && (
                         <div className="review-session-summary-badges">
                             {lastSessionSummary.bonusLabels.map((label) => (
                                 <span key={label} className="review-bonus-pill">
                                     {label}
                                 </span>
                             ))}
+                            {lastSessionSummary.challengeReward && lastSessionSummary.challenge && (
+                                <span className="review-bonus-pill is-highlight">
+                                    {`🕹️ ${lastSessionSummary.challenge.title} +${lastSessionSummary.challengeReward.diamonds} / +${lastSessionSummary.challengeReward.intellect}`}
+                                </span>
+                            )}
                         </div>
                     )}
                     <div className="review-session-summary-progress">

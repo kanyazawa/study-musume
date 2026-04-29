@@ -1,0 +1,730 @@
+[
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 13,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_013.png",
+    "pixelCount": 1791145,
+    "bbox": {
+      "minX": 2338,
+      "minY": 121,
+      "maxX": 3742,
+      "maxY": 7901,
+      "width": 1405,
+      "height": 7781
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 52,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_052.png",
+    "pixelCount": 842493,
+    "bbox": {
+      "minX": 952,
+      "minY": 7152,
+      "maxX": 2152,
+      "maxY": 8042,
+      "width": 1201,
+      "height": 891
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 45,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_045.png",
+    "pixelCount": 680501,
+    "bbox": {
+      "minX": 1194,
+      "minY": 2586,
+      "maxX": 2052,
+      "maxY": 3625,
+      "width": 859,
+      "height": 1040
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 51,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_051.png",
+    "pixelCount": 617421,
+    "bbox": {
+      "minX": 115,
+      "minY": 6182,
+      "maxX": 1610,
+      "maxY": 7122,
+      "width": 1496,
+      "height": 941
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 48,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_048.png",
+    "pixelCount": 555037,
+    "bbox": {
+      "minX": 105,
+      "minY": 4436,
+      "maxX": 1119,
+      "maxY": 5800,
+      "width": 1015,
+      "height": 1365
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 43,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_043.png",
+    "pixelCount": 418239,
+    "bbox": {
+      "minX": 521,
+      "minY": 1696,
+      "maxX": 1056,
+      "maxY": 2909,
+      "width": 536,
+      "height": 1214
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 49,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_049.png",
+    "pixelCount": 418239,
+    "bbox": {
+      "minX": 1683,
+      "minY": 4813,
+      "maxX": 2218,
+      "maxY": 6026,
+      "width": 536,
+      "height": 1214
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 35,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_035.png",
+    "pixelCount": 204093,
+    "bbox": {
+      "minX": 551,
+      "minY": 1054,
+      "maxX": 1407,
+      "maxY": 1418,
+      "width": 857,
+      "height": 365
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 16,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_016.png",
+    "pixelCount": 190927,
+    "bbox": {
+      "minX": 1677,
+      "minY": 163,
+      "maxX": 1992,
+      "maxY": 1042,
+      "width": 316,
+      "height": 880
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 44,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_044.png",
+    "pixelCount": 190927,
+    "bbox": {
+      "minX": 79,
+      "minY": 2198,
+      "maxX": 394,
+      "maxY": 3077,
+      "width": 316,
+      "height": 880
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 47,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_047.png",
+    "pixelCount": 184844,
+    "bbox": {
+      "minX": 1209,
+      "minY": 3681,
+      "maxX": 1914,
+      "maxY": 4820,
+      "width": 706,
+      "height": 1140
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 50,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_050.png",
+    "pixelCount": 167831,
+    "bbox": {
+      "minX": 1338,
+      "minY": 5935,
+      "maxX": 2085,
+      "maxY": 6965,
+      "width": 748,
+      "height": 1031
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 38,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_038.png",
+    "pixelCount": 160736,
+    "bbox": {
+      "minX": 1605,
+      "minY": 1241,
+      "maxX": 2024,
+      "maxY": 2234,
+      "width": 420,
+      "height": 994
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 46,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_046.png",
+    "pixelCount": 160736,
+    "bbox": {
+      "minX": 345,
+      "minY": 3148,
+      "maxX": 764,
+      "maxY": 4141,
+      "width": 420,
+      "height": 994
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 29,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_029.png",
+    "pixelCount": 97462,
+    "bbox": {
+      "minX": 1144,
+      "minY": 608,
+      "maxX": 1556,
+      "maxY": 997,
+      "width": 413,
+      "height": 390
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 40,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_040.png",
+    "pixelCount": 95989,
+    "bbox": {
+      "minX": 54,
+      "minY": 1380,
+      "maxX": 467,
+      "maxY": 1769,
+      "width": 414,
+      "height": 390
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 31,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_031.png",
+    "pixelCount": 87914,
+    "bbox": {
+      "minX": 65,
+      "minY": 739,
+      "maxX": 462,
+      "maxY": 1178,
+      "width": 398,
+      "height": 440
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 42,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_042.png",
+    "pixelCount": 82095,
+    "bbox": {
+      "minX": 1356,
+      "minY": 1674,
+      "maxX": 1510,
+      "maxY": 2399,
+      "width": 155,
+      "height": 726
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 24,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_024.png",
+    "pixelCount": 82057,
+    "bbox": {
+      "minX": 2129,
+      "minY": 336,
+      "maxX": 2283,
+      "maxY": 1061,
+      "width": 155,
+      "height": 726
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 11,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_011.png",
+    "pixelCount": 81142,
+    "bbox": {
+      "minX": 765,
+      "minY": 93,
+      "maxX": 1208,
+      "maxY": 658,
+      "width": 444,
+      "height": 566
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 30,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_030.png",
+    "pixelCount": 37470,
+    "bbox": {
+      "minX": 637,
+      "minY": 651,
+      "maxX": 845,
+      "maxY": 982,
+      "width": 209,
+      "height": 332
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 7,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_007.png",
+    "pixelCount": 36296,
+    "bbox": {
+      "minX": 1070,
+      "minY": 43,
+      "maxX": 1228,
+      "maxY": 395,
+      "width": 159,
+      "height": 353
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 25,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_025.png",
+    "pixelCount": 29421,
+    "bbox": {
+      "minX": 189,
+      "minY": 354,
+      "maxX": 340,
+      "maxY": 666,
+      "width": 152,
+      "height": 313
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 21,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_021.png",
+    "pixelCount": 28094,
+    "bbox": {
+      "minX": 402,
+      "minY": 231,
+      "maxX": 693,
+      "maxY": 633,
+      "width": 292,
+      "height": 403
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 23,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_023.png",
+    "pixelCount": 27328,
+    "bbox": {
+      "minX": 24,
+      "minY": 288,
+      "maxX": 237,
+      "maxY": 566,
+      "width": 214,
+      "height": 279
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 33,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_033.png",
+    "pixelCount": 16892,
+    "bbox": {
+      "minX": 909,
+      "minY": 776,
+      "maxX": 1054,
+      "maxY": 921,
+      "width": 146,
+      "height": 146
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 41,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_041.png",
+    "pixelCount": 16892,
+    "bbox": {
+      "minX": 1150,
+      "minY": 1647,
+      "maxX": 1295,
+      "maxY": 1792,
+      "width": 146,
+      "height": 146
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 14,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_014.png",
+    "pixelCount": 15311,
+    "bbox": {
+      "minX": 364,
+      "minY": 127,
+      "maxX": 486,
+      "maxY": 288,
+      "width": 123,
+      "height": 162
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 1,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_001.png",
+    "pixelCount": 11413,
+    "bbox": {
+      "minX": 211,
+      "minY": 14,
+      "maxX": 352,
+      "maxY": 126,
+      "width": 142,
+      "height": 113
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 4,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_004.png",
+    "pixelCount": 9013,
+    "bbox": {
+      "minX": 1357,
+      "minY": 37,
+      "maxX": 1675,
+      "maxY": 180,
+      "width": 319,
+      "height": 144
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 3,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_003.png",
+    "pixelCount": 8978,
+    "bbox": {
+      "minX": 537,
+      "minY": 35,
+      "maxX": 870,
+      "maxY": 183,
+      "width": 334,
+      "height": 149
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 36,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_036.png",
+    "pixelCount": 7498,
+    "bbox": {
+      "minX": 1765,
+      "minY": 1135,
+      "maxX": 1860,
+      "maxY": 1264,
+      "width": 96,
+      "height": 130
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 37,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_037.png",
+    "pixelCount": 7498,
+    "bbox": {
+      "minX": 1941,
+      "minY": 1143,
+      "maxX": 2036,
+      "maxY": 1272,
+      "width": 96,
+      "height": 130
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 20,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_020.png",
+    "pixelCount": 6041,
+    "bbox": {
+      "minX": 1433,
+      "minY": 219,
+      "maxX": 1656,
+      "maxY": 368,
+      "width": 224,
+      "height": 150
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 19,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_019.png",
+    "pixelCount": 5672,
+    "bbox": {
+      "minX": 1269,
+      "minY": 196,
+      "maxX": 1371,
+      "maxY": 363,
+      "width": 103,
+      "height": 168
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 34,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_034.png",
+    "pixelCount": 4491,
+    "bbox": {
+      "minX": 1595,
+      "minY": 903,
+      "maxX": 1749,
+      "maxY": 1105,
+      "width": 155,
+      "height": 203
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 26,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_026.png",
+    "pixelCount": 4416,
+    "bbox": {
+      "minX": 1423,
+      "minY": 368,
+      "maxX": 1540,
+      "maxY": 501,
+      "width": 118,
+      "height": 134
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 32,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_032.png",
+    "pixelCount": 3479,
+    "bbox": {
+      "minX": 533,
+      "minY": 752,
+      "maxX": 567,
+      "maxY": 925,
+      "width": 35,
+      "height": 174
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 39,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_039.png",
+    "pixelCount": 3479,
+    "bbox": {
+      "minX": 2192,
+      "minY": 1314,
+      "maxX": 2226,
+      "maxY": 1487,
+      "width": 35,
+      "height": 174
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 17,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_017.png",
+    "pixelCount": 1847,
+    "bbox": {
+      "minX": 210,
+      "minY": 177,
+      "maxX": 293,
+      "maxY": 248,
+      "width": 84,
+      "height": 72
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 5,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_005.png",
+    "pixelCount": 1651,
+    "bbox": {
+      "minX": 357,
+      "minY": 38,
+      "maxX": 403,
+      "maxY": 82,
+      "width": 47,
+      "height": 45
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 6,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_006.png",
+    "pixelCount": 1651,
+    "bbox": {
+      "minX": 586,
+      "minY": 38,
+      "maxX": 632,
+      "maxY": 82,
+      "width": 47,
+      "height": 45
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 22,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_022.png",
+    "pixelCount": 1557,
+    "bbox": {
+      "minX": 310,
+      "minY": 285,
+      "maxX": 337,
+      "maxY": 364,
+      "width": 28,
+      "height": 80
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 27,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_027.png",
+    "pixelCount": 1557,
+    "bbox": {
+      "minX": 693,
+      "minY": 418,
+      "maxX": 720,
+      "maxY": 497,
+      "width": 28,
+      "height": 80
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 15,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_015.png",
+    "pixelCount": 1463,
+    "bbox": {
+      "minX": 123,
+      "minY": 157,
+      "maxX": 159,
+      "maxY": 227,
+      "width": 37,
+      "height": 71
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 18,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_018.png",
+    "pixelCount": 1463,
+    "bbox": {
+      "minX": 35,
+      "minY": 190,
+      "maxX": 71,
+      "maxY": 260,
+      "width": 37,
+      "height": 71
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 8,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_008.png",
+    "pixelCount": 662,
+    "bbox": {
+      "minX": 513,
+      "minY": 47,
+      "maxX": 544,
+      "maxY": 73,
+      "width": 32,
+      "height": 27
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 28,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_028.png",
+    "pixelCount": 662,
+    "bbox": {
+      "minX": 1278,
+      "minY": 463,
+      "maxX": 1309,
+      "maxY": 489,
+      "width": 32,
+      "height": 27
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 9,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_009.png",
+    "pixelCount": 660,
+    "bbox": {
+      "minX": 453,
+      "minY": 48,
+      "maxX": 481,
+      "maxY": 76,
+      "width": 29,
+      "height": 29
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 12,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_012.png",
+    "pixelCount": 660,
+    "bbox": {
+      "minX": 95,
+      "minY": 97,
+      "maxX": 123,
+      "maxY": 125,
+      "width": 29,
+      "height": 29
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 10,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_010.png",
+    "pixelCount": 515,
+    "bbox": {
+      "minX": 42,
+      "minY": 80,
+      "maxX": 68,
+      "maxY": 103,
+      "width": 27,
+      "height": 24
+    }
+  },
+  {
+    "texture": "texture_01.png",
+    "componentIndex": 2,
+    "file": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-parts\\witch\\atlas-components\\texture_01\\texture_01_component_002.png",
+    "pixelCount": 417,
+    "bbox": {
+      "minX": 126,
+      "minY": 23,
+      "maxX": 150,
+      "maxY": 42,
+      "width": 25,
+      "height": 20
+    }
+  }
+]

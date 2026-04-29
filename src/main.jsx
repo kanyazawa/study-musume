@@ -17,6 +17,7 @@ const VALID_REDIRECT_PREFIXES = [
   '/stats',
   '/stats-v0',
   '/missions',
+  '/missions-v0',
   '/calendar',
   '/shop',
   '/gacha',

@@ -1,0 +1,1533 @@
+{
+  "name": "live2d-guide-guide-curated",
+  "extractedAt": "2026-04-28T07:29:46.916Z",
+  "sourceImage": "C:\\Users\\Hide2\\.gemini\\study-musume\\tmp\\live2d-guide.png",
+  "preset": "scripts\\presets\\live2d-guide-sheet-default.json",
+  "canvas": {
+    "width": 1149,
+    "height": 1369
+  },
+  "output": {
+    "psd": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-guide\\live2d-guide\\live2d-guide-school-girl-curated-manifest.psd",
+    "preview": "C:\\Users\\Hide2\\.gemini\\study-musume\\output\\live2d-guide\\live2d-guide\\live2d-guide-school-girl-curated-manifest-preview.png"
+  },
+  "children": [
+    {
+      "name": "00_reference",
+      "opened": true,
+      "children": [
+        {
+          "name": "guide_sheet_reference",
+          "source": "C:\\Users\\Hide2\\.gemini\\study-musume\\tmp\\live2d-guide.png",
+          "left": 0,
+          "top": 0,
+          "hidden": true,
+          "opacity": 0.35
+        }
+      ]
+    },
+    {
+      "name": "01_face",
+      "opened": true,
+      "children": [
+        {
+          "name": "face_base",
+          "source": "parts\\face_base_set\\face_base_01.png",
+          "left": 289,
+          "top": 84,
+          "metadata": {
+            "zone": "face_base_set",
+            "pixelCount": 4416,
+            "bbox": {
+              "minX": 7,
+              "minY": 2,
+              "maxX": 77,
+              "maxY": 86,
+              "width": 71,
+              "height": 85
+            }
+          }
+        },
+        {
+          "name": "face_shadow_candidate",
+          "source": "parts\\face_base_set\\face_base_02.png",
+          "left": 372,
+          "top": 84,
+          "metadata": {
+            "zone": "face_base_set",
+            "pixelCount": 2574,
+            "bbox": {
+              "minX": 90,
+              "minY": 2,
+              "maxX": 159,
+              "maxY": 86,
+              "width": 70,
+              "height": 85
+            }
+          }
+        },
+        {
+          "name": "eye_L_01",
+          "source": "parts\\eye_left_set\\eye_left_01.png",
+          "left": 506,
+          "top": 114,
+          "metadata": {
+            "zone": "eye_left_set",
+            "pixelCount": 95,
+            "bbox": {
+              "minX": 0,
+              "minY": 32,
+              "maxX": 11,
+              "maxY": 43,
+              "width": 12,
+              "height": 12
+            }
+          }
+        },
+        {
+          "name": "eye_L_02",
+          "source": "parts\\eye_left_set\\eye_left_02.png",
+          "left": 541,
+          "top": 145,
+          "metadata": {
+            "zone": "eye_left_set",
+            "pixelCount": 178,
+            "bbox": {
+              "minX": 35,
+              "minY": 63,
+              "maxX": 69,
+              "maxY": 73,
+              "width": 35,
+              "height": 11
+            }
+          }
+        },
+        {
+          "name": "eye_L_03",
+          "source": "parts\\eye_left_set\\eye_left_03.png",
+          "left": 543,
+          "top": 172,
+          "metadata": {
+            "zone": "eye_left_set",
+            "pixelCount": 295,
+            "bbox": {
+              "minX": 37,
+              "minY": 90,
+              "maxX": 61,
+              "maxY": 108,
+              "width": 25,
+              "height": 19
+            }
+          }
+        },
+        {
+          "name": "eye_L_04",
+          "source": "parts\\eye_left_set\\eye_left_04.png",
+          "left": 543,
+          "top": 202,
+          "metadata": {
+            "zone": "eye_left_set",
+            "pixelCount": 384,
+            "bbox": {
+              "minX": 37,
+              "minY": 120,
+              "maxX": 61,
+              "maxY": 141,
+              "width": 25,
+              "height": 22
+            }
+          }
+        },
+        {
+          "name": "eye_L_05",
+          "source": "parts\\eye_left_set\\eye_left_05.png",
+          "left": 548,
+          "top": 238,
+          "metadata": {
+            "zone": "eye_left_set",
+            "pixelCount": 121,
+            "bbox": {
+              "minX": 42,
+              "minY": 156,
+              "maxX": 57,
+              "maxY": 165,
+              "width": 16,
+              "height": 10
+            }
+          }
+        },
+        {
+          "name": "eye_L_06",
+          "source": "parts\\eye_left_set\\eye_left_06.png",
+          "left": 540,
+          "top": 304,
+          "metadata": {
+            "zone": "eye_left_set",
+            "pixelCount": 243,
+            "bbox": {
+              "minX": 34,
+              "minY": 222,
+              "maxX": 65,
+              "maxY": 231,
+              "width": 32,
+              "height": 10
+            }
+          }
+        },
+        {
+          "name": "eye_R_01",
+          "source": "parts\\eye_right_set\\eye_right_01.png",
+          "left": 635,
+          "top": 114,
+          "metadata": {
+            "zone": "eye_right_set",
+            "pixelCount": 112,
+            "bbox": {
+              "minX": 0,
+              "minY": 32,
+              "maxX": 14,
+              "maxY": 43,
+              "width": 15,
+              "height": 12
+            }
+          }
+        },
+        {
+          "name": "eye_R_02",
+          "source": "parts\\eye_right_set\\eye_right_02.png",
+          "left": 669,
+          "top": 145,
+          "metadata": {
+            "zone": "eye_right_set",
+            "pixelCount": 197,
+            "bbox": {
+              "minX": 34,
+              "minY": 63,
+              "maxX": 71,
+              "maxY": 73,
+              "width": 38,
+              "height": 11
+            }
+          }
+        },
+        {
+          "name": "eye_R_03",
+          "source": "parts\\eye_right_set\\eye_right_03.png",
+          "left": 675,
+          "top": 172,
+          "metadata": {
+            "zone": "eye_right_set",
+            "pixelCount": 246,
+            "bbox": {
+              "minX": 40,
+              "minY": 90,
+              "maxX": 64,
+              "maxY": 108,
+              "width": 25,
+              "height": 19
+            }
+          }
+        },
+        {
+          "name": "eye_R_04",
+          "source": "parts\\eye_right_set\\eye_right_04.png",
+          "left": 675,
+          "top": 202,
+          "metadata": {
+            "zone": "eye_right_set",
+            "pixelCount": 395,
+            "bbox": {
+              "minX": 40,
+              "minY": 120,
+              "maxX": 64,
+              "maxY": 141,
+              "width": 25,
+              "height": 22
+            }
+          }
+        },
+        {
+          "name": "eye_R_05",
+          "source": "parts\\eye_right_set\\eye_right_05.png",
+          "left": 672,
+          "top": 304,
+          "metadata": {
+            "zone": "eye_right_set",
+            "pixelCount": 237,
+            "bbox": {
+              "minX": 37,
+              "minY": 222,
+              "maxX": 68,
+              "maxY": 231,
+              "width": 32,
+              "height": 10
+            }
+          }
+        },
+        {
+          "name": "mouth_01",
+          "source": "parts\\mouth_set\\mouth_01.png",
+          "left": 796,
+          "top": 130,
+          "metadata": {
+            "zone": "mouth_set",
+            "pixelCount": 171,
+            "bbox": {
+              "minX": 26,
+              "minY": 27,
+              "maxX": 43,
+              "maxY": 39,
+              "width": 18,
+              "height": 13
+            }
+          }
+        },
+        {
+          "name": "mouth_02",
+          "source": "parts\\mouth_set\\mouth_02.png",
+          "left": 796,
+          "top": 170,
+          "metadata": {
+            "zone": "mouth_set",
+            "pixelCount": 143,
+            "bbox": {
+              "minX": 26,
+              "minY": 67,
+              "maxX": 43,
+              "maxY": 78,
+              "width": 18,
+              "height": 12
+            }
+          }
+        },
+        {
+          "name": "mouth_03",
+          "source": "parts\\mouth_set\\mouth_03.png",
+          "left": 798,
+          "top": 209,
+          "metadata": {
+            "zone": "mouth_set",
+            "pixelCount": 102,
+            "bbox": {
+              "minX": 28,
+              "minY": 106,
+              "maxX": 41,
+              "maxY": 117,
+              "width": 14,
+              "height": 12
+            }
+          }
+        },
+        {
+          "name": "mouth_04",
+          "source": "parts\\mouth_set\\mouth_04.png",
+          "left": 796,
+          "top": 247,
+          "metadata": {
+            "zone": "mouth_set",
+            "pixelCount": 134,
+            "bbox": {
+              "minX": 26,
+              "minY": 144,
+              "maxX": 43,
+              "maxY": 155,
+              "width": 18,
+              "height": 12
+            }
+          }
+        },
+        {
+          "name": "mouth_05",
+          "source": "parts\\mouth_set\\mouth_05.png",
+          "left": 797,
+          "top": 282,
+          "metadata": {
+            "zone": "mouth_set",
+            "pixelCount": 179,
+            "bbox": {
+              "minX": 27,
+              "minY": 179,
+              "maxX": 43,
+              "maxY": 193,
+              "width": 17,
+              "height": 15
+            }
+          }
+        },
+        {
+          "name": "exp_face_01",
+          "source": "parts\\expression_top\\expression_top_01.png",
+          "left": 867,
+          "top": 99,
+          "metadata": {
+            "zone": "expression_top",
+            "pixelCount": 5278,
+            "bbox": {
+              "minX": 0,
+              "minY": 3,
+              "maxX": 71,
+              "maxY": 88,
+              "width": 72,
+              "height": 86
+            }
+          }
+        },
+        {
+          "name": "exp_face_02",
+          "source": "parts\\expression_top\\expression_top_02.png",
+          "left": 942,
+          "top": 99,
+          "metadata": {
+            "zone": "expression_top",
+            "pixelCount": 6138,
+            "bbox": {
+              "minX": 75,
+              "minY": 3,
+              "maxX": 162,
+              "maxY": 88,
+              "width": 88,
+              "height": 86
+            }
+          }
+        },
+        {
+          "name": "exp_face_03",
+          "source": "parts\\expression_top\\expression_top_03.png",
+          "left": 1031,
+          "top": 99,
+          "metadata": {
+            "zone": "expression_top",
+            "pixelCount": 6080,
+            "bbox": {
+              "minX": 164,
+              "minY": 3,
+              "maxX": 247,
+              "maxY": 88,
+              "width": 84,
+              "height": 86
+            }
+          }
+        },
+        {
+          "name": "exp_face_04",
+          "source": "parts\\expression_bottom\\expression_bottom_01.png",
+          "left": 867,
+          "top": 224,
+          "metadata": {
+            "zone": "expression_bottom",
+            "pixelCount": 17764,
+            "bbox": {
+              "minX": 0,
+              "minY": 5,
+              "maxX": 247,
+              "maxY": 88,
+              "width": 248,
+              "height": 84
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "subzones": [
+          {
+            "zoneRect": {
+              "left": 282,
+              "top": 82,
+              "width": 178,
+              "height": 281
+            },
+            "detectedCount": 2,
+            "zoneId": "face_base_set"
+          },
+          {
+            "zoneRect": {
+              "left": 506,
+              "top": 82,
+              "width": 80,
+              "height": 260
+            },
+            "detectedCount": 6,
+            "zoneId": "eye_left_set"
+          },
+          {
+            "zoneRect": {
+              "left": 635,
+              "top": 82,
+              "width": 81,
+              "height": 260
+            },
+            "detectedCount": 5,
+            "zoneId": "eye_right_set"
+          },
+          {
+            "zoneRect": {
+              "left": 770,
+              "top": 103,
+              "width": 52,
+              "height": 205
+            },
+            "detectedCount": 5,
+            "zoneId": "mouth_set"
+          },
+          {
+            "zoneRect": {
+              "left": 867,
+              "top": 96,
+              "width": 248,
+              "height": 123
+            },
+            "detectedCount": 3,
+            "zoneId": "expression_top"
+          },
+          {
+            "zoneRect": {
+              "left": 867,
+              "top": 219,
+              "width": 248,
+              "height": 123
+            },
+            "detectedCount": 1,
+            "zoneId": "expression_bottom"
+          }
+        ]
+      }
+    },
+    {
+      "name": "02_hair",
+      "opened": true,
+      "children": [
+        {
+          "name": "hair_back_lower",
+          "source": "parts\\hair_back\\hair_back_02.png",
+          "left": 1035,
+          "top": 475,
+          "metadata": {
+            "zone": "hair_back",
+            "pixelCount": 5686,
+            "bbox": {
+              "minX": 104,
+              "minY": 30,
+              "maxX": 188,
+              "maxY": 131,
+              "width": 85,
+              "height": 102
+            }
+          }
+        },
+        {
+          "name": "hair_back_upper",
+          "source": "parts\\hair_back\\hair_back_01.png",
+          "left": 936,
+          "top": 463,
+          "metadata": {
+            "zone": "hair_back",
+            "pixelCount": 8077,
+            "bbox": {
+              "minX": 5,
+              "minY": 18,
+              "maxX": 101,
+              "maxY": 132,
+              "width": 97,
+              "height": 115
+            }
+          }
+        },
+        {
+          "name": "hair_side_L_back",
+          "source": "parts\\hair_side\\hair_side_02.png",
+          "left": 620,
+          "top": 463,
+          "metadata": {
+            "zone": "hair_side",
+            "pixelCount": 3115,
+            "bbox": {
+              "minX": 80,
+              "minY": 18,
+              "maxX": 122,
+              "maxY": 140,
+              "width": 43,
+              "height": 123
+            }
+          }
+        },
+        {
+          "name": "hair_side_R_back",
+          "source": "parts\\hair_side\\hair_side_04.png",
+          "left": 785,
+          "top": 463,
+          "metadata": {
+            "zone": "hair_side",
+            "pixelCount": 1907,
+            "bbox": {
+              "minX": 245,
+              "minY": 18,
+              "maxX": 273,
+              "maxY": 140,
+              "width": 29,
+              "height": 123
+            }
+          }
+        },
+        {
+          "name": "hair_front_L",
+          "source": "parts\\hair_front\\hair_front_02.png",
+          "left": 376,
+          "top": 463,
+          "metadata": {
+            "zone": "hair_front",
+            "pixelCount": 2693,
+            "bbox": {
+              "minX": 100,
+              "minY": 18,
+              "maxX": 139,
+              "maxY": 139,
+              "width": 40,
+              "height": 122
+            }
+          }
+        },
+        {
+          "name": "hair_front_center",
+          "source": "parts\\hair_front\\hair_front_01.png",
+          "left": 290,
+          "top": 466,
+          "metadata": {
+            "zone": "hair_front",
+            "pixelCount": 3972,
+            "bbox": {
+              "minX": 14,
+              "minY": 21,
+              "maxX": 83,
+              "maxY": 115,
+              "width": 70,
+              "height": 95
+            }
+          }
+        },
+        {
+          "name": "hair_front_R",
+          "source": "parts\\hair_front\\hair_front_03.png",
+          "left": 470,
+          "top": 463,
+          "metadata": {
+            "zone": "hair_front",
+            "pixelCount": 2702,
+            "bbox": {
+              "minX": 194,
+              "minY": 18,
+              "maxX": 229,
+              "maxY": 139,
+              "width": 36,
+              "height": 122
+            }
+          }
+        },
+        {
+          "name": "hair_side_L_front",
+          "source": "parts\\hair_side\\hair_side_01.png",
+          "left": 540,
+          "top": 463,
+          "metadata": {
+            "zone": "hair_side",
+            "pixelCount": 1790,
+            "bbox": {
+              "minX": 0,
+              "minY": 18,
+              "maxX": 25,
+              "maxY": 140,
+              "width": 26,
+              "height": 123
+            }
+          }
+        },
+        {
+          "name": "hair_side_R_front",
+          "source": "parts\\hair_side\\hair_side_03.png",
+          "left": 688,
+          "top": 463,
+          "metadata": {
+            "zone": "hair_side",
+            "pixelCount": 3043,
+            "bbox": {
+              "minX": 148,
+              "minY": 18,
+              "maxX": 191,
+              "maxY": 140,
+              "width": 44,
+              "height": 123
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "subzones": [
+          {
+            "zoneRect": {
+              "left": 276,
+              "top": 445,
+              "width": 235,
+              "height": 151
+            },
+            "detectedCount": 3,
+            "zoneId": "hair_front"
+          },
+          {
+            "zoneRect": {
+              "left": 540,
+              "top": 445,
+              "width": 293,
+              "height": 151
+            },
+            "detectedCount": 4,
+            "zoneId": "hair_side"
+          },
+          {
+            "zoneRect": {
+              "left": 931,
+              "top": 445,
+              "width": 189,
+              "height": 151
+            },
+            "detectedCount": 2,
+            "zoneId": "hair_back"
+          }
+        ]
+      }
+    },
+    {
+      "name": "03_body_clothes",
+      "opened": true,
+      "children": [
+        {
+          "name": "torso_base",
+          "source": "parts\\body_clothes_all\\body_clothes_04.png",
+          "left": 376,
+          "top": 680,
+          "metadata": {
+            "zone": "body_clothes_all",
+            "pixelCount": 4141,
+            "bbox": {
+              "minX": 112,
+              "minY": 37,
+              "maxX": 179,
+              "maxY": 168,
+              "width": 68,
+              "height": 132
+            }
+          }
+        },
+        {
+          "name": "neck",
+          "source": "parts\\body_clothes_all\\body_clothes_01.png",
+          "left": 286,
+          "top": 701,
+          "metadata": {
+            "zone": "body_clothes_all",
+            "pixelCount": 1544,
+            "bbox": {
+              "minX": 22,
+              "minY": 58,
+              "maxX": 80,
+              "maxY": 111,
+              "width": 59,
+              "height": 54
+            }
+          }
+        },
+        {
+          "name": "shirt",
+          "source": "parts\\body_clothes_all\\body_clothes_05.png",
+          "left": 469,
+          "top": 683,
+          "metadata": {
+            "zone": "body_clothes_all",
+            "pixelCount": 5852,
+            "bbox": {
+              "minX": 205,
+              "minY": 40,
+              "maxX": 300,
+              "maxY": 163,
+              "width": 96,
+              "height": 124
+            }
+          }
+        },
+        {
+          "name": "sweater",
+          "source": "parts\\body_clothes_all\\body_clothes_06.png",
+          "left": 659,
+          "top": 678,
+          "metadata": {
+            "zone": "body_clothes_all",
+            "pixelCount": 7910,
+            "bbox": {
+              "minX": 395,
+              "minY": 35,
+              "maxX": 479,
+              "maxY": 179,
+              "width": 85,
+              "height": 145
+            }
+          }
+        },
+        {
+          "name": "hoodie_body",
+          "source": "parts\\body_clothes_all\\body_clothes_07.png",
+          "left": 752,
+          "top": 678,
+          "metadata": {
+            "zone": "body_clothes_all",
+            "pixelCount": 11603,
+            "bbox": {
+              "minX": 488,
+              "minY": 35,
+              "maxX": 590,
+              "maxY": 178,
+              "width": 103,
+              "height": 144
+            }
+          }
+        },
+        {
+          "name": "hoodie_hood",
+          "source": "parts\\body_clothes_all\\body_clothes_03.png",
+          "left": 875,
+          "top": 694,
+          "metadata": {
+            "zone": "body_clothes_all",
+            "pixelCount": 2822,
+            "bbox": {
+              "minX": 611,
+              "minY": 51,
+              "maxX": 673,
+              "maxY": 122,
+              "width": 63,
+              "height": 72
+            }
+          }
+        },
+        {
+          "name": "sleeve_L",
+          "source": "parts\\body_clothes_all\\body_clothes_08.png",
+          "left": 964,
+          "top": 680,
+          "metadata": {
+            "zone": "body_clothes_all",
+            "pixelCount": 3719,
+            "bbox": {
+              "minX": 700,
+              "minY": 37,
+              "maxX": 754,
+              "maxY": 168,
+              "width": 55,
+              "height": 132
+            }
+          }
+        },
+        {
+          "name": "sleeve_R",
+          "source": "parts\\body_clothes_all\\body_clothes_09.png",
+          "left": 1067,
+          "top": 680,
+          "metadata": {
+            "zone": "body_clothes_all",
+            "pixelCount": 3762,
+            "bbox": {
+              "minX": 803,
+              "minY": 37,
+              "maxX": 856,
+              "maxY": 168,
+              "width": 54,
+              "height": 132
+            }
+          }
+        },
+        {
+          "name": "ribbon",
+          "source": "parts\\body_clothes_all\\body_clothes_02.png",
+          "left": 594,
+          "top": 685,
+          "metadata": {
+            "zone": "body_clothes_all",
+            "pixelCount": 1672,
+            "bbox": {
+              "minX": 330,
+              "minY": 42,
+              "maxX": 370,
+              "maxY": 126,
+              "width": 41,
+              "height": 85
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "subzones": [
+          {
+            "zoneRect": {
+              "left": 264,
+              "top": 643,
+              "width": 862,
+              "height": 247
+            },
+            "detectedCount": 16,
+            "zoneId": "body_clothes_all"
+          }
+        ]
+      }
+    },
+    {
+      "name": "04_arms_hands",
+      "opened": true,
+      "children": [
+        {
+          "name": "arm_upper_L",
+          "source": "parts\\arms_hands_all\\arms_hands_03.png",
+          "left": 289,
+          "top": 919,
+          "metadata": {
+            "zone": "arms_hands_all",
+            "pixelCount": 962,
+            "bbox": {
+              "minX": 25,
+              "minY": 29,
+              "maxX": 67,
+              "maxY": 132,
+              "width": 43,
+              "height": 104
+            }
+          }
+        },
+        {
+          "name": "arm_fore_L",
+          "source": "parts\\arms_hands_all\\arms_hands_04.png",
+          "left": 343,
+          "top": 919,
+          "metadata": {
+            "zone": "arms_hands_all",
+            "pixelCount": 722,
+            "bbox": {
+              "minX": 79,
+              "minY": 29,
+              "maxX": 114,
+              "maxY": 130,
+              "width": 36,
+              "height": 102
+            }
+          }
+        },
+        {
+          "name": "hand_L_01",
+          "source": "parts\\arms_hands_all\\arms_hands_01.png",
+          "left": 393,
+          "top": 919,
+          "metadata": {
+            "zone": "arms_hands_all",
+            "pixelCount": 280,
+            "bbox": {
+              "minX": 129,
+              "minY": 29,
+              "maxX": 144,
+              "maxY": 56,
+              "width": 16,
+              "height": 28
+            }
+          }
+        },
+        {
+          "name": "hand_L_02",
+          "source": "parts\\arms_hands_all\\arms_hands_02.png",
+          "left": 424,
+          "top": 920,
+          "metadata": {
+            "zone": "arms_hands_all",
+            "pixelCount": 290,
+            "bbox": {
+              "minX": 160,
+              "minY": 30,
+              "maxX": 174,
+              "maxY": 56,
+              "width": 15,
+              "height": 27
+            }
+          }
+        },
+        {
+          "name": "hand_L_03",
+          "source": "parts\\arms_hands_all\\arms_hands_05.png",
+          "left": 394,
+          "top": 955,
+          "metadata": {
+            "zone": "arms_hands_all",
+            "pixelCount": 307,
+            "bbox": {
+              "minX": 130,
+              "minY": 65,
+              "maxX": 144,
+              "maxY": 93,
+              "width": 15,
+              "height": 29
+            }
+          }
+        },
+        {
+          "name": "hand_L_04",
+          "source": "parts\\arms_hands_all\\arms_hands_06.png",
+          "left": 424,
+          "top": 954,
+          "metadata": {
+            "zone": "arms_hands_all",
+            "pixelCount": 276,
+            "bbox": {
+              "minX": 160,
+              "minY": 64,
+              "maxX": 173,
+              "maxY": 93,
+              "width": 14,
+              "height": 30
+            }
+          }
+        },
+        {
+          "name": "arm_upper_R",
+          "source": "parts\\arms_hands_all\\arms_hands_07.png",
+          "left": 469,
+          "top": 920,
+          "metadata": {
+            "zone": "arms_hands_all",
+            "pixelCount": 911,
+            "bbox": {
+              "minX": 205,
+              "minY": 30,
+              "maxX": 240,
+              "maxY": 131,
+              "width": 36,
+              "height": 102
+            }
+          }
+        },
+        {
+          "name": "arm_fore_R_inner",
+          "source": "parts\\arms_hands_all\\arms_hands_08.png",
+          "left": 528,
+          "top": 920,
+          "metadata": {
+            "zone": "arms_hands_all",
+            "pixelCount": 1225,
+            "bbox": {
+              "minX": 264,
+              "minY": 30,
+              "maxX": 285,
+              "maxY": 131,
+              "width": 22,
+              "height": 102
+            }
+          }
+        },
+        {
+          "name": "arm_fore_R_outer",
+          "source": "parts\\arms_hands_all\\arms_hands_09.png",
+          "left": 559,
+          "top": 919,
+          "metadata": {
+            "zone": "arms_hands_all",
+            "pixelCount": 1527,
+            "bbox": {
+              "minX": 295,
+              "minY": 29,
+              "maxX": 336,
+              "maxY": 131,
+              "width": 42,
+              "height": 103
+            }
+          }
+        },
+        {
+          "name": "hand_R_01",
+          "source": "parts\\arms_hands_all\\arms_hands_10.png",
+          "left": 391,
+          "top": 991,
+          "metadata": {
+            "zone": "arms_hands_all",
+            "pixelCount": 300,
+            "bbox": {
+              "minX": 127,
+              "minY": 101,
+              "maxX": 144,
+              "maxY": 127,
+              "width": 18,
+              "height": 27
+            }
+          }
+        },
+        {
+          "name": "hand_R_02",
+          "source": "parts\\arms_hands_all\\arms_hands_11.png",
+          "left": 424,
+          "top": 991,
+          "metadata": {
+            "zone": "arms_hands_all",
+            "pixelCount": 263,
+            "bbox": {
+              "minX": 160,
+              "minY": 101,
+              "maxX": 173,
+              "maxY": 127,
+              "width": 14,
+              "height": 27
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "subzones": [
+          {
+            "zoneRect": {
+              "left": 264,
+              "top": 890,
+              "width": 379,
+              "height": 205
+            },
+            "detectedCount": 15,
+            "zoneId": "arms_hands_all"
+          }
+        ]
+      }
+    },
+    {
+      "name": "05_lower_body",
+      "opened": true,
+      "children": [
+        {
+          "name": "leg_L",
+          "source": "parts\\lower_body_all\\lower_body_02.png",
+          "left": 787,
+          "top": 910,
+          "metadata": {
+            "zone": "lower_body_all",
+            "pixelCount": 2581,
+            "bbox": {
+              "minX": 144,
+              "minY": 0,
+              "maxX": 180,
+              "maxY": 93,
+              "width": 37,
+              "height": 94
+            }
+          }
+        },
+        {
+          "name": "leg_R",
+          "source": "parts\\lower_body_all\\lower_body_03.png",
+          "left": 884,
+          "top": 910,
+          "metadata": {
+            "zone": "lower_body_all",
+            "pixelCount": 2491,
+            "bbox": {
+              "minX": 241,
+              "minY": 0,
+              "maxX": 274,
+              "maxY": 92,
+              "width": 34,
+              "height": 93
+            }
+          }
+        },
+        {
+          "name": "sock_L",
+          "source": "parts\\lower_body_all\\lower_body_04.png",
+          "left": 963,
+          "top": 912,
+          "metadata": {
+            "zone": "lower_body_all",
+            "pixelCount": 1485,
+            "bbox": {
+              "minX": 320,
+              "minY": 2,
+              "maxX": 341,
+              "maxY": 94,
+              "width": 22,
+              "height": 93
+            }
+          }
+        },
+        {
+          "name": "sock_R",
+          "source": "parts\\lower_body_all\\lower_body_05.png",
+          "left": 1000,
+          "top": 911,
+          "metadata": {
+            "zone": "lower_body_all",
+            "pixelCount": 1594,
+            "bbox": {
+              "minX": 357,
+              "minY": 1,
+              "maxX": 380,
+              "maxY": 95,
+              "width": 24,
+              "height": 95
+            }
+          }
+        },
+        {
+          "name": "shoe_L",
+          "source": "parts\\lower_body_all\\lower_body_06.png",
+          "left": 1049,
+          "top": 929,
+          "metadata": {
+            "zone": "lower_body_all",
+            "pixelCount": 1620,
+            "bbox": {
+              "minX": 406,
+              "minY": 19,
+              "maxX": 433,
+              "maxY": 92,
+              "width": 28,
+              "height": 74
+            }
+          }
+        },
+        {
+          "name": "shoe_R",
+          "source": "parts\\lower_body_all\\lower_body_07.png",
+          "left": 1091,
+          "top": 929,
+          "metadata": {
+            "zone": "lower_body_all",
+            "pixelCount": 1716,
+            "bbox": {
+              "minX": 448,
+              "minY": 19,
+              "maxX": 475,
+              "maxY": 91,
+              "width": 28,
+              "height": 73
+            }
+          }
+        },
+        {
+          "name": "skirt_base",
+          "source": "parts\\lower_body_all\\lower_body_01.png",
+          "left": 654,
+          "top": 914,
+          "metadata": {
+            "zone": "lower_body_all",
+            "pixelCount": 7166,
+            "bbox": {
+              "minX": 11,
+              "minY": 4,
+              "maxX": 110,
+              "maxY": 91,
+              "width": 100,
+              "height": 88
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "subzones": [
+          {
+            "zoneRect": {
+              "left": 643,
+              "top": 910,
+              "width": 483,
+              "height": 144
+            },
+            "detectedCount": 7,
+            "zoneId": "lower_body_all"
+          }
+        ]
+      }
+    },
+    {
+      "name": "06_effects",
+      "opened": true,
+      "children": [
+        {
+          "name": "shadow_large",
+          "source": "parts\\effects_main_right\\effects_right_06.png",
+          "left": 980,
+          "top": 1143,
+          "metadata": {
+            "zone": "effects_main_right",
+            "pixelCount": 1466,
+            "bbox": {
+              "minX": 377,
+              "minY": 0,
+              "maxX": 420,
+              "maxY": 42,
+              "width": 44,
+              "height": 43
+            }
+          }
+        },
+        {
+          "name": "shadow_01",
+          "source": "parts\\effects_main_left\\effects_left_05.png",
+          "left": 170,
+          "top": 1143,
+          "metadata": {
+            "zone": "effects_main_left",
+            "pixelCount": 567,
+            "bbox": {
+              "minX": 159,
+              "minY": 0,
+              "maxX": 187,
+              "maxY": 32,
+              "width": 29,
+              "height": 33
+            }
+          }
+        },
+        {
+          "name": "shadow_02",
+          "source": "parts\\effects_main_left\\effects_left_06.png",
+          "left": 223,
+          "top": 1143,
+          "metadata": {
+            "zone": "effects_main_left",
+            "pixelCount": 705,
+            "bbox": {
+              "minX": 212,
+              "minY": 0,
+              "maxX": 233,
+              "maxY": 38,
+              "width": 22,
+              "height": 39
+            }
+          }
+        },
+        {
+          "name": "shadow_03",
+          "source": "parts\\effects_main_left\\effects_left_07.png",
+          "left": 278,
+          "top": 1143,
+          "metadata": {
+            "zone": "effects_main_left",
+            "pixelCount": 496,
+            "bbox": {
+              "minX": 267,
+              "minY": 0,
+              "maxX": 290,
+              "maxY": 35,
+              "width": 24,
+              "height": 36
+            }
+          }
+        },
+        {
+          "name": "cloth_wrinkle_panel",
+          "source": "parts\\effects_main_left\\effects_left_08.png",
+          "left": 452,
+          "top": 1143,
+          "metadata": {
+            "zone": "effects_main_left",
+            "pixelCount": 5040,
+            "bbox": {
+              "minX": 441,
+              "minY": 0,
+              "maxX": 563,
+              "maxY": 41,
+              "width": 123,
+              "height": 42
+            }
+          }
+        },
+        {
+          "name": "chest_cloth_L",
+          "source": "parts\\effects_main_right\\effects_right_04.png",
+          "left": 830,
+          "top": 1143,
+          "metadata": {
+            "zone": "effects_main_right",
+            "pixelCount": 811,
+            "bbox": {
+              "minX": 227,
+              "minY": 0,
+              "maxX": 255,
+              "maxY": 37,
+              "width": 29,
+              "height": 38
+            }
+          }
+        },
+        {
+          "name": "skirt_fold_line",
+          "source": "parts\\effects_main_right\\effects_right_05.png",
+          "left": 875,
+          "top": 1154,
+          "metadata": {
+            "zone": "effects_main_right",
+            "pixelCount": 354,
+            "bbox": {
+              "minX": 272,
+              "minY": 11,
+              "maxX": 341,
+              "maxY": 20,
+              "width": 70,
+              "height": 10
+            }
+          }
+        },
+        {
+          "name": "hoodie_zipper_pull",
+          "source": "parts\\effects_main_right\\effects_right_01.png",
+          "left": 636,
+          "top": 1143,
+          "metadata": {
+            "zone": "effects_main_right",
+            "pixelCount": 535,
+            "bbox": {
+              "minX": 33,
+              "minY": 0,
+              "maxX": 49,
+              "maxY": 38,
+              "width": 17,
+              "height": 39
+            }
+          }
+        },
+        {
+          "name": "hoodie_string_L",
+          "source": "parts\\effects_main_right\\effects_right_02.png",
+          "left": 729,
+          "top": 1143,
+          "metadata": {
+            "zone": "effects_main_right",
+            "pixelCount": 272,
+            "bbox": {
+              "minX": 126,
+              "minY": 0,
+              "maxX": 135,
+              "maxY": 42,
+              "width": 10,
+              "height": 43
+            }
+          }
+        },
+        {
+          "name": "hoodie_string_R",
+          "source": "parts\\effects_main_right\\effects_right_03.png",
+          "left": 776,
+          "top": 1143,
+          "metadata": {
+            "zone": "effects_main_right",
+            "pixelCount": 1194,
+            "bbox": {
+              "minX": 173,
+              "minY": 0,
+              "maxX": 219,
+              "maxY": 35,
+              "width": 47,
+              "height": 36
+            }
+          }
+        },
+        {
+          "name": "blush_L",
+          "source": "parts\\effects_main_left\\effects_left_03.png",
+          "left": 341,
+          "top": 1143,
+          "metadata": {
+            "zone": "effects_main_left",
+            "pixelCount": 305,
+            "bbox": {
+              "minX": 330,
+              "minY": 0,
+              "maxX": 364,
+              "maxY": 11,
+              "width": 35,
+              "height": 12
+            }
+          }
+        },
+        {
+          "name": "blush_R",
+          "source": "parts\\effects_main_left\\effects_left_04.png",
+          "left": 392,
+          "top": 1143,
+          "metadata": {
+            "zone": "effects_main_left",
+            "pixelCount": 300,
+            "bbox": {
+              "minX": 381,
+              "minY": 0,
+              "maxX": 414,
+              "maxY": 11,
+              "width": 34,
+              "height": 12
+            }
+          }
+        },
+        {
+          "name": "hair_highlight_L_01",
+          "source": "parts\\effects_main_left\\effects_left_01.png",
+          "left": 33,
+          "top": 1143,
+          "metadata": {
+            "zone": "effects_main_left",
+            "pixelCount": 189,
+            "bbox": {
+              "minX": 22,
+              "minY": 0,
+              "maxX": 32,
+              "maxY": 28,
+              "width": 11,
+              "height": 29
+            }
+          }
+        },
+        {
+          "name": "hair_highlight_L_02",
+          "source": "parts\\effects_main_left\\effects_left_02.png",
+          "left": 60,
+          "top": 1143,
+          "metadata": {
+            "zone": "effects_main_left",
+            "pixelCount": 383,
+            "bbox": {
+              "minX": 49,
+              "minY": 0,
+              "maxX": 68,
+              "maxY": 27,
+              "width": 20,
+              "height": 28
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "subzones": [
+          {
+            "zoneRect": {
+              "left": 11,
+              "top": 1143,
+              "width": 564,
+              "height": 96
+            },
+            "detectedCount": 10,
+            "zoneId": "effects_main_left"
+          },
+          {
+            "zoneRect": {
+              "left": 603,
+              "top": 1143,
+              "width": 529,
+              "height": 96
+            },
+            "detectedCount": 7,
+            "zoneId": "effects_main_right"
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "presetName": "live2d-guide-sheet-default",
+    "zoneCount": 14,
+    "curated": true,
+    "curatedProfile": "school-girl",
+    "curatedAt": "2026-04-28T09:45:25.886Z"
+  }
+}

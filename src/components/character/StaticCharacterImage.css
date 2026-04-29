@@ -4,7 +4,7 @@
     align-items: flex-end;
     justify-content: center;
     max-width: 100%;
-    overflow: visible;
+    overflow: var(--character-stage-overflow, visible);
 }
 
 .character-static-base-image {

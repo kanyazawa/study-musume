@@ -7,6 +7,7 @@ import CharacterStage from '../components/character/CharacterStage';
 import TappableVocabText from '../components/TappableVocabText';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { createStoryPose } from '../utils/characterPoseUtils';
+import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
 
 const StoryReader = ({ stats }) => {
     const { episodeId } = useParams();
@@ -46,15 +47,19 @@ const StoryReader = ({ stats }) => {
     const characterId = stats?.characterId || 'noah';
     const isRen = characterId === 'ren';
     const preferredRenderer = stats?.characterRenderer;
+    const skinId = stats?.equippedSkin || 'default';
+    const hasStoryLive2D = hasLive2DModelConfig(characterId, skinId);
+    const shouldForceStoryLive2D = characterId === 'noah' && hasStoryLive2D;
 
     // スピーカーの名前を置き換え（レンを選んでいる場合）
     const displaySpeaker = (scene.speaker === 'ノア' && isRen) ? 'レン' : scene.speaker;
-    const isCharacterSpeaking = displaySpeaker === 'ノア' || displaySpeaker === 'レン' || displaySpeaker === 'あなた';
-    const storyPose = createStoryPose(scene, { speaking: displaySpeaker === 'ノア' || displaySpeaker === 'レン' });
+    const isCharacterLine = displaySpeaker === 'ノア' || displaySpeaker === 'レン';
+    const shouldShowCharacter = displaySpeaker === 'モノローグ' || isCharacterLine || displaySpeaker === 'あなた';
+    const storyPose = createStoryPose(scene, { speaking: isCharacterLine });
     const renderer = resolveCharacterRenderer({
-        preferredRenderer,
+        preferredRenderer: shouldForceStoryLive2D ? 'live2d' : preferredRenderer,
         characterId,
-        skinId: stats?.equippedSkin || 'default',
+        skinId,
     });
 
     return (
@@ -65,12 +70,12 @@ const StoryReader = ({ stats }) => {
             </div>
 
             {/* キャラクター画像 */}
-            {isCharacterSpeaking && (
-                <div className="story-character">
+            {shouldShowCharacter && (
+                <div className={`story-character ${renderer === 'live2d' ? 'is-live2d' : ''}`}>
                     <CharacterStage
                         characterId={characterId}
                         renderer={renderer}
-                        skinId={stats?.equippedSkin || 'default'}
+                        skinId={skinId}
                         scene="story"
                         pose={storyPose}
                         className="character-story"

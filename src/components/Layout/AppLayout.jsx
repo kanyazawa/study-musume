@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Footer from './Footer';
 
-const HIDE_FOOTER_PATHS = ['/opening', '/study', '/dialogue', '/character-select', '/story', '/relationship-events', '/multiplayer-match', '/review', '/missions', '/writing', '/expression-preview', '/custom-vocab/flashcards'];
+const HIDE_FOOTER_PATHS = ['/opening', '/study', '/dialogue', '/character-select', '/story', '/relationship-events', '/multiplayer-match', '/review', '/missions', '/missions-v0', '/writing', '/expression-preview', '/custom-vocab/flashcards'];
 
 const matchesRoutePrefix = (pathname, routePrefix) =>
   pathname === routePrefix || pathname.startsWith(`${routePrefix}/`);

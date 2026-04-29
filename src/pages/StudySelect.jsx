@@ -313,7 +313,7 @@ const StudySelect = () => {
                             >
                                 <span className="review-icon">N</span>
                                 <span className="review-label">自作単語ノート</span>
-                                <span className="review-hint">単語を追加してそのまま学習</span>
+                                <span className="review-hint">単語を追加して覚える</span>
                             </button>
                         </div>
                     </>
