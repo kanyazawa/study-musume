@@ -47,7 +47,7 @@ describe('relationshipUtils', () => {
 
         const snapshot = getRelationshipSnapshot(stats);
 
-        expect(snapshot.stageLabel).toBe('親しい友達');
+        expect(snapshot.stageLabel).toBe('特別な存在');
         expect(snapshot.latestMomentTitle).toBe('一緒に勉強を進めた');
         expect(snapshot.nextHint).toContain('あと');
     });

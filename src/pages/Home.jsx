@@ -833,24 +833,22 @@ const Home = ({ stats, updateStats }) => {
                 </div>
 
                 {/* Action Buttons */}
-                <div className={`action-area${lastStudyTopic ? ' has-resume' : ''}`}>
+                <div className="action-area has-resume">
                     <button className="battle-btn-large" onClick={() => navigate('/multiplayer-match')}>
                         <span>⚔️ 単語バトル</span>
                     </button>
-                    {lastStudyTopic && (
-                        <button
-                            type="button"
-                            className="resume-study-btn-large"
-                            onClick={handleResumeStudy}
-                            aria-label={getResumeStudyLabel()}
-                            title={getResumeStudyLabel()}
-                        >
-                            <span className="resume-study-main">▶ 前回の続きから</span>
-                            <span className="resume-study-sub">
-                                {lastStudyTopic.resumeLabel || lastStudyTopic.topicName || '前回の学習'}
-                            </span>
-                        </button>
-                    )}
+                    <button
+                        type="button"
+                        className="resume-study-btn-large"
+                        onClick={handleResumeStudy}
+                        aria-label={getResumeStudyLabel()}
+                        title={getResumeStudyLabel()}
+                    >
+                        <span className="resume-study-main">▶ 前回の続きから</span>
+                        <span className="resume-study-sub">
+                            {lastStudyTopic?.resumeLabel || lastStudyTopic?.topicName || '履歴がなければ授業一覧へ'}
+                        </span>
+                    </button>
                     <button className="study-btn-large" onClick={() => navigate('/study')}>
                         <span>📚 授業へ</span>
                     </button>
