@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "chat:check": "node scripts/check-noa-chat.mjs",
     "tts:aivis": "node scripts/export-aivis-voices.mjs",
     "tts:home": "node scripts/export-home-reaction-voices.mjs",
     "tts:publish": "node scripts/publish-aivis-scene.mjs",

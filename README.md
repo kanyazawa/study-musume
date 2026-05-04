@@ -49,6 +49,30 @@ npm run lint
 npm run preview
 ```
 
+## Noa Chat の最小設定
+
+ノア会話AIを使うときは、`.env` かデプロイ先の環境変数に次を入れます。
+
+```bash
+OPENAI_API_KEY=...
+OPENAI_CHAT_MODEL=gpt-5-nano
+# または
+GEMINI_API_KEY=...
+GEMINI_CHAT_MODEL=gemini-2.5-flash-lite
+
+CHAT_ENABLED=true
+CHAT_GATEWAY_COOLDOWN_MS=2500
+```
+
+補足:
+
+- `CHAT_ENABLED=false` にすると会話機能を一括停止できます
+- `CHAT_GATEWAY_COOLDOWN_MS` は API入口での最小クールダウンです
+- 公開前チェックは [docs/noa-chat-release-checklist.md](/C:/Users/Hide2/.gemini/study-musume/docs/noa-chat-release-checklist.md) を使ってください
+- 手動確認コマンドは [docs/noa-chat-ops.md](/C:/Users/Hide2/.gemini/study-musume/docs/noa-chat-ops.md) にまとめています
+- スモークチェックは `npm run chat:check` で回せます
+- サーバーなしの自己確認は `npm run chat:check -- --local-worker` で回せます
+
 ## 主要ディレクトリ
 
 ```text

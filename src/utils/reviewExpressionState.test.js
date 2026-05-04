@@ -18,6 +18,7 @@ describe('reviewExpressionState', () => {
         const { characterPose, reviewFaceAccent } = resolveReviewCharacterPose({
             renderer: 'live2d',
             feedback: 'correct',
+            feedbackTone: 'chain_correct',
             correctStreak: 2,
         });
 
@@ -36,6 +37,19 @@ describe('reviewExpressionState', () => {
 
         expect(characterPose.emotion).toBe('angry');
         expect(characterPose.effect).toBe('shake');
+        expect(characterPose.live2dFaceAccent).toBe(null);
+        expect(reviewFaceAccent).toBe(null);
+    });
+
+    it('uses a serious pose for hard misses instead of anger', () => {
+        const { characterPose, reviewFaceAccent } = resolveReviewCharacterPose({
+            feedback: 'incorrect',
+            feedbackTone: 'hard_incorrect',
+            persistentEmotion: 'serious',
+        });
+
+        expect(characterPose.emotion).toBe('serious');
+        expect(characterPose.effect).toBe('');
         expect(characterPose.live2dFaceAccent).toBe(null);
         expect(reviewFaceAccent).toBe(null);
     });

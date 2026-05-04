@@ -112,6 +112,14 @@
     filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5)) brightness(0.9);
 }
 
+.dialogue-screen .char-image-dialogue.effect-shake {
+    animation: dialogueCharacterShake 0.34s ease;
+}
+
+.dialogue-screen .char-image-dialogue.effect-glow {
+    animation: dialogueCharacterGlow 1.2s ease-in-out infinite alternate;
+}
+
 .dialogue-screen .character-figure {
     position: absolute;
     top: var(--dialogue-character-top-gap);
@@ -190,6 +198,96 @@
     width: 100%;
 }
 
+.reorder-options-container {
+    gap: 12px;
+}
+
+.reorder-dropzone {
+    min-height: 64px;
+    padding: 12px;
+    border: 2px dashed rgba(74, 144, 226, 0.45);
+    border-radius: 18px;
+    background: rgba(74, 144, 226, 0.08);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.reorder-dropzone.has-answer {
+    background: rgba(74, 144, 226, 0.14);
+}
+
+.reorder-placeholder {
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.reorder-token-bank {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.reorder-action-row {
+    display: flex;
+    gap: 10px;
+}
+
+.reorder-picked-token,
+.reorder-token-btn,
+.reorder-secondary-btn,
+.reorder-submit-btn {
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.reorder-picked-token,
+.reorder-token-btn {
+    background: white;
+    border: 2px solid #4a90e2;
+    color: #4a90e2;
+    padding: 8px 14px;
+}
+
+.reorder-picked-token:hover,
+.reorder-token-btn:hover {
+    background: #4a90e2;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.reorder-secondary-btn,
+.reorder-submit-btn {
+    border: none;
+    padding: 10px 16px;
+}
+
+.reorder-secondary-btn {
+    background: rgba(107, 114, 128, 0.14);
+    color: #374151;
+}
+
+.reorder-submit-btn {
+    background: #4a90e2;
+    color: white;
+}
+
+.reorder-secondary-btn:disabled,
+.reorder-submit-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.reorder-secondary-btn:hover:not(:disabled),
+.reorder-submit-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
 /* Feedback Overlay */
 .feedback-overlay {
     position: absolute;
@@ -203,6 +301,73 @@
     pointer-events: none;
     animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
+
+.dialogue-fever-active::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 45;
+    background:
+        radial-gradient(circle at 50% 26%, rgba(255, 219, 97, 0.34), transparent 22%),
+        radial-gradient(circle at 0% 48%, rgba(255, 154, 74, 0.22), transparent 28%),
+        radial-gradient(circle at 100% 50%, rgba(255, 118, 136, 0.2), transparent 30%),
+        radial-gradient(circle at 10% 14%, rgba(255, 218, 127, 0.18), transparent 22%),
+        radial-gradient(circle at 90% 16%, rgba(255, 177, 93, 0.15), transparent 22%),
+        linear-gradient(90deg, rgba(255, 160, 82, 0.14), transparent 18%, transparent 82%, rgba(255, 102, 134, 0.12)),
+        linear-gradient(180deg, rgba(255, 171, 66, 0.12), rgba(255, 83, 133, 0.08));
+    animation: dialogueFeverFlash 0.9s ease-out forwards;
+}
+
+.dialogue-fever-burst {
+    position: absolute;
+    top: 84px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 90;
+    min-width: 172px;
+    padding: 10px 18px 12px;
+    border-radius: 22px;
+    text-align: center;
+    color: #fffdf4;
+    background: linear-gradient(135deg, rgba(255, 136, 66, 0.96), rgba(255, 87, 150, 0.96));
+    box-shadow: 0 18px 42px rgba(120, 43, 12, 0.26);
+    animation: dialogueFeverPop 0.92s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    overflow: visible;
+}
+
+.dialogue-fever-burst span {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+    color: rgba(255, 244, 218, 0.8);
+}
+
+.dialogue-fever-burst strong {
+    display: block;
+    margin-top: 4px;
+    font-size: 1.48rem;
+    letter-spacing: 0.08em;
+}
+
+.dialogue-fever-spark {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    background: linear-gradient(135deg, #fff8cf, #ffd452);
+    box-shadow: 0 0 14px rgba(255, 221, 115, 0.74);
+    transform: rotate(45deg) scale(0.6);
+    opacity: 0;
+    animation: dialogueFeverSpark 0.92s ease-out forwards;
+}
+
+.dialogue-fever-spark-1 { left: 16px; top: 18px; --spark-x: -28px; --spark-y: -18px; animation-delay: 0.03s; }
+.dialogue-fever-spark-2 { right: 18px; top: 16px; --spark-x: 32px; --spark-y: -22px; animation-delay: 0.08s; }
+.dialogue-fever-spark-3 { left: 26px; bottom: 10px; --spark-x: -24px; --spark-y: 22px; animation-delay: 0.12s; }
+.dialogue-fever-spark-4 { right: 30px; bottom: 8px; --spark-x: 24px; --spark-y: 24px; animation-delay: 0.16s; }
+.dialogue-fever-spark-5 { left: 50%; top: -2px; --spark-x: 0px; --spark-y: -34px; animation-delay: 0.2s; }
 
 .feedback-overlay.correct {
     color: #4caf50;
@@ -224,6 +389,75 @@
     100% {
         transform: translate(-50%, -50%) scale(1);
         opacity: 1;
+    }
+}
+
+@keyframes dialogueFeverFlash {
+    0% {
+        opacity: 0;
+    }
+    22% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes dialogueFeverPop {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(10px) scale(0.88);
+    }
+    18% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-2px) scale(1.02);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-18px) scale(0.98);
+    }
+}
+
+@keyframes dialogueFeverSpark {
+    0% {
+        opacity: 0;
+        transform: rotate(45deg) scale(0.4);
+    }
+    22% {
+        opacity: 1;
+        transform: translate(var(--spark-x), var(--spark-y)) rotate(45deg) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(calc(var(--spark-x) * 1.2), calc(var(--spark-y) * 1.2)) rotate(45deg) scale(0.72);
+    }
+}
+
+@keyframes dialogueCharacterShake {
+    0% {
+        transform: translateX(-50%) translateY(3%) scale(1.34);
+    }
+    25% {
+        transform: translateX(calc(-50% - 10px)) translateY(3%) scale(1.34) rotate(-1.5deg);
+    }
+    50% {
+        transform: translateX(calc(-50% + 8px)) translateY(3%) scale(1.34) rotate(1.1deg);
+    }
+    75% {
+        transform: translateX(calc(-50% - 6px)) translateY(3%) scale(1.34) rotate(-0.8deg);
+    }
+    100% {
+        transform: translateX(-50%) translateY(3%) scale(1.34);
+    }
+}
+
+@keyframes dialogueCharacterGlow {
+    0% {
+        filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5)) drop-shadow(0 0 0 rgba(255, 214, 92, 0.18));
+    }
+    100% {
+        filter: drop-shadow(0 0 7px rgba(255, 255, 255, 0.58)) drop-shadow(0 0 18px rgba(255, 214, 92, 0.52));
     }
 }
 

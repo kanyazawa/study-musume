@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gem, Sparkles } from 'lucide-react';
+import { Copy, Gem, Gift, Sparkles, Ticket } from 'lucide-react';
 import CharacterStage from '../components/character/CharacterStage';
 import { useSound } from '../contexts/SoundContext';
+import { getLastStudyTopic } from '../data/studyData';
+import { MISSION_TYPES } from '../data/missions';
 import { getCurrentUser, getUserProfile } from '../firebase/auth';
+import { redeemReferralCode } from '../firebase/referrals';
 import { createHomePose } from '../utils/characterPoseUtils';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { loadAchievementStats } from '../utils/achievementUtils';
@@ -12,7 +15,10 @@ import {
     getAllMissionsWithProgress,
 } from '../utils/missionUtils';
 import { getTtsSettings, TTS_ENGINES } from '../utils/ttsSettings';
-import { getNormalizedDailyReviewProgress } from '../utils/reviewUtils';
+import {
+    getHomeReviewSummary,
+    getNormalizedDailyReviewProgress,
+} from '../utils/reviewUtils';
 import {
     buildSpeechVariationProfile,
     getEngineBaseUrl,
@@ -21,7 +27,13 @@ import {
     speakWithBrowserTts,
     speakWithEngine,
 } from '../utils/voicevoxUtils';
-import { getReferralSummary, REFERRAL_REWARD } from '../utils/referralUtils';
+import {
+    REFERRAL_REWARD,
+    applyRewardToStats,
+    buildReferralInviteMessage,
+    getReferralSummary,
+    normalizeReferralCode,
+} from '../utils/referralUtils';
 
 const REWARD_VOICE_FILES = [
     'mission_reward_cheer.wav',
@@ -33,7 +45,7 @@ const REWARD_VOICE_FILES = [
 const TAB_CONFIG = [
     { key: 'daily', label: 'デイリー', title: 'デイリーミッション' },
     { key: 'main', label: 'メイン', title: 'メインミッション' },
-    { key: 'event', label: '限定', title: '限定ミッション' },
+    { key: 'event', label: '招待', title: '招待ミッション' },
 ];
 
 const CORE_MISSION_CATEGORY_MAP = {
@@ -42,8 +54,8 @@ const CORE_MISSION_CATEGORY_MAP = {
     daily_study_five: 'daily',
     daily_study_time: 'main',
     daily_perfect: 'main',
-    daily_interact: 'event',
-    daily_story: 'event',
+    daily_interact: 'main',
+    daily_story: 'main',
 };
 
 const SUPPLEMENTAL_CLAIMS_KEY = 'supplementalMissionClaims';
@@ -321,6 +333,179 @@ const styles = {
         fontSize: '13px',
         fontWeight: 700,
     },
+    referralPanel: {
+        borderRadius: '18px',
+        background: 'linear-gradient(180deg, #fffefd 0%, #fff8f4 100%)',
+        border: '1px solid #f4e3dc',
+        boxShadow: '0 10px 22px rgba(226, 203, 195, 0.14)',
+        padding: '14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+    },
+    referralHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '12px',
+    },
+    referralBadge: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        borderRadius: '999px',
+        padding: '5px 9px',
+        background: '#fff0f4',
+        color: '#b36e87',
+        fontSize: '10px',
+        fontWeight: 900,
+        letterSpacing: '0.04em',
+    },
+    referralTitle: {
+        marginTop: '6px',
+        fontSize: '16px',
+        fontWeight: 900,
+        color: '#615661',
+    },
+    referralText: {
+        marginTop: '4px',
+        fontSize: '12px',
+        lineHeight: 1.5,
+        color: '#938793',
+        fontWeight: 700,
+    },
+    referralIconWrap: {
+        width: '44px',
+        height: '44px',
+        borderRadius: '14px',
+        background: 'linear-gradient(180deg, #fff0d9 0%, #fff7ea 100%)',
+        color: '#c38d31',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+    },
+    referralStats: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '8px',
+    },
+    referralStat: {
+        borderRadius: '14px',
+        background: '#fff9f6',
+        border: '1px solid #f3e4de',
+        padding: '10px 11px',
+    },
+    referralStatValue: {
+        fontSize: '18px',
+        fontWeight: 900,
+        color: '#615661',
+    },
+    referralStatLabel: {
+        marginTop: '2px',
+        fontSize: '11px',
+        color: '#9a909a',
+        fontWeight: 700,
+    },
+    inviteCodePanel: {
+        borderRadius: '16px',
+        background: '#fff9f6',
+        border: '1px solid #f3e4de',
+        padding: '11px',
+    },
+    inviteCodeLabel: {
+        fontSize: '11px',
+        color: '#9a909a',
+        fontWeight: 800,
+    },
+    inviteCodeValue: {
+        marginTop: '6px',
+        fontSize: '22px',
+        letterSpacing: '0.08em',
+        color: '#5f5364',
+        fontWeight: 900,
+    },
+    inviteActionRow: {
+        display: 'grid',
+        gridTemplateColumns: '1.2fr 1fr',
+        gap: '8px',
+    },
+    inviteActionButton: {
+        border: 'none',
+        borderRadius: '12px',
+        padding: '11px 10px',
+        fontSize: '12px',
+        fontWeight: 900,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '6px',
+    },
+    inviteActionPrimary: {
+        background: 'linear-gradient(135deg, #f8d8e3 0%, #ffe9d8 100%)',
+        color: '#a35f78',
+    },
+    inviteActionSecondary: {
+        background: '#eef4fb',
+        color: '#6f8cb2',
+    },
+    inviteNotice: {
+        borderRadius: '12px',
+        padding: '10px 11px',
+        fontSize: '12px',
+        fontWeight: 800,
+    },
+    inviteNoticeSuccess: {
+        background: '#e8f7ef',
+        color: '#4b8e70',
+    },
+    inviteNoticeError: {
+        background: '#fff0f1',
+        color: '#be6a78',
+    },
+    referralEntry: {
+        borderRadius: '16px',
+        background: '#fff9f6',
+        border: '1px solid #f3e4de',
+        padding: '11px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+    },
+    referralEntryLabel: {
+        fontSize: '12px',
+        color: '#7f7480',
+        fontWeight: 800,
+    },
+    referralEntryRow: {
+        display: 'grid',
+        gridTemplateColumns: '1fr auto',
+        gap: '8px',
+    },
+    referralInput: {
+        border: '1px solid #ecd9d2',
+        borderRadius: '12px',
+        padding: '11px 12px',
+        background: '#fffefe',
+        color: '#5f5364',
+        fontSize: '13px',
+        fontWeight: 800,
+        outline: 'none',
+    },
+    referralSubmitButton: {
+        border: 'none',
+        borderRadius: '12px',
+        padding: '0 14px',
+        background: 'linear-gradient(135deg, #8de1d6 0%, #b7f2d6 100%)',
+        color: '#1d6f63',
+        fontSize: '12px',
+        fontWeight: 900,
+        whiteSpace: 'nowrap',
+    },
+    referralHint: {
+        fontSize: '11px',
+        color: '#9a909a',
+        fontWeight: 700,
+    },
     rewardOverlay: {
         position: 'fixed',
         inset: 0,
@@ -521,8 +706,86 @@ function sumRewards(current, next) {
     };
 }
 
-function MissionCard({ mission, onClaim }) {
+function getDefaultStudyNavigationTarget() {
+    const lastStudyTopic = getLastStudyTopic();
+    if (lastStudyTopic?.routePath) {
+        return { to: lastStudyTopic.routePath };
+    }
+
+    return { to: '/study' };
+}
+
+function getReviewNavigationTarget(stats) {
+    const reviewSummary = getHomeReviewSummary(stats);
+    if (!reviewSummary?.hasReviews) {
+        return { to: '/review' };
+    }
+
+    return {
+        to: '/review',
+        options: {
+            state: {
+                autoStart: true,
+                sessionSize: reviewSummary.sessionSize || 10,
+                startQuestionId: reviewSummary.recommendedQuestion?.id || null,
+            },
+        },
+    };
+}
+
+function resolveCoreMissionNavigationTarget(mission) {
+    switch (mission.type) {
+        case MISSION_TYPES.INTERACT_CHARACTER:
+            return { to: '/character' };
+        case MISSION_TYPES.OPEN_STORY:
+            return { to: '/story' };
+        case MISSION_TYPES.STUDY_ONCE:
+        case MISSION_TYPES.STUDY_THREE_SUBJECTS:
+        case MISSION_TYPES.STUDY_FIVE_TIMES:
+        case MISSION_TYPES.STUDY_30_MIN:
+        case MISSION_TYPES.PERFECT_SCORE:
+        default:
+            return getDefaultStudyNavigationTarget();
+    }
+}
+
+function resolveMissionNavigationTarget(mission, context) {
+    if (mission?.source === 'core') {
+        return resolveCoreMissionNavigationTarget(mission);
+    }
+
+    switch (mission?.id) {
+        case 'daily_review_once':
+            return getReviewNavigationTarget(context.stats);
+        case 'daily_complete_bonus': {
+            const nextDailyMission = context.missions.find((candidate) => (
+                candidate.category === 'daily'
+                && candidate.id !== mission.id
+                && !candidate.completed
+                && !candidate.claimed
+            ));
+
+            if (nextDailyMission) {
+                return resolveMissionNavigationTarget(nextDailyMission, context);
+            }
+
+            return getDefaultStudyNavigationTarget();
+        }
+        case 'main_affection_100':
+            return { to: '/character' };
+        case 'event_friend_invite':
+            return { to: '/friends' };
+        case 'main_intellect_100':
+        case 'main_study_total_30':
+        default:
+            return getDefaultStudyNavigationTarget();
+    }
+}
+
+function MissionCard({ mission, onAction }) {
     const isClaimable = isMissionClaimable(mission);
+    const isDisabled = Boolean(mission.claimed);
+    const buttonLabel = mission.claimed ? '受取済み' : isClaimable ? '受け取る' : 'つづける';
 
     return (
         <article
@@ -565,14 +828,14 @@ function MissionCard({ mission, onClaim }) {
 
             <button
                 type="button"
-                onClick={() => onClaim(mission)}
-                disabled={!isClaimable}
+                onClick={() => onAction(mission)}
+                disabled={isDisabled}
                 style={{
                     ...styles.actionButton,
-                    ...(!isClaimable ? styles.actionButtonDisabled : {}),
+                    ...(isDisabled ? styles.actionButtonDisabled : {}),
                 }}
             >
-                {mission.claimed ? '受取済み' : isClaimable ? '受け取る' : 'つづける'}
+                {buttonLabel}
             </button>
         </article>
     );
@@ -581,13 +844,42 @@ function MissionCard({ mission, onClaim }) {
 export default function Missions({ stats, updateStats }) {
     const navigate = useNavigate();
     const { playVoice, acquireVoiceFocus } = useSound();
+    const [currentUser, setCurrentUser] = useState(null);
     const [coreMissions, setCoreMissions] = useState([]);
     const [supplementalClaims, setSupplementalClaims] = useState(() => loadSupplementalClaims());
     const [profile, setProfile] = useState(null);
+    const [referralCode, setReferralCode] = useState('');
+    const [referralBusy, setReferralBusy] = useState(false);
+    const [inviteNotice, setInviteNotice] = useState(null);
     const [showRewardAnimation, setShowRewardAnimation] = useState(null);
     const [missionReaction, setMissionReaction] = useState(null);
     const [activeTab, setActiveTab] = useState('daily');
     const reactionTimerRef = useRef(null);
+    const inviteNoticeTimerRef = useRef(null);
+    const referralInputRef = useRef(null);
+
+    const showInviteNotice = (text, type = 'success') => {
+        setInviteNotice({ text, type });
+        if (inviteNoticeTimerRef.current) {
+            clearTimeout(inviteNoticeTimerRef.current);
+        }
+        inviteNoticeTimerRef.current = setTimeout(() => {
+            setInviteNotice(null);
+            inviteNoticeTimerRef.current = null;
+        }, 3000);
+    };
+
+    const refreshProfile = async (signedInUser) => {
+        if (!signedInUser) {
+            setProfile(null);
+            return;
+        }
+
+        const result = await getUserProfile(signedInUser.uid);
+        if (result.success) {
+            setProfile(result.data);
+        }
+    };
 
     const refreshCoreMissions = () => {
         const nextMissions = getAllMissionsWithProgress().map((mission, index) => ({
@@ -604,16 +896,15 @@ export default function Missions({ stats, updateStats }) {
         setSupplementalClaims(loadSupplementalClaims());
 
         const loadProfile = async () => {
-            const currentUser = getCurrentUser();
-            if (!currentUser) {
+            const signedInUser = getCurrentUser();
+            setCurrentUser(signedInUser);
+
+            if (!signedInUser) {
                 setProfile(null);
                 return;
             }
 
-            const result = await getUserProfile(currentUser.uid);
-            if (result.success) {
-                setProfile(result.data);
-            }
+            await refreshProfile(signedInUser);
         };
 
         loadProfile();
@@ -621,6 +912,9 @@ export default function Missions({ stats, updateStats }) {
         return () => {
             if (reactionTimerRef.current) {
                 clearTimeout(reactionTimerRef.current);
+            }
+            if (inviteNoticeTimerRef.current) {
+                clearTimeout(inviteNoticeTimerRef.current);
             }
         };
     }, []);
@@ -760,6 +1054,131 @@ export default function Missions({ stats, updateStats }) {
         await presentRewardFeedback(rewards, getRewardReactionLine(rewards));
     };
 
+    const handleContinueMission = (mission) => {
+        if (mission?.id === 'event_friend_invite') {
+            referralInputRef.current?.focus();
+            referralInputRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            return;
+        }
+
+        const target = resolveMissionNavigationTarget(mission, { missions, stats });
+        if (!target?.to) {
+            navigate('/study');
+            return;
+        }
+
+        navigate(target.to, target.options);
+    };
+
+    const handleMissionAction = async (mission) => {
+        if (mission.claimed) {
+            return;
+        }
+
+        if (isMissionClaimable(mission)) {
+            await handleClaimReward(mission);
+            return;
+        }
+
+        handleContinueMission(mission);
+    };
+
+    const copyText = async (text) => {
+        if (!text) {
+            throw new Error('missing-text');
+        }
+
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text);
+            return;
+        }
+
+        const input = document.createElement('textarea');
+        input.value = text;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+    };
+
+    const handleCopyFriendCode = async () => {
+        if (!myFriendCode) {
+            showInviteNotice('フレンドコードがまだ作成されていません', 'error');
+            return;
+        }
+
+        try {
+            await copyText(myFriendCode);
+            showInviteNotice('フレンドコードをコピーしました！');
+        } catch {
+            showInviteNotice('コピーに失敗しました。もう一度試してください。', 'error');
+        }
+    };
+
+    const handleShareInvite = async () => {
+        if (!myFriendCode) {
+            showInviteNotice('フレンドコードがまだ作成されていません', 'error');
+            return;
+        }
+
+        const inviteMessage = buildReferralInviteMessage({
+            displayName: inviteDisplayName,
+            code: myFriendCode,
+        });
+
+        try {
+            if (navigator.share) {
+                await navigator.share({
+                    title: 'Study Musume 招待',
+                    text: inviteMessage,
+                });
+                showInviteNotice('招待メッセージを共有しました！');
+                return;
+            }
+
+            await copyText(inviteMessage);
+            showInviteNotice('招待メッセージをコピーしました！');
+        } catch (error) {
+            if (error?.name === 'AbortError') {
+                return;
+            }
+            showInviteNotice('招待メッセージの共有に失敗しました', 'error');
+        }
+    };
+
+    const handleRedeemReferral = async () => {
+        if (!currentUser) {
+            showInviteNotice('招待コードの入力にはログインが必要です', 'error');
+            return;
+        }
+
+        const normalizedCode = normalizeReferralCode(referralCode);
+        if (!normalizedCode) {
+            showInviteNotice('招待コードを入力してください', 'error');
+            return;
+        }
+
+        setReferralBusy(true);
+        const result = await redeemReferralCode({
+            inviteeUid: currentUser.uid,
+            inviteeDisplayName: inviteDisplayName,
+            inviterCode: normalizedCode,
+        });
+
+        if (result.success) {
+            if (updateStats) {
+                updateStats((currentStats) => applyRewardToStats(currentStats, result.reward));
+            }
+            setReferralCode('');
+            await refreshProfile(currentUser);
+            showInviteNotice(`${result.inviter.displayName} さんの招待特典を受け取りました！`);
+        } else {
+            showInviteNotice(result.error || '招待コードの特典を受け取れませんでした', 'error');
+        }
+
+        setReferralBusy(false);
+    };
+
     const handleClaimAllRewards = async () => {
         const claimableMissions = missions.filter(isMissionClaimable);
         if (claimableMissions.length === 0) return;
@@ -800,6 +1219,10 @@ export default function Missions({ stats, updateStats }) {
     );
     const claimableCount = missions.filter(isMissionClaimable).length;
     const activeTabMeta = TAB_CONFIG.find((tab) => tab.key === activeTab) || TAB_CONFIG[0];
+    const referralSummary = useMemo(() => getReferralSummary(profile || {}), [profile]);
+    const hasUsedReferralCode = Boolean(referralSummary.referredByCode);
+    const myFriendCode = profile?.friendCode || '';
+    const inviteDisplayName = profile?.displayName || currentUser?.displayName || 'トレーナー';
 
     const characterId = stats?.characterId || 'noah';
     const equippedSkin = stats?.equippedSkin === 'default'
@@ -866,12 +1289,108 @@ export default function Missions({ stats, updateStats }) {
                     </div>
 
                     <div style={styles.missionList}>
+                        {activeTab === 'event' && (
+                            <section style={styles.referralPanel}>
+                                <div style={styles.referralHeader}>
+                                    <div>
+                                        <div style={styles.referralBadge}>招待報酬</div>
+                                        <div style={styles.referralTitle}>友だち招待でごほうび</div>
+                                        <div style={styles.referralText}>
+                                            招待が成立すると、お互いに 💎{REFERRAL_REWARD.diamonds} と 🧠{REFERRAL_REWARD.intellect} を受け取れます。
+                                        </div>
+                                    </div>
+                                    <div style={styles.referralIconWrap}>
+                                        <Ticket size={22} />
+                                    </div>
+                                </div>
+
+                                <div style={styles.referralStats}>
+                                    <div style={styles.referralStat}>
+                                        <div style={styles.referralStatValue}>{referralSummary.inviteCount}</div>
+                                        <div style={styles.referralStatLabel}>成立した招待</div>
+                                    </div>
+                                    <div style={styles.referralStat}>
+                                        <div style={styles.referralStatValue}>{referralSummary.pendingClaims}</div>
+                                        <div style={styles.referralStatLabel}>次回反映予定</div>
+                                    </div>
+                                </div>
+
+                                <div style={styles.inviteCodePanel}>
+                                    <div style={styles.inviteCodeLabel}>マイフレンドコード</div>
+                                    <div style={styles.inviteCodeValue}>{myFriendCode || '------'}</div>
+                                </div>
+
+                                <div style={styles.inviteActionRow}>
+                                    <button
+                                        type="button"
+                                        onClick={handleShareInvite}
+                                        style={{ ...styles.inviteActionButton, ...styles.inviteActionPrimary }}
+                                    >
+                                        <Gift size={15} />
+                                        招待を共有
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleCopyFriendCode}
+                                        style={{ ...styles.inviteActionButton, ...styles.inviteActionSecondary }}
+                                    >
+                                        <Copy size={15} />
+                                        コードコピー
+                                    </button>
+                                </div>
+
+                                {inviteNotice && (
+                                    <div
+                                        style={{
+                                            ...styles.inviteNotice,
+                                            ...(inviteNotice.type === 'error'
+                                                ? styles.inviteNoticeError
+                                                : styles.inviteNoticeSuccess),
+                                        }}
+                                    >
+                                        {inviteNotice.text}
+                                    </div>
+                                )}
+
+                                {hasUsedReferralCode ? (
+                                    <div style={{ ...styles.inviteNotice, ...styles.inviteNoticeSuccess }}>
+                                        招待コード入力済み: {referralSummary.referredByCode}
+                                    </div>
+                                ) : (
+                                    <div style={styles.referralEntry}>
+                                        <div style={styles.referralEntryLabel}>招待された人はこちら</div>
+                                        <div style={styles.referralEntryRow}>
+                                            <input
+                                                ref={referralInputRef}
+                                                type="text"
+                                                placeholder="招待コードを入力"
+                                                value={referralCode}
+                                                onChange={(e) => setReferralCode(normalizeReferralCode(e.target.value))}
+                                                maxLength={6}
+                                                disabled={referralBusy}
+                                                style={styles.referralInput}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={handleRedeemReferral}
+                                                disabled={referralBusy}
+                                                style={styles.referralSubmitButton}
+                                            >
+                                                受け取る
+                                            </button>
+                                        </div>
+                                        <div style={styles.referralHint}>招待コードの入力は1回だけです。</div>
+                                    </div>
+                                )}
+                            </section>
+                        )}
+
                         {visibleMissions.length > 0 ? (
                             visibleMissions.map((mission) => (
                                 <MissionCard
                                     key={mission.id}
                                     mission={mission}
-                                    onClaim={handleClaimReward}
+                                    onAction={handleMissionAction}
                                 />
                             ))
                         ) : (

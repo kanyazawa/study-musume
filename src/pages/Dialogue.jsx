@@ -18,14 +18,149 @@ import TappableVocabText from '../components/TappableVocabText';
 import { parseCsvTable } from '../utils/csvUtils';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { createDialoguePose } from '../utils/characterPoseUtils';
+import { applyCharacterEvaluationResult } from '../utils/characterEvaluationUtils';
+import { buildDailyLoopPhasePatch } from '../utils/dailyLoopUtils';
+import { getDialogueFeedbackOverlayCopy, getDialogueReactionLine, resolveDialogueReactionTone, resolveReactionVoiceSelection } from '../utils/studyReactionUtils';
 import { getTtsSettings, TTS_ENGINES } from '../utils/ttsSettings';
-import { applyRelationshipProgress } from '../utils/relationshipEventUtils';
+import { applyRelationshipActivity } from '../utils/relationshipEventUtils';
+import { getRelationshipActivityAffectionDelta } from '../utils/relationshipEventUtils';
+import { getLocalGrammarLesson } from '../data/grammarLessons';
 
 import BgClassroom from '../assets/images/bg_classroom.webp';
 
 import { useSound } from '../contexts/SoundContext';
 
 const IS_LITE_DEPLOY = import.meta.env.VITE_LITE_DEPLOY === 'true';
+const QUIZ_KIND_REORDER = 'reorder';
+const QUIZ_KIND_CHOICE = 'choice';
+const QUIZ_KIND_FILL_BLANK = 'fill_blank';
+const QUIZ_KIND_ERROR_FIX = 'error_fix';
+const OPTION_QUIZ_KINDS = new Set([
+    QUIZ_KIND_CHOICE,
+    QUIZ_KIND_FILL_BLANK,
+    QUIZ_KIND_ERROR_FIX,
+]);
+
+const shuffleArray = (items = []) => {
+    const nextItems = [...items];
+
+    for (let index = nextItems.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [nextItems[index], nextItems[swapIndex]] = [nextItems[swapIndex], nextItems[index]];
+    }
+
+    return nextItems;
+};
+
+const normalizeAnswerText = (value = '') => (
+    String(value || '')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .replace(/\s+([,.!?;:])/g, '$1')
+);
+
+const normalizeScenarioTokens = (tokens, fallbackAnswer = '') => {
+    if (Array.isArray(tokens)) {
+        return tokens
+            .map((token) => String(token || '').trim())
+            .filter(Boolean);
+    }
+
+    const rawValue = String(tokens || '').trim();
+    if (rawValue) {
+        const sourceTokens = rawValue.includes('|')
+            ? rawValue.split('|')
+            : rawValue.split(/\s+/);
+
+        return sourceTokens
+            .map((token) => String(token || '').trim())
+            .filter(Boolean);
+    }
+
+    return String(fallbackAnswer || '')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+};
+
+const resolveScenarioKind = (row) => {
+    const safeRow = row && typeof row === 'object' ? row : {};
+    const explicitKind = String(safeRow.kind || '').trim().toLowerCase();
+    if (explicitKind === QUIZ_KIND_REORDER) return QUIZ_KIND_REORDER;
+    if (explicitKind === QUIZ_KIND_CHOICE) return QUIZ_KIND_CHOICE;
+    if (explicitKind === QUIZ_KIND_FILL_BLANK) return QUIZ_KIND_FILL_BLANK;
+    if (explicitKind === QUIZ_KIND_ERROR_FIX) return QUIZ_KIND_ERROR_FIX;
+
+    if (Array.isArray(safeRow.tokens) && safeRow.tokens.length > 0) {
+        return QUIZ_KIND_REORDER;
+    }
+
+    if (String(safeRow.answer_text || '').trim()) {
+        return QUIZ_KIND_REORDER;
+    }
+
+    if (safeRow.speaker === 'Quiz' && (safeRow.option1 || safeRow.option2 || safeRow.option3)) {
+        return QUIZ_KIND_CHOICE;
+    }
+
+    return 'talk';
+};
+
+const buildDialogueReorderTokenBank = (row) => {
+    const safeRow = row && typeof row === 'object' ? row : {};
+    const sourceTokens = normalizeScenarioTokens(safeRow.tokens, safeRow.answer_text);
+
+    return shuffleArray(
+        sourceTokens.map((token, index) => ({
+            id: `${safeRow.scene || 'scene'}-${safeRow.order || 'row'}-token-${index}`,
+            text: token,
+        }))
+    );
+};
+
+const prepareScenarioRows = (rawData = []) => {
+    const processedData = [];
+    let lastScene = '';
+    let lastBackground = '';
+
+    rawData.forEach((originalRow) => {
+        const row = { ...originalRow };
+
+        if (!row.scene && lastScene) {
+            row.scene = lastScene;
+        } else if (row.scene) {
+            lastScene = row.scene;
+        }
+
+        if (!row.background && lastBackground) {
+            row.background = lastBackground;
+        } else if (row.background) {
+            lastBackground = row.background;
+        }
+
+        if (!row.order) {
+            if (processedData.length > 0 && processedData[processedData.length - 1].scene === row.scene) {
+                const prevOrder = parseInt(processedData[processedData.length - 1].order, 10);
+                row.order = !Number.isNaN(prevOrder) ? String(prevOrder + 1) : String(processedData.length + 1);
+            } else {
+                row.order = '1';
+            }
+        }
+
+        if (row.next) row.next = String(row.next);
+        if (row.answer) row.answer = String(row.answer);
+        row.answer_text = normalizeAnswerText(row.answer_text || row.correct_answer || row.correctAnswer || '');
+        row.tokens = normalizeScenarioTokens(row.tokens, row.answer_text);
+        if (!row.answer_text && row.tokens.length > 0) {
+            row.answer_text = normalizeAnswerText(row.tokens.join(' '));
+        }
+        row.kind = resolveScenarioKind(row);
+
+        processedData.push(row);
+    });
+
+    return processedData;
+};
 
 const Dialogue = ({ stats, updateStats }) => {
     const [searchParams] = useSearchParams();
@@ -45,11 +180,19 @@ const Dialogue = ({ stats, updateStats }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [feedback, setFeedback] = useState(null); // 'correct' | 'incorrect'
+    const [feedbackTone, setFeedbackTone] = useState(null);
     const [isSpeaking, setIsSpeaking] = useState(false); // Loading state for TTS
     const [characterSpeaking, setCharacterSpeaking] = useState(false);
     const [characterSpeechText, setCharacterSpeechText] = useState('');
+    const [reorderTokenBank, setReorderTokenBank] = useState([]);
+    const [selectedReorderTokenIds, setSelectedReorderTokenIds] = useState([]);
+    const [quizCorrectStreak, setQuizCorrectStreak] = useState(0);
+    const [lastQuizResult, setLastQuizResult] = useState(null);
+    const [isFeverFxActive, setIsFeverFxActive] = useState(false);
+    const [feverFxKey, setFeverFxKey] = useState(0);
     const characterSpeakTimerRef = useRef(null);
     const activeSpeechReleaseRef = useRef(null);
+    const feverFxTimeoutRef = useRef(null);
     const ttsAvailabilityRef = useRef({ deepgram: false, aivis: false, voicevox: false });
     const preferredRenderer = stats?.characterRenderer;
     const renderer = resolveCharacterRenderer({
@@ -81,7 +224,7 @@ const Dialogue = ({ stats, updateStats }) => {
     const INTELLECT_REWARD = 50;
 
     // Google Sheet CSV URL
-    const SPREADSHEET_ID = '16TRO_hL1xFsnQK5j2MW0gmZFG1xckdPue9NsllsV6jA';
+    const SPREADSHEET_ID = '12LNROUI7IIeTGYuaaZ9fmrSpwkBQ260xd2lnKSGg5-U';
 
     // topicから教科を特定してsheetGidを取得
     const getSubjectGid = (topicName) => {
@@ -104,12 +247,18 @@ const Dialogue = ({ stats, updateStats }) => {
                     if (unit.chapters) {
                         for (const chapter of unit.chapters) {
                             if (chapter.topic === topicName || chapter.id === topicName) {
-                                return { gid: unit.sheetGid || category.sheetGid || subject.sheetGid || '0', subjectId: subject.id };
+                                return {
+                                    gid: chapter.sheetGid || unit.sheetGid || category.sheetGid || subject.sheetGid || '0',
+                                    subjectId: subject.id,
+                                };
                             }
                             if (chapter.sections) {
                                 for (const section of chapter.sections) {
                                     if (section.topic === topicName || section.id === topicName) {
-                                        return { gid: unit.sheetGid || category.sheetGid || subject.sheetGid || '0', subjectId: subject.id };
+                                        return {
+                                            gid: section.sheetGid || chapter.sheetGid || unit.sheetGid || category.sheetGid || subject.sheetGid || '0',
+                                            subjectId: subject.id,
+                                        };
                                     }
                                 }
                             }
@@ -136,6 +285,7 @@ const Dialogue = ({ stats, updateStats }) => {
             if (h === 'next_id') return 'next'; // Map 'next_id' to 'next'
             if (h === 'emotion') return 'expression'; // Map 'emotion' to 'expression' if needed
             if (h === 'image') return 'study_image'; // Map 'image' to 'study_image' if generic 'image' is used for this
+            if (h === 'question_type') return 'kind';
             return h;
         });
 
@@ -205,8 +355,14 @@ const Dialogue = ({ stats, updateStats }) => {
 
             let finalData = null;
 
+            const localLesson = getLocalGrammarLesson(topic);
+            if (localLesson) {
+                finalData = prepareScenarioRows(localLesson);
+                console.log('Loaded from local grammar lesson data');
+            }
+
             // 1. Try Cache
-            try {
+            if (!finalData) try {
                 const cachedStr = localStorage.getItem(CACHE_KEY);
                 if (cachedStr) {
                     const cached = JSON.parse(cachedStr);
@@ -252,7 +408,10 @@ const Dialogue = ({ stats, updateStats }) => {
                                 se: d.se || "",
                                 expression: d.expression || d.emotion || "",
                                 graph: d.graph || "",
-                                study_image: d.study_image || d.image || ""
+                                study_image: d.study_image || d.image || "",
+                                kind: d.kind || d.question_type || "",
+                                answer_text: d.answer_text || d.correct_answer || "",
+                                tokens: d.tokens || d.token || "",
                             }));
 
                             if (hasTopic(gasData, topic)) {
@@ -295,44 +454,7 @@ const Dialogue = ({ stats, updateStats }) => {
                         }
                     }
 
-                    // Process Data (Fill empty fields, etc.)
-                    const processedData = [];
-                    let lastScene = "";
-                    let lastBackground = "";
-
-                    rawData.forEach(row => {
-                        // 1. Fill 'scene'
-                        if (!row.scene && lastScene) {
-                            row.scene = lastScene;
-                        } else if (row.scene) {
-                            lastScene = row.scene;
-                        }
-
-                        // Fill background persistence
-                        if (!row.background && lastBackground) {
-                            row.background = lastBackground;
-                        } else if (row.background) {
-                            lastBackground = row.background;
-                        }
-
-                        // 2. Fill 'order'
-                        if (!row.order) {
-                            if (processedData.length > 0 && processedData[processedData.length - 1].scene === row.scene) {
-                                const prevOrder = parseInt(processedData[processedData.length - 1].order);
-                                row.order = !isNaN(prevOrder) ? (prevOrder + 1).toString() : (processedData.length + 1).toString();
-                            } else {
-                                row.order = "1";
-                            }
-                        }
-
-                        // Safety
-                        if (row.next) row.next = String(row.next);
-                        if (row.answer) row.answer = String(row.answer);
-
-                        processedData.push(row);
-                    });
-
-                    finalData = processedData;
+                    finalData = prepareScenarioRows(rawData);
 
                     // Save to Cache
                     try {
@@ -533,7 +655,7 @@ const Dialogue = ({ stats, updateStats }) => {
         if (!currentScene) return;
 
         // Disable Next button click (background click) if it's a Quiz
-        if (line && line.speaker === 'Quiz') return;
+        if (line && resolveScenarioKind(line) !== 'talk') return;
 
         const nextIdx = currentIndex + 1;
 
@@ -576,7 +698,7 @@ const Dialogue = ({ stats, updateStats }) => {
     const finishStudy = async () => {
         if (type === 'talk') {
             if (updateStats) {
-                updateStats((currentStats) => applyRelationshipProgress(currentStats, {
+                updateStats((currentStats) => applyRelationshipActivity(currentStats, {
                     type: 'chat',
                     summary: '少し長く会話した',
                     detail: '向き合って話す時間が、そのまま距離の近さになっている。',
@@ -655,6 +777,7 @@ const Dialogue = ({ stats, updateStats }) => {
 
         if (updateStats) {
             let finalizedStats = null;
+            let evaluationUpdate = null;
 
             updateStats((currentStats) => {
                 const currentTp = currentStats?.tp || 0;
@@ -668,14 +791,31 @@ const Dialogue = ({ stats, updateStats }) => {
                     totalStudyTime: (currentStats?.totalStudyTime || 0) + sessionDurationMinutes,
                     totalSessions: (currentStats?.totalSessions || 0) + 1,
                 };
+                const studyAffectionDelta = getRelationshipActivityAffectionDelta(baseUpdatedStats, 'study') + (isPerfect ? 4 : 0);
 
-                finalizedStats = applyRelationshipProgress(baseUpdatedStats, {
+                const relationshipStats = applyRelationshipActivity(baseUpdatedStats, {
                     type: 'study',
                     summary: `${subjectInfo.unit || subjectInfo.subject || '勉強'}を一緒に進めた`,
                     detail: isPerfect
                         ? '息がぴったり合って、かなり手応えのある勉強時間になった。'
                         : '一緒に取り組んだ時間が、じわっと信頼につながっている。',
+                    affectionDelta: studyAffectionDelta,
                 }).nextStats;
+
+                const dailyLoopPatch = buildDailyLoopPhasePatch(relationshipStats, 'study');
+                const dailyLoopStats = dailyLoopPatch
+                    ? { ...relationshipStats, ...dailyLoopPatch }
+                    : relationshipStats;
+                evaluationUpdate = applyCharacterEvaluationResult(dailyLoopStats, {
+                    activityType: 'study',
+                    answeredCount: questionsAnswered,
+                    correctCount: correctAnswers,
+                    accuracy: questionsAnswered > 0 ? Math.round((correctAnswers / questionsAnswered) * 100) : 0,
+                    completed: true,
+                    durationMinutes: sessionDurationMinutes,
+                    perfect: isPerfect,
+                });
+                finalizedStats = evaluationUpdate.nextStats;
 
                 return finalizedStats;
             });
@@ -698,6 +838,14 @@ const Dialogue = ({ stats, updateStats }) => {
             const newAchievements = finalizedStats ? checkForNewAchievements(finalizedStats) : checkForNewAchievements(stats);
 
             let message = `勉強完了！\nTP -${TP_COST}\n学力 +${INTELLECT_REWARD}`;
+            if (evaluationUpdate) {
+                const deltaPrefix = evaluationUpdate.delta > 0 ? '+' : '';
+                message += `\n\n${characterName}の評定 ${evaluationUpdate.nextSummary.rank} ${evaluationUpdate.nextSummary.label}`;
+                message += `\n評価変動 ${deltaPrefix}${evaluationUpdate.delta}`;
+                if (evaluationUpdate.hasTierChanged) {
+                    message += `\n${evaluationUpdate.previousSummary.rank} → ${evaluationUpdate.nextSummary.rank}`;
+                }
+            }
             if (newAchievements.length > 0) {
                 message += `\n\n🏆 新しい実績を達成しました！\n${newAchievements.map(a => `・${a.name}`).join('\n')}`;
             }
@@ -867,7 +1015,39 @@ const Dialogue = ({ stats, updateStats }) => {
     useEffect(() => () => {
         window.speechSynthesis.cancel();
         stopCharacterSpeech();
+        if (feverFxTimeoutRef.current) {
+            clearTimeout(feverFxTimeoutRef.current);
+        }
     }, [stopCharacterSpeech]);
+
+    const triggerFeverFx = useCallback(() => {
+        if (feverFxTimeoutRef.current) {
+            clearTimeout(feverFxTimeoutRef.current);
+        }
+
+        setFeverFxKey((prev) => prev + 1);
+        setIsFeverFxActive(true);
+        feverFxTimeoutRef.current = setTimeout(() => {
+            setIsFeverFxActive(false);
+            feverFxTimeoutRef.current = null;
+        }, 920);
+    }, []);
+
+    useEffect(() => {
+        if (!line) {
+            setReorderTokenBank([]);
+            setSelectedReorderTokenIds([]);
+            return;
+        }
+
+        if (resolveScenarioKind(line) === QUIZ_KIND_REORDER) {
+            setReorderTokenBank(buildDialogueReorderTokenBank(line));
+        } else {
+            setReorderTokenBank([]);
+        }
+
+        setSelectedReorderTokenIds([]);
+    }, [line]);
 
     // Quiz Selection Handler
     const handleQuizOption = (optionIndex, e) => {
@@ -885,6 +1065,14 @@ const Dialogue = ({ stats, updateStats }) => {
         }
 
         if (isCorrect) {
+            const nextStreak = quizCorrectStreak + 1;
+            const nextFeedbackTone = resolveDialogueReactionTone({
+                isCorrect: true,
+                nextCorrectStreak: nextStreak,
+                previousResult: lastQuizResult,
+                quizKind: resolveScenarioKind(line),
+            });
+
             // Increment Stats (Affection & Intellect)
             if (updateStats) {
                 updateStats((currentStats) => ({
@@ -895,10 +1083,21 @@ const Dialogue = ({ stats, updateStats }) => {
 
             // Show Feedback Overlay
             setFeedback('correct');
+            setFeedbackTone(nextFeedbackTone);
+            setQuizCorrectStreak(nextStreak);
+            setLastQuizResult('correct');
+            const reactionVoiceSelection = resolveReactionVoiceSelection({ characterId, tone: nextFeedbackTone, streak: nextStreak });
+            if (reactionVoiceSelection.isRare) {
+                triggerFeverFx();
+            }
+            if (reactionVoiceSelection.file) {
+                playVoice(reactionVoiceSelection.file, { channel: 'study-reaction' }).catch(() => { });
+            }
 
             // 1.5秒後にwin_textを表示
             setTimeout(() => {
                 setFeedback(null);
+                setFeedbackTone(null);
 
                 const defaultWinReaction = getQuizReaction({
                     characterId,
@@ -906,7 +1105,10 @@ const Dialogue = ({ stats, updateStats }) => {
                     isCorrect: true,
                     streak: correctAnswers + 1,
                 });
-                const rawWinText = line.win_text || defaultWinReaction.text;
+                const rawWinText = line.explanation
+                    || line.win_text
+                    || getDialogueReactionLine({ tone: nextFeedbackTone, isCorrect: true })
+                    || defaultWinReaction.text;
                 const winText = isRen ? convertTone(rawWinText, 'ren') : rawWinText;
 
                 setLine({
@@ -922,6 +1124,13 @@ const Dialogue = ({ stats, updateStats }) => {
             }, 1500);
 
         } else {
+            const nextFeedbackTone = resolveDialogueReactionTone({
+                isCorrect: false,
+                nextCorrectStreak: 0,
+                previousResult: lastQuizResult,
+                quizKind: resolveScenarioKind(line),
+            });
+
             // 間違えた問題を復習リストに追加
             const subjectInfo = getSubjectInfo(topic);
 
@@ -939,15 +1148,20 @@ const Dialogue = ({ stats, updateStats }) => {
                 questionText: line.text,
                 correctAnswer: line[`option${line.answer}`] || '不明',
                 userAnswer: line[`option${optionIndex}`] || '不明',
+                questionType: OPTION_QUIZ_KINDS.has(resolveScenarioKind(line)) ? 'choice' : resolveScenarioKind(line),
                 options: options.length > 0 ? options : null
             });
 
             // フィードバック表示
             setFeedback('incorrect');
+            setFeedbackTone(nextFeedbackTone);
+            setQuizCorrectStreak(0);
+            setLastQuizResult('incorrect');
 
             // 1.5秒後にlose_textを表示してから次に進む
             setTimeout(() => {
                 setFeedback(null);
+                setFeedbackTone(null);
 
                 const defaultLoseReaction = getQuizReaction({
                     characterId,
@@ -956,7 +1170,14 @@ const Dialogue = ({ stats, updateStats }) => {
                     correctAnswer: line[`option${line.answer}`] || '?',
                     streak: correctAnswers,
                 });
-                const rawLoseText = line.lose_text || defaultLoseReaction.text;
+                const rawLoseText = line.explanation
+                    || line.lose_text
+                    || getDialogueReactionLine({
+                        tone: nextFeedbackTone,
+                        isCorrect: false,
+                        correctAnswer: line[`option${line.answer}`] || '?',
+                    })
+                    || defaultLoseReaction.text;
                 const loseText = isRen ? convertTone(rawLoseText, 'ren') : rawLoseText;
 
                 setLine({
@@ -973,6 +1194,151 @@ const Dialogue = ({ stats, updateStats }) => {
         }
     };
 
+    const handleReorderTokenSelect = (tokenId, e) => {
+        e.stopPropagation();
+        setSelectedReorderTokenIds((prev) => (
+            prev.includes(tokenId) ? prev : [...prev, tokenId]
+        ));
+    };
+
+    const handleReorderTokenRemove = (tokenId, e) => {
+        e.stopPropagation();
+        setSelectedReorderTokenIds((prev) => prev.filter((currentTokenId) => currentTokenId !== tokenId));
+    };
+
+    const handleReorderReset = (e) => {
+        e.stopPropagation();
+        setSelectedReorderTokenIds([]);
+    };
+
+    const handleReorderSubmit = (e) => {
+        e.stopPropagation();
+        if (!line) return;
+
+        const tokenMap = new Map(reorderTokenBank.map((token) => [token.id, token]));
+        const selectedTokens = selectedReorderTokenIds
+            .map((tokenId) => tokenMap.get(tokenId))
+            .filter(Boolean);
+        const userAnswer = normalizeAnswerText(selectedTokens.map((token) => token.text).join(' '));
+        const correctAnswer = normalizeAnswerText(line.answer_text || '');
+        const isCorrect = userAnswer === correctAnswer;
+
+        setQuestionsAnswered((prev) => prev + 1);
+        if (isCorrect) {
+            setCorrectAnswers((prev) => prev + 1);
+        }
+
+        if (isCorrect) {
+            const nextStreak = quizCorrectStreak + 1;
+            const nextFeedbackTone = resolveDialogueReactionTone({
+                isCorrect: true,
+                nextCorrectStreak: nextStreak,
+                previousResult: lastQuizResult,
+                quizKind: QUIZ_KIND_REORDER,
+            });
+
+            if (updateStats) {
+                updateStats((currentStats) => ({
+                    affection: (currentStats?.affection || 0) + 5,
+                    intellect: (currentStats?.intellect || 0) + 10,
+                }));
+            }
+
+            setFeedback('correct');
+            setFeedbackTone(nextFeedbackTone);
+            setQuizCorrectStreak(nextStreak);
+            setLastQuizResult('correct');
+            const reactionVoiceSelection = resolveReactionVoiceSelection({ characterId, tone: nextFeedbackTone, streak: nextStreak });
+            if (reactionVoiceSelection.isRare) {
+                triggerFeverFx();
+            }
+            if (reactionVoiceSelection.file) {
+                playVoice(reactionVoiceSelection.file, { channel: 'study-reaction' }).catch(() => { });
+            }
+
+            setTimeout(() => {
+                setFeedback(null);
+                setFeedbackTone(null);
+
+                const defaultWinReaction = getQuizReaction({
+                    characterId,
+                    affection: stats?.affection || 0,
+                    isCorrect: true,
+                    streak: correctAnswers + 1,
+                });
+                const rawWinText = line.explanation
+                    || line.win_text
+                    || getDialogueReactionLine({ tone: nextFeedbackTone, isCorrect: true })
+                    || defaultWinReaction.text;
+                const winText = isRen ? convertTone(rawWinText, 'ren') : rawWinText;
+
+                setLine({
+                    speaker: isRen ? 'レン' : 'ノア',
+                    text: winText,
+                    emotion: defaultWinReaction.emotion,
+                    background: line.background || '',
+                    se: 'se_correct',
+                    effect: '',
+                });
+            }, 1500);
+
+            return;
+        }
+
+        const subjectInfo = getSubjectInfo(topic);
+        addWrongQuestion({
+            subject: subjectInfo.subject,
+            questionId: line.order || `${topic}-${currentIndex}`,
+            questionText: line.text,
+            correctAnswer: correctAnswer || '不明',
+            userAnswer: userAnswer || '未回答',
+            questionType: QUIZ_KIND_REORDER,
+            tokens: line.tokens,
+        });
+
+        const nextFeedbackTone = resolveDialogueReactionTone({
+            isCorrect: false,
+            nextCorrectStreak: 0,
+            previousResult: lastQuizResult,
+            quizKind: QUIZ_KIND_REORDER,
+        });
+        setFeedback('incorrect');
+        setFeedbackTone(nextFeedbackTone);
+        setQuizCorrectStreak(0);
+        setLastQuizResult('incorrect');
+
+        setTimeout(() => {
+            setFeedback(null);
+            setFeedbackTone(null);
+
+            const defaultLoseReaction = getQuizReaction({
+                characterId,
+                affection: stats?.affection || 0,
+                isCorrect: false,
+                correctAnswer: correctAnswer || '?',
+                streak: correctAnswers,
+            });
+            const rawLoseText = line.explanation
+                || line.lose_text
+                || getDialogueReactionLine({
+                    tone: nextFeedbackTone,
+                    isCorrect: false,
+                    correctAnswer: correctAnswer || '?',
+                })
+                || defaultLoseReaction.text;
+            const loseText = isRen ? convertTone(rawLoseText, 'ren') : rawLoseText;
+
+            setLine({
+                speaker: isRen ? 'レン' : 'ノア',
+                text: loseText,
+                emotion: defaultLoseReaction.emotion,
+                background: line.background || '',
+                se: '',
+                effect: '',
+            });
+        }, 1500);
+    };
+
 
 
     // ... (existing imports)
@@ -982,25 +1348,44 @@ const Dialogue = ({ stats, updateStats }) => {
     let poseLine = line;
 
     if (line && feedback === 'correct') {
+        const positiveEmotion = feedbackTone === 'comeback_correct'
+            ? 'happy'
+            : feedbackTone === 'hard_correct'
+                ? 'surprised'
+                : feedbackTone === 'chain_correct'
+                    ? 'happy'
+                    : 'happy';
         poseLine = {
             ...line,
-            emotion: 'happy',
-            expression: 'happy',
+            emotion: positiveEmotion,
+            expression: positiveEmotion,
             effect: 'glow',
         };
     } else if (line && feedback === 'incorrect') {
+        const missEmotion = feedbackTone === 'hard_incorrect' ? 'serious' : 'angry';
         poseLine = {
             ...line,
-            emotion: 'angry',
-            expression: 'angry',
-            effect: 'shake',
+            emotion: missEmotion,
+            expression: missEmotion,
+            effect: feedbackTone === 'hard_incorrect' ? '' : 'shake',
         };
     }
 
     if (loading) return <LoadingScreen />;
     if (!line) return <div className="dialogue-screen"><div className="dialogue-box"><div className="dialogue-text">データがありません</div></div></div>;
 
-    const isQuiz = line.speaker === 'Quiz';
+    const quizKind = resolveScenarioKind(line);
+    const isReorderQuiz = quizKind === QUIZ_KIND_REORDER;
+    const isChoiceQuiz = OPTION_QUIZ_KINDS.has(quizKind);
+    const isQuiz = isChoiceQuiz || isReorderQuiz;
+    const selectedTokenIdSet = new Set(selectedReorderTokenIds);
+    const selectedReorderTokens = selectedReorderTokenIds
+        .map((tokenId) => reorderTokenBank.find((token) => token.id === tokenId))
+        .filter(Boolean);
+    const availableReorderTokens = reorderTokenBank.filter((token) => !selectedTokenIdSet.has(token.id));
+    const isReorderReady = isReorderQuiz
+        && reorderTokenBank.length > 0
+        && selectedReorderTokenIds.length === reorderTokenBank.length;
     const characterScene = type === 'talk' ? 'dialogue' : 'study';
     const dialoguePose = {
         ...createDialoguePose(poseLine, {
@@ -1024,13 +1409,24 @@ const Dialogue = ({ stats, updateStats }) => {
     };
 
     return (
-        <div className="dialogue-screen" onClick={handleNext}>
+        <div className={`dialogue-screen ${isFeverFxActive ? 'dialogue-fever-active' : ''}`} onClick={handleNext}>
             <div className="room-background" style={bgStyle}></div>
+            {isFeverFxActive && (
+                <div className="dialogue-fever-burst" key={`dialogue-fever-${feverFxKey}`} aria-hidden="true">
+                    <span>RARE VOICE</span>
+                    <strong>FEVER</strong>
+                    <i className="dialogue-fever-spark dialogue-fever-spark-1" />
+                    <i className="dialogue-fever-spark dialogue-fever-spark-2" />
+                    <i className="dialogue-fever-spark dialogue-fever-spark-3" />
+                    <i className="dialogue-fever-spark dialogue-fever-spark-4" />
+                    <i className="dialogue-fever-spark dialogue-fever-spark-5" />
+                </div>
+            )}
 
             {/* Visual Feedback Overlay */}
             {feedback && (
                 <div className={`feedback-overlay ${feedback}`}>
-                    {feedback === 'correct' ? '⭕ Perfect!' : '❌ Try again...'}
+                    {getDialogueFeedbackOverlayCopy({ feedback, tone: feedbackTone })}
                 </div>
             )}
 
@@ -1070,7 +1466,7 @@ const Dialogue = ({ stats, updateStats }) => {
                     scene={characterScene}
                     pose={dialoguePose}
                     className={`character-dialogue ${(line.graph || line.study_image) ? 'with-board' : ''}`}
-                    imageClassName={`char-image-dialogue ${dialoguePose.effect === 'shake' ? 'effect-shake' : ''} ${(line.graph || line.study_image) ? 'with-board' : ''}`}
+                    imageClassName={`char-image-dialogue ${dialoguePose.effect === 'shake' ? 'effect-shake' : ''} ${dialoguePose.effect === 'glow' ? 'effect-glow' : ''} ${(line.graph || line.study_image) ? 'with-board' : ''}`}
                 />
             </div>
 
@@ -1088,7 +1484,7 @@ const Dialogue = ({ stats, updateStats }) => {
                 </button>
 
                 {/* Conditional Rendering: Quiz Options vs Next Indicator */}
-                {isQuiz ? (
+                {isChoiceQuiz ? (
                     <div className="quiz-options-container">
                         {line.option1 && (
                             <button className="quiz-btn" onClick={(e) => handleQuizOption(1, e)}>
@@ -1105,6 +1501,53 @@ const Dialogue = ({ stats, updateStats }) => {
                                 3. {line.option3}
                             </button>
                         )}
+                    </div>
+                ) : isReorderQuiz ? (
+                    <div className="quiz-options-container reorder-options-container">
+                        <div className={`reorder-dropzone ${selectedReorderTokens.length > 0 ? 'has-answer' : ''}`}>
+                            {selectedReorderTokens.length > 0 ? (
+                                selectedReorderTokens.map((token) => (
+                                    <button
+                                        key={token.id}
+                                        className="reorder-picked-token"
+                                        onClick={(e) => handleReorderTokenRemove(token.id, e)}
+                                    >
+                                        {token.text}
+                                    </button>
+                                ))
+                            ) : (
+                                <span className="reorder-placeholder">下の単語を順に押して文を作ってね</span>
+                            )}
+                        </div>
+
+                        <div className="reorder-action-row">
+                            <button
+                                className="reorder-secondary-btn"
+                                onClick={handleReorderReset}
+                                disabled={selectedReorderTokenIds.length === 0}
+                            >
+                                リセット
+                            </button>
+                            <button
+                                className="reorder-submit-btn"
+                                onClick={handleReorderSubmit}
+                                disabled={!isReorderReady}
+                            >
+                                決定
+                            </button>
+                        </div>
+
+                        <div className="reorder-token-bank">
+                            {availableReorderTokens.map((token) => (
+                                <button
+                                    key={token.id}
+                                    className="reorder-token-btn"
+                                    onClick={(e) => handleReorderTokenSelect(token.id, e)}
+                                >
+                                    {token.text}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 ) : (
                     <div className="next-indicator">▼</div>

@@ -31,6 +31,7 @@ const Reading = lazy(() => import('../pages/Reading'));
 const ExpressionPreview = lazy(() => import('../pages/ExpressionPreview'));
 const CustomVocab = lazy(() => import('../pages/CustomVocab'));
 const CustomVocabFlashcards = lazy(() => import('../pages/CustomVocabFlashcards'));
+const ReorderPractice = lazy(() => import('../pages/ReorderPractice'));
 
 const AppRoutes = ({ stats, updateStats, onLoginSuccess, currentUser }) => (
   <Suspense fallback={<LoadingScreen />}>
@@ -74,6 +75,7 @@ const AppRoutes = ({ stats, updateStats, onLoginSuccess, currentUser }) => (
       <Route path="/writing" element={<Writing stats={stats} updateStats={updateStats} />} />
       <Route path="/reading" element={<Reading stats={stats} updateStats={updateStats} />} />
       <Route path="/expression-preview" element={<ExpressionPreview stats={stats} />} />
+      <Route path="/reorder-practice" element={<ReorderPractice stats={stats} updateStats={updateStats} />} />
       <Route path="/custom-vocab" element={<CustomVocab stats={stats} />} />
       <Route path="/custom-vocab/flashcards" element={<CustomVocabFlashcards stats={stats} />} />
       <Route path="/profile" element={<Profile stats={stats} updateStats={updateStats} />} />

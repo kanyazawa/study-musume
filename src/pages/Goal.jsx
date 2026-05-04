@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Plus, Trash2, Check, Save } from 'lucide-react';
 import './Goal.css';
+import { getGameLoopSnapshot } from '../utils/gameLoopUtils';
 
 const safeRead = (key, fallback = null) => {
     try {
@@ -35,6 +36,17 @@ const Goal = ({ stats, updateStats }) => {
     const [todos, setTodos] = useState([]);
     const [examDate, setExamDate] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
+    const gameLoopSnapshot = getGameLoopSnapshot(stats, {
+        goalData: {
+            mainGoal,
+            todos,
+            totalTodoCount: todos.length,
+            completedTodoCount: todos.filter((todo) => todo.completed).length,
+            todoCompletionPercent: todos.length > 0
+                ? Math.round((todos.filter((todo) => todo.completed).length / todos.length) * 100)
+                : 0,
+        },
+    });
 
     // Load from Local Storage on mount
     useEffect(() => {
@@ -139,6 +151,28 @@ const Goal = ({ stats, updateStats }) => {
 
             <div className="goal-content">
                 {errorMessage && <p className="empty-msg">{errorMessage}</p>}
+
+                <div className="goal-progress-panel">
+                    <div className="goal-progress-copy">
+                        <span className="goal-progress-kicker">試験攻略ループ</span>
+                        <h3>{gameLoopSnapshot.examProgress.title}</h3>
+                        <p>{gameLoopSnapshot.examProgress.summary}</p>
+                    </div>
+                    <div className="goal-progress-metrics">
+                        <div className="goal-progress-card">
+                            <span>準備率</span>
+                            <strong>{gameLoopSnapshot.examProgress.readinessPercent}%</strong>
+                        </div>
+                        <div className="goal-progress-card">
+                            <span>ToDo達成</span>
+                            <strong>{gameLoopSnapshot.examProgress.todoCompletionPercent}%</strong>
+                        </div>
+                        <div className="goal-progress-card">
+                            <span>復習負債</span>
+                            <strong>{gameLoopSnapshot.reviewLoad.due}件</strong>
+                        </div>
+                    </div>
+                </div>
 
                 {/* Main Goal Section */}
                 <div className="section-card main-goal-section">

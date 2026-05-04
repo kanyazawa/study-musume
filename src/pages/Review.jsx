@@ -20,8 +20,13 @@ import {
     getActiveReviewChallenge,
     getReviewChallengeSyncPatch,
     applyReviewChallengeProgress,
+    getHomeReviewSummary,
 } from '../utils/reviewUtils';
 import { STUDY_TOPICS } from '../data/studyTopics';
+import { applyCharacterEvaluationResult } from '../utils/characterEvaluationUtils';
+import { buildDailyLoopPhasePatch } from '../utils/dailyLoopUtils';
+import { getGameLoopSnapshot } from '../utils/gameLoopUtils';
+import { applyRelationshipActivity, getRelationshipActivityAffectionDelta } from '../utils/relationshipEventUtils';
 import './Review.css';
 
 const ReviewQuiz = lazy(() => import('../components/ReviewQuiz'));
@@ -144,6 +149,21 @@ const Review = ({ stats, updateStats }) => {
 
     const { reviewSetsToday, reviewTicketsRemaining } = getNormalizedDailyReviewProgress(stats);
     const dailyChallenge = reviewStats ? getActiveReviewChallenge(stats, reviewStats) : null;
+    const gameLoopSnapshot = getGameLoopSnapshot(stats, {
+        reviewSummary: reviewStats
+            ? getHomeReviewSummary(stats)
+            : {
+                hasReviews: false,
+                total: 0,
+                due: 0,
+                soonCount: 0,
+                laterCount: 0,
+                reviewSetsToday,
+                reviewTicketsRemaining,
+                headline: '弱点ノートはまだ空',
+                body: '授業でつまずいた問題がここに集まります。',
+            },
+    });
 
     const getSessionRewards = (results = [], overrides = {}) => {
         const answeredCount = results.length;
@@ -283,16 +303,39 @@ const Review = ({ stats, updateStats }) => {
             const challengeReward = challengeOutcome.reward;
 
             if (updateStats) {
-                updateStats({
-                    diamonds: (stats?.diamonds || 0) + rewardSummary.diamonds + (challengeReward?.diamonds || 0),
-                    intellect: (stats?.intellect || 0) + rewardSummary.intellect + (challengeReward?.intellect || 0),
-                    reviewRewardDate: dailyProgress.today,
-                    reviewSetsToday: dailyProgress.reviewSetsToday + 1,
-                    reviewTicketsRemaining: Math.max(
-                        dailyProgress.reviewTicketsRemaining - (rewardSummary.ticketBonusActive ? 1 : 0),
-                        0
-                    ),
-                    ...challengeOutcome.updates,
+                updateStats((currentStats) => {
+                    const nextStats = {
+                        ...currentStats,
+                        diamonds: (currentStats?.diamonds || 0) + rewardSummary.diamonds + (challengeReward?.diamonds || 0),
+                        intellect: (currentStats?.intellect || 0) + rewardSummary.intellect + (challengeReward?.intellect || 0),
+                        reviewRewardDate: dailyProgress.today,
+                        reviewSetsToday: dailyProgress.reviewSetsToday + 1,
+                        reviewTicketsRemaining: Math.max(
+                            dailyProgress.reviewTicketsRemaining - (rewardSummary.ticketBonusActive ? 1 : 0),
+                            0
+                        ),
+                        ...challengeOutcome.updates,
+                    };
+                    const dailyLoopPatch = buildDailyLoopPhasePatch(nextStats, 'practice');
+                    const dailyLoopStats = dailyLoopPatch
+                        ? { ...nextStats, ...dailyLoopPatch }
+                        : nextStats;
+                    const relationshipStats = applyRelationshipActivity(dailyLoopStats, {
+                        type: 'study',
+                        summary: '弱点ノートを一緒に見直した',
+                        detail: rewardSummary.perfectBonus
+                            ? '取りこぼしをきれいに回収できて、かなり頼もしく見えている。'
+                            : '復習を重ねる姿が、ちゃんと信頼として積み上がっている。',
+                        affectionDelta: getRelationshipActivityAffectionDelta(dailyLoopStats, 'study') + (rewardSummary.perfectBonus ? 4 : 0),
+                    }).nextStats;
+                    return applyCharacterEvaluationResult(relationshipStats, {
+                        activityType: 'practice',
+                        answeredCount: results.length,
+                        correctCount: rewardSummary.correctCount,
+                        accuracy: sessionAccuracy,
+                        completed: true,
+                        perfect: rewardSummary.perfectBonus,
+                    }).nextStats;
                 });
             }
 
@@ -372,6 +415,30 @@ const Review = ({ stats, updateStats }) => {
                     {reviewStats?.due || 0}件
                 </div>
             </div>
+
+            <section className="review-loop-banner">
+                <div className="review-loop-copy">
+                    <span className="hero-kicker">定着フェーズ</span>
+                    <h3>{gameLoopSnapshot.reviewLoad.headline}</h3>
+                    <p>{gameLoopSnapshot.reviewLoad.summary}</p>
+                </div>
+                <div className="review-loop-actions">
+                    <button
+                        type="button"
+                        className="review-loop-action is-primary"
+                        onClick={() => navigate('/multiplayer-match')}
+                    >
+                        実戦フェーズを見る
+                    </button>
+                    <button
+                        type="button"
+                        className="review-loop-action"
+                        onClick={() => navigate('/goal')}
+                    >
+                        試験進捗 {gameLoopSnapshot.examProgress.countdownLabel}
+                    </button>
+                </div>
+            </section>
 
             <section className="review-hero">
                 <div className="review-hero-copy">

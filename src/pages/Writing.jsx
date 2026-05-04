@@ -23,6 +23,9 @@ import { EIKEN_WRITING_PROMPTS, WRITING_LEVELS } from '../data/eikenWritingPromp
 import { saveLastStudyTopic } from '../data/studyData';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
+import { applyCharacterEvaluationResult } from '../utils/characterEvaluationUtils';
+import { buildDailyLoopPhasePatch } from '../utils/dailyLoopUtils';
+import { applyRelationshipActivity, getRelationshipActivityAffectionDelta } from '../utils/relationshipEventUtils';
 import { saveStudySession } from '../utils/studyHistoryUtils';
 import {
     clearWritingDraft,
@@ -172,7 +175,7 @@ const getResultHeadline = (score) => {
     return 'もう少しで合格ラインです';
 };
 
-const Writing = ({ stats }) => {
+const Writing = ({ stats, updateStats }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const initialLevel = new URLSearchParams(location.search).get('level');
@@ -431,6 +434,38 @@ const Writing = ({ stats }) => {
                 questionsAnswered: 1,
                 correctAnswers: response.evaluation?.overallScore >= PASSING_SCORE ? 1 : 0,
             });
+
+            if (typeof updateStats === 'function') {
+                updateStats((currentStats) => {
+                    const dailyLoopPatch = buildDailyLoopPhasePatch(currentStats, 'practice');
+                    const dailyLoopStats = dailyLoopPatch
+                        ? { ...currentStats, ...dailyLoopPatch }
+                        : currentStats;
+                    const passed = response.evaluation?.overallScore >= PASSING_SCORE;
+                    const isPerfectScore = response.evaluation?.overallScore >= (response.evaluation?.maxScore || 16);
+                    const relationshipStats = applyRelationshipActivity(dailyLoopStats, {
+                        type: 'study',
+                        summary: `${selectedPrompt.levelLabel}の英作文を見てもらった`,
+                        detail: isPerfectScore
+                            ? '書いた内容までしっかり伝わって、かなり濃い学習時間になった。'
+                            : passed
+                                ? '答案を見てもらうやり取りが、そのまま信頼の積み重ねになっている。'
+                                : '少し苦戦しても、一緒に振り返った時間が次につながっていく。',
+                        affectionDelta: getRelationshipActivityAffectionDelta(dailyLoopStats, 'study') + (isPerfectScore ? 4 : 0),
+                    }).nextStats;
+
+                    return applyCharacterEvaluationResult(relationshipStats, {
+                        activityType: 'practice',
+                        answeredCount: 1,
+                        correctCount: passed ? 1 : 0,
+                        accuracy: response.evaluation?.overallScore
+                            ? Math.round((response.evaluation.overallScore / Math.max(response.evaluation.maxScore || 16, 1)) * 100)
+                            : 0,
+                        completed: true,
+                        perfect: isPerfectScore,
+                    }).nextStats;
+                });
+            }
         } catch (requestError) {
             setError(requestError.message || '採点に失敗しました。');
         } finally {

@@ -1,9 +1,107 @@
 import { createHomePose } from './characterPoseUtils';
 import { EXPRESSION_LAYER, createExpressionLayer, resolveExpressionLayers } from './expressionLayers';
 
-export const getMatchFaceAccent = ({ answerFx = null, persistentEmotion = null, correctStreak = 0 } = {}) => {
+const MATCH_FEEDBACK_CONFIG = {
+    correct: {
+        emotion: 'smile',
+        expression: 'smile',
+        intensity: 0.95,
+        motion: 'talk_soft',
+        speaking: true,
+        effect: 'glow',
+        live2dEmotion: 'smile',
+        live2dExpression: 'yj',
+    },
+    chain_correct: {
+        emotion: 'happy',
+        expression: 'smile',
+        intensity: 1,
+        motion: 'present_happy',
+        speaking: true,
+        effect: 'glow',
+        live2dEmotion: 'smile',
+        live2dExpression: 'yj',
+    },
+    comeback_correct: {
+        emotion: 'happy',
+        expression: 'happy',
+        intensity: 1.04,
+        motion: 'present_happy',
+        speaking: true,
+        effect: 'glow',
+        live2dEmotion: 'smile',
+        live2dExpression: 'yj',
+    },
+    clutch_correct: {
+        emotion: 'surprised',
+        expression: 'surprised',
+        intensity: 1.02,
+        motion: 'present_happy',
+        speaking: true,
+        effect: 'glow',
+        live2dEmotion: 'smile',
+        live2dExpression: 'yj',
+    },
+    incorrect: {
+        emotion: 'angry',
+        expression: 'angry',
+        intensity: 0.86,
+        motion: 'present_accept',
+        speaking: false,
+        effect: 'shake',
+        live2dEmotion: '',
+        live2dExpression: '',
+    },
+    timeout: {
+        emotion: 'serious',
+        expression: 'serious',
+        intensity: 0.72,
+        motion: 'present_accept',
+        speaking: false,
+        effect: '',
+        live2dEmotion: '',
+        live2dExpression: '',
+    },
+};
+
+const getMatchFeedbackConfig = ({ answerFx = null, answerTone = null, matchEmotion = 'normal' } = {}) => {
+    if (answerFx === 'correct') {
+        if (answerTone === 'chain_correct') return MATCH_FEEDBACK_CONFIG.chain_correct;
+        if (answerTone === 'comeback_correct') return MATCH_FEEDBACK_CONFIG.comeback_correct;
+        if (answerTone === 'clutch_correct') return MATCH_FEEDBACK_CONFIG.clutch_correct;
+        return {
+            ...MATCH_FEEDBACK_CONFIG.correct,
+            emotion: matchEmotion,
+        };
+    }
+
+    if (answerFx === 'wrong') {
+        if (answerTone === 'timeout') return MATCH_FEEDBACK_CONFIG.timeout;
+        return MATCH_FEEDBACK_CONFIG.incorrect;
+    }
+
+    return null;
+};
+
+export const getMatchFaceAccent = ({ answerFx = null, answerTone = null, persistentEmotion = null, correctStreak = 0 } = {}) => {
+    if (answerTone === 'timeout') {
+        return null;
+    }
+
+    if (answerTone === 'comeback_correct' || answerTone === 'chain_correct') {
+        return 'heart';
+    }
+
+    if (answerTone === 'correct' || answerTone === 'clutch_correct') {
+        return 'star';
+    }
+
     if (answerFx === 'wrong' || persistentEmotion === 'angry') {
         return 'angry';
+    }
+
+    if (persistentEmotion === 'serious') {
+        return null;
     }
 
     if (answerFx === 'correct') {
@@ -23,6 +121,7 @@ export const getMatchFaceAccent = ({ answerFx = null, persistentEmotion = null, 
 
 export const resolveMatchCharacterPose = ({
     answerFx = null,
+    answerTone = null,
     correctStreak = 0,
     isPoseSpeaking = false,
     matchEmotion = 'normal',
@@ -32,8 +131,9 @@ export const resolveMatchCharacterPose = ({
 } = {}) => {
     const scene = phase === 'result' ? 'match-result' : 'match';
     const basePose = createHomePose({ emotion: matchEmotion, text: '' }, { speaking: isPoseSpeaking });
-    const matchFaceAccent = getMatchFaceAccent({ answerFx, persistentEmotion, correctStreak });
+    const matchFaceAccent = getMatchFaceAccent({ answerFx, answerTone, persistentEmotion, correctStreak });
     const live2dFaceAccent = matchFaceAccent === 'angry' ? null : matchFaceAccent;
+    const matchFeedbackConfig = getMatchFeedbackConfig({ answerFx, answerTone, matchEmotion });
     const expressionLayers = [
         persistentEmotion
             ? createExpressionLayer(EXPRESSION_LAYER.REACTION, {
@@ -53,17 +153,17 @@ export const resolveMatchCharacterPose = ({
                 },
             })
             : null,
-        answerFx
+        matchFeedbackConfig
             ? createExpressionLayer(EXPRESSION_LAYER.FEEDBACK, {
-                emotion: answerFx === 'correct' ? matchEmotion : 'angry',
+                emotion: matchFeedbackConfig.emotion,
                 pose: {
-                    expression: answerFx === 'correct' ? 'smile' : 'angry',
-                    intensity: answerFx === 'correct' ? 0.95 : 0.86,
-                    motion: answerFx === 'correct' ? 'talk_soft' : 'present_accept',
-                    speaking: answerFx === 'correct',
-                    effect: answerFx === 'correct' ? 'glow' : 'shake',
-                    live2dEmotion: answerFx === 'correct' ? 'smile' : '',
-                    live2dExpression: answerFx === 'correct' ? 'yj' : '',
+                    expression: matchFeedbackConfig.expression,
+                    intensity: matchFeedbackConfig.intensity,
+                    motion: matchFeedbackConfig.motion,
+                    speaking: matchFeedbackConfig.speaking,
+                    effect: matchFeedbackConfig.effect,
+                    live2dEmotion: matchFeedbackConfig.live2dEmotion,
+                    live2dExpression: matchFeedbackConfig.live2dExpression,
                     live2dFaceAccent,
                 },
             })

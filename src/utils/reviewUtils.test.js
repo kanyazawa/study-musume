@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  addWrongQuestion,
   formatNextCorrectReviewProgress,
   formatRelativeDate,
   formatReviewInterval,
@@ -157,6 +158,24 @@ describe('reviewUtils', () => {
       date: Date.now(),
       result: 'correct',
     });
+  });
+
+  it('normalizes reorder review questions and preserves their token list', () => {
+    addWrongQuestion({
+      subject: '英語',
+      questionId: 'q-reorder-1',
+      questionText: '「私は放課後に英語を勉強します」を並び替える',
+      correctAnswer: 'I study English after school.',
+      userAnswer: 'I after school study English.',
+      questionType: 'reorder',
+      tokens: [' I ', 'study', '', 'English', 'after', 'school. '],
+    });
+
+    const [question] = getReviewQuestions();
+
+    expect(question.questionType).toBe('reorder');
+    expect(question.tokens).toEqual(['I', 'study', 'English', 'after', 'school.']);
+    expect(question.options).toBeNull();
   });
 
   it('resets the review level after a wrong answer', () => {

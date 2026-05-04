@@ -1,6 +1,13 @@
 import { getAffectionLevel } from './affectionUtils';
 import { getRelationshipEventById, getRelationshipEventsByCharacter } from '../data/relationshipEvents';
-import { getRelationshipEventState, getRelationshipTotals, recordRelationshipMoment } from './relationshipUtils';
+import { getRelationshipDaily, getRelationshipEventState, getRelationshipTotals, recordRelationshipMoment } from './relationshipUtils';
+
+const RELATIONSHIP_ACTIVITY_AFFECTION_CURVES = {
+    talk: [2, 2, 1, 1, 1],
+    chat: [6, 5, 4, 3, 2],
+    study: [12, 8, 6],
+    gift: [],
+};
 
 const meetsTotalsRequirement = (totals = {}, requiredTotals = {}) =>
     Object.entries(requiredTotals).every(([key, value]) => Number(totals[key] || 0) >= Number(value || 0));
@@ -56,6 +63,35 @@ export const applyRelationshipProgress = (stats = {}, momentInput = null) => {
             ...statsPatch,
         },
         newlyUnlockedIds,
+    };
+};
+
+export const getRelationshipActivityAffectionDelta = (stats = {}, type = 'talk') => {
+    const daily = getRelationshipDaily(stats);
+    const rewardCurve = RELATIONSHIP_ACTIVITY_AFFECTION_CURVES[type] || [];
+    const todayCount = Math.max(0, Number(daily?.[type]) || 0);
+
+    return Math.max(0, Number(rewardCurve[todayCount]) || 0);
+};
+
+export const applyRelationshipActivity = (stats = {}, momentInput = {}) => {
+    const resolvedType = typeof momentInput?.type === 'string' ? momentInput.type : 'talk';
+    const resolvedAffectionDelta = Number.isFinite(Number(momentInput?.affectionDelta))
+        ? Number(momentInput.affectionDelta)
+        : getRelationshipActivityAffectionDelta(stats, resolvedType);
+    const nextStatsBase = {
+        ...stats,
+        affection: Math.max(0, Number(stats?.affection) || 0) + resolvedAffectionDelta,
+    };
+    const result = applyRelationshipProgress(nextStatsBase, {
+        ...momentInput,
+        type: resolvedType,
+        affectionDelta: resolvedAffectionDelta,
+    });
+
+    return {
+        ...result,
+        affectionDelta: resolvedAffectionDelta,
     };
 };
 

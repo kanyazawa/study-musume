@@ -11,70 +11,70 @@ export const AFFECTION_LEVELS = [
     },
     {
         level: 1,
-        points: 1000,
+        points: 500,
         title: '知り合い',
         reward: 'voice_set_1',
         description: '少し心を開いてくれた。会話が増えてきた。'
     },
     {
         level: 2,
-        points: 2000,
+        points: 1000,
         title: 'クラスメイト',
         reward: 'voice_set_2',
         description: '普通に話せるようになった。でもまだツンツンしてる。'
     },
     {
         level: 3,
-        points: 3500,
+        points: 1800,
         title: '友達',
         reward: 'background_library',
         description: '友達として認めてくれた。一緒に勉強することも増えた。'
     },
     {
         level: 4,
-        points: 5000,
+        points: 2700,
         title: '親しい友達',
         reward: 'voice_set_3',
         description: 'かなり仲良くなった。少しデレが見え始める。'
     },
     {
         level: 5,
-        points: 6500,
+        points: 3800,
         title: '勉強パートナー',
         reward: 'costume_casual',
         description: 'お互いに頼り頼られる関係に。特別な衣装を見せてくれた。'
     },
     {
         level: 6,
-        points: 8000,
+        points: 5000,
         title: '特別な存在',
         reward: 'voice_set_4',
         description: '彼女にとって特別な存在になった。デレが増えてきた。'
     },
     {
         level: 7,
-        points: 9500,
+        points: 6500,
         title: '大切な人',
         reward: 'scenario_special',
         description: 'とても大切に思ってくれている。特別なシナリオが解禁。'
     },
     {
         level: 8,
-        points: 11000,
+        points: 8200,
         title: '恋人未満',
         reward: 'voice_set_5',
         description: 'あと一歩で恋人になれそう。素直になってきた。'
     },
     {
         level: 9,
-        points: 13000,
+        points: 10000,
         title: '心の支え',
         reward: 'background_sunset',
         description: 'お互いにかけがえのない存在。夕焼けの特別な場所が解禁。'
     },
     {
         level: 10,
-        points: 15000,
+        points: 12000,
         title: '最愛の人',
         reward: 'true_ending',
         description: '彼女の心を完全に掴んだ。真エンディング解禁。'

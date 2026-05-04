@@ -2,13 +2,15 @@
  * ゲーム統計情報の保存・読み込みユーティリティ
  */
 
+import { mergeGameLoopStats } from './gameLoopUtils';
+
 const STORAGE_KEY = 'gameStats';
 
 /**
  * デフォルトの統計情報を取得
  * @returns {Object} デフォルトの統計情報
  */
-export const getDefaultStats = () => ({
+export const getDefaultStats = () => mergeGameLoopStats({
     name: 'トレーナー',
     rank: 'C+',
     tp: 60,
@@ -68,7 +70,17 @@ export const getDefaultStats = () => ({
         readIds: [],
         notifiedIds: [],
     },
+    characterEvaluations: {},
     relationshipLastInteractionAt: null,
+    reflectionEntries: [],
+    lastBattleResult: null,
+    dailyLoopState: null,
+    dailyLoop: null,
+    examProgress: null,
+    battleProgress: null,
+    reviewLoad: null,
+    dailyGoals: [],
+    recommendedNextAction: null,
 });
 
 // ============================================
@@ -121,8 +133,9 @@ const triggerCloudSync = () => {
  */
 export const saveStats = (stats) => {
     try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
-        console.log('Stats saved:', stats);
+        const normalizedStats = mergeGameLoopStats(stats);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedStats));
+        console.log('Stats saved:', normalizedStats);
         triggerCloudSync();
     } catch (error) {
         console.error('Error saving stats:', error);
@@ -170,7 +183,7 @@ export const loadStats = () => {
             console.log('Stats loaded from localStorage:', parsed);
 
             // デフォルト値とマージ（新しいフィールドが追加された場合の対策）
-            const loadedStats = { ...getDefaultStats(), ...parsed };
+            const loadedStats = mergeGameLoopStats({ ...getDefaultStats(), ...parsed });
 
             // 初回ログインボーナスチェック（未受取ならダイヤ+3000）
             // 旧データ（undefined）または false の場合に付与
@@ -187,10 +200,10 @@ export const loadStats = () => {
         }
 
         console.log('No saved stats found, using defaults');
-        return getDefaultStats();
+        return mergeGameLoopStats(getDefaultStats());
     } catch (error) {
         console.error('Error loading stats:', error);
-        return getDefaultStats();
+        return mergeGameLoopStats(getDefaultStats());
     }
 };
 

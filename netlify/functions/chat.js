@@ -1,4 +1,6 @@
 import { createNoaChatResponse } from '../../functions/_shared/chatService.js';
+import { enforceChatGatewayAccess } from '../../functions/_shared/chatGateway.js';
+import { logChatEvent } from '../../functions/_shared/chatLogging.js';
 
 const JSON_HEADERS = {
     'Content-Type': 'application/json; charset=utf-8',
@@ -10,6 +12,7 @@ const toJson = (statusCode, body) => ({
     headers: JSON_HEADERS,
     body: JSON.stringify(body),
 });
+const runtimeEnv = globalThis.process?.env || {};
 
 export async function handler(event) {
     if (event.httpMethod !== 'POST') {
@@ -23,13 +26,50 @@ export async function handler(event) {
         return toJson(400, { error: 'Request body must be valid JSON' });
     }
 
-    const result = await createNoaChatResponse({
-        geminiApiKey: process.env.GEMINI_API_KEY,
-        geminiModel: process.env.GEMINI_CHAT_MODEL || undefined,
-        openAiApiKey: process.env.OPENAI_API_KEY,
-        openAiModel: process.env.OPENAI_CHAT_MODEL || undefined,
+    const gatewayAccess = enforceChatGatewayAccess({
+        env: runtimeEnv,
         body,
+        headers: event.headers,
     });
+    if (!gatewayAccess.ok) {
+        logChatEvent({
+            transport: 'netlify-function',
+            clientId: gatewayAccess.clientId,
+            body,
+            result: gatewayAccess,
+            stage: 'gateway',
+        });
+        return toJson(gatewayAccess.statusCode, gatewayAccess.body);
+    }
 
-    return toJson(result.statusCode, result.body);
+    try {
+        const result = await createNoaChatResponse({
+            geminiApiKey: runtimeEnv.GEMINI_API_KEY,
+            geminiModel: runtimeEnv.GEMINI_CHAT_MODEL || undefined,
+            openAiApiKey: runtimeEnv.OPENAI_API_KEY,
+            openAiModel: runtimeEnv.OPENAI_CHAT_MODEL || undefined,
+            body,
+        });
+
+        logChatEvent({
+            transport: 'netlify-function',
+            clientId: gatewayAccess.clientId,
+            body,
+            result,
+        });
+
+        return toJson(result.statusCode, result.body);
+    } catch (error) {
+        logChatEvent({
+            transport: 'netlify-function',
+            clientId: gatewayAccess.clientId,
+            body,
+            error,
+            stage: 'exception',
+        });
+        return toJson(502, {
+            error: '今はノアがうまく返事できないわ。少し時間を置いて試しなさい。',
+            code: 'chat_upstream_error',
+        });
+    }
 }

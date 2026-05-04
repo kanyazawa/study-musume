@@ -1,4 +1,6 @@
 import { createNoaChatResponse } from '../functions/_shared/chatService.js';
+import { enforceChatGatewayAccess } from '../functions/_shared/chatGateway.js';
+import { logChatEvent } from '../functions/_shared/chatLogging.js';
 import { createWritingEvaluationResponse } from '../functions/_shared/writingService.js';
 import {
     createSpeechResponse,
@@ -43,15 +45,49 @@ export default {
                 return buildJsonResponse({ error: 'Request body must be valid JSON' }, 400);
             }
 
-            const result = await createNoaChatResponse({
-                geminiApiKey: env.GEMINI_API_KEY,
-                geminiModel: env.GEMINI_CHAT_MODEL || undefined,
-                openAiApiKey: env.OPENAI_API_KEY,
-                openAiModel: env.OPENAI_CHAT_MODEL || undefined,
+            const gatewayAccess = enforceChatGatewayAccess({
+                env,
                 body,
+                headers: request.headers,
             });
+            if (!gatewayAccess.ok) {
+                logChatEvent({
+                    transport: 'worker',
+                    clientId: gatewayAccess.clientId,
+                    body,
+                    result: gatewayAccess,
+                    stage: 'gateway',
+                });
+                return buildJsonResponse(gatewayAccess.body, gatewayAccess.statusCode);
+            }
 
-            return buildJsonResponse(result.body, result.statusCode);
+            try {
+                const result = await createNoaChatResponse({
+                    geminiApiKey: env.GEMINI_API_KEY,
+                    geminiModel: env.GEMINI_CHAT_MODEL || undefined,
+                    openAiApiKey: env.OPENAI_API_KEY,
+                    openAiModel: env.OPENAI_CHAT_MODEL || undefined,
+                    body,
+                });
+
+                logChatEvent({
+                    transport: 'worker',
+                    clientId: gatewayAccess.clientId,
+                    body,
+                    result,
+                });
+
+                return buildJsonResponse(result.body, result.statusCode);
+            } catch (error) {
+                logChatEvent({
+                    transport: 'worker',
+                    clientId: gatewayAccess.clientId,
+                    body,
+                    error,
+                    stage: 'exception',
+                });
+                return buildJsonResponse({ error: '今はノアがうまく返事できないわ。少し時間を置いて試しなさい。', code: 'chat_upstream_error' }, 502);
+            }
         }
 
         if (url.pathname === '/api/writing') {

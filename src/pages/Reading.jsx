@@ -5,7 +5,10 @@ import TappableVocabText from '../components/TappableVocabText';
 import { READING_PASSAGES, getReadingPassageById, getReadingPassagesByLevel } from '../data/readingPassages';
 import { saveLastStudyTopic } from '../data/studyData';
 import { saveStudySession } from '../utils/studyHistoryUtils';
+import { applyCharacterEvaluationResult } from '../utils/characterEvaluationUtils';
+import { buildDailyLoopPhasePatch } from '../utils/dailyLoopUtils';
 import { updateMissionsOnStudy } from '../utils/missionUtils';
+import { applyRelationshipActivity, getRelationshipActivityAffectionDelta } from '../utils/relationshipEventUtils';
 import './Reading.css';
 
 const READING_REWARD_INTELLECT = 18;
@@ -182,12 +185,35 @@ const Reading = ({ updateStats }) => {
         });
 
         if (typeof updateStats === 'function') {
-            updateStats((currentStats) => ({
-                ...currentStats,
-                intellect: (currentStats?.intellect || 0) + READING_REWARD_INTELLECT,
-                totalStudyTime: (currentStats?.totalStudyTime || 0) + selectedPassage.estimatedMinutes,
-                totalSessions: (currentStats?.totalSessions || 0) + 1,
-            }));
+            updateStats((currentStats) => {
+                const nextStats = {
+                    ...currentStats,
+                    intellect: (currentStats?.intellect || 0) + READING_REWARD_INTELLECT,
+                    totalStudyTime: (currentStats?.totalStudyTime || 0) + selectedPassage.estimatedMinutes,
+                    totalSessions: (currentStats?.totalSessions || 0) + 1,
+                };
+                const dailyLoopPatch = buildDailyLoopPhasePatch(nextStats, 'practice');
+                const dailyLoopStats = dailyLoopPatch
+                    ? { ...nextStats, ...dailyLoopPatch }
+                    : nextStats;
+                const relationshipStats = applyRelationshipActivity(dailyLoopStats, {
+                    type: 'study',
+                    summary: `${selectedPassage.label}の長文を読み切った`,
+                    detail: hasQuestions && correctCount === questions.length
+                        ? '最後まで集中して読み切って、かなり息の合う学習時間になった。'
+                        : '一緒に文章を追う時間が、着実な信頼に変わっていく。',
+                    affectionDelta: getRelationshipActivityAffectionDelta(dailyLoopStats, 'study') + (hasQuestions && correctCount === questions.length ? 4 : 0),
+                }).nextStats;
+                return applyCharacterEvaluationResult(relationshipStats, {
+                    activityType: 'practice',
+                    answeredCount: questions.length,
+                    correctCount,
+                    accuracy: questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 100,
+                    completed: true,
+                    durationMinutes: selectedPassage.estimatedMinutes,
+                    perfect: hasQuestions && correctCount === questions.length,
+                }).nextStats;
+            });
         }
 
         setIsFinished(true);

@@ -67,6 +67,50 @@
     box-shadow: 0 4px 14px rgba(94, 52, 0, 0.12);
 }
 
+.review-loop-banner {
+    margin: 1rem 1rem 0;
+    padding: 1rem 1.05rem;
+    border-radius: 22px;
+    background: linear-gradient(135deg, rgba(35, 52, 77, 0.94), rgba(53, 81, 121, 0.9));
+    color: white;
+    box-shadow: 0 14px 30px rgba(31, 56, 93, 0.18);
+    display: grid;
+    gap: 0.85rem;
+}
+
+.review-loop-copy h3 {
+    margin: 0 0 0.35rem;
+    font-size: 1.05rem;
+}
+
+.review-loop-copy p {
+    margin: 0;
+    line-height: 1.65;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.9rem;
+}
+
+.review-loop-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.review-loop-action {
+    border: none;
+    border-radius: 999px;
+    padding: 0.78rem 1rem;
+    font-weight: 800;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.94);
+    color: #29425f;
+}
+
+.review-loop-action.is-primary {
+    background: linear-gradient(135deg, #ffcb72, #ff9f43);
+    color: #513010;
+}
+
 .review-hero {
     margin: 1rem;
     padding: 1.1rem 1.1rem 1rem;
@@ -694,6 +738,10 @@
 }
 
 @media (max-width: 768px) {
+    .review-loop-actions {
+        flex-direction: column;
+    }
+
     .review-hero {
         border-radius: 20px;
     }

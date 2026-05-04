@@ -16,6 +16,23 @@
     position: relative;
 }
 
+.mp-screen.mp-fever-active::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 12;
+    background:
+        radial-gradient(circle at 50% 34%, rgba(255, 225, 100, 0.34), transparent 24%),
+        radial-gradient(circle at 0% 50%, rgba(255, 140, 68, 0.22), transparent 28%),
+        radial-gradient(circle at 100% 48%, rgba(255, 104, 134, 0.2), transparent 30%),
+        radial-gradient(circle at 10% 16%, rgba(255, 209, 118, 0.18), transparent 22%),
+        radial-gradient(circle at 90% 18%, rgba(255, 171, 89, 0.15), transparent 22%),
+        linear-gradient(90deg, rgba(255, 142, 76, 0.15), transparent 18%, transparent 82%, rgba(240, 93, 150, 0.13)),
+        linear-gradient(180deg, rgba(255, 104, 66, 0.14), rgba(236, 72, 153, 0.1));
+    animation: mp-fever-flash 0.9s ease-out forwards;
+}
+
 .mp-screen *, .mp-screen *::before, .mp-screen *::after {
     box-sizing: inherit;
 }
@@ -296,6 +313,41 @@
     border-radius: 12px;
     font-size: 0.9rem;
     border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.mp-loop-bridge-card {
+    width: 100%;
+    max-width: 360px;
+    padding: 16px 18px;
+    border-radius: 20px;
+    background: rgba(10, 16, 34, 0.68);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
+}
+
+.mp-loop-bridge-kicker {
+    display: inline-flex;
+    margin-bottom: 8px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: rgba(255, 210, 111, 0.14);
+    color: #ffd26f;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+}
+
+.mp-loop-bridge-card h3 {
+    margin: 0 0 6px;
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.mp-loop-bridge-card p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.76);
+    font-size: 0.85rem;
+    line-height: 1.55;
 }
 
 /* ==============================
@@ -1160,6 +1212,57 @@
     background: linear-gradient(135deg, rgba(236, 72, 153, 0.96), rgba(168, 85, 247, 0.96));
 }
 
+.mp-fever-burst {
+    position: absolute;
+    top: 98px;
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 178px;
+    padding: 10px 18px 12px;
+    border-radius: 22px;
+    text-align: center;
+    pointer-events: none;
+    z-index: 24;
+    color: #fffdf6;
+    background: linear-gradient(135deg, rgba(255, 109, 60, 0.96), rgba(236, 72, 153, 0.96));
+    box-shadow: 0 18px 42px rgba(34, 12, 44, 0.28);
+    animation: mp-fever-pop 0.92s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    overflow: visible;
+}
+
+.mp-fever-kicker {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+    color: rgba(255, 241, 220, 0.8);
+}
+
+.mp-fever-burst strong {
+    display: block;
+    margin-top: 4px;
+    font-size: 1.5rem;
+    letter-spacing: 0.08em;
+}
+
+.mp-fever-spark {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    background: linear-gradient(135deg, #fff7c9, #ffd44f);
+    box-shadow: 0 0 14px rgba(255, 221, 115, 0.78);
+    transform: rotate(45deg) scale(0.6);
+    opacity: 0;
+    animation: mp-fever-spark 0.92s ease-out forwards;
+}
+
+.mp-fever-spark-1 { left: 16px; top: 18px; --spark-x: -32px; --spark-y: -18px; animation-delay: 0.03s; }
+.mp-fever-spark-2 { right: 18px; top: 16px; --spark-x: 34px; --spark-y: -22px; animation-delay: 0.08s; }
+.mp-fever-spark-3 { left: 28px; bottom: 10px; --spark-x: -28px; --spark-y: 24px; animation-delay: 0.12s; }
+.mp-fever-spark-4 { right: 32px; bottom: 8px; --spark-x: 28px; --spark-y: 24px; animation-delay: 0.16s; }
+.mp-fever-spark-5 { left: 50%; top: -2px; --spark-x: 0px; --spark-y: -36px; animation-delay: 0.2s; }
+
 .mp-chain-label {
     font-size: 0.74rem;
     font-weight: 900;
@@ -1191,6 +1294,48 @@
     100% {
         opacity: 0;
         transform: translateX(-50%) translateY(-18px) scale(0.98);
+    }
+}
+
+@keyframes mp-fever-flash {
+    0% {
+        opacity: 0;
+    }
+    22% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes mp-fever-pop {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(10px) scale(0.88);
+    }
+    18% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-2px) scale(1.02);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-18px) scale(0.98);
+    }
+}
+
+@keyframes mp-fever-spark {
+    0% {
+        opacity: 0;
+        transform: rotate(45deg) scale(0.4);
+    }
+    22% {
+        opacity: 1;
+        transform: translate(var(--spark-x), var(--spark-y)) rotate(45deg) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(calc(var(--spark-x) * 1.22), calc(var(--spark-y) * 1.22)) rotate(45deg) scale(0.72);
     }
 }
 

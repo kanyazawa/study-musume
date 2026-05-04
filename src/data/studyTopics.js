@@ -819,7 +819,7 @@ export const STUDY_TOPICS = [
                     {
                         id: 'eng_gr_5', name: '5. 不定詞 (Infinitives)', topic: '不定詞',
                         chapters: [
-                            { id: 'eng_gr_5_1', name: '5.1 基本3用法', topic: '5.1 基本3用法' },
+                            { id: 'eng_gr_5_1', name: '5.1 基本3用法', topic: '5.1 基本3用法', sheetGid: '0' },
                             { id: 'eng_gr_5_2', name: '5.2 応用表現', topic: '5.2 応用表現' }
                         ]
                     },

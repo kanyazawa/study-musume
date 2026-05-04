@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { subscribeToAuthState, handleRedirectResult } from '../firebase/auth';
+import { subscribeToAuthState, handleRedirectResult, ensureUserDocument } from '../firebase/auth';
 import { auth } from '../firebase/config';
 import { syncOnLogin, uploadAllSaveData } from '../firebase/sync';
 import { claimPendingReferralRewards } from '../firebase/referrals';
@@ -38,6 +38,7 @@ export const useAuthSync = (setStats) => {
 
       if (user) {
         console.log('User signed in, syncing data...');
+        await ensureUserDocument(user);
         const syncResult = await syncOnLogin(user.uid);
         if (syncResult.success && syncResult.source === 'cloud') {
           setStats(loadStats());

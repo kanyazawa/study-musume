@@ -1,11 +1,24 @@
 import {
     collection,
+    doc,
+    getDoc,
     query,
-    where,
     getDocs,
     limit
 } from "firebase/firestore";
 import { db } from "./config";
+
+const PUBLIC_PROFILES_COLLECTION = "publicProfiles";
+const USERS_COLLECTION = "users";
+
+const getPublicProfileByUid = async (uid) => {
+    const publicProfileDoc = await getDoc(doc(db, PUBLIC_PROFILES_COLLECTION, uid));
+    if (publicProfileDoc.exists()) {
+        return publicProfileDoc.data();
+    }
+
+    return null;
+};
 
 /**
  * フレンドランキングを取得（週間学習時間）
@@ -21,24 +34,18 @@ export const getFriendRanking = async (friendIds) => {
         // 各フレンドの統計情報を取得
         for (const friendId of friendIds) {
             const userDoc = await getDocs(
-                query(collection(db, "users", friendId, "stats"), limit(1))
+                query(collection(db, USERS_COLLECTION, friendId, "stats"), limit(1))
             );
 
             if (!userDoc.empty) {
                 const statsData = userDoc.docs[0].data();
 
                 // ユーザー情報を取得
-                const userQuery = query(
-                    collection(db, "users"),
-                    where("__name__", "==", friendId)
-                );
-                const userSnapshot = await getDocs(userQuery);
-
-                if (!userSnapshot.empty) {
-                    const userData = userSnapshot.docs[0].data();
+                const userData = await getPublicProfileByUid(friendId);
+                if (userData) {
                     ranking.push({
                         uid: friendId,
-                        displayName: userData.displayName || "Unknown",
+                        displayName: userData.displayName || "トレーナー",
                         photoURL: userData.photoURL,
                         totalStudyTime: statsData.totalStudyTime || 0,
                         level: statsData.level || 1
@@ -65,15 +72,17 @@ export const getGlobalRanking = async (limitCount = 50) => {
         const ranking = [];
 
         // 全ユーザーの統計情報を取得
-        const usersSnapshot = await getDocs(collection(db, "users"));
+        const publicProfilesSnapshot = await getDocs(collection(db, PUBLIC_PROFILES_COLLECTION));
+        const profileMap = new Map();
 
-        for (const userDoc of usersSnapshot.docs) {
-            const uid = userDoc.id;
-            const userData = userDoc.data();
+        publicProfilesSnapshot.docs.forEach((profileDoc) => {
+            profileMap.set(profileDoc.id, profileDoc.data());
+        });
 
+        for (const [uid, userData] of profileMap.entries()) {
             // 統計情報を取得
             const statsQuery = query(
-                collection(db, "users", uid, "stats"),
+                collection(db, USERS_COLLECTION, uid, "stats"),
                 limit(1)
             );
             const statsSnapshot = await getDocs(statsQuery);
@@ -82,7 +91,7 @@ export const getGlobalRanking = async (limitCount = 50) => {
                 const statsData = statsSnapshot.docs[0].data();
                 ranking.push({
                     uid: uid,
-                    displayName: userData.displayName || "Unknown",
+                    displayName: userData.displayName || "トレーナー",
                     photoURL: userData.photoURL,
                     totalStudyTime: statsData.totalStudyTime || 0,
                     level: statsData.level || 1

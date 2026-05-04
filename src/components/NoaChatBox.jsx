@@ -3,6 +3,14 @@ import { LoaderCircle, RefreshCcw, SendHorizontal, Volume2, X } from 'lucide-rea
 import './NoaChatBox.css';
 import { clearNoaChatMessages, getNoaChatMessages, saveNoaChatMessages } from '../utils/chatHistory';
 import { inferEmotionFromChatText } from '../utils/chatEmotionUtils';
+import { applyRelationshipActivity } from '../utils/relationshipEventUtils';
+import {
+    acknowledgeNoaChatNotice,
+    getNoaChatLimitSnapshot,
+    hasAcknowledgedNoaChatNotice,
+    markNoaChatAttempt,
+    recordSuccessfulNoaChatTurn,
+} from '../utils/noaChatLimits';
 import { useSound } from '../contexts/SoundContext';
 import { getTtsSettings, TTS_ENGINES } from '../utils/ttsSettings';
 import {
@@ -14,9 +22,10 @@ import {
     speakWithEngine,
 } from '../utils/voicevoxUtils';
 
-const MAX_INPUT_LENGTH = 240;
+const MAX_INPUT_LENGTH = 160;
 const CLOUDFLARE_CHAT_ENDPOINT = 'https://study-musume.hide20080422.workers.dev/api/chat';
 const NOA_CHAT_HISTORY_KEY = 'general';
+const NOA_CHAT_ANONYMOUS_ID_KEY = 'noaChatAnonymousId';
 
 const getChatEndpoints = () => {
     if (typeof window === 'undefined') {
@@ -40,6 +49,14 @@ const getChatEndpoints = () => {
 };
 
 const clipText = (value, maxLength = MAX_INPUT_LENGTH) => String(value || '').trim().slice(0, maxLength);
+
+const createAnonymousChatId = () => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return `anon-${crypto.randomUUID()}`;
+    }
+
+    return `anon-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+};
 
 const formatChatError = (errorMessage, endpoint) => {
     const message = String(errorMessage || '').trim();
@@ -77,7 +94,7 @@ const formatChatError = (errorMessage, endpoint) => {
 
 const buildStarterMessage = () => ({
     role: 'assistant',
-    content: '今日は普通に話してもいいわ。聞きたいことでも雑談でも、好きに振ってきなさい。',
+    content: '少し話すくらいなら付き合うわ。勉強のことでも、今日の気分でも、短く振ってきなさい。',
     emotion: 'normal',
 });
 
@@ -94,6 +111,23 @@ const getLastStudyTopicName = () => {
         return clipText(parsed?.topicName, 48);
     } catch {
         return '';
+    }
+};
+
+const getNoaChatAnonymousId = () => {
+    if (typeof window === 'undefined' || !window.localStorage) {
+        return 'anon-server';
+    }
+
+    try {
+        const savedValue = window.localStorage.getItem(NOA_CHAT_ANONYMOUS_ID_KEY);
+        if (savedValue) return savedValue;
+
+        const nextValue = createAnonymousChatId();
+        window.localStorage.setItem(NOA_CHAT_ANONYMOUS_ID_KEY, nextValue);
+        return nextValue;
+    } catch {
+        return createAnonymousChatId();
     }
 };
 
@@ -194,6 +228,7 @@ const requestNoaReply = async (payload) => {
 
 const NoaChatBox = ({
     stats,
+    updateStats = null,
     embedded = false,
     compact = false,
     onClose = null,
@@ -205,19 +240,42 @@ const NoaChatBox = ({
 }) => {
     const { acquireVoiceFocus } = useSound();
     const lastStudyTopicName = useMemo(() => getLastStudyTopicName(), []);
+    const anonymousId = useMemo(() => getNoaChatAnonymousId(), []);
     const starterMessages = useMemo(() => [buildStarterMessage()], []);
+    const [nowTick, setNowTick] = useState(() => Date.now());
     const [isOpen, setIsOpen] = useState(false);
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState(() => getNoaChatMessages(NOA_CHAT_HISTORY_KEY, starterMessages));
     const [isLoading, setIsLoading] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [error, setError] = useState('');
+    const [showUsageNotice, setShowUsageNotice] = useState(() => !hasAcknowledgedNoaChatNotice());
     const messageEndRef = useRef(null);
     const lastAssistantCallbackKeyRef = useRef('');
+    const chatLimitState = useMemo(() => getNoaChatLimitSnapshot(nowTick), [nowTick]);
+    const chatStatusText = chatLimitState.isDailyLimitReached
+        ? `今日はここまでよ。会話は1日${chatLimitState.dailyLimit}往復までにしておきなさい。`
+        : chatLimitState.isCoolingDown
+            ? `少し間を空けなさい。あと${Math.ceil(chatLimitState.cooldownRemainingMs / 1000)}秒でまた話せるわ。`
+            : `今日の残り会話 ${chatLimitState.remainingCount} / ${chatLimitState.dailyLimit} 回`;
+    const noticeText = 'AIの返答には誤りがあることがあります。困ったときは保護者・先生などの大人にも相談してください。';
+    const isSubmitDisabled = isLoading
+        || !clipText(input)
+        || chatLimitState.isDailyLimitReached
+        || chatLimitState.isCoolingDown;
 
     useEffect(() => {
         setMessages(getNoaChatMessages(NOA_CHAT_HISTORY_KEY, starterMessages));
     }, [starterMessages]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        const intervalId = window.setInterval(() => {
+            setNowTick(Date.now());
+        }, 1000);
+
+        return () => window.clearInterval(intervalId);
+    }, []);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -265,6 +323,11 @@ const NoaChatBox = ({
         setError('');
     };
 
+    const handleDismissNotice = () => {
+        acknowledgeNoaChatNotice();
+        setShowUsageNotice(false);
+    };
+
     const handleSpeak = async (text, emotion = '') => {
         if (!text || isSpeaking) return;
 
@@ -292,6 +355,19 @@ const NoaChatBox = ({
         const trimmed = clipText(input);
         if (!trimmed || isLoading) return;
 
+        const limitSnapshot = getNoaChatLimitSnapshot();
+        if (limitSnapshot.isDailyLimitReached) {
+            setNowTick(Date.now());
+            setError(`今日はここまでよ。ノアとの会話は1日${limitSnapshot.dailyLimit}往復までにしておきなさい。`);
+            return;
+        }
+
+        if (limitSnapshot.isCoolingDown) {
+            setNowTick(Date.now());
+            setError(`少し間を空けなさい。あと${Math.ceil(limitSnapshot.cooldownRemainingMs / 1000)}秒でまた話せるわ。`);
+            return;
+        }
+
         const userEmotion = inferEmotionFromChatText(trimmed, { role: 'user' });
         const userMessage = { role: 'user', content: trimmed, emotion: userEmotion };
         onUserMessage?.(trimmed, {
@@ -303,6 +379,8 @@ const NoaChatBox = ({
         setInput('');
         setError('');
         setIsLoading(true);
+        markNoaChatAttempt();
+        setNowTick(Date.now());
 
         try {
             const payload = await requestNoaReply({
@@ -310,6 +388,7 @@ const NoaChatBox = ({
                 lastStudyTopic: lastStudyTopicName,
                 affection: stats?.affection || 0,
                 recentMessages: nextMessages,
+                anonymousId,
             });
 
             const assistantMessage = {
@@ -320,6 +399,15 @@ const NoaChatBox = ({
 
             const saved = saveNoaChatMessages(NOA_CHAT_HISTORY_KEY, [...nextMessages, assistantMessage]);
             setMessages(saved);
+            recordSuccessfulNoaChatTurn();
+            setNowTick(Date.now());
+            if (typeof updateStats === 'function') {
+                updateStats((currentStats) => applyRelationshipActivity(currentStats, {
+                    type: 'chat',
+                    summary: 'ノアと少し会話した',
+                    detail: '言葉を交わすたびに、前より自然に話せる空気ができてきた。',
+                }).nextStats);
+            }
             if (autoSpeakAssistant) {
                 setIsSpeaking(true);
                 try {
@@ -342,6 +430,7 @@ const NoaChatBox = ({
         } catch (requestError) {
             setMessages(nextMessages);
             setError(requestError.message || '今は返事できないみたい。Cloudflare Functions と API キーを確認して。');
+            setNowTick(Date.now());
         } finally {
             setIsLoading(false);
         }
@@ -368,6 +457,15 @@ const NoaChatBox = ({
                         <label className="noa-chat-bar-label" htmlFor="noa-chat-input-compact">
                             ノアに話しかける
                         </label>
+                        <p className="noa-chat-status is-compact">{chatStatusText}</p>
+                        {showUsageNotice && (
+                            <div className="noa-chat-notice is-compact" role="note">
+                                <p>{noticeText}</p>
+                                <button type="button" className="noa-chat-notice-btn" onClick={handleDismissNotice}>
+                                    了解
+                                </button>
+                            </div>
+                        )}
                         <div className="noa-chat-bar-row">
                             <textarea
                                 id="noa-chat-input-compact"
@@ -377,7 +475,7 @@ const NoaChatBox = ({
                                 placeholder="ノアに聞きたいことを書く"
                                 rows={1}
                             />
-                            <button type="submit" className="noa-chat-submit is-compact" disabled={isLoading || !clipText(input)}>
+                            <button type="submit" className="noa-chat-submit is-compact" disabled={isSubmitDisabled}>
                                 {isLoading ? <LoaderCircle size={16} className="noa-chat-spinner" /> : <SendHorizontal size={16} />}
                                 <span>{isLoading ? '考え中' : '話す'}</span>
                             </button>
@@ -389,6 +487,7 @@ const NoaChatBox = ({
                     <header className="noa-chat-header">
                         <div className="noa-chat-heading">
                             <h2 className="noa-chat-title">ノア</h2>
+                            <p className="noa-chat-status">{chatStatusText}</p>
                         </div>
                         <div className="noa-chat-actions">
                             <button type="button" className="noa-chat-icon-btn" onClick={handleReset} aria-label="会話をリセット">
@@ -434,6 +533,15 @@ const NoaChatBox = ({
                         <div ref={messageEndRef} />
                     </div>
 
+                    {showUsageNotice && (
+                        <div className="noa-chat-notice" role="note">
+                            <p>{noticeText}</p>
+                            <button type="button" className="noa-chat-notice-btn" onClick={handleDismissNotice}>
+                                了解
+                            </button>
+                        </div>
+                    )}
+
                     {error && <p className="noa-chat-error">{error}</p>}
 
                     <form className="noa-chat-form" onSubmit={handleSubmit}>
@@ -449,8 +557,11 @@ const NoaChatBox = ({
                             rows={3}
                         />
                         <div className="noa-chat-form-footer">
-                            <span className="noa-chat-counter">{input.length}/{MAX_INPUT_LENGTH}</span>
-                            <button type="submit" className="noa-chat-submit" disabled={isLoading || !clipText(input)}>
+                            <div className="noa-chat-form-meta">
+                                <span className="noa-chat-counter">{input.length}/{MAX_INPUT_LENGTH}</span>
+                                <span className="noa-chat-remaining">残り {chatLimitState.remainingCount} 回</span>
+                            </div>
+                            <button type="submit" className="noa-chat-submit" disabled={isSubmitDisabled}>
                                 <SendHorizontal size={16} />
                                 <span>話す</span>
                             </button>

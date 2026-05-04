@@ -4,6 +4,7 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
     background-color: var(--uma-bg);
     background-image:
         radial-gradient(var(--uma-pink) 1px, transparent 1px),
@@ -60,7 +61,9 @@
 /* Study Rank Styles */
 .study-rank-block {
     justify-content: center;
+    align-self: flex-start;
     height: auto;
+    margin-top: -6px;
 }
 
 .study-rank-row {
@@ -428,6 +431,13 @@
     overflow: visible;
 }
 
+.character-figure.has-generated-preview,
+.character-figure.has-generated-preview .character-touch-target,
+.character-figure.has-guest-preview,
+.character-figure.has-guest-preview .character-touch-target {
+    overflow: hidden;
+}
+
 .character-figure.is-live2d {
     width: 100%;
     height: 100%;
@@ -630,13 +640,14 @@
 /* Affection Row */
 .affection-row {
     margin-top: 2px;
+    margin-left: -54px;
 }
 
 .affection-bar-container {
     display: flex;
     align-items: center;
-    width: 140px;
-    gap: 4px;
+    width: 198px;
+    gap: 3px;
 }
 
 .affection-icon {
@@ -666,11 +677,12 @@
 }
 
 .affection-points {
-    font-size: 10px;
+    font-size: 9px;
     color: #555;
     white-space: nowrap;
-    min-width: 62px;
+    min-width: 50px;
     text-align: right;
+    line-height: 1;
 }
 
 /* Currency Rows */
@@ -978,6 +990,39 @@
     transform: translateY(-14px);
 }
 
+.character-home.home-preview-generated-portrait {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    overflow: visible;
+    transform: translateY(228px) scale(1.48, 1.3);
+    transform-origin: center bottom;
+}
+
+.character-home.home-preview-generated-portrait .character-static-base-image {
+    max-width: none;
+    filter:
+        contrast(1.12)
+        saturate(1.12)
+        drop-shadow(0 18px 28px rgba(13, 22, 45, 0.24));
+}
+
+.character-home.home-preview-guest-portrait {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    overflow: visible;
+    transform: translateY(-24px) scale(1.03);
+    transform-origin: center bottom;
+}
+
+.character-home.home-preview-guest-portrait .character-static-base-image {
+    max-width: none;
+    filter:
+        saturate(1.04)
+        drop-shadow(0 18px 28px rgba(13, 22, 45, 0.24));
+}
+
 .character-figure.is-live2d .character-home {
     transform: translateY(-24px);
 }
@@ -1028,6 +1073,14 @@
     transform: none;
     width: auto;
     max-width: calc(100% - 48px);
+}
+
+.character-figure.has-generated-preview .speech-bubble {
+    bottom: 264px;
+}
+
+.character-figure.has-guest-preview .speech-bubble {
+    bottom: 228px;
 }
 
 /* 吹き出しの突起（右下向き） */
@@ -1615,6 +1668,37 @@
         padding: 7px 10px;
     }
 
+    .home-daily-loop-card {
+        left: 12px;
+        right: 12px;
+        bottom: 298px;
+        padding: 10px 12px;
+    }
+
+    .home-daily-loop-copy strong {
+        font-size: 14px;
+    }
+
+    .home-daily-loop-copy p,
+    .home-daily-loop-reward,
+    .home-daily-loop-phase-label {
+        font-size: 10px;
+    }
+
+    .home-daily-loop-stats {
+        min-width: 48px;
+        height: 48px;
+    }
+
+    .home-daily-loop-footer {
+        gap: 8px;
+    }
+
+    .home-daily-loop-action {
+        padding: 9px 12px;
+        font-size: 11px;
+    }
+
     .home-resume-card {
         top: calc(15% + 150px);
         left: 12px;
@@ -1646,6 +1730,24 @@
         transform: translateY(-122px);
     }
 
+    .character-home.home-preview-generated-portrait {
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        overflow: visible;
+        transform: translateY(216px) scale(1.62, 1.42);
+        transform-origin: center bottom;
+    }
+
+    .character-home.home-preview-guest-portrait {
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        overflow: visible;
+        transform: translateY(-146px) scale(1.1);
+        transform-origin: center bottom;
+    }
+
     .character-figure.is-live2d .character-home {
         transform: translateY(-146px);
     }
@@ -1660,6 +1762,14 @@
         transform: none;
         width: min(94vw, 600px);
         max-width: 560px;
+    }
+
+    .character-figure.has-generated-preview .speech-bubble {
+        bottom: 304px;
+    }
+
+    .character-figure.has-guest-preview .speech-bubble {
+        bottom: 284px;
     }
 
     .character-figure.is-live2d .speech-bubble {

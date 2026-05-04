@@ -103,6 +103,13 @@
     line-height: 1.3;
 }
 
+.noa-chat-status {
+    margin: 2px 0 0;
+    color: #75624f;
+    font-size: 0.74rem;
+    line-height: 1.35;
+}
+
 .noa-chat-actions {
     display: flex;
     gap: 8px;
@@ -218,6 +225,37 @@
     line-height: 1.45;
 }
 
+.noa-chat-notice {
+    margin: 0 16px 12px;
+    padding: 12px 14px;
+    border: 1px solid rgba(107, 88, 71, 0.16);
+    border-radius: 16px;
+    background: rgba(255, 250, 238, 0.92);
+    color: #5e5246;
+    font-size: 0.77rem;
+    line-height: 1.5;
+}
+
+.noa-chat-notice p {
+    margin: 0;
+}
+
+.noa-chat-notice.is-compact {
+    margin: 0;
+}
+
+.noa-chat-notice-btn {
+    margin-top: 10px;
+    border: none;
+    border-radius: 999px;
+    padding: 7px 12px;
+    background: rgba(84, 142, 186, 0.12);
+    color: #315979;
+    font-size: 0.76rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
 .noa-chat-form {
     padding: 14px 16px 16px;
     border-top: 1px solid rgba(124, 100, 68, 0.12);
@@ -252,9 +290,20 @@
     margin-top: 10px;
 }
 
+.noa-chat-form-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
 .noa-chat-counter {
     color: #7d7062;
     font-size: 0.76rem;
+}
+
+.noa-chat-remaining {
+    color: #75624f;
+    font-size: 0.74rem;
 }
 
 .noa-chat-submit {
@@ -296,6 +345,10 @@
     color: #625648;
     font-size: 0.78rem;
     font-weight: 800;
+    padding-left: 4px;
+}
+
+.noa-chat-status.is-compact {
     padding-left: 4px;
 }
 

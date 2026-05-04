@@ -78,6 +78,7 @@
     color: #999;
 }
 
+
 /* コンテンツエリア */
 .study-content {
     flex: 1;
@@ -269,6 +270,20 @@
     gap: 15px;
 }
 
+.reorder-mode-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #0369a1 0%, #38bdf8 100%);
+    border: none;
+    border-radius: 16px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(3, 105, 161, 0.35);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
 .review-mode-btn:hover {
     transform: translateY(-4px);
     box-shadow: 0 6px 20px rgba(126, 87, 194, 0.6);
@@ -282,6 +297,11 @@
 .custom-vocab-mode-btn:hover {
     transform: translateY(-4px);
     box-shadow: 0 6px 20px rgba(194, 65, 12, 0.5);
+}
+
+.reorder-mode-btn:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 20px rgba(3, 105, 161, 0.45);
 }
 
 .review-mode-btn:active {
@@ -320,6 +340,12 @@
     }
 
     .custom-vocab-mode-btn {
+        flex-direction: column;
+        text-align: center;
+        padding: 15px;
+    }
+
+    .reorder-mode-btn {
         flex-direction: column;
         text-align: center;
         padding: 15px;

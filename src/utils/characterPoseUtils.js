@@ -15,12 +15,27 @@ const SUPPORTED_EMOTIONS = new Set([
     'user',
 ]);
 
+const EMOTION_ALIASES = {
+    explain: 'serious',
+    excited: 'happy',
+    cheerful: 'smile',
+    calm: 'relaxed',
+    gentle: 'normal',
+    focused: 'serious',
+    thinking: 'serious',
+    blush: 'shy',
+};
+
 export const normalizeCharacterEmotion = (value, fallback = 'normal') => {
     if (!value) return fallback;
 
     const normalized = String(value).trim().toLowerCase();
     if (SUPPORTED_EMOTIONS.has(normalized)) {
         return normalized;
+    }
+
+    if (EMOTION_ALIASES[normalized]) {
+        return EMOTION_ALIASES[normalized];
     }
 
     return fallback;

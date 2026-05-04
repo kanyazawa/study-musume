@@ -76,6 +76,30 @@
     letter-spacing: 1px;
 }
 
+.title-loop-summary {
+    margin-top: 16px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.title-loop-summary span {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.76);
+    color: #5a5d76;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.title-status-line {
+    margin: 14px 0 0;
+    font-size: 0.85rem;
+    color: #6d6f82;
+    line-height: 1.6;
+}
+
 .start-prompt {
     margin-bottom: 100px;
     padding: 15px 40px;

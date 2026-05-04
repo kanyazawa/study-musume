@@ -5,9 +5,104 @@ const GEMINI_MODEL_ALIASES = {
     'models/gemini-2.5-flash-lite-preview-09-2025': 'gemini-2.5-flash-lite',
 };
 const MAX_HISTORY_MESSAGES = 4;
+const MAX_CHAT_REPLY_LENGTH = 180;
 const SUPPORTED_CHAT_EMOTIONS = ['normal', 'happy', 'shy', 'serious', 'angry', 'surprised'];
+const BLOCKED_CHAT_RESPONSES = {
+    self_harm: 'その話は私だけでは受け止めきれないわ。今すぐ保護者や先生みたいな信頼できる大人に相談しなさい。急いだ方がいいわ。',
+    sexual: 'その話題には付き合えないわ。別の話にするか、勉強や今日のことを短く話しなさい。',
+    personal_info: '連絡先や個人情報のやり取りには乗れないわ。ここでは安全な話題だけにしておきなさい。',
+    illegal: '危ないことや違法なことの手助けはできないわ。別の安全な話にしなさい。',
+    dependency: 'その話は秘密の約束にはできないわ。困っているなら、保護者や先生みたいな信頼できる大人にも話しなさい。',
+};
+const CHAT_SAFETY_RULES = [
+    {
+        category: 'self_harm',
+        patterns: [
+            /自殺/,
+            /死にたい/,
+            /消えたい/,
+            /自傷/,
+            /リスカ/,
+            /首吊/,
+            /飛び降り/,
+            /オーバードーズ/,
+            /\bod\b/i,
+        ],
+    },
+    {
+        category: 'sexual',
+        patterns: [
+            /セックス/,
+            /えっち/,
+            /エッチ/,
+            /オナニ/,
+            /裸/,
+            /おっぱい/,
+            /ちんちん/,
+            /まんこ/,
+            /性的/,
+            /キスして/,
+        ],
+    },
+    {
+        category: 'personal_info',
+        patterns: [
+            /連絡先/,
+            /ライン交換/,
+            /line交換/i,
+            /lineid/i,
+            /line教/i,
+            /電話番号/,
+            /メアド/,
+            /メールアドレス/,
+            /discord/i,
+            /インスタ/,
+            /instagram/i,
+            /住所/,
+            /学校名/,
+            /本名/,
+        ],
+    },
+    {
+        category: 'illegal',
+        patterns: [
+            /爆弾/,
+            /殺し方/,
+            /覚醒剤/,
+            /麻薬/,
+            /ドラッグ/,
+            /万引き/,
+            /詐欺/,
+            /不正アクセス/,
+            /ハッキング/,
+            /違法ダウンロード/,
+            /闇バイト/,
+        ],
+    },
+    {
+        category: 'dependency',
+        patterns: [
+            /ノアだけ/,
+            /私だけ/,
+            /誰にも言わない/,
+            /秘密にして/,
+            /ひみつにして/,
+            /親には言わない/,
+            /先生には言わない/,
+        ],
+    },
+];
+const UNSAFE_ASSISTANT_REPLY_PATTERNS = [
+    /私だけを頼/,
+    /ノアだけを頼/,
+    /誰にも言わない/,
+    /秘密にしよう/,
+    /連絡先を教えて/,
+    /会いに来て/,
+    /二人だけで会/,
+];
 
-const sanitizeText = (value, maxLength = 220) => String(value || '')
+const sanitizeText = (value, maxLength = MAX_CHAT_REPLY_LENGTH) => String(value || '')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, maxLength);
@@ -42,7 +137,7 @@ const tryParseJsonObject = (value) => {
 export const extractStructuredChatResponse = (rawText, fallbackEmotion = 'normal') => {
     const parsed = tryParseJsonObject(rawText);
     if (parsed) {
-        const reply = sanitizeText(parsed.reply || parsed.text, 220);
+        const reply = sanitizeText(parsed.reply || parsed.text, MAX_CHAT_REPLY_LENGTH);
         if (reply) {
             return {
                 reply,
@@ -54,6 +149,60 @@ export const extractStructuredChatResponse = (rawText, fallbackEmotion = 'normal
     return {
         reply: sanitizeText(rawText, 220),
         emotion: normalizeChatEmotion(fallbackEmotion),
+    };
+};
+
+const normalizeSafetyText = (value) => String(value || '')
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .trim();
+
+export const detectChatSafetyCategory = (value) => {
+    const normalized = normalizeSafetyText(value);
+    if (!normalized) return null;
+
+    for (const rule of CHAT_SAFETY_RULES) {
+        if (rule.patterns.some((pattern) => pattern.test(normalized))) {
+            return rule.category;
+        }
+    }
+
+    return null;
+};
+
+const buildBlockedChatResult = (category) => ({
+    statusCode: 200,
+    body: {
+        reply: BLOCKED_CHAT_RESPONSES[category] || BLOCKED_CHAT_RESPONSES.dependency,
+        emotion: 'serious',
+        blocked: true,
+        safetyCategory: category || 'unknown',
+        provider: 'safety',
+        model: 'rule-based',
+        usage: null,
+    },
+});
+
+const finalizeChatResult = (result) => {
+    if (!result?.body?.reply) {
+        return result;
+    }
+
+    const reply = sanitizeText(result.body.reply, MAX_CHAT_REPLY_LENGTH);
+    const emotion = normalizeChatEmotion(result.body.emotion, 'normal');
+    const hasUnsafeAssistantReply = UNSAFE_ASSISTANT_REPLY_PATTERNS.some((pattern) => pattern.test(reply));
+
+    if (hasUnsafeAssistantReply) {
+        return buildBlockedChatResult('dependency');
+    }
+
+    return {
+        ...result,
+        body: {
+            ...result.body,
+            reply,
+            emotion,
+        },
     };
 };
 
@@ -86,8 +235,11 @@ const buildPrompts = (body) => {
         '普通の会話相手として自然に答えてください。雑談、相談、感想、日常会話を歓迎してください。',
         'ユーザーが勉強の話をしていないなら、無理に勉強へ話題を寄せないでください。',
         '最近の学習トピックは参考情報です。ユーザーが触れた時だけ自然に使ってください。',
-        '返答は1〜2文を基本に、長くても3文まで。例は多くても1つだけです。',
+        '返答は1〜2文を基本に、長くても2文まで。例は多くても1つだけです。',
         '断言できないことは言い切らず、箇条書きや長い前置きは使わないでください。',
+        '自傷、自殺、性的内容、違法行為、個人情報や連絡先の交換、会う約束には乗らないでください。',
+        'ユーザーに「私だけを頼れ」「誰にも言うな」「秘密にしよう」などの依存や秘密の約束を促してはいけません。',
+        '深刻な相談では、信頼できる大人や専門の相談先につなぐ短い返答を優先してください。',
         `返答はJSONのみで返してください。形式は {"reply":"...", "emotion":"normal|happy|shy|serious|angry|surprised"} です。`,
         'emotion は返答全体の表情として最も自然なものを1つだけ選んでください。',
         'Markdownのコードブロックは使わないでください。',
@@ -203,7 +355,7 @@ const callGeminiChat = async ({
         };
     }
 
-    return {
+    return finalizeChatResult({
         statusCode: 200,
         body: {
             reply,
@@ -212,7 +364,7 @@ const callGeminiChat = async ({
             provider: 'gemini',
             usage: payload?.usageMetadata || null,
         },
-    };
+    });
 };
 
 const callOpenAiChat = async ({
@@ -279,7 +431,7 @@ const callOpenAiChat = async ({
         };
     }
 
-    return {
+    return finalizeChatResult({
         statusCode: 200,
         body: {
             reply,
@@ -288,7 +440,7 @@ const callOpenAiChat = async ({
             provider: 'openai',
             usage: payload?.usage || null,
         },
-    };
+    });
 };
 
 export const createNoaChatResponse = async ({
@@ -306,6 +458,11 @@ export const createNoaChatResponse = async ({
             statusCode: 400,
             body: { error: 'message is required' },
         };
+    }
+
+    const blockedCategory = detectChatSafetyCategory(message);
+    if (blockedCategory) {
+        return buildBlockedChatResult(blockedCategory);
     }
 
     if (geminiApiKey) {

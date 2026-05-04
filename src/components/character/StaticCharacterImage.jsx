@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './StaticCharacterImage.css';
 import CharacterMain from '../../assets/images/character_new.webp';
 import CharacterUser from '../../assets/images/character_user.webp';
@@ -150,13 +150,151 @@ const buildFaceEffectStyle = (config = {}) => ({
     '--fx-opacity': String(config.effectOpacity ?? 1),
 });
 
-const FaceEffectLayer = ({ mode = '', characterId = 'noah' }) => {
-    if (!mode) {
+const drawChromaKeyedImage = (canvas, image, chromaKey) => {
+    if (!canvas || !image) {
+        return false;
+    }
+
+    const {
+        red = 0,
+        green = 255,
+        blue = 0,
+        threshold = 58,
+        softness = 42,
+        despill = 0.72,
+    } = chromaKey || {};
+
+    const width = image.naturalWidth || image.width;
+    const height = image.naturalHeight || image.height;
+
+    if (!width || !height) {
+        return false;
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) {
+        return false;
+    }
+
+    ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(image, 0, 0, width, height);
+
+    const frame = ctx.getImageData(0, 0, width, height);
+    const pixels = frame.data;
+
+    for (let index = 0; index < pixels.length; index += 4) {
+        const r = pixels[index];
+        const g = pixels[index + 1];
+        const b = pixels[index + 2];
+        const a = pixels[index + 3];
+
+        if (a === 0) {
+            continue;
+        }
+
+        const colorDistance = Math.sqrt(
+            ((r - red) ** 2) +
+            ((g - green) ** 2) +
+            ((b - blue) ** 2)
+        );
+        const blendWindow = Math.max(softness, 1);
+
+        if (colorDistance <= threshold) {
+            pixels[index + 3] = 0;
+            continue;
+        }
+
+        if (colorDistance <= threshold + blendWindow) {
+            const keepRatio = (colorDistance - threshold) / blendWindow;
+            pixels[index + 3] = Math.max(0, Math.min(255, Math.round(a * keepRatio)));
+        }
+
+        const otherMax = Math.max(r, b);
+        const greenCast = g - otherMax;
+        if (greenCast > 0) {
+            pixels[index + 1] = Math.max(
+                otherMax,
+                Math.round(g - (greenCast * despill))
+            );
+        }
+    }
+
+    ctx.putImageData(frame, 0, 0);
+    return true;
+};
+
+const ChromaKeyedImage = ({ src, alt, chromaKey }) => {
+    const canvasRef = useRef(null);
+    const [failed, setFailed] = useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+        const image = new window.Image();
+        image.decoding = 'async';
+        image.onload = () => {
+            if (cancelled) {
+                return;
+            }
+
+            const ok = drawChromaKeyedImage(canvasRef.current, image, chromaKey);
+            setFailed(!ok);
+        };
+        image.onerror = () => {
+            if (!cancelled) {
+                setFailed(true);
+            }
+        };
+        image.src = src;
+
+        return () => {
+            cancelled = true;
+        };
+    }, [chromaKey, src]);
+
+    if (failed) {
+        return (
+            <img
+                src={src}
+                alt={alt}
+                className="character-static-base-image"
+            />
+        );
+    }
+
+    return (
+        <canvas
+            ref={canvasRef}
+            className="character-static-base-image"
+            role="img"
+            aria-label={alt}
+        />
+    );
+};
+
+const FaceEffectLayer = ({
+    mode = '',
+    characterId = 'noah',
+    expressionKey = 'normal',
+    isSpeaking = false,
+}) => {
+    if (!mode && !isSpeaking) {
         return null;
     }
 
     return (
-        <div className={`character-face-fx mode-${mode} character-${characterId}`} aria-hidden="true">
+        <div
+            className={[
+                'character-face-fx',
+                mode ? `mode-${mode}` : '',
+                isSpeaking ? 'is-speaking' : '',
+                `character-${characterId}`,
+                `expression-${expressionKey}`,
+            ].filter(Boolean).join(' ')}
+            aria-hidden="true"
+        >
             <span className="character-eye-fx left">
                 <span className="character-eye-aura" />
                 <span className="character-eye-iris" />
@@ -176,6 +314,7 @@ const FaceEffectLayer = ({ mode = '', characterId = 'noah' }) => {
             <span className="character-smile-cheek left" />
             <span className="character-smile-cheek right" />
             <span className="character-smile-mouth" />
+            <span className="character-talk-mouth" />
             <span className="character-pout-mouth" />
             <span className="character-forehead-mark" />
         </div>
@@ -189,25 +328,42 @@ const StaticCharacterImage = ({
     alt = 'Character',
     className = '',
     style,
+    sourceOverride,
+    disableFaceEffects = false,
+    chromaKey,
 }) => {
     const { source, usesExpressionVariant, expressionKey } = resolveImage(characterId, skinId, pose);
     const filter = getSkinFilter(skinId);
     const shouldKeepSkinFilter = !usesExpressionVariant;
-    const faceEffectConfig = FACE_EFFECT_CONFIG[characterId];
+    const resolvedSource = sourceOverride || source;
+    const faceEffectConfig = disableFaceEffects ? null : FACE_EFFECT_CONFIG[characterId];
     const isCompactScene = pose?.scene === 'missions';
     const faceEffectMode = faceEffectConfig && !isCompactScene ? resolveFaceEffectMode(expressionKey) : '';
 
     return (
         <div className={['character-static-stage', className].filter(Boolean).join(' ')} style={style}>
-            <img
-                src={source}
-                alt={alt}
-                className="character-static-base-image"
-                style={shouldKeepSkinFilter ? { filter } : undefined}
-            />
+            {chromaKey ? (
+                <ChromaKeyedImage
+                    src={resolvedSource}
+                    alt={alt}
+                    chromaKey={chromaKey}
+                />
+            ) : (
+                <img
+                    src={resolvedSource}
+                    alt={alt}
+                    className="character-static-base-image"
+                    style={shouldKeepSkinFilter ? { filter } : undefined}
+                />
+            )}
             {faceEffectConfig && (
                 <div className="character-face-fx-layer" style={buildFaceEffectStyle(faceEffectConfig)}>
-                    <FaceEffectLayer mode={faceEffectMode} characterId={characterId} />
+                    <FaceEffectLayer
+                        mode={faceEffectMode}
+                        characterId={characterId}
+                        expressionKey={expressionKey}
+                        isSpeaking={Boolean(pose?.speaking)}
+                    />
                 </div>
             )}
         </div>

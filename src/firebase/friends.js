@@ -11,14 +11,26 @@ import {
 } from "firebase/firestore";
 import { db } from "./config";
 
+const PUBLIC_PROFILES_COLLECTION = "publicProfiles";
+
+const getPublicProfileByUid = async (uid) => {
+    const publicProfileDoc = await getDoc(doc(db, PUBLIC_PROFILES_COLLECTION, uid));
+    if (publicProfileDoc.exists()) {
+        return publicProfileDoc.data();
+    }
+
+    return null;
+};
+
 /**
  * フレンドコードでユーザーを検索
  */
 export const searchUserByFriendCode = async (friendCode) => {
     try {
-        const usersRef = collection(db, "users");
-        const q = query(usersRef, where("friendCode", "==", friendCode.toUpperCase()));
-        const querySnapshot = await getDocs(q);
+        const normalizedCode = friendCode.toUpperCase();
+        const publicProfilesRef = collection(db, PUBLIC_PROFILES_COLLECTION);
+        const publicQuery = query(publicProfilesRef, where("friendCode", "==", normalizedCode));
+        const querySnapshot = await getDocs(publicQuery);
 
         if (querySnapshot.empty) {
             return { success: false, error: "ユーザーが見つかりません" };
@@ -123,11 +135,11 @@ export const getFriendsList = async (userId) => {
             const friendId = data.users.find(id => id !== userId);
 
             // 相手のユーザー情報を取得
-            const friendDoc = await getDoc(doc(db, "users", friendId));
-            if (friendDoc.exists()) {
+            const friendProfile = await getPublicProfileByUid(friendId);
+            if (friendProfile) {
                 friends.push({
                     id: friendId,
-                    ...friendDoc.data(),
+                    ...friendProfile,
                     friendshipId: docSnapshot.id
                 });
             }
@@ -162,11 +174,11 @@ export const getPendingRequests = async (userId) => {
                 const requesterId = data.requester;
 
                 // 申請者の情報を取得
-                const requesterDoc = await getDoc(doc(db, "users", requesterId));
-                if (requesterDoc.exists()) {
+                const requesterProfile = await getPublicProfileByUid(requesterId);
+                if (requesterProfile) {
                     requests.push({
                         id: requesterId,
-                        ...requesterDoc.data(),
+                        ...requesterProfile,
                         friendshipId: docSnapshot.id
                     });
                 }

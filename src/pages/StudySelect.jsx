@@ -5,7 +5,7 @@ import './StudySelect.css';
 import { STUDY_TOPICS } from '../data/studyTopics';
 import { saveLastStudyTopicFromItem } from '../data/studyData';
 
-const StudySelect = () => {
+const StudySelect = ({ stats }) => {
     const navigate = useNavigate();
 
     // 階層管理
@@ -306,6 +306,14 @@ const StudySelect = () => {
                                 <span className="review-icon">W</span>
                                 <span className="review-label">英検ライティング</span>
                                 <span className="review-hint">問題を見てAI採点</span>
+                            </button>
+                            <button
+                                className="reorder-mode-btn"
+                                onClick={() => navigate('/reorder-practice')}
+                            >
+                                <span className="review-icon">↔</span>
+                                <span className="review-label">並び替えクイズ</span>
+                                <span className="review-hint">語順をまとめて練習</span>
                             </button>
                             <button
                                 className="custom-vocab-mode-btn"

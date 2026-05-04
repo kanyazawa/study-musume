@@ -15,8 +15,9 @@ import {
 } from '../utils/referralUtils';
 
 const REFERRAL_CLAIMS_COLLECTION = 'referralClaims';
+const PUBLIC_PROFILES_COLLECTION = 'publicProfiles';
 
-const getUsersCollection = () => collection(db, 'users');
+const getPublicProfilesCollection = () => collection(db, PUBLIC_PROFILES_COLLECTION);
 
 const getReferralClaimRef = (inviteeUid) => doc(db, REFERRAL_CLAIMS_COLLECTION, inviteeUid);
 
@@ -30,7 +31,7 @@ export const redeemReferralCode = async ({ inviteeUid, inviteeDisplayName = '', 
         return { success: false, error: '招待コードを確認してください。' };
     }
 
-    const inviterQuery = query(getUsersCollection(), where('friendCode', '==', normalizedCode));
+    const inviterQuery = query(getPublicProfilesCollection(), where('friendCode', '==', normalizedCode));
     const inviterSnapshot = await getDocs(inviterQuery);
 
     if (inviterSnapshot.empty) {
@@ -51,15 +52,10 @@ export const redeemReferralCode = async ({ inviteeUid, inviteeDisplayName = '', 
     try {
         await runTransaction(db, async (transaction) => {
             const inviteeSnap = await transaction.get(inviteeRef);
-            const inviterSnap = await transaction.get(inviterRef);
             const claimSnap = await transaction.get(claimRef);
 
             if (!inviteeSnap.exists()) {
                 throw new Error('招待特典の受け取りにはログインが必要です。');
-            }
-
-            if (!inviterSnap.exists()) {
-                throw new Error('招待したユーザーが見つかりませんでした。');
             }
 
             if (claimSnap.exists()) {

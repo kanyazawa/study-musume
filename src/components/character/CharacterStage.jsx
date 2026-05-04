@@ -13,6 +13,9 @@ const CharacterStage = ({
     className = '',
     imageClassName = '',
     imageStyle,
+    sourceOverride,
+    disableFaceEffects = false,
+    chromaKey,
     alt = 'Character',
 }) => {
     const effectiveRenderer = renderer;
@@ -32,6 +35,9 @@ const CharacterStage = ({
             alt={alt}
             className={combinedClassName}
             style={imageStyle}
+            sourceOverride={sourceOverride}
+            disableFaceEffects={disableFaceEffects}
+            chromaKey={chromaKey}
         />
     );
 

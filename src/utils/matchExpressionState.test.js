@@ -7,6 +7,7 @@ describe('matchExpressionState', () => {
         expect(getMatchFaceAccent({ answerFx: 'correct', correctStreak: 1 })).toBe('star');
         expect(getMatchFaceAccent({ answerFx: 'correct', correctStreak: 2 })).toBe('heart');
         expect(getMatchFaceAccent({ persistentEmotion: 'happy' })).toBe('heart');
+        expect(getMatchFaceAccent({ answerFx: 'wrong', answerTone: 'timeout' })).toBe(null);
     });
 
     it('builds a glowing Live2D correct pose', () => {
@@ -34,6 +35,19 @@ describe('matchExpressionState', () => {
         expect(matchPose.effect).toBe('shake');
         expect(matchPose.live2dFaceAccent).toBe(null);
         expect(matchFaceAccent).toBe('angry');
+    });
+
+    it('uses a serious timeout pose for pressure misses', () => {
+        const { matchPose, matchFaceAccent } = resolveMatchCharacterPose({
+            answerFx: 'wrong',
+            answerTone: 'timeout',
+            matchEmotion: 'serious',
+        });
+
+        expect(matchPose.emotion).toBe('serious');
+        expect(matchPose.effect).toBe('');
+        expect(matchPose.live2dFaceAccent).toBe(null);
+        expect(matchFaceAccent).toBe(null);
     });
 
     it('uses match-result scene on result phase', () => {

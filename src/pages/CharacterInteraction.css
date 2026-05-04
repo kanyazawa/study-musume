@@ -38,87 +38,6 @@
     cursor: pointer;
 }
 
-.ci-relationship-card {
-    position: absolute;
-    top: 18px;
-    right: 18px;
-    z-index: 95;
-    width: min(240px, calc(100% - 92px));
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 12px 14px;
-    border: 3px solid rgba(255, 255, 255, 0.94);
-    border-radius: 22px;
-    background:
-        linear-gradient(180deg, rgba(255, 249, 251, 0.98), rgba(255, 241, 245, 0.94)),
-        radial-gradient(circle at top left, rgba(255, 255, 255, 0.78), transparent 48%);
-    box-shadow: 0 18px 30px rgba(145, 88, 113, 0.2);
-    color: #5a3450;
-    text-align: left;
-}
-
-.ci-relationship-card-header,
-.ci-relationship-card-latest,
-.ci-relationship-card-footer {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.ci-relationship-card-header {
-    gap: 6px;
-}
-
-.ci-relationship-card-label {
-    font-size: 0.72rem;
-    font-weight: 900;
-    letter-spacing: 0.08em;
-    color: #a64e76;
-}
-
-.ci-relationship-card-rhythm {
-    align-self: flex-start;
-    padding: 4px 8px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.72);
-    color: #8a4263;
-    font-size: 0.72rem;
-    font-weight: 800;
-}
-
-.ci-relationship-card-stage {
-    font-size: 1.05rem;
-    font-weight: 900;
-    color: #7d3258;
-}
-
-.ci-relationship-card-copy,
-.ci-relationship-card-latest-detail,
-.ci-relationship-card-footer span {
-    margin: 0;
-    font-size: 0.76rem;
-    line-height: 1.5;
-    color: #6f4b60;
-}
-
-.ci-relationship-card-latest {
-    padding: 8px 10px;
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.66);
-}
-
-.ci-relationship-card-latest-title {
-    font-size: 0.78rem;
-    font-weight: 900;
-    color: #7b3a5e;
-}
-
-.ci-relationship-card-footer {
-    padding-top: 2px;
-    border-top: 1px dashed rgba(157, 89, 120, 0.28);
-}
-
 /* Control Panel using Dialogue Box style */
 .ci-control-panel {
     /* Inherits dialogue-box properties but we override some */
@@ -457,24 +376,6 @@
 }
 
 @media (max-width: 480px) {
-    .ci-relationship-card {
-        top: 16px;
-        right: 12px;
-        width: min(188px, calc(100% - 76px));
-        padding: 10px 11px;
-        gap: 6px;
-    }
-
-    .ci-relationship-card-stage {
-        font-size: 0.95rem;
-    }
-
-    .ci-relationship-card-copy,
-    .ci-relationship-card-latest-detail,
-    .ci-relationship-card-footer span {
-        font-size: 0.7rem;
-    }
-
     .ci-control-panel {
         bottom: calc(96px + env(safe-area-inset-bottom, 0px));
         width: calc(100% - 16px);
@@ -530,68 +431,6 @@
     transform: scale(0.96);
 }
 
-.ci-relationship-card {
-    top: max(14px, env(safe-area-inset-top, 0px));
-    right: 14px;
-    z-index: 96;
-    width: min(236px, calc(100% - 78px));
-    gap: 6px;
-    padding: 10px 11px;
-    border: 1px solid rgba(255, 255, 255, 0.72);
-    border-radius: 8px;
-    background: rgba(255, 252, 247, 0.86);
-    box-shadow: 0 16px 32px rgba(56, 65, 82, 0.16);
-    backdrop-filter: blur(14px);
-}
-
-.ci-relationship-card-header {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-}
-
-.ci-relationship-card-label {
-    color: #7d5365;
-    font-size: 0.68rem;
-    letter-spacing: 0.06em;
-}
-
-.ci-relationship-card-rhythm {
-    flex: 0 0 auto;
-    padding: 3px 7px;
-    border: 1px solid rgba(125, 83, 101, 0.13);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.72);
-    color: #356a7d;
-    font-size: 0.66rem;
-}
-
-.ci-relationship-card-stage {
-    color: #503748;
-    font-size: 0.98rem;
-    line-height: 1.25;
-}
-
-.ci-relationship-card-copy,
-.ci-relationship-card-latest-detail,
-.ci-relationship-card-footer span {
-    color: #665867;
-    font-size: 0.7rem;
-    line-height: 1.45;
-}
-
-.ci-relationship-card-latest {
-    padding: 7px 8px;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.58);
-}
-
-.ci-relationship-card-latest-title {
-    color: #4c6375;
-    font-size: 0.72rem;
-}
-
 .ci-control-panel.dialogue-box {
     bottom: calc(82px + env(safe-area-inset-bottom, 0px));
     z-index: 90;
@@ -612,16 +451,290 @@
     max-height: none;
 }
 
-.ci-control-panel.is-chat {
-    padding: 0;
-    max-height: min(62vh, 480px);
+.ci-main-hub {
+    width: 100%;
+    display: grid;
+    gap: 10px;
+}
+
+.ci-main-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    align-items: stretch;
+}
+
+.ci-main-action {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 68px;
+    padding: 8px 6px;
+    border-radius: 10px;
+    border: 1px solid rgba(112, 129, 145, 0.16);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(242, 247, 251, 0.94));
+    color: #355063;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        0 10px 18px rgba(54, 72, 92, 0.1);
+    transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.ci-btn:active,
+.ci-main-action:active,
+.ci-submode-tab:active {
+    transform: scale(0.98);
+}
+
+.ci-main-action.is-primary {
+    min-height: 68px;
+    border-color: rgba(239, 105, 152, 0.34);
+    background: linear-gradient(180deg, #fff4f7 0%, #ffe6ed 100%);
+    color: #8d3e5c;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.98),
+        0 14px 24px rgba(227, 92, 143, 0.18);
+}
+
+.ci-main-action.is-primary svg {
+    color: #da5f87;
+}
+
+.ci-main-action.is-secondary svg {
+    color: #54758d;
+}
+
+.ci-main-action-label {
+    font-size: 0.8rem;
+    font-weight: 900;
+    line-height: 1.1;
+}
+
+.ci-main-action-meta {
+    color: #6a7b8f;
+    font-size: 0.62rem;
+    line-height: 1.25;
+    text-align: center;
+}
+
+.ci-main-action.is-primary .ci-main-action-meta {
+    color: #9b5a73;
+}
+
+.ci-evaluation-card {
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(105, 124, 143, 0.16);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(243, 248, 252, 0.94));
+    box-shadow: 0 12px 22px rgba(56, 73, 92, 0.11);
+}
+
+.ci-evaluation-card.is-alert {
+    background: linear-gradient(180deg, #fff6f5 0%, #fff0ee 100%);
+}
+
+.ci-evaluation-card.is-neutral {
+    background: linear-gradient(180deg, #ffffff 0%, #f4f8fb 100%);
+}
+
+.ci-evaluation-card.is-warm {
+    background: linear-gradient(180deg, #fffaf2 0%, #fff4e5 100%);
+}
+
+.ci-evaluation-card.is-good {
+    background: linear-gradient(180deg, #f6fbff 0%, #edf7ff 100%);
+}
+
+.ci-evaluation-card.is-strong {
+    background: linear-gradient(180deg, #f3fff9 0%, #e8fff4 100%);
+}
+
+.ci-evaluation-card.is-excellent {
+    background: linear-gradient(180deg, #f6fff8 0%, #eafff0 100%);
+}
+
+.ci-evaluation-card.is-legendary {
+    background: linear-gradient(180deg, #fff7fe 0%, #fff0fb 100%);
+    border-color: rgba(226, 102, 183, 0.28);
+}
+
+.ci-evaluation-head,
+.ci-evaluation-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.ci-evaluation-copy {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+}
+
+.ci-evaluation-kicker {
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    color: #7f8d99;
+}
+
+.ci-evaluation-copy strong {
+    font-size: 0.95rem;
+    line-height: 1.15;
+    color: #2c4053;
+}
+
+.ci-evaluation-copy p {
+    margin: 0;
+    color: #607282;
+    font-size: 0.73rem;
+    line-height: 1.45;
+}
+
+.ci-evaluation-rank {
+    flex: 0 0 auto;
+    width: 54px;
+    height: 54px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.78);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.96);
+}
+
+.ci-evaluation-rank span {
+    color: #e05c86;
+    font-size: 1.35rem;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: 0.04em;
+}
+
+.ci-evaluation-bar {
+    height: 10px;
+    border-radius: 999px;
     overflow: hidden;
+    background: rgba(113, 133, 154, 0.16);
+}
+
+.ci-evaluation-bar-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #ff8db3 0%, #8ec5ff 52%, #86efac 100%);
+}
+
+.ci-evaluation-meta {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 6px;
+}
+
+.ci-evaluation-meta span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    color: #577083;
+    font-size: 0.66rem;
+    font-weight: 800;
+}
+.ci-customize-card:active {
+    transform: scale(0.98);
+}
+
+.ci-customize-card svg,
+.ci-submode-tab svg {
+    color: #54758d;
+    flex: 0 0 auto;
+}
+
+.ci-customize-panel {
+    display: grid;
+    gap: 10px;
+    width: 100%;
+}
+
+.ci-customize-grid {
+    display: grid;
+    gap: 8px;
+}
+
+.ci-customize-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 64px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(108, 122, 137, 0.15);
+    background: rgba(255, 255, 255, 0.82);
+    color: #2d4255;
+    text-align: left;
+    box-shadow: 0 8px 16px rgba(43, 55, 68, 0.08);
+}
+
+.ci-customize-copy {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.ci-customize-copy strong {
+    font-size: 0.83rem;
+    line-height: 1.2;
+}
+
+.ci-customize-copy span {
+    color: #6d7c89;
+    font-size: 0.69rem;
+    line-height: 1.35;
+}
+
+.ci-submode-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.ci-submode-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 38px;
+    padding: 8px 6px;
+    border-radius: 999px;
+    border: 1px solid rgba(108, 122, 137, 0.15);
+    background: rgba(255, 255, 255, 0.76);
+    color: #516574;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.ci-submode-tab.is-active {
+    border-color: rgba(82, 116, 141, 0.28);
+    background: linear-gradient(180deg, #eff7fc, #e4f1f8);
+    color: #335269;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
 .ci-menu-buttons {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
+    width: 100%;
 }
 
 .ci-btn {
@@ -839,37 +952,47 @@
 }
 
 @media (max-width: 480px) {
-    .ci-relationship-card {
-        top: max(12px, env(safe-area-inset-top, 0px));
-        right: 12px;
-        width: min(202px, calc(100% - 74px));
-        padding: 9px;
-    }
-
-    .ci-relationship-card-copy,
-    .ci-relationship-card-footer {
-        display: none;
-    }
-
-    .ci-relationship-card-stage {
-        font-size: 0.9rem;
-    }
-
-    .ci-relationship-card-latest-detail {
-        font-size: 0.66rem;
-    }
-
     .ci-control-panel.dialogue-box {
         bottom: calc(86px + env(safe-area-inset-bottom, 0px));
         width: calc(100% - 16px);
         padding: 10px;
     }
 
-    .ci-control-panel.is-chat {
-        padding: 0;
+    .ci-main-action,
+    .ci-main-action.is-primary {
+        min-height: 62px;
+    }
+
+    .ci-evaluation-card {
+        padding: 10px;
+    }
+
+    .ci-evaluation-copy strong {
+        font-size: 0.88rem;
+    }
+
+    .ci-evaluation-copy p,
+    .ci-evaluation-meta span {
+        font-size: 0.68rem;
+    }
+
+    .ci-evaluation-rank {
+        width: 48px;
+        height: 48px;
+    }
+
+    .ci-submode-tabs {
+        gap: 6px;
+    }
+
+    .ci-submode-tab {
+        min-height: 34px;
+        padding: 6px 4px;
+        font-size: 0.66rem;
     }
 
     .ci-menu-buttons {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 7px;
     }
 

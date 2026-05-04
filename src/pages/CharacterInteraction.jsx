@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Shirt, Image as ImageIcon, Gift, MessageCircle, BookOpen, Sparkles } from 'lucide-react';
+import { ArrowLeft, Shirt, Image as ImageIcon, Gift, BookOpen, Sparkles } from 'lucide-react';
 import './CharacterInteraction.css';
 import './Dialogue.css'; // Reuse dialogue styles for consistency
 import CharacterSelect from '../components/CharacterSelect';
-import NoaChatBox from '../components/NoaChatBox';
 import CharacterStage from '../components/character/CharacterStage';
 
 // Utils
@@ -12,21 +11,26 @@ import { getGiftReaction } from '../utils/affectionUtils';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { getBackgroundStyle, getOwnedSkins, getOwnedBackgrounds } from '../utils/cosmeticUtils';
 import { createGiftPose, normalizeCharacterEmotion } from '../utils/characterPoseUtils';
+import { getCharacterEvaluationSummary } from '../utils/characterEvaluationUtils';
 import { filterInventoryByType, removeFromInventory } from '../utils/itemUtils';
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
-import { getRelationshipEventState, getRelationshipSnapshot } from '../utils/relationshipUtils';
+import { getRelationshipEventState } from '../utils/relationshipUtils';
 import { getRelationshipEventsByCharacter } from '../data/relationshipEvents';
 import { applyRelationshipProgress, getUnreadRelationshipEvents } from '../utils/relationshipEventUtils';
+
+const CUSTOMIZE_TABS = [
+    { mode: 'costume', label: '衣装', icon: Shirt },
+    { mode: 'bg', label: '背景', icon: ImageIcon },
+    { mode: 'accessory', label: 'アクセ', icon: Sparkles },
+];
 
 const CharacterInteraction = ({ stats, updateStats }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const [mode, setMode] = useState('main'); // main, gift, costume, bg, accessory, chat
+    const [mode, setMode] = useState('main'); // main, gift, customize, costume, bg, accessory, events
     const [expression, setExpression] = useState('normal');
     const [showCharSelect, setShowCharSelect] = useState(false);
     const [giftReaction, setGiftReaction] = useState(null);
-    const [chatSpeechText, setChatSpeechText] = useState('');
-    const [isChatSpeaking, setIsChatSpeaking] = useState(false);
 
     const handleCharSelectComplete = (newStats) => {
         if (updateStats) {
@@ -40,7 +44,6 @@ const CharacterInteraction = ({ stats, updateStats }) => {
     const ownedBackgrounds = getOwnedBackgrounds(stats.inventory || []);
     const ownedAccessories = filterInventoryByType(stats.inventory || [], 'accessory');
     const equippedAccessories = stats?.equippedAccessories || [];
-    const relationshipSnapshot = useMemo(() => getRelationshipSnapshot(stats), [stats]);
     const relationshipEventState = useMemo(() => getRelationshipEventState(stats), [stats]);
 
     const handleEquipSkin = (skinId) => {
@@ -65,6 +68,7 @@ const CharacterInteraction = ({ stats, updateStats }) => {
     };
 
     const characterId = stats.characterId || 'noah';
+    const evaluationSummary = useMemo(() => getCharacterEvaluationSummary(stats, characterId), [characterId, stats]);
     const currentBgStyle = getBackgroundStyle(stats.equippedBackground);
     const preferredRenderer = stats?.characterRenderer;
     const hasInteractionLive2D = hasLive2DModelConfig(characterId, stats.equippedSkin || 'default');
@@ -95,18 +99,12 @@ const CharacterInteraction = ({ stats, updateStats }) => {
             motion: null,
             idle: 'gentle',
             gaze: 'camera',
-            speaking: isChatSpeaking,
-            text: chatSpeechText,
+            speaking: false,
+            text: '',
             effect: '',
         };
 
     useEffect(() => {
-        if (mode === 'chat') {
-            return;
-        }
-
-        setIsChatSpeaking(false);
-        setChatSpeechText('');
         setExpression('normal');
     }, [mode]);
 
@@ -141,6 +139,25 @@ const CharacterInteraction = ({ stats, updateStats }) => {
 
     const openRelationshipEvent = (eventId) => {
         navigate(`/relationship-events/${eventId}`);
+    };
+
+    const getModeHeading = () => {
+        switch (mode) {
+            case 'gift':
+                return 'プレゼントを渡す';
+            case 'events':
+                return '関係イベント';
+            case 'costume':
+                return '衣装を着替える';
+            case 'bg':
+                return '背景を変更する';
+            case 'accessory':
+                return 'アクセを切り替える';
+            case 'customize':
+                return '見た目を整える';
+            default:
+                return '';
+        }
     };
 
     const handleGiveGift = (item) => {
@@ -193,23 +210,6 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                 <ArrowLeft size={24} />
             </button>
 
-            <section className="ci-relationship-card" aria-label="関係メモ">
-                <div className="ci-relationship-card-header">
-                    <span className="ci-relationship-card-label">関係メモ</span>
-                    <span className="ci-relationship-card-rhythm">{relationshipSnapshot.rhythmLabel}</span>
-                </div>
-                <div className="ci-relationship-card-stage">{relationshipSnapshot.stageLabel}</div>
-                <p className="ci-relationship-card-copy">{relationshipSnapshot.stageDescription}</p>
-                <div className="ci-relationship-card-latest">
-                    <span className="ci-relationship-card-latest-title">{relationshipSnapshot.latestMomentTitle}</span>
-                    <span className="ci-relationship-card-latest-detail">{relationshipSnapshot.latestMomentDetail}</span>
-                </div>
-                <div className="ci-relationship-card-footer">
-                    <span>{relationshipSnapshot.focusCopy}</span>
-                    <span>{relationshipSnapshot.nextHint}</span>
-                </div>
-            </section>
-
             {/* Gift Animation Overlay */}
             {givingItem && (
                 <div className="gift-effect-overlay">
@@ -241,34 +241,64 @@ const CharacterInteraction = ({ stats, updateStats }) => {
             {/* Bottom Control Panel (Study Scene Style) */}
             <div className={`ci-control-panel dialogue-box is-${mode}`}>
                 {mode === 'main' && (
-                    <div className="ci-menu-buttons">
-                        <button className="ci-btn" type="button" onClick={() => setMode('costume')}>
-                            <Shirt size={22} />
-                            <span>衣装</span>
-                        </button>
-                        <button className="ci-btn ci-btn-primary" type="button" onClick={() => setMode('chat')}>
-                            <MessageCircle size={22} />
-                            <span>話す</span>
-                        </button>
-                        <button className="ci-btn" type="button" onClick={() => setMode('bg')}>
-                            <ImageIcon size={22} />
-                            <span>背景</span>
-                        </button>
-                        <button className="ci-btn" type="button" onClick={() => setMode('accessory')}>
-                            <Sparkles size={22} />
-                            <span>アクセ</span>
-                        </button>
-                        <button className="ci-btn" type="button" onClick={() => setMode('gift')}>
-                            <Gift size={22} />
-                            <span>プレゼント</span>
-                        </button>
-                        <button className="ci-btn" type="button" onClick={() => setMode('events')}>
-                            <BookOpen size={22} />
-                            <span>イベント</span>
-                            {unreadRelationshipEvents.length > 0 && (
-                                <span className="ci-badge">{unreadRelationshipEvents.length}</span>
-                            )}
-                        </button>
+                    <div className="ci-main-hub">
+                        <section className={`ci-evaluation-card is-${evaluationSummary.accent}`}>
+                            <div className="ci-evaluation-head">
+                                <div className="ci-evaluation-copy">
+                                    <span className="ci-evaluation-kicker">STUDY APPRAISAL</span>
+                                    <strong>{evaluationSummary.rank} {evaluationSummary.label}</strong>
+                                    <p>{evaluationSummary.lastComment || 'まだ大きな評価の変化はないみたい。次の勉強で印象が動く。'}</p>
+                                </div>
+                                <div className="ci-evaluation-rank">
+                                    <span>{evaluationSummary.rank}</span>
+                                </div>
+                            </div>
+                            <div className="ci-evaluation-bar" aria-hidden="true">
+                                <div className="ci-evaluation-bar-fill" style={{ width: `${evaluationSummary.progressPercent}%` }} />
+                            </div>
+                            <div className="ci-evaluation-meta">
+                                <span>{evaluationSummary.lastOutcome || '評価待ち'}</span>
+                                <span>
+                                    {evaluationSummary.nextRank
+                                        ? `次の${evaluationSummary.nextRank}まで ${evaluationSummary.pointsToNext}`
+                                        : '最高評定'}
+                                </span>
+                                <span>
+                                    {evaluationSummary.lastDelta > 0
+                                        ? `今回 +${evaluationSummary.lastDelta}`
+                                        : evaluationSummary.lastDelta < 0
+                                            ? `今回 ${evaluationSummary.lastDelta}`
+                                            : '今回 ±0'}
+                                </span>
+                            </div>
+                        </section>
+
+                        <div className="ci-main-actions">
+                            <button className="ci-main-action is-secondary" type="button" onClick={() => setMode('gift')}>
+                                <Gift size={22} />
+                                <span className="ci-main-action-label">プレゼント</span>
+                                <span className="ci-main-action-meta">
+                                    {giftItems.length > 0 ? `${giftItems.length}種 持っています` : '持ち物を確認'}
+                                </span>
+                            </button>
+
+                            <button className="ci-main-action is-primary" type="button" onClick={() => setMode('customize')}>
+                                <Sparkles size={24} />
+                                <span className="ci-main-action-label">カスタマイズ</span>
+                                <span className="ci-main-action-meta">衣装・背景・アクセをまとめて切り替える</span>
+                            </button>
+
+                            <button className="ci-main-action is-secondary" type="button" onClick={() => setMode('events')}>
+                                <BookOpen size={22} />
+                                <span className="ci-main-action-label">イベント</span>
+                                <span className="ci-main-action-meta">
+                                    {unreadRelationshipEvents.length > 0 ? `新着 ${unreadRelationshipEvents.length}件` : '解放済みを読む'}
+                                </span>
+                                {unreadRelationshipEvents.length > 0 && (
+                                    <span className="ci-badge">{unreadRelationshipEvents.length}</span>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 )}
 
@@ -276,7 +306,7 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                 {mode === 'gift' && (
                     <div className="ci-gift-panel">
                         <div className="ci-panel-header">
-                            <span>プレゼントを渡す</span>
+                            <span>{getModeHeading()}</span>
                             <button className="ci-close-small" type="button" aria-label="閉じる" onClick={() => setMode('main')}>×</button>
                         </div>
                         <div className="ci-gift-list">
@@ -297,40 +327,10 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                     </div>
                 )}
 
-                {mode === 'chat' && (
-                    <div className="ci-chat-panel">
-                        <NoaChatBox
-                            stats={stats}
-                            embedded
-                            autoSpeakAssistant
-                            onUserMessage={(_, { emotion: nextEmotion } = {}) => {
-                                setExpression(normalizeCharacterEmotion(nextEmotion, 'normal'));
-                                updateStats?.((currentStats) => applyRelationshipProgress(currentStats, {
-                                    type: 'chat',
-                                    summary: '二人きりで話し込んだ',
-                                    detail: '向き合って話すぶん、いつもより素直な空気になった。',
-                                }).nextStats);
-                            }}
-                            onAssistantReply={(replyText, { emotion: nextEmotion } = {}) => {
-                                setChatSpeechText(String(replyText || '').trim());
-                                setExpression(normalizeCharacterEmotion(nextEmotion, 'normal'));
-                            }}
-                            onAssistantSpeechStart={(replyText) => {
-                                setChatSpeechText(String(replyText || '').trim());
-                                setIsChatSpeaking(true);
-                            }}
-                            onAssistantSpeechEnd={() => {
-                                setIsChatSpeaking(false);
-                            }}
-                            onClose={() => setMode('main')}
-                        />
-                    </div>
-                )}
-
                 {mode === 'events' && (
                     <div className="ci-events-panel">
                         <div className="ci-panel-header">
-                            <span>関係イベント</span>
+                            <span>{getModeHeading()}</span>
                             <button className="ci-close-small" type="button" aria-label="閉じる" onClick={() => setMode('main')}>×</button>
                         </div>
                         <div className="ci-events-list">
@@ -362,18 +362,57 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                     </div>
                 )}
 
-                {/* TODO: Implement Costume and BG selection if needed, or just redirect? 
-                     User said "Place Costume and BG buttons". Maybe just navigating to Inventory?
-                     But "Gift button -> list comes out from bottom" implies inline interaction.
-                     For now, let's keep it simple. If they click Costume, maybe show alert or implement similar list.
-                 */}
+                {mode === 'customize' && (
+                    <div className="ci-customize-panel">
+                        <div className="ci-panel-header">
+                            <span>{getModeHeading()}</span>
+                            <button className="ci-close-small" type="button" aria-label="閉じる" onClick={() => setMode('main')}>×</button>
+                        </div>
+                        <div className="ci-customize-grid">
+                            <button className="ci-customize-card" type="button" onClick={() => setMode('costume')}>
+                                <Shirt size={20} />
+                                <div className="ci-customize-copy">
+                                    <strong>衣装</strong>
+                                    <span>{ownedSkins.length}着から選ぶ</span>
+                                </div>
+                            </button>
+                            <button className="ci-customize-card" type="button" onClick={() => setMode('bg')}>
+                                <ImageIcon size={20} />
+                                <div className="ci-customize-copy">
+                                    <strong>背景</strong>
+                                    <span>{ownedBackgrounds.length}種類を切替</span>
+                                </div>
+                            </button>
+                            <button className="ci-customize-card" type="button" onClick={() => setMode('accessory')}>
+                                <Sparkles size={20} />
+                                <div className="ci-customize-copy">
+                                    <strong>アクセ</strong>
+                                    <span>{ownedAccessories.length}個を装備</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* Costume Selection Mode */}
                 {mode === 'costume' && (
                     <div className="ci-gift-panel">
                         <div className="ci-panel-header">
-                            <span>衣装を着替える</span>
+                            <span>{getModeHeading()}</span>
                             <button className="ci-close-small" type="button" aria-label="閉じる" onClick={() => setMode('main')}>×</button>
+                        </div>
+                        <div className="ci-submode-tabs" role="tablist" aria-label="カスタマイズ切り替え">
+                            {CUSTOMIZE_TABS.map(({ mode: tabMode, label, icon: Icon }) => (
+                                <button
+                                    key={tabMode}
+                                    type="button"
+                                    className={`ci-submode-tab ${mode === tabMode ? 'is-active' : ''}`}
+                                    onClick={() => setMode(tabMode)}
+                                >
+                                    <Icon size={16} />
+                                    <span>{label}</span>
+                                </button>
+                            ))}
                         </div>
                         <div className="ci-gift-list">
                             {ownedSkins.map((item, idx) => (
@@ -398,8 +437,21 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                 {mode === 'bg' && (
                     <div className="ci-gift-panel">
                         <div className="ci-panel-header">
-                            <span>背景を変更する</span>
+                            <span>{getModeHeading()}</span>
                             <button className="ci-close-small" type="button" aria-label="閉じる" onClick={() => setMode('main')}>×</button>
+                        </div>
+                        <div className="ci-submode-tabs" role="tablist" aria-label="カスタマイズ切り替え">
+                            {CUSTOMIZE_TABS.map(({ mode: tabMode, label, icon: Icon }) => (
+                                <button
+                                    key={tabMode}
+                                    type="button"
+                                    className={`ci-submode-tab ${mode === tabMode ? 'is-active' : ''}`}
+                                    onClick={() => setMode(tabMode)}
+                                >
+                                    <Icon size={16} />
+                                    <span>{label}</span>
+                                </button>
+                            ))}
                         </div>
                         <div className="ci-gift-list">
                             {ownedBackgrounds.map((item, idx) => (
@@ -424,8 +476,21 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                 {mode === 'accessory' && (
                     <div className="ci-gift-panel">
                         <div className="ci-panel-header">
-                            <span>アクセを切り替える</span>
+                            <span>{getModeHeading()}</span>
                             <button className="ci-close-small" type="button" aria-label="閉じる" onClick={() => setMode('main')}>×</button>
+                        </div>
+                        <div className="ci-submode-tabs" role="tablist" aria-label="カスタマイズ切り替え">
+                            {CUSTOMIZE_TABS.map(({ mode: tabMode, label, icon: Icon }) => (
+                                <button
+                                    key={tabMode}
+                                    type="button"
+                                    className={`ci-submode-tab ${mode === tabMode ? 'is-active' : ''}`}
+                                    onClick={() => setMode(tabMode)}
+                                >
+                                    <Icon size={16} />
+                                    <span>{label}</span>
+                                </button>
+                            ))}
                         </div>
                         <div className="ci-gift-list">
                             {ownedAccessories.length === 0 ? (

@@ -8,20 +8,39 @@ import {
     onAuthStateChanged
 } from "firebase/auth";
 import {
+    collection,
     doc,
     getDoc,
+    getDocs,
+    query,
     setDoc,
     updateDoc,
-    serverTimestamp
+    serverTimestamp,
+    where
 } from "firebase/firestore";
 import { Capacitor } from "@capacitor/core";
 import { auth, db, googleProvider, isFirebaseConfigured } from "./config";
 import { isNativeIOSApp, nativeGoogleSignIn, nativeGoogleSignOut } from "../native/nativeGoogleAuth";
 
-/**
- * ユーザードキュメントを作成または更新
- */
-const ensureUserDocument = async (user) => {
+const PUBLIC_PROFILES_COLLECTION = "publicProfiles";
+const USER_DEFAULT_NAME = "トレーナー";
+
+const buildPublicProfileData = ({ uid, displayName, photoURL, friendCode }) => ({
+    uid,
+    displayName: displayName || USER_DEFAULT_NAME,
+    photoURL: photoURL || null,
+    friendCode: friendCode || "",
+});
+
+const syncPublicProfile = async (uid, profileData) => {
+    if (!db || !uid) {
+        return;
+    }
+
+    await setDoc(doc(db, PUBLIC_PROFILES_COLLECTION, uid), profileData, { merge: true });
+};
+
+export const ensureUserDocument = async (user) => {
     if (!db) {
         return;
     }
@@ -31,10 +50,10 @@ const ensureUserDocument = async (user) => {
 
     if (!userDoc.exists()) {
         // 新規ユーザー: フレンドコードを生成してプロフィール作成
-        const friendCode = generateFriendCode();
-        await setDoc(userDocRef, {
+        const friendCode = await generateUniqueFriendCode();
+        const privateProfile = {
             uid: user.uid,
-            displayName: user.displayName || "トレーナー",
+            displayName: user.displayName || USER_DEFAULT_NAME,
             email: user.email,
             photoURL: user.photoURL,
             friendCode: friendCode,
@@ -49,12 +68,19 @@ const ensureUserDocument = async (user) => {
             referralClaimedAt: null,
             createdAt: serverTimestamp(),
             lastLoginAt: serverTimestamp()
-        });
+        };
+
+        await setDoc(userDocRef, privateProfile);
+        await syncPublicProfile(user.uid, buildPublicProfileData(privateProfile));
     } else {
-        // 既存ユーザー: 最終ログイン時刻を更新
-        await updateDoc(userDocRef, {
-            lastLoginAt: serverTimestamp()
-        });
+        // 既存ユーザー: 非公開プロフィールをもとに公開プロフィールだけ同期
+        const userData = userDoc.data() || {};
+        await syncPublicProfile(user.uid, buildPublicProfileData({
+            uid: user.uid,
+            displayName: userData.displayName || user.displayName,
+            photoURL: userData.photoURL || user.photoURL,
+            friendCode: userData.friendCode,
+        }));
     }
 };
 
@@ -297,6 +323,23 @@ export const getUserProfile = async (uid) => {
     }
 };
 
+export const getPublicProfile = async (uid) => {
+    try {
+        if (!db) {
+            return { success: false, error: "Firebase が未設定です" };
+        }
+
+        const userDoc = await getDoc(doc(db, PUBLIC_PROFILES_COLLECTION, uid));
+        if (userDoc.exists()) {
+            return { success: true, data: userDoc.data() };
+        }
+        return { success: false, error: "Public profile not found" };
+    } catch (error) {
+        console.error("Get public profile error:", error);
+        return { success: false, error: error.message };
+    }
+};
+
 /**
  * ユーザープロフィールを更新
  */
@@ -307,6 +350,22 @@ export const updateUserProfile = async (uid, data) => {
         }
 
         await updateDoc(doc(db, "users", uid), data);
+
+        const publicProfileUpdates = {};
+        if (Object.prototype.hasOwnProperty.call(data, 'displayName')) {
+            publicProfileUpdates.displayName = data.displayName || USER_DEFAULT_NAME;
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'photoURL')) {
+            publicProfileUpdates.photoURL = data.photoURL || null;
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'friendCode')) {
+            publicProfileUpdates.friendCode = data.friendCode || '';
+        }
+
+        if (Object.keys(publicProfileUpdates).length > 0) {
+            publicProfileUpdates.uid = uid;
+            await syncPublicProfile(uid, publicProfileUpdates);
+        }
         return { success: true };
     } catch (error) {
         console.error("Update user profile error:", error);
@@ -324,4 +383,22 @@ const generateFriendCode = () => {
         code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return code;
+};
+
+const generateUniqueFriendCode = async () => {
+    if (!db) {
+        return generateFriendCode();
+    }
+
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+        const candidate = generateFriendCode();
+        const existingCodeQuery = query(collection(db, PUBLIC_PROFILES_COLLECTION), where("friendCode", "==", candidate));
+        const existingCodeSnapshot = await getDocs(existingCodeQuery);
+
+        if (existingCodeSnapshot.empty) {
+            return candidate;
+        }
+    }
+
+    throw new Error("フレンドコードの生成に失敗しました。時間をおいて再試行してください。");
 };

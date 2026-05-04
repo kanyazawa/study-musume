@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './Home.css';
 // Footer removed
 import CharacterStage from '../components/character/CharacterStage';
 import MenuModal from '../components/MenuModal';
 import LoginBonusModal from '../components/LoginBonusModal';
 import NoaChatBox from '../components/NoaChatBox';
+import HomePreviewGeneratedChroma from '../assets/images/noah_home_preview_generated_chroma.png';
 
 // Utils
 import { getAffectionLevel, getAffectionProgress, getHomeReaction, getNextLevel } from '../utils/affectionUtils';
@@ -22,6 +23,7 @@ import { inferEmotionFromChatText } from '../utils/chatEmotionUtils';
 import { getEnabledHomeTouchAreas, getHomeTouchReaction } from '../data/homeTouchReactions';
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
 import { getHomeReviewSummary } from '../utils/reviewUtils';
+import { applyRelationshipActivity } from '../utils/relationshipEventUtils';
 import { getUnreadRelationshipEvents } from '../utils/relationshipEventUtils';
 import { useSound } from '../contexts/SoundContext';
 import { getLastStudyTopic } from '../data/studyData';
@@ -32,6 +34,42 @@ import {
     resolveHomeExpressionLayers,
     toVisibleHomeEmotion,
 } from '../utils/homeExpressionLayers';
+
+const HOME_CHARACTER_PREVIEWS = {
+    'generated-hoodie-main': {
+        characterId: 'noah',
+        source: HomePreviewGeneratedChroma,
+        alt: 'Noah home silhouette preview',
+        disableFaceEffects: true,
+        forceRenderer: 'image',
+        chromaKey: {
+            red: 0,
+            green: 255,
+            blue: 0,
+            threshold: 56,
+            softness: 44,
+            despill: 0.8,
+        },
+        imageClassName: 'home-preview-generated-portrait',
+        figureClassName: 'has-generated-preview',
+    },
+    'guest-darkhair': {
+        source: '/images/home_guest_preview_chroma.png',
+        alt: 'Guest home preview',
+        disableFaceEffects: true,
+        forceRenderer: 'image',
+        chromaKey: {
+            red: 0,
+            green: 255,
+            blue: 0,
+            threshold: 52,
+            softness: 30,
+            despill: 0.94,
+        },
+        imageClassName: 'home-preview-guest-portrait',
+        figureClassName: 'has-guest-preview',
+    },
+};
 
 const Home = ({ stats, updateStats }) => {
     // Default stats if not provided (fallback)
@@ -52,15 +90,10 @@ const Home = ({ stats, updateStats }) => {
     const characterId = stats?.characterId || 'noah';
     const preferredRenderer = stats?.characterRenderer;
     const hasHomeLive2D = hasLive2DModelConfig(characterId, equippedSkin);
-    const shouldForceHomeLive2D = characterId === 'noah' && hasHomeLive2D;
     const currentBgStyle = getBackgroundStyle(equippedBackground);
-    const renderer = resolveCharacterRenderer({
-        preferredRenderer: shouldForceHomeLive2D ? 'live2d' : preferredRenderer,
-        characterId,
-        skinId: equippedSkin,
-    });
 
     const navigate = useNavigate();
+    const location = useLocation();
     const { playVoice, stopVoice } = useSound();
     const [speech, setSpeech] = useState("");
     const [baseHomeEmotion, setBaseHomeEmotion] = useState('normal');
@@ -163,6 +196,26 @@ const Home = ({ stats, updateStats }) => {
     const homeReviewSummary = useMemo(() => getHomeReviewSummary(stats), [stats]);
     const homeTouchAreas = useMemo(() => getEnabledHomeTouchAreas(characterId), [characterId]);
     const unreadRelationshipEvents = useMemo(() => getUnreadRelationshipEvents(stats), [stats]);
+    const homeCharacterPreview = useMemo(() => {
+        const previewKey = new URLSearchParams(location.search).get('characterPreview');
+        const preview = HOME_CHARACTER_PREVIEWS[previewKey];
+
+        if (!preview) {
+            return null;
+        }
+
+        if (preview.characterId && preview.characterId !== characterId) {
+            return null;
+        }
+
+        return preview;
+    }, [characterId, location.search]);
+    const shouldForceHomeLive2D = !homeCharacterPreview && characterId === 'noah' && hasHomeLive2D;
+    const renderer = resolveCharacterRenderer({
+        preferredRenderer: homeCharacterPreview?.forceRenderer || (shouldForceHomeLive2D ? 'live2d' : preferredRenderer),
+        characterId,
+        skinId: equippedSkin,
+    });
     const examDaysLeft = useMemo(() => {
         if (!examDate) return null;
 
@@ -364,7 +417,15 @@ const Home = ({ stats, updateStats }) => {
 
         // Update mission progress for character interaction
         updateMissionsOnInteract();
-    }, [affection, characterId, examDaysLeft, homeReviewSummary.due, isDuplicateInteraction, loginStreak, maxTp, playVoice, startTimedTalkAnimation, stopTalkAnimation, tp]);
+
+        if (source !== 'system' && typeof updateStats === 'function') {
+            updateStats((currentStats) => applyRelationshipActivity(currentStats, {
+                type: 'talk',
+                summary: 'ホームで少し話した',
+                detail: '短いひとことでも、いつもの距離感が少しやわらいだ。',
+            }).nextStats);
+        }
+    }, [affection, characterId, examDaysLeft, homeReviewSummary.due, isDuplicateInteraction, loginStreak, maxTp, playVoice, startTimedTalkAnimation, stopTalkAnimation, tp, updateStats]);
 
     const handleTouchAreaTap = useCallback(async (areaId, event) => {
         if (isDuplicateInteraction(`area:${areaId}`)) {
@@ -407,7 +468,15 @@ const Home = ({ stats, updateStats }) => {
         }
 
         updateMissionsOnInteract();
-    }, [characterId, isDuplicateInteraction, lockManualSpeechPriority, playVoice, startTimedTalkAnimation, stopTalkAnimation, triggerTouchMotion]);
+
+        if (typeof updateStats === 'function') {
+            updateStats((currentStats) => applyRelationshipActivity(currentStats, {
+                type: 'talk',
+                summary: 'ホームで触れ合った',
+                detail: '何気ないリアクションの応酬が、少しずつ親しさになっていく。',
+            }).nextStats);
+        }
+    }, [characterId, isDuplicateInteraction, lockManualSpeechPriority, playVoice, startTimedTalkAnimation, stopTalkAnimation, triggerTouchMotion, updateStats]);
 
     const handleCharacterTap = useCallback((event) => {
         if (Date.now() < touchAreaTapGuardRef.current) {
@@ -698,7 +767,7 @@ const Home = ({ stats, updateStats }) => {
 
                 {/* Character Figure */}
                 <div
-                    className={`character-figure ${renderer === 'live2d' ? 'is-live2d' : ''}`}
+                    className={`character-figure ${renderer === 'live2d' ? 'is-live2d' : ''} ${homeCharacterPreview?.figureClassName || ''}`}
                 >
                     <div
                         className={`character-touch-target ${touchMotion ? `motion-${touchMotion}` : ''}`}
@@ -716,7 +785,11 @@ const Home = ({ stats, updateStats }) => {
                             scene="home"
                             pose={homePose}
                             className="character-home"
-                            imageClassName={`char-image ${isTalkAnimating ? 'talk-burst' : ''}`}
+                            imageClassName={`char-image ${isTalkAnimating ? 'talk-burst' : ''} ${homeCharacterPreview?.imageClassName || ''}`}
+                            sourceOverride={homeCharacterPreview?.source}
+                            disableFaceEffects={homeCharacterPreview?.disableFaceEffects}
+                            chromaKey={homeCharacterPreview?.chromaKey}
+                            alt={homeCharacterPreview?.alt || 'Character'}
                         />
                         {renderer === 'live2d' && (homePose.live2dFaceAccent === 'blush' || homePose.live2dFaceAccent === 'shy') && (
                             <div className={`home-live2d-face-accent is-${homePose.live2dFaceAccent}`} aria-hidden="true">
@@ -807,6 +880,7 @@ const Home = ({ stats, updateStats }) => {
 
                 <NoaChatBox
                     stats={stats}
+                    updateStats={updateStats}
                     compact
                     autoSpeakAssistant
                     onAssistantReply={syncSpeechWithNoaReply}

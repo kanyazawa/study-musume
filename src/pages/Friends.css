@@ -83,6 +83,17 @@
     margin-top: 0.3rem;
 }
 
+.friend-code-issue {
+    margin-top: 0.85rem;
+    padding: 0.8rem 0.9rem;
+    border-radius: 12px;
+    background: rgba(244, 67, 54, 0.08);
+    color: #c62828;
+    font-size: 0.84rem;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
 .invite-actions {
     display: flex;
     gap: 0.65rem;

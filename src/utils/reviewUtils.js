@@ -81,6 +81,30 @@ const normalizeReviewHistory = (history) => {
         }));
 };
 
+const normalizeReviewTokens = (tokens, correctAnswer = '') => {
+    const normalizedTokens = Array.isArray(tokens)
+        ? tokens
+            .map((token) => String(token || '').trim())
+            .filter(Boolean)
+        : [];
+
+    if (normalizedTokens.length > 0) {
+        return normalizedTokens;
+    }
+
+    return String(correctAnswer || '')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+};
+
+const normalizeReviewQuestionType = (questionType, { options = null, tokens = null } = {}) => {
+    if (questionType === 'reorder') return 'reorder';
+    if (Array.isArray(tokens) && tokens.length > 0) return 'reorder';
+    if (Array.isArray(options) && options.length > 0) return 'choice';
+    return 'input';
+};
+
 const getDailyChallengeSeed = (today) => (
     String(today || '')
         .split('')
@@ -229,6 +253,13 @@ const normalizeReviewQuestion = (question, index) => {
         ? Number(question.nextReviewDate)
         : now;
     const history = normalizeReviewHistory(question.reviewHistory);
+    const questionType = normalizeReviewQuestionType(question.questionType, {
+        options: question.options,
+        tokens: question.tokens,
+    });
+    const tokens = questionType === 'reorder'
+        ? normalizeReviewTokens(question.tokens, correctAnswer)
+        : null;
 
     return {
         id: String(question.id || `${subject}-${questionId}`),
@@ -236,8 +267,10 @@ const normalizeReviewQuestion = (question, index) => {
         questionId,
         questionText,
         correctAnswer,
+        questionType,
         userAnswer: typeof question.userAnswer === 'string' ? question.userAnswer : '',
-        options: Array.isArray(question.options) ? question.options.slice(0, 6) : null,
+        options: questionType === 'choice' && Array.isArray(question.options) ? question.options.slice(0, 6) : null,
+        tokens,
         wrongCount,
         firstWrongDate: Number.isFinite(Number(question.firstWrongDate)) ? Number(question.firstWrongDate) : now,
         lastWrongDate: Number.isFinite(Number(question.lastWrongDate)) ? Number(question.lastWrongDate) : now,
@@ -304,6 +337,13 @@ export const saveReviewQuestions = (questions) => {
 export const addWrongQuestion = (questionData) => {
     const questions = getReviewQuestions();
     const now = Date.now();
+    const questionType = normalizeReviewQuestionType(questionData?.questionType, {
+        options: questionData?.options,
+        tokens: questionData?.tokens,
+    });
+    const tokens = questionType === 'reorder'
+        ? normalizeReviewTokens(questionData?.tokens, questionData?.correctAnswer)
+        : null;
 
     // 既存の問題をチェック
     const existingIndex = questions.findIndex(
@@ -315,11 +355,20 @@ export const addWrongQuestion = (questionData) => {
         const existing = questions[existingIndex];
         questions[existingIndex] = {
             ...existing,
+            questionText: questionData.questionText || existing.questionText,
+            correctAnswer: questionData.correctAnswer || existing.correctAnswer,
+            questionType,
+            userAnswer: typeof questionData.userAnswer === 'string' ? questionData.userAnswer : existing.userAnswer,
             wrongCount: existing.wrongCount + 1,
             lastWrongDate: now,
             reviewLevel: 0, // 間違えたのでレベルリセット
             nextReviewDate: calculateNextReviewDate(0),
-            options: questionData.options || existing.options || null,
+            options: questionType === 'choice'
+                ? questionData.options || existing.options || null
+                : null,
+            tokens: questionType === 'reorder'
+                ? (tokens.length > 0 ? tokens : existing.tokens || null)
+                : null,
             reviewHistory: [
                 ...existing.reviewHistory,
                 { date: now, result: 'wrong' }
@@ -333,8 +382,10 @@ export const addWrongQuestion = (questionData) => {
             questionId: questionData.questionId,
             questionText: questionData.questionText,
             correctAnswer: questionData.correctAnswer,
+            questionType,
             userAnswer: questionData.userAnswer,
-            options: questionData.options || null,
+            options: questionType === 'choice' ? questionData.options || null : null,
+            tokens,
             wrongCount: 1,
             firstWrongDate: now,
             lastWrongDate: now,
