@@ -68,7 +68,7 @@ const AppRoutes = ({ stats, updateStats, onLoginSuccess, currentUser }) => (
       <Route path="/stats-v0" element={<StatsPageV0 />} />
       <Route path="/missions" element={<Missions stats={stats} updateStats={updateStats} />} />
       <Route path="/missions-v0" element={<MissionsPageV0 />} />
-      <Route path="/calendar" element={<CalendarPage />} />
+      <Route path="/calendar" element={<CalendarPage stats={stats} updateStats={updateStats} />} />
       <Route path="/shop" element={<Shop stats={stats} updateStats={updateStats} />} />
       <Route path="/gacha" element={<Navigate to="/shop" replace />} />
       <Route path="/review" element={<Review stats={stats} updateStats={updateStats} />} />

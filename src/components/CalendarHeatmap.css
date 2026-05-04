@@ -56,6 +56,15 @@
     box-shadow: 0 0 12px rgba(80, 227, 194, 0.5);
 }
 
+.calendar-day.has-note::after {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 1px dashed rgba(255, 255, 255, 0.5);
+    border-radius: 6px;
+    pointer-events: none;
+}
+
 .day-number {
     font-size: 0.9rem;
     font-weight: 600;
@@ -77,6 +86,24 @@
     background: white;
     border-radius: 50%;
     box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+}
+
+.day-note-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 3px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #2f225f;
+    font-size: 0.55rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
 }
 
 /* 強度レベルによる色分け */

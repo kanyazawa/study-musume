@@ -348,6 +348,220 @@
     background: #f5a623;
 }
 
+.home-planner-card {
+    position: absolute;
+    top: calc(15% + 214px);
+    left: 16px;
+    z-index: 12;
+    width: min(180px, 32vw);
+    padding: 10px 11px;
+    border-radius: 15px;
+    background:
+        linear-gradient(180deg, rgba(255, 252, 240, 0.97) 0%, rgba(255, 247, 224, 0.97) 100%);
+    border: 2px solid rgba(245, 180, 93, 0.55);
+    box-shadow:
+        0 10px 20px rgba(98, 73, 33, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    transform: rotate(-0.8deg);
+}
+
+.home-planner-header {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 6px;
+}
+
+.home-planner-kicker {
+    color: #9f7a34;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.home-planner-header strong {
+    color: #49351a;
+    font-size: 14px;
+    line-height: 1.15;
+}
+
+.home-planner-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.home-planner-section.compact {
+    min-height: 40px;
+}
+
+.home-planner-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: #6b4f26;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.home-planner-mini-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    color: #6b4f26;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.home-planner-mini-row.todo {
+    margin-top: 2px;
+}
+
+.home-planner-mini-label {
+    color: #6b4f26;
+}
+
+.home-planner-mini-date,
+.home-planner-mini-count {
+    color: #98744a;
+    font-size: 9px;
+}
+
+.home-planner-section-title span {
+    color: #98744a;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.home-focus-text,
+.home-planner-empty {
+    margin: 0;
+    line-height: 1.35;
+    font-size: 10px;
+}
+
+.home-focus-text {
+    color: #3f3020;
+    font-weight: 700;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.home-planner-empty {
+    color: #8a7658;
+}
+
+.home-planner-link {
+    border: none;
+    border-radius: 999px;
+    padding: 5px 8px;
+    background: linear-gradient(135deg, #ffb25b 0%, #ff8b5c 100%);
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 6px 12px rgba(255, 139, 92, 0.24);
+}
+
+.home-planner-link.secondary {
+    background: linear-gradient(135deg, #57c7a8 0%, #2aa9b0 100%);
+    box-shadow: 0 6px 12px rgba(42, 169, 176, 0.2);
+}
+
+.home-planner-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.home-planner-actions .home-planner-link {
+    flex: 1;
+}
+
+.home-planner-divider {
+    height: 1px;
+    margin: 6px 0;
+    background: linear-gradient(90deg, rgba(214, 181, 124, 0) 0%, rgba(214, 181, 124, 0.92) 50%, rgba(214, 181, 124, 0) 100%);
+}
+
+.home-todo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.home-todo-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.home-todo-toggle {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    border: 1.5px solid rgba(191, 146, 76, 0.8);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.88);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.home-todo-toggle:active {
+    transform: scale(0.94);
+}
+
+.home-todo-toggle.is-completed {
+    background: linear-gradient(135deg, #57c7a8 0%, #2aa9b0 100%);
+    border-color: #2aa9b0;
+}
+
+.home-todo-toggle span {
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.home-todo-text {
+    min-width: 0;
+    color: #5a4528;
+    font-size: 10px;
+    line-height: 1.35;
+    font-weight: 700;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.home-todo-preview {
+    margin: 0 0 6px 0;
+    color: #5a4528;
+    font-size: 9px;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.home-todo-more {
+    margin: -2px 0 6px 0;
+    color: #8a7658;
+    font-size: 9px;
+    line-height: 1.2;
+}
+
 .home-resume-card {
     position: absolute;
     top: calc(15% + 174px);
@@ -1666,6 +1880,42 @@
         left: 12px;
         min-width: 74px;
         padding: 7px 10px;
+    }
+
+    .home-planner-card {
+        top: calc(15% + 164px);
+        left: 10px;
+        width: min(146px, 39vw);
+        padding: 8px;
+    }
+
+    .home-planner-header strong {
+        font-size: 12px;
+    }
+
+    .home-focus-text,
+    .home-planner-empty {
+        font-size: 9px;
+    }
+
+    .home-planner-link {
+        font-size: 9px;
+        padding: 5px 6px;
+    }
+
+    .home-todo-item {
+        gap: 5px;
+    }
+
+    .home-todo-toggle {
+        width: 16px;
+        height: 16px;
+        flex-basis: 16px;
+    }
+
+    .home-todo-text,
+    .home-todo-more {
+        font-size: 8px;
     }
 
     .home-daily-loop-card {

@@ -22,6 +22,7 @@ import { getLatestNoaAssistantMessageEntry } from '../utils/chatHistory';
 import { inferEmotionFromChatText } from '../utils/chatEmotionUtils';
 import { getEnabledHomeTouchAreas, getHomeTouchReaction } from '../data/homeTouchReactions';
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
+import { loadGoalTodos, saveGoalTodos } from '../utils/goalUtils';
 import { getHomeReviewSummary } from '../utils/reviewUtils';
 import { applyRelationshipActivity } from '../utils/relationshipEventUtils';
 import { getUnreadRelationshipEvents } from '../utils/relationshipEventUtils';
@@ -71,6 +72,25 @@ const HOME_CHARACTER_PREVIEWS = {
     },
 };
 
+const TODO_PRAISE_REACTIONS = [
+    { emotion: 'happy', text: 'いいじゃない。そうやって終わらせていけるの、ちゃんとえらいわ。' },
+    { emotion: 'smile', text: 'ふふ、ひとつ片づいたわね。その調子で次も行けそうじゃない。' },
+    { emotion: 'happy', text: 'ちゃんと進んでるの、見えてるわよ。今の流れ、悪くないわ。' },
+    { emotion: 'smile', text: 'ナイス。べ、別に甘やかしてるわけじゃないけど、今のは褒めていいでしょ。' },
+    { emotion: 'relaxed', text: 'こうやって小さく終わらせていくの、大事なのよ。いい感じじゃない。' },
+];
+
+const formatTodoPraiseLabel = (text) => {
+    const normalized = String(text || '').trim();
+    if (!normalized) {
+        return '';
+    }
+
+    return normalized.length > 14
+        ? `${normalized.slice(0, 14)}...`
+        : normalized;
+};
+
 const Home = ({ stats, updateStats }) => {
     // Default stats if not provided (fallback)
     const {
@@ -107,6 +127,7 @@ const Home = ({ stats, updateStats }) => {
     const [touchMotionStyle, setTouchMotionStyle] = useState(null);
     const [live2dImpact, setLive2dImpact] = useState(null);
     const [lastStudyTopic, setLastStudyTopic] = useState(() => getLastStudyTopic());
+    const [goalTodos, setGoalTodos] = useState(() => loadGoalTodos());
     const talkAnimationTimerRef = useRef(null);
     const userInputEmotionTimerRef = useRef(null);
     const touchMotionTimerRef = useRef(null);
@@ -228,6 +249,20 @@ const Home = ({ stats, updateStats }) => {
 
         return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     }, [examDate]);
+    const tomorrowDate = useMemo(() => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return tomorrow.toISOString().split('T')[0];
+    }, []);
+    const tomorrowFocus = (stats?.calendarFocuses || {})[tomorrowDate] || '';
+    const incompleteGoalTodos = useMemo(
+        () => goalTodos.filter((todo) => !todo.completed),
+        [goalTodos],
+    );
+    const visibleGoalTodos = useMemo(
+        () => incompleteGoalTodos.slice(0, 2),
+        [incompleteGoalTodos],
+    );
 
     const stopTalkAnimation = useCallback(() => {
         if (talkAnimationTimerRef.current) {
@@ -539,6 +574,9 @@ const Home = ({ stats, updateStats }) => {
             if (event.key === 'lastStudyTopic') {
                 setLastStudyTopic(getLastStudyTopic());
             }
+            if (event.key === 'uma_todos') {
+                setGoalTodos(loadGoalTodos());
+            }
         };
 
         window.addEventListener('storage', handleStorage);
@@ -644,6 +682,35 @@ const Home = ({ stats, updateStats }) => {
             .filter(Boolean)
             .join(' / ');
         return detail ? `${detail}を再開` : '前回の学習を再開';
+    };
+
+    const handleToggleGoalTodo = (todoId) => {
+        const toggledTodo = goalTodos.find((todo) => todo.id === todoId);
+        const willComplete = toggledTodo ? !toggledTodo.completed : false;
+        const nextTodos = goalTodos.map((todo) => (
+            todo.id === todoId
+                ? { ...todo, completed: !todo.completed }
+                : todo
+        ));
+        const { todos } = saveGoalTodos(nextTodos);
+        setGoalTodos(todos);
+
+        if (willComplete) {
+            const reaction = TODO_PRAISE_REACTIONS[Math.floor(Math.random() * TODO_PRAISE_REACTIONS.length)];
+            const todoLabel = formatTodoPraiseLabel(toggledTodo?.text);
+            const nextSpeech = todoLabel
+                ? `「${todoLabel}」できたね。${reaction.text}`
+                : reaction.text;
+
+            lockManualSpeechPriority(2600);
+            setActiveHomeReaction({
+                emotion: reaction.emotion,
+                text: nextSpeech,
+            });
+            setSpeech(nextSpeech);
+            setBaseHomeEmotion(toVisibleHomeEmotion(reaction.emotion));
+            startTimedTalkAnimation(nextSpeech);
+        }
     };
 
     return (
@@ -764,6 +831,80 @@ const Home = ({ stats, updateStats }) => {
                         </span>
                     )}
                 </button>
+
+                <section className="home-planner-card" aria-label="明日の目標とToDo">
+                    <div className="home-planner-header">
+                        <span className="home-planner-kicker">Plan</span>
+                        <strong>予定</strong>
+                    </div>
+
+                    <div className="home-planner-mini-row">
+                        <span className="home-planner-mini-label">明日</span>
+                        <span className="home-planner-mini-date">{formatShortDate(tomorrowDate)}</span>
+                    </div>
+
+                    <div className="home-planner-section compact">
+                        {tomorrowFocus ? (
+                            <p className="home-focus-text">{tomorrowFocus}</p>
+                        ) : (
+                            <p className="home-planner-empty">
+                                カレンダーに明日の目標を書くと、ここに出ます。
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="home-planner-divider" />
+
+                    <div className="home-planner-mini-row todo">
+                        <span className="home-planner-mini-label">残りToDo</span>
+                        <span className="home-planner-mini-count">{incompleteGoalTodos.length}件</span>
+                    </div>
+
+                    {visibleGoalTodos.length > 0 ? (
+                        <div className="home-todo-list" role="list" aria-label="残りのToDo">
+                            {visibleGoalTodos.map((todo) => (
+                                <div key={todo.id} className="home-todo-item" role="listitem">
+                                    <button
+                                        type="button"
+                                        className={`home-todo-toggle ${todo.completed ? 'is-completed' : ''}`}
+                                        onClick={() => handleToggleGoalTodo(todo.id)}
+                                        aria-label={`${todo.text}を完了にする`}
+                                    >
+                                        <span aria-hidden="true">{todo.completed ? '✓' : ''}</span>
+                                    </button>
+                                    <span className="home-todo-text">{todo.text}</span>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="home-todo-preview">
+                            いまのToDoは全部片付いています。
+                        </p>
+                    )}
+
+                    {incompleteGoalTodos.length > visibleGoalTodos.length && (
+                        <p className="home-todo-more">
+                            ほか {incompleteGoalTodos.length - visibleGoalTodos.length} 件
+                        </p>
+                    )}
+
+                    <div className="home-planner-actions">
+                        <button
+                            type="button"
+                            className="home-planner-link"
+                            onClick={() => navigate('/calendar')}
+                        >
+                            カレンダー
+                        </button>
+                        <button
+                            type="button"
+                            className="home-planner-link secondary"
+                            onClick={() => navigate('/goal')}
+                        >
+                            目標
+                        </button>
+                    </div>
+                </section>
 
                 {/* Character Figure */}
                 <div
@@ -896,6 +1037,12 @@ const Home = ({ stats, updateStats }) => {
             {/* Footer removed */}
         </div>
     );
+};
+
+const formatShortDate = (dateString) => {
+    const date = new Date(`${dateString}T00:00:00`);
+    const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
+    return `${date.getMonth() + 1}/${date.getDate()} ${weekDays[date.getDay()]}`;
 };
 
 export default Home;

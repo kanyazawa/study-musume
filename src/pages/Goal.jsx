@@ -3,31 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Plus, Trash2, Check, Save } from 'lucide-react';
 import './Goal.css';
 import { getGameLoopSnapshot } from '../utils/gameLoopUtils';
-
-const safeRead = (key, fallback = null) => {
-    try {
-        const value = localStorage.getItem(key);
-        return value ?? fallback;
-    } catch (error) {
-        console.error(`Failed to read localStorage key "${key}":`, error);
-        return fallback;
-    }
-};
-
-const normalizeTodos = (value) => {
-    if (!Array.isArray(value)) {
-        return [];
-    }
-
-    return value
-        .filter((todo) => todo && typeof todo === 'object')
-        .map((todo, index) => ({
-            id: typeof todo.id === 'number' ? todo.id : Date.now() + index,
-            text: typeof todo.text === 'string' ? todo.text : '',
-            completed: Boolean(todo.completed)
-        }))
-        .filter((todo) => todo.text.trim().length > 0);
-};
+import {
+    loadGoalTodos,
+    loadMainGoal,
+    saveGoalTodos,
+    saveMainGoal,
+} from '../utils/goalUtils';
 
 const Goal = ({ stats, updateStats }) => {
     const navigate = useNavigate();
@@ -50,25 +31,8 @@ const Goal = ({ stats, updateStats }) => {
 
     // Load from Local Storage on mount
     useEffect(() => {
-        const savedMainGoal = safeRead('uma_main_goal', '');
-        const savedTodosRaw = safeRead('uma_todos', '[]');
-
-        if (savedMainGoal) {
-            setMainGoal(savedMainGoal);
-        }
-
-        try {
-            setTodos(normalizeTodos(JSON.parse(savedTodosRaw || '[]')));
-        } catch (error) {
-            console.error('Failed to parse saved todos:', error);
-            setTodos([]);
-            setErrorMessage('保存済みタスクの読み込みに失敗したため、タスク一覧を初期化しました。');
-            try {
-                localStorage.removeItem('uma_todos');
-            } catch (removeError) {
-                console.error('Failed to clear broken todo data:', removeError);
-            }
-        }
+        setMainGoal(loadMainGoal());
+        setTodos(loadGoalTodos());
     }, []);
 
     useEffect(() => {
@@ -78,7 +42,13 @@ const Goal = ({ stats, updateStats }) => {
     // Save to Local Storage whenever data changes
     const saveGoal = () => {
         try {
-            localStorage.setItem('uma_main_goal', mainGoal);
+            const saved = saveMainGoal(mainGoal);
+            if (!saved) {
+                throw new Error('failed to save main goal');
+            }
+            if (updateStats) {
+                updateStats((currentStats) => ({ ...currentStats }));
+            }
             setErrorMessage('');
             alert('目標を保存しました！');
         } catch (error) {
@@ -88,10 +58,15 @@ const Goal = ({ stats, updateStats }) => {
     };
 
     const saveTodos = (newTodos) => {
-        const normalizedTodos = normalizeTodos(newTodos);
         try {
-            localStorage.setItem('uma_todos', JSON.stringify(normalizedTodos));
-            setTodos(normalizedTodos);
+            const result = saveGoalTodos(newTodos);
+            if (!result.ok) {
+                throw new Error('failed to save todos');
+            }
+            setTodos(result.todos);
+            if (updateStats) {
+                updateStats((currentStats) => ({ ...currentStats }));
+            }
             setErrorMessage('');
             return true;
         } catch (error) {

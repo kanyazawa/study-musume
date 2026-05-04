@@ -63,11 +63,12 @@ const CalendarHeatmap = ({ year, month, monthlyStats, onDayClick }) => {
                     const { day, date, stats } = dayData;
                     const intensity = stats.intensity || 0;
                     const isToday = date === new Date().toISOString().split('T')[0];
+                    const hasNote = Boolean(stats.note?.trim());
 
                     return (
                         <div
                             key={dayData.key}
-                            className={`calendar-day ${getIntensityClass(intensity)} ${isToday ? 'today' : ''}`}
+                            className={`calendar-day ${getIntensityClass(intensity)} ${isToday ? 'today' : ''} ${hasNote ? 'has-note' : ''}`}
                             onClick={() => onDayClick(date, stats)}
                             data-date={date}
                             data-minutes={stats.totalMinutes || 0}
@@ -78,6 +79,7 @@ const CalendarHeatmap = ({ year, month, monthlyStats, onDayClick }) => {
                                     <span className="dot"></span>
                                 </div>
                             )}
+                            {hasNote && <div className="day-note-badge">メ</div>}
                         </div>
                     );
                 })}

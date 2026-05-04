@@ -1,60 +1,10 @@
 import { getLastStudyTopic } from '../data/studyData';
 import { getDailyLoopSummary } from './dailyLoopUtils';
+import { getStoredGoalData } from './goalUtils';
 import { DEFAULT_RATING, getLevelFromRating, getNextLevelInfo, getRankFromRating } from './ratingUtils';
 import { getHomeReviewSummary } from './reviewUtils';
 
 const clampNumber = (value, min, max) => Math.min(Math.max(value, min), max);
-
-const safeReadStorage = (key, fallback = '') => {
-    if (typeof window === 'undefined' || !window.localStorage) {
-        return fallback;
-    }
-
-    try {
-        const value = window.localStorage.getItem(key);
-        return value ?? fallback;
-    } catch (error) {
-        console.error(`Failed to read localStorage key "${key}":`, error);
-        return fallback;
-    }
-};
-
-const parseTodos = (value) => {
-    if (!Array.isArray(value)) return [];
-
-    return value
-        .filter((todo) => todo && typeof todo === 'object')
-        .map((todo, index) => ({
-            id: todo.id ?? `todo-${index}`,
-            text: typeof todo.text === 'string' ? todo.text.trim() : '',
-            completed: Boolean(todo.completed),
-        }))
-        .filter((todo) => todo.text);
-};
-
-export const getStoredGoalData = () => {
-    const mainGoal = String(safeReadStorage('uma_main_goal', '') || '').trim();
-
-    let parsedTodos = [];
-    try {
-        parsedTodos = parseTodos(JSON.parse(safeReadStorage('uma_todos', '[]') || '[]'));
-    } catch (error) {
-        console.error('Failed to parse todos for game loop snapshot:', error);
-    }
-
-    const completedTodoCount = parsedTodos.filter((todo) => todo.completed).length;
-    const todoCompletionPercent = parsedTodos.length > 0
-        ? Math.round((completedTodoCount / parsedTodos.length) * 100)
-        : 0;
-
-    return {
-        mainGoal,
-        todos: parsedTodos,
-        totalTodoCount: parsedTodos.length,
-        completedTodoCount,
-        todoCompletionPercent,
-    };
-};
 
 export const getDaysUntilExam = (examDate) => {
     if (!examDate) return null;
