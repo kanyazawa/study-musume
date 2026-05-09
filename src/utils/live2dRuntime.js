@@ -7,11 +7,16 @@ const TYRANO_CANVAS_ID = 'live2d_canvas_tyrano';
 const TYRANO_RUNTIME = 'tyrano-v4';
 
 /**
- * Live2D canvas を #root より手前（モバイル枠内）に載せるためのホスト。
- * body 直下 + position:fixed だと .mobile-content の白背景より下に描画され、本番でキャラが見えなくなる。
+ * Live2D canvas のホストを、まずキャラのステージ近辺に寄せて決める。
+ * ここを .mobile-content 直下に置くと、ホーム内 UI とは別レイヤーになって
+ * ボタンより前に見えることがあるため、可能ならローカルなステージ配下へ載せる。
  */
-const getLive2dCanvasHost = () =>
-    document.querySelector('.mobile-content') || document.getElementById('root') || document.body;
+const getLive2dCanvasHost = (container) =>
+    container?.closest('.character-touch-target')
+    || container?.parentElement
+    || document.querySelector('.mobile-content')
+    || document.getElementById('root')
+    || document.body;
 
 const getAbsoluteUrl = (url) => {
     try {
@@ -119,14 +124,14 @@ export const mountTyranoCanvas = (container) => {
     }
 
     // SDK は document.getElementById(TYRANO_CANVAS_ID) で canvas を探す。
-    // アプリの #root / .mobile-content 内に載せ、z-index は UI（10〜）より下・背景より上。
-    const host = getLive2dCanvasHost();
+    // 可能ならキャラステージ配下に載せ、ホーム内 UI と同じ重なり順で扱う。
+    const host = getLive2dCanvasHost(container);
     let canvas = document.getElementById(TYRANO_CANVAS_ID);
     if (!canvas) {
         canvas = document.createElement('canvas');
         canvas.id = TYRANO_CANVAS_ID;
         canvas.style.pointerEvents = 'none';
-        canvas.style.zIndex = '3';
+        canvas.style.zIndex = '1';
         host.appendChild(canvas);
     } else if (canvas.parentElement !== host) {
         host.appendChild(canvas);

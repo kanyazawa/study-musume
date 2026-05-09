@@ -273,26 +273,32 @@ const CharacterInteraction = ({ stats, updateStats }) => {
                             </div>
                         </section>
 
-                        <div className="ci-main-actions">
-                            <button className="ci-main-action is-secondary" type="button" onClick={() => setMode('gift')}>
-                                <Gift size={22} />
-                                <span className="ci-main-action-label">プレゼント</span>
-                                <span className="ci-main-action-meta">
-                                    {giftItems.length > 0 ? `${giftItems.length}種 持っています` : '持ち物を確認'}
-                                </span>
-                            </button>
+                <div className="ci-main-actions">
+                    <button className="ci-main-action is-secondary" type="button" onClick={() => setMode('gift')}>
+                        <Gift size={22} />
+                        <span className="ci-main-action-label">プレゼント</span>
+                        <span className="ci-main-action-meta">
+                            {giftItems.length > 0 ? `${giftItems.length}種 持っています` : '持ち物を確認'}
+                        </span>
+                    </button>
 
-                            <button className="ci-main-action is-primary" type="button" onClick={() => setMode('customize')}>
-                                <Sparkles size={24} />
-                                <span className="ci-main-action-label">カスタマイズ</span>
-                                <span className="ci-main-action-meta">衣装・背景・アクセをまとめて切り替える</span>
-                            </button>
+                    <button className="ci-main-action is-primary" type="button" onClick={() => setMode('customize')}>
+                        <Sparkles size={24} />
+                        <span className="ci-main-action-label">カスタマイズ</span>
+                        <span className="ci-main-action-meta">衣装・背景・アクセをまとめて切り替える</span>
+                    </button>
 
-                            <button className="ci-main-action is-secondary" type="button" onClick={() => setMode('events')}>
-                                <BookOpen size={22} />
-                                <span className="ci-main-action-label">イベント</span>
-                                <span className="ci-main-action-meta">
-                                    {unreadRelationshipEvents.length > 0 ? `新着 ${unreadRelationshipEvents.length}件` : '解放済みを読む'}
+                    <button className="ci-main-action is-secondary" type="button" onClick={() => navigate('/story')}>
+                        <BookOpen size={22} />
+                        <span className="ci-main-action-label">物語</span>
+                        <span className="ci-main-action-meta">このキャラとの物語を読む</span>
+                    </button>
+
+                    <button className="ci-main-action is-secondary" type="button" onClick={() => setMode('events')}>
+                        <BookOpen size={22} />
+                        <span className="ci-main-action-label">イベント</span>
+                        <span className="ci-main-action-meta">
+                            {unreadRelationshipEvents.length > 0 ? `新着 ${unreadRelationshipEvents.length}件` : '解放済みを読む'}
                                 </span>
                                 {unreadRelationshipEvents.length > 0 && (
                                     <span className="ci-badge">{unreadRelationshipEvents.length}</span>

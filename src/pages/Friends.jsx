@@ -49,7 +49,7 @@ const Friends = ({ stats }) => {
     }, []);
 
     const getTargetCorrectLabel = useCallback((targetCorrect) => {
-        return `${normalizeTargetCorrect(targetCorrect)}問先取`;
+        return `ゲージ押し切り or ${normalizeTargetCorrect(targetCorrect)}問`;
     }, []);
 
     const getBattleModeBadgeLabel = useCallback((battleMode) => {
@@ -325,6 +325,9 @@ const Friends = ({ stats }) => {
                             <div className="battle-settings-header">
                                 <div className="battle-settings-title">フレンド対戦の級</div>
                                 <div className="battle-settings-note">招待した側の設定で出題級が決まります</div>
+                                <div className="battle-settings-subnote">
+                                    正解で綱引きゲージを押し込み、連続正解で押し量アップ。ゲージを押し切るか、規定問数までに優勢なら勝ちです。
+                                </div>
                             </div>
                             <label className="battle-level-select">
                                 <span>出題する級</span>
@@ -349,7 +352,7 @@ const Friends = ({ stats }) => {
                                 >
                                     {FRIEND_MATCH_TARGET_OPTIONS.map((target) => (
                                         <option key={target} value={target}>
-                                            {target}問先取
+                                            ゲージ押し切り or {target}問
                                         </option>
                                     ))}
                                 </select>

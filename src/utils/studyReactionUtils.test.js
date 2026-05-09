@@ -10,6 +10,7 @@ import {
     resolveReactionVoiceSelection,
     resolveMatchReactionTone,
     resolveReviewReactionTone,
+    shouldTriggerReactionFeverFx,
 } from './studyReactionUtils';
 
 describe('studyReactionUtils', () => {
@@ -84,7 +85,6 @@ describe('studyReactionUtils', () => {
 
     it('mixes in a rare chain voice after five streak when the rare roll hits', () => {
         const randomSpy = vi.spyOn(Math, 'random')
-            .mockReturnValueOnce(0.05)
             .mockReturnValueOnce(0);
 
         const rareSelection = resolveReactionVoiceSelection({
@@ -94,8 +94,35 @@ describe('studyReactionUtils', () => {
         });
 
         expect(rareSelection.isRare).toBe(true);
+        expect(rareSelection.shouldTriggerFeverFx).toBe(true);
         expect(rareSelection.file).toContain('noah-highStreak-04');
         randomSpy.mockRestore();
+    });
+
+    it('still triggers fever visuals at five streak even for characters without reaction voices', () => {
+        const selection = resolveReactionVoiceSelection({
+            characterId: 'ren',
+            tone: 'chain_correct',
+            streak: 5,
+        });
+
+        expect(selection.file).toBe(null);
+        expect(selection.isRare).toBe(false);
+        expect(selection.shouldTriggerFeverFx).toBe(true);
+    });
+
+    it('flags five-chain fever independently from voice playback', () => {
+        expect(shouldTriggerReactionFeverFx({
+            tone: 'chain_correct',
+            streak: 5,
+            isRare: false,
+        })).toBe(true);
+
+        expect(shouldTriggerReactionFeverFx({
+            tone: 'chain_correct',
+            streak: 4,
+            isRare: true,
+        })).toBe(false);
     });
 
     it('avoids replaying the exact same reaction voice when alternatives exist', () => {

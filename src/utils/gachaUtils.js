@@ -1,12 +1,22 @@
 import { RARITY, ALL_GACHA_ITEMS, GACHA_POOL } from '../data/gachaItems';
 
-const GACHA_HISTORY_KEY = 'gacha_history';
-const PITY_COUNTER_KEY = 'gacha_pity';
+const GACHA_HISTORY_KEY = 'gachaHistory';
+const LEGACY_GACHA_HISTORY_KEY = 'gacha_history';
+const PITY_COUNTER_KEY = 'pityCounter';
+const LEGACY_PITY_COUNTER_KEY = 'gacha_pity';
 const PITY_LIMIT = 100; // 天井回数
+
+const readStorage = (primaryKey, legacyKey) =>
+    localStorage.getItem(primaryKey) ?? localStorage.getItem(legacyKey);
+
+const writeStorage = (primaryKey, legacyKey, value) => {
+    localStorage.setItem(primaryKey, value);
+    localStorage.setItem(legacyKey, value);
+};
 
 // ガチャ履歴を取得
 export const getGachaHistory = () => {
-    const history = localStorage.getItem(GACHA_HISTORY_KEY);
+    const history = readStorage(GACHA_HISTORY_KEY, LEGACY_GACHA_HISTORY_KEY);
     return history ? JSON.parse(history) : [];
 };
 
@@ -26,13 +36,13 @@ export const addGachaHistory = (results) => {
         history.pop();
     }
 
-    localStorage.setItem(GACHA_HISTORY_KEY, JSON.stringify(history));
+    writeStorage(GACHA_HISTORY_KEY, LEGACY_GACHA_HISTORY_KEY, JSON.stringify(history));
     return newEntry;
 };
 
 // 天井カウンターを取得
 export const getCurrentPity = () => {
-    const pity = localStorage.getItem(PITY_COUNTER_KEY);
+    const pity = readStorage(PITY_COUNTER_KEY, LEGACY_PITY_COUNTER_KEY);
     return pity ? parseInt(pity, 10) : 0;
 };
 
@@ -48,7 +58,7 @@ export const updatePity = (count, hasSSR) => {
         currentPity += count;
     }
 
-    localStorage.setItem(PITY_COUNTER_KEY, currentPity.toString());
+    writeStorage(PITY_COUNTER_KEY, LEGACY_PITY_COUNTER_KEY, currentPity.toString());
     return currentPity;
 };
 
@@ -143,7 +153,7 @@ export const performGacha = (count = 1) => {
 
     // 天井カウンター更新
     updatePity(0, hasSSR); // hasSSRでリセット判定
-    localStorage.setItem(PITY_COUNTER_KEY, currentPity.toString());
+    writeStorage(PITY_COUNTER_KEY, LEGACY_PITY_COUNTER_KEY, currentPity.toString());
 
     // 履歴に追加
     addGachaHistory(results);

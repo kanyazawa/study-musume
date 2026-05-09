@@ -375,6 +375,17 @@
     color: #6b7280;
 }
 
+.battle-settings-subnote {
+    margin-top: 0.5rem;
+    padding: 0.7rem 0.8rem;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(255, 138, 0, 0.1), rgba(255, 77, 109, 0.08));
+    border: 1px solid rgba(255, 138, 0, 0.16);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: #5b445e;
+}
+
 .battle-level-select {
     display: flex;
     flex-direction: column;

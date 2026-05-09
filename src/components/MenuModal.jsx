@@ -29,6 +29,7 @@ import { resolveCharacterRenderer } from '../utils/characterRenderer';
 
 const MENU_ITEMS = [
     { id: 'calendar', label: 'カレンダー', icon: <Calendar />, iconClass: 'icon-calendar' },
+    { id: 'partner', label: '相棒変更', icon: <User />, iconClass: 'icon-user' },
     { id: 'friends', label: 'フレンド', icon: <Users />, iconClass: 'icon-users' },
     { id: 'ranking', label: 'ランキング', icon: <Trophy />, iconClass: 'icon-trophy' },
     { id: 'notifications', label: '通知設定', icon: <Bell />, iconClass: 'icon-bell' },
@@ -72,6 +73,9 @@ const MenuModal = ({ onClose, stats, updateStats }) => {
         } else if (itemId === 'profile') {
             onClose();
             navigate('/profile');
+        } else if (itemId === 'partner') {
+            onClose();
+            navigate('/character-select');
         } else if (itemId === 'friends') {
             onClose();
             navigate('/friends');

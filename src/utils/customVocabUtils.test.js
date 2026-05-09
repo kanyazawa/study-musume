@@ -3,6 +3,7 @@ import {
     addCustomVocabEntry,
     getCustomVocabEntries,
     getCustomVocabStudyItems,
+    getSuggestedMeaningForCustomVocab,
     removeCustomVocabEntry,
 } from './customVocabUtils';
 import { addWrongQuestion, getReviewQuestions } from './reviewUtils';
@@ -78,5 +79,11 @@ describe('customVocabUtils', () => {
                 userAnswer: '惑星',
             }),
         ]);
+    });
+
+    it('suggests meanings from built-in vocab entries', async () => {
+        await expect(getSuggestedMeaningForCustomVocab('book')).resolves.toBe('本');
+        await expect(getSuggestedMeaningForCustomVocab("student's")).resolves.toBe('生徒');
+        await expect(getSuggestedMeaningForCustomVocab('books')).resolves.toBe('本');
     });
 });

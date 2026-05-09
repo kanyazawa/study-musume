@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import './Inventory.css';
 
 import ItemVisual from '../components/ItemVisual';
-import { filterInventoryByType, removeFromInventory } from '../utils/itemUtils';
+import { filterInventoryByType, getItemTypeLabel, removeFromInventory } from '../utils/itemUtils';
 import { GIFT_REACTIONS } from '../data/affectionData';
 import { checkLevelUp } from '../utils/affectionUtils';
 import { applyRelationshipProgress } from '../utils/relationshipEventUtils';
+import { getEpisodeById } from '../data/storyData';
 
 const Inventory = ({ stats, updateStats }) => {
     const navigate = useNavigate();
@@ -17,6 +18,9 @@ const Inventory = ({ stats, updateStats }) => {
     // タイプ別にアイテムをフィルタリング
     const filteredItems = filterInventoryByType(stats.inventory, selectedType);
     const equippedAccessories = stats?.equippedAccessories || [];
+    const linkedEpisode = selectedItem?.type === 'story_unlock' && selectedItem?.storyId
+        ? getEpisodeById(selectedItem.storyId)
+        : null;
 
     // アイテム詳細モーダルを開く
     const handleItemClick = (item) => {
@@ -101,10 +105,22 @@ const Inventory = ({ stats, updateStats }) => {
                     💝 プレゼント
                 </button>
                 <button
+                    className={`tab ${selectedType === 'assist' ? 'active' : ''}`}
+                    onClick={() => setSelectedType('assist')}
+                >
+                    🪄 おたすけ
+                </button>
+                <button
                     className={`tab ${selectedType === 'boost' ? 'active' : ''}`}
                     onClick={() => setSelectedType('boost')}
                 >
                     ⚡ ブースト
+                </button>
+                <button
+                    className={`tab ${selectedType === 'voice' ? 'active' : ''}`}
+                    onClick={() => setSelectedType('voice')}
+                >
+                    🎧 ボイス
                 </button>
                 <button
                     className={`tab ${selectedType === 'skin' ? 'active' : ''}`}
@@ -123,6 +139,18 @@ const Inventory = ({ stats, updateStats }) => {
                     onClick={() => setSelectedType('accessory')}
                 >
                     👓 アクセ
+                </button>
+                <button
+                    className={`tab ${selectedType === 'illustration' ? 'active' : ''}`}
+                    onClick={() => setSelectedType('illustration')}
+                >
+                    🖼️ 1枚絵
+                </button>
+                <button
+                    className={`tab ${selectedType === 'story_unlock' ? 'active' : ''}`}
+                    onClick={() => setSelectedType('story_unlock')}
+                >
+                    📖 物語
                 </button>
             </div>
 
@@ -184,6 +212,9 @@ const Inventory = ({ stats, updateStats }) => {
                         <div className={`modal-rarity rarity-${selectedItem.rarity}`}>
                             {selectedItem.rarity}
                         </div>
+                        <div className="modal-rarity">
+                            {getItemTypeLabel(selectedItem.type)}
+                        </div>
 
                         <p className="modal-description">{selectedItem.description}</p>
 
@@ -194,8 +225,23 @@ const Inventory = ({ stats, updateStats }) => {
                             {selectedItem.type === 'boost' && (
                                 <p>⚡ 経験値 ×{selectedItem.multiplier} ({selectedItem.duration}分)</p>
                             )}
+                            {selectedItem.type === 'assist' && (
+                                <p>🪄 ソロの早押しクイズで使える消耗品</p>
+                            )}
                             {selectedItem.type === 'accessory' && (
                                 <p>👓 Live2Dアクセサリー</p>
+                            )}
+                            {selectedItem.type === 'voice' && (
+                                <p>🎧 追加ボイス: {selectedItem.unlockLabel || 'ホームや演出に追加予定'}</p>
+                            )}
+                            {selectedItem.type === 'illustration' && (
+                                <p>🖼️ 1枚絵解放: {selectedItem.unlockLabel || 'ギャラリーに追加予定'}</p>
+                            )}
+                            {selectedItem.type === 'story_unlock' && (
+                                <p>📖 ストーリー解放: {selectedItem.unlockLabel || '短編エピソード解放予定'}</p>
+                            )}
+                            {selectedItem.type === 'story_unlock' && linkedEpisode && (
+                                <p>🎬 対象エピソード: {linkedEpisode.title}</p>
                             )}
                             <p>所持数: {selectedItem.quantity}</p>
                         </div>
@@ -203,6 +249,15 @@ const Inventory = ({ stats, updateStats }) => {
                         {selectedItem.type === 'gift' && (
                             <button className="gift-btn" onClick={handleGift}>
                                 ノアにプレゼントする 💝
+                            </button>
+                        )}
+
+                        {selectedItem.type === 'assist' && (
+                            <button className="equip-btn" onClick={() => {
+                                closeModal();
+                                navigate('/multiplayer-match?mode=solo');
+                            }}>
+                                ソロクイズで使う 🪄
                             </button>
                         )}
 
@@ -249,6 +304,30 @@ const Inventory = ({ stats, updateStats }) => {
                                 closeModal();
                             }}>
                                 外す 👓
+                            </button>
+                        )}
+
+                        {selectedItem.type === 'voice' && (
+                            <button className="equip-btn" onClick={() => {
+                                closeModal();
+                                navigate('/voice-collection');
+                            }}>
+                                ボイスコレクションを開く 🎧
+                            </button>
+                        )}
+
+                        {selectedItem.type === 'illustration' && (
+                            <button className="equip-btn" onClick={closeModal}>
+                                ギャラリー報酬として保存済み 🖼️
+                            </button>
+                        )}
+
+                        {selectedItem.type === 'story_unlock' && (
+                            <button className="equip-btn" onClick={() => {
+                                closeModal();
+                                navigate('/story');
+                            }}>
+                                ストーリー一覧を開く 📖
                             </button>
                         )}
                     </div>

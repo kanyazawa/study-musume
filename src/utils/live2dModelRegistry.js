@@ -115,10 +115,44 @@ const LIVE2D_MODEL_REGISTRY = {
     ren: {
         default: null,
     },
+    sparkle: {
+        default: {
+            modelId: 'sparkle-prototype',
+            modelJson: '/live2d/models/sparkle/Sparkle/Sparkle.model3.json',
+            sdkScripts: [
+                '/live2d/sdk/tyrano/polyfill.min.js',
+                '/live2d/sdk/cubism-5-r.4/Core/live2dcubismcore.min.js',
+                '/live2d/sdk/tyrano/driver-index.js',
+            ],
+            runtime: 'tyrano-v4',
+            resourcesPath: '/live2d/models/sparkle/',
+            modelName: 'Sparkle',
+            idleMotion: '',
+            stage: {
+                x: 0,
+                y: -0.76,
+                scale: 6.9,
+            },
+            stageOverrides: {
+                preview: {
+                    y: -0.18,
+                    scale: 5.1,
+                },
+                'preview-close': {
+                    y: -0.5,
+                    scale: 6.1,
+                },
+            },
+            sourceLabel: 'Sparkle Prototype',
+        },
+    },
 };
 
 export const getLive2DModelConfig = (characterId = 'noah', skinId = 'default') => {
-    const characterModels = LIVE2D_MODEL_REGISTRY[characterId] || LIVE2D_MODEL_REGISTRY.noah;
+    const characterModels = LIVE2D_MODEL_REGISTRY[characterId];
+    if (!characterModels) {
+        return null;
+    }
     return characterModels[skinId] || characterModels.default || null;
 };
 

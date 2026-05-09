@@ -26,6 +26,20 @@
   --uma-radius: 20px;
   --uma-shadow: 0 4px 0 rgba(0, 0, 0, 0.1);
   --uma-shadow-deep: 0 6px 0 rgba(0, 0, 0, 0.15);
+  --shell-ink: #182432;
+  --shell-bg: #09111b;
+  --shell-glow: #17304c;
+  --shell-panel: rgba(245, 248, 252, 0.72);
+  --shell-panel-strong: rgba(255, 255, 255, 0.9);
+  --shell-border: rgba(255, 255, 255, 0.38);
+  --shell-shadow: 0 28px 60px rgba(5, 16, 27, 0.42);
+  --panel-border-soft: rgba(114, 143, 169, 0.22);
+  --panel-shadow-soft: 0 14px 34px rgba(16, 32, 49, 0.12);
+  --panel-shadow-strong: 0 24px 48px rgba(10, 24, 39, 0.18);
+  --accent-rose: #e26d93;
+  --accent-gold: #c39a5b;
+  --accent-cyan: #5fa7d8;
+  --surface-tint: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(244, 248, 252, 0.78));
 
   /* V0 Game Theme Palette */
   --game-gold: #FFD642;
@@ -119,11 +133,12 @@
 
 body {
   font-family: var(--font-ui);
-  background-color: #333;
-  /* Dark background for desktop view */
+  background:
+    radial-gradient(circle at top left, rgba(77, 133, 186, 0.24), transparent 32%),
+    radial-gradient(circle at top right, rgba(210, 162, 106, 0.18), transparent 28%),
+    linear-gradient(180deg, #0c1621 0%, #101b2a 48%, #0a121b 100%);
   color: var(--uma-text);
   overflow: hidden;
-  /* Prevent body scroll, handle inside container */
   height: 100vh;
   width: 100vw;
   display: flex;
@@ -140,11 +155,23 @@ body {
   justify-content: center;
 }
 
+::selection {
+  background: rgba(95, 167, 216, 0.22);
+  color: var(--shell-ink);
+}
+
 button {
   font-family: inherit;
   cursor: pointer;
   border: none;
   background: none;
+}
+
+button,
+a,
+input,
+textarea {
+  -webkit-tap-highlight-color: transparent;
 }
 
 input,

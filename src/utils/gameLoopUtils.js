@@ -3,6 +3,7 @@ import { getDailyLoopSummary } from './dailyLoopUtils';
 import { getStoredGoalData } from './goalUtils';
 import { DEFAULT_RATING, getLevelFromRating, getNextLevelInfo, getRankFromRating } from './ratingUtils';
 import { getHomeReviewSummary } from './reviewUtils';
+import { normalizeStoryProgressionStats } from './storyProgressionUtils';
 
 const clampNumber = (value, min, max) => Math.min(Math.max(value, min), max);
 
@@ -436,7 +437,11 @@ export const getGameLoopSnapshot = (stats = {}, overrides = {}) => {
     };
 };
 
-export const mergeGameLoopStats = (stats = {}, overrides = {}) => ({
-    ...stats,
-    ...getGameLoopSnapshot(stats, overrides),
-});
+export const mergeGameLoopStats = (stats = {}, overrides = {}) => {
+    const normalizedStats = normalizeStoryProgressionStats(stats);
+
+    return {
+        ...normalizedStats,
+        ...getGameLoopSnapshot(normalizedStats, overrides),
+    };
+};

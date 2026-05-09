@@ -10,6 +10,7 @@ export const MISSION_TYPES = {
     PERFECT_SCORE: 'perfect_score',
     INTERACT_CHARACTER: 'interact_character',
     OPEN_STORY: 'open_story',
+    WRITE_DAILY_NOTE: 'write_daily_note',
 };
 
 export const DAILY_MISSIONS = [
@@ -95,6 +96,18 @@ export const DAILY_MISSIONS = [
         rewards: {
             diamonds: 5,
             intellect: 5,
+        },
+    },
+    {
+        id: 'daily_note',
+        type: MISSION_TYPES.WRITE_DAILY_NOTE,
+        title: 'ひとことメモ',
+        description: '今日のメモを書く',
+        icon: '📝',
+        target: 1,
+        rewards: {
+            diamonds: 5,
+            intellect: 8,
         },
     },
 ];

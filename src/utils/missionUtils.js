@@ -167,6 +167,13 @@ export const updateMissionsOnStory = () => {
 };
 
 /**
+ * 今日のメモ記入時のミッション更新
+ */
+export const updateMissionsOnWriteDailyNote = () => {
+    return updateMissionProgress(MISSION_TYPES.WRITE_DAILY_NOTE, 1);
+};
+
+/**
  * ミッション報酬を受け取る
  * @param {string} missionId - ミッションID
  * @returns {Object|null} 報酬 { diamonds, intellect }

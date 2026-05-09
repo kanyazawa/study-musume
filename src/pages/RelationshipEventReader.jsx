@@ -4,6 +4,7 @@ import './StoryReader.css';
 import './RelationshipEventReader.css';
 
 import CharacterStage from '../components/character/CharacterStage';
+import { getCharacterLabel } from '../data/characterData';
 import { getRelationshipEventById } from '../data/relationshipEvents';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { createStoryPose } from '../utils/characterPoseUtils';
@@ -16,7 +17,7 @@ const RelationshipEventReader = ({ stats, updateStats }) => {
     const [currentScene, setCurrentScene] = useState(0);
 
     const characterId = stats?.characterId || 'noah';
-    const isRen = characterId === 'ren';
+    const characterLabel = getCharacterLabel(characterId);
     const preferredRenderer = stats?.characterRenderer;
     const renderer = resolveCharacterRenderer({
         preferredRenderer,
@@ -50,9 +51,9 @@ const RelationshipEventReader = ({ stats, updateStats }) => {
 
     const scene = event.scenes[currentScene];
     const isLastScene = currentScene === event.scenes.length - 1;
-    const displaySpeaker = scene.speaker === 'ノア' && isRen ? 'レン' : scene.speaker;
-    const isCharacterSpeaking = displaySpeaker === 'ノア' || displaySpeaker === 'レン' || displaySpeaker === 'あなた';
-    const storyPose = createStoryPose(scene, { speaking: displaySpeaker === 'ノア' || displaySpeaker === 'レン' });
+    const displaySpeaker = scene.speaker === 'ノア' ? characterLabel : scene.speaker;
+    const isCharacterSpeaking = displaySpeaker === characterLabel || displaySpeaker === 'あなた';
+    const storyPose = createStoryPose(scene, { speaking: displaySpeaker === characterLabel });
 
     const finishEvent = () => {
         const alreadyRead = isRelationshipEventRead(stats, event.id);

@@ -30,11 +30,16 @@ import { db } from './config';
 import { getVocabByLevel, getAllVocab } from '../data/vocabData';
 import { getLevelFromRating, LEVEL_THRESHOLDS, DEFAULT_RATING } from '../utils/ratingUtils';
 import {
+    clampTugPosition,
+    getTugPushAmount,
     normalizeBattleMode,
     buildQuestionOptions,
     normalizeTargetCorrect,
+    resolveTugMomentumEvent,
     resolveWinnerUid,
     shuffleArray,
+    TUG_GAUGE_LIMIT,
+    TUG_WRONG_PENALTY,
 } from '../utils/matchUtils';
 
 const MATCH_ROOMS_COLLECTION = 'matchRooms';
@@ -116,6 +121,10 @@ export async function findOrCreateRoom(uid, displayName, characterId = 'noah', e
                 questions,
                 level: matchLevel,
                 currentQuestion: 0,
+                tugPosition: 0,
+                player1Streak: 0,
+                player2Streak: 0,
+                lastMomentumEvent: null,
                 winnerUid: null,
                 finishReason: null,
                 startedAt: serverTimestamp(),
@@ -149,6 +158,10 @@ export async function findOrCreateRoom(uid, displayName, characterId = 'noah', e
         questions: [],
         level: myLevel,
         currentQuestion: 0,
+        tugPosition: 0,
+        player1Streak: 0,
+        player2Streak: 0,
+        lastMomentumEvent: null,
         createdAt: serverTimestamp(),
         startedAt: null,
         winnerUid: null,
@@ -212,6 +225,10 @@ export async function createFriendRoom(
             level: resolvedLevel,
             targetCorrect: resolvedTargetCorrect,
             currentQuestion: 0,
+            tugPosition: 0,
+            player1Streak: 0,
+            player2Streak: 0,
+            lastMomentumEvent: null,
             createdAt: serverTimestamp(),
             startedAt: null,
             winnerUid: null,
@@ -300,6 +317,10 @@ export async function joinFriendRoom(
                 level: matchLevel,
                 targetCorrect,
                 currentQuestion: 0,
+                tugPosition: 0,
+                player1Streak: 0,
+                player2Streak: 0,
+                lastMomentumEvent: null,
                 winnerUid: null,
                 finishReason: null,
                 startedAt: serverTimestamp(),
@@ -392,6 +413,10 @@ export async function requestFriendRematch(
                 level: resolvedLevel,
                 targetCorrect: resolvedTargetCorrect,
                 currentQuestion: 0,
+                tugPosition: 0,
+                player1Streak: 0,
+                player2Streak: 0,
+                lastMomentumEvent: null,
                 createdAt: serverTimestamp(),
                 startedAt: null,
                 winnerUid: null,
@@ -476,18 +501,27 @@ export async function submitAnswer(roomId, uid, questionIndex, selectedAnswer, i
     const roomRef = doc(db, MATCH_ROOMS_COLLECTION, roomId);
     return runTransaction(db, async (transaction) => {
         const roomSnap = await transaction.get(roomRef);
-        if (!roomSnap.exists()) return false;
+        if (!roomSnap.exists()) return { accepted: false, reason: 'missing' };
 
         const roomData = roomSnap.data();
-        if (roomData.status !== 'playing') return false;
+        if (roomData.status !== 'playing') {
+            return {
+                accepted: false,
+                reason: 'not_playing',
+                status: roomData.status,
+                winnerUid: roomData.winnerUid || null,
+                finishReason: roomData.finishReason || null,
+            };
+        }
 
         const isPlayer1 = roomData.player1.uid === uid;
         const playerKey = isPlayer1 ? 'player1' : 'player2';
+        const streakKey = isPlayer1 ? 'player1Streak' : 'player2Streak';
         const player = roomData[playerKey];
-        if (!player) return false;
+        if (!player) return { accepted: false, reason: 'player_missing' };
 
         if (player.answers && player.answers.some(a => a.questionIndex === questionIndex)) {
-            return false;
+            return { accepted: false, reason: 'duplicate' };
         }
 
         const newAnswer = {
@@ -499,13 +533,53 @@ export async function submitAnswer(roomId, uid, questionIndex, selectedAnswer, i
 
         const updatedAnswers = [...(player.answers || []), newAnswer];
         const updatedScore = isCorrect ? player.score + 1 : player.score;
-
-        transaction.update(roomRef, {
-            [`${playerKey}.answers`]: updatedAnswers,
-            [`${playerKey}.score`]: updatedScore
+        const previousStreak = Math.max(0, Number(roomData[streakKey]) || 0);
+        const nextStreak = isCorrect ? previousStreak + 1 : 0;
+        const previousTugPosition = clampTugPosition(roomData.tugPosition);
+        const signedDelta = isCorrect
+            ? getTugPushAmount(nextStreak) * (isPlayer1 ? 1 : -1)
+            : TUG_WRONG_PENALTY * (isPlayer1 ? -1 : 1);
+        const nextTugPosition = clampTugPosition(previousTugPosition + signedDelta);
+        const momentumEvent = resolveTugMomentumEvent({
+            previousPosition: previousTugPosition,
+            nextPosition: nextTugPosition,
+            actingPlayer: isPlayer1 ? 'player1' : 'player2',
+            isCorrect,
+            streak: nextStreak,
         });
+        const updates = {
+            [`${playerKey}.answers`]: updatedAnswers,
+            [`${playerKey}.score`]: updatedScore,
+            [streakKey]: nextStreak,
+            tugPosition: nextTugPosition,
+            lastMomentumEvent: momentumEvent
+                ? {
+                    ...momentumEvent,
+                    by: playerKey,
+                    value: nextTugPosition,
+                    swing: Math.abs(nextTugPosition - previousTugPosition),
+                    answerId: `${uid}:${questionIndex}`,
+                    createdAt: Date.now(),
+                }
+                : null,
+        };
 
-        return true;
+        if (Math.abs(nextTugPosition) >= TUG_GAUGE_LIMIT) {
+            updates.status = 'finished';
+            updates.winnerUid = nextTugPosition > 0 ? roomData.player1.uid : roomData.player2?.uid || null;
+            updates.finishReason = 'gauge_breakthrough';
+            updates.finishedAt = serverTimestamp();
+        }
+
+        transaction.update(roomRef, updates);
+
+        return {
+            accepted: true,
+            status: updates.status || 'playing',
+            tugPosition: nextTugPosition,
+            winnerUid: updates.winnerUid || null,
+            finishReason: updates.finishReason || null,
+        };
     });
 }
 

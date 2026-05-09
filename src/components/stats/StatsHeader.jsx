@@ -1,4 +1,4 @@
-import { Star, Settings } from "lucide-react"
+import { Settings } from "lucide-react"
 
 export function StatsHeader() {
     return (
@@ -31,13 +31,18 @@ export function StatsHeader() {
 
                 {/* User info */}
                 <div className="flex-1">
-                    <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-bold text-[var(--foreground)]">
-                            {"トレーナー"}
+                    <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black tracking-[0.14em] text-[var(--game-pink)]">
+                            {"好感度"}
                         </span>
-                        <div className="flex items-center gap-0.5 rounded-md bg-[var(--game-gold)]/20 px-1.5 py-0.5">
-                            <Star className="h-2.5 w-2.5 fill-[var(--game-gold)] text-[var(--game-gold)]" />
-                            <span className="text-[9px] font-bold text-[var(--game-gold)]">
+                        <div className="flex flex-1 items-center gap-2">
+                            <div className="h-2 flex-1 overflow-hidden rounded-full bg-[rgba(255,255,255,0.12)]">
+                                <div
+                                    className="h-full rounded-full bg-gradient-to-r from-[#ff83bd] via-[#ffb6d8] to-[#ffd5e7] shadow-[0_0_6px_rgba(255,131,189,0.45)]"
+                                    style={{ width: "75%" }}
+                                />
+                            </div>
+                            <span className="text-[10px] font-black text-[#ffd8eb]">
                                 {"Lv.14"}
                             </span>
                         </div>

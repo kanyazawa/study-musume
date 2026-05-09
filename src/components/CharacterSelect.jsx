@@ -1,12 +1,9 @@
 import React, { useState } from 'react';
 import { loadStats, saveStats } from '../utils/saveUtils';
+import { CHARACTER_SELECT_OPTIONS } from '../data/characterData';
 import './CharacterSelect.css'; // We will create this CSS
 
-// Images
-import NoahImg from '../assets/images/noah_normal.webp'; // Noah Normal
-import RenImg from '../assets/images/character_ren.webp'; // Ren
-
-const CharacterSelect = ({ onComplete }) => {
+const CharacterSelect = ({ onComplete, showIntroOnComplete = true }) => {
     const [selectedId, setSelectedId] = useState(null);
 
     const handleSelect = (id) => {
@@ -16,19 +13,22 @@ const CharacterSelect = ({ onComplete }) => {
     const handleConfirm = () => {
         if (!selectedId) return;
 
+        const currentStats = loadStats();
+
         // Start updates object
         const updates = {
             hasSelectedCharacter: true,
-            needsFirstPlayIntro: true,
-            hasCompletedFirstPlayIntro: false,
+            needsFirstPlayIntro: showIntroOnComplete,
+            hasCompletedFirstPlayIntro: showIntroOnComplete
+                ? false
+                : (currentStats?.hasCompletedFirstPlayIntro ?? true),
             equippedSkin: 'default',
             characterId: selectedId,
         };
 
-        const currentStats = loadStats();
         const newStats = { ...currentStats, ...updates };
         saveStats(newStats);
-        window.history.replaceState(null, '', '/opening');
+        window.history.replaceState(null, '', showIntroOnComplete ? '/opening' : '/home');
         onComplete(newStats);
     };
 
@@ -36,39 +36,21 @@ const CharacterSelect = ({ onComplete }) => {
         <div className="char-select-screen">
             <h2 className="char-select-title">パートナーを選択してください</h2>
             <div className="char-select-container">
-                {/* Noah (2D) */}
-                <div
-                    className={`char-card ${selectedId === 'noah' ? 'selected' : ''}`}
-                    onClick={() => handleSelect('noah')}
-                >
-                    <div className="char-image-container">
-                        <img src={NoahImg} alt="Noah" className="char-img" />
+                {CHARACTER_SELECT_OPTIONS.map((character) => (
+                    <div
+                        key={character.id}
+                        className={`char-card ${selectedId === character.id ? 'selected' : ''}`}
+                        onClick={() => handleSelect(character.id)}
+                    >
+                        <div className="char-image-container">
+                            <img src={character.image} alt={character.name} className="char-img" />
+                        </div>
+                        <div className="char-info">
+                            <h3>{character.name}</h3>
+                            <p className="char-desc">{character.description}</p>
+                        </div>
                     </div>
-                    <div className="char-info">
-                        <h3>ノア</h3>
-                        <p className="char-desc">
-                            勉強熱心で少しツンデレな女の子。<br />
-                            いちばん軽い標準表示で使えます。
-                        </p>
-                    </div>
-                </div>
-
-                {/* Ren */}
-                <div
-                    className={`char-card ${selectedId === 'ren' ? 'selected' : ''}`}
-                    onClick={() => handleSelect('ren')}
-                >
-                    <div className="char-image-container">
-                        <img src={RenImg} alt="Ren" className="char-img" />
-                    </div>
-                    <div className="char-info">
-                        <h3>レン</h3>
-                        <p className="char-desc">
-                            クールで知的な男の子。<br />
-                            冷静に学習のアドバイスをくれます。
-                        </p>
-                    </div>
-                </div>
+                ))}
             </div>
 
             <button

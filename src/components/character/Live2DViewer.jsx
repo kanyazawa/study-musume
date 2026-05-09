@@ -426,7 +426,7 @@ const createTyranoModelParams = ({ characterId, skinId, modelConfig, pose, onFin
     return {
         name: `prototype_${characterId}_${skinId}`.replace(/[^a-zA-Z0-9_]/g, '_'),
         model_id: modelConfig.modelName || modelConfig.modelId || characterId,
-        idle: modelConfig.idleMotion || 'Idle',
+        idle: typeof modelConfig.idleMotion === 'string' ? modelConfig.idleMotion : 'Idle',
         visible: 'true',
         breath: 'true',
         blink: 'true',

@@ -1,62 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { addCustomVocabEntry } from '../utils/customVocabUtils';
+import { addCustomVocabEntry, getSuggestedMeaningForCustomVocab } from '../utils/customVocabUtils';
 import './TappableVocabText.css';
 
 const WORD_PATTERN = /[A-Za-z]+(?:'[A-Za-z]+)?(?:-[A-Za-z]+)*/g;
 const POSSESSIVE_PATTERN = /'s$/i;
-
-let vocabLookupCache = null;
-let vocabLookupPromise = null;
-
-const normalizeLookupKey = (value) => (
-    String(value || '')
-        .toLowerCase()
-        .replace(POSSESSIVE_PATTERN, '')
-        .replace(/[^a-z\s-]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim()
-);
-
-const getVocabLookup = async () => {
-    if (vocabLookupCache) return vocabLookupCache;
-    if (vocabLookupPromise) return vocabLookupPromise;
-
-    vocabLookupPromise = import('../data/vocabData').then(({ getAllVocab }) => {
-        const lookup = new Map();
-        getAllVocab().forEach((entry) => {
-            const key = normalizeLookupKey(entry?.word);
-            if (key && !lookup.has(key)) {
-                lookup.set(key, entry.meaning);
-            }
-        });
-
-        vocabLookupCache = lookup;
-        return lookup;
-    });
-
-    return vocabLookupPromise;
-};
-
-const getMeaningSuggestion = async (word) => {
-    const lookup = await getVocabLookup();
-    const key = normalizeLookupKey(word);
-    if (!key) return '';
-
-    const candidates = [
-        key,
-        key.endsWith('s') ? key.slice(0, -1) : '',
-        key.endsWith('es') ? key.slice(0, -2) : '',
-        key.endsWith('ed') ? key.slice(0, -2) : '',
-        key.endsWith('ing') ? key.slice(0, -3) : '',
-    ].filter(Boolean);
-
-    for (const candidate of candidates) {
-        const meaning = lookup.get(candidate);
-        if (meaning) return meaning;
-    }
-
-    return '';
-};
 
 const tokenizeText = (text) => {
     const source = String(text || '');
@@ -112,7 +59,7 @@ const TappableVocabText = ({ text, className = '' }) => {
         setMeaning('');
         setFeedback('意味候補を探しています...');
 
-        const suggestedMeaning = await getMeaningSuggestion(cleanedWord);
+        const suggestedMeaning = await getSuggestedMeaningForCustomVocab(cleanedWord);
         if (suggestionRequestRef.current !== requestId) return;
 
         setMeaning((currentMeaning) => currentMeaning || suggestedMeaning);

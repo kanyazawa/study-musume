@@ -9,6 +9,11 @@ export const getItemById = (itemId) => {
     return ALL_ITEMS.find(item => item.id === itemId) || null;
 };
 
+export const isStackableItem = (itemOrId) => {
+    const item = typeof itemOrId === 'string' ? getItemById(itemOrId) : itemOrId;
+    return Boolean(item?.stackable);
+};
+
 /**
  * インベントリをタイプ別にフィルタリングする
  * @param {Array} inventory - インベントリ
@@ -22,6 +27,70 @@ export const filterInventoryByType = (inventory, type) => {
             return itemData ? { ...invItem, ...itemData } : null;
         })
         .filter(item => item && (type === 'all' || item.type === type));
+};
+
+export const getItemTypeLabel = (type) => {
+    switch (type) {
+        case 'gift':
+            return 'プレゼント';
+        case 'assist':
+            return 'おたすけ';
+        case 'boost':
+            return 'ブースト';
+        case 'skin':
+            return 'スキン';
+        case 'background':
+            return '背景';
+        case 'accessory':
+            return 'アクセ';
+        case 'voice':
+            return 'ボイス';
+        case 'illustration':
+            return '1枚絵';
+        case 'story_unlock':
+            return 'ストーリー';
+        case 'special':
+            return '特別';
+        case 'character_ticket':
+            return '招待';
+        default:
+            return type || 'アイテム';
+    }
+};
+
+export const getInventoryItemQuantity = (inventory, itemId) => {
+    const entry = (Array.isArray(inventory) ? inventory : []).find((item) => item?.itemId === itemId);
+    return Math.max(0, Number(entry?.quantity) || 0);
+};
+
+export const addToInventory = (inventory, itemOrId, quantity = 1) => {
+    const safeInventory = Array.isArray(inventory) ? [...inventory] : [];
+    const item = typeof itemOrId === 'string' ? getItemById(itemOrId) : itemOrId;
+
+    if (!item || quantity <= 0) {
+        return safeInventory;
+    }
+
+    const existingIndex = safeInventory.findIndex((entry) => entry.itemId === item.id);
+    if (existingIndex >= 0 && isStackableItem(item)) {
+        safeInventory[existingIndex] = {
+            ...safeInventory[existingIndex],
+            quantity: (Number(safeInventory[existingIndex]?.quantity) || 0) + quantity,
+        };
+        return safeInventory;
+    }
+
+    safeInventory.push({
+        itemId: item.id,
+        name: item.name,
+        type: item.type,
+        rarity: item.rarity,
+        emoji: item.emoji,
+        description: item.description,
+        quantity,
+    });
+
+    return safeInventory;
 };
 
 /**

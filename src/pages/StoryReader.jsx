@@ -1,27 +1,55 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import './StoryReader.css';
 
 import { getEpisodeById } from '../data/storyData';
+import { getCharacterLabel } from '../data/characterData';
 import CharacterStage from '../components/character/CharacterStage';
 import TappableVocabText from '../components/TappableVocabText';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { createStoryPose } from '../utils/characterPoseUtils';
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
+import { getAffectionLevel } from '../utils/affectionUtils';
+import { getEpisodeUnlockState, getStoryEpisodeState, unlockEpisodeWithKey } from '../utils/storyUtils';
 
-const StoryReader = ({ stats }) => {
+const StoryReader = ({ stats, updateStats }) => {
     const { episodeId } = useParams();
     const navigate = useNavigate();
     const episode = getEpisodeById(episodeId);
+    const affectionLevel = getAffectionLevel(stats?.affection || 0).level;
+    const storyEpisodeState = getStoryEpisodeState(stats);
+    const unlockState = episode
+        ? getEpisodeUnlockState(episode, affectionLevel, stats?.inventory || [], storyEpisodeState.unlockedIds)
+        : null;
 
     const [currentScene, setCurrentScene] = useState(0);
+
+    useEffect(() => {
+        if (!episode || !unlockState?.canUnlockNow || typeof updateStats !== 'function') {
+            return;
+        }
+
+        updateStats((currentStats) => unlockEpisodeWithKey(currentStats, episode));
+    }, [episode, unlockState?.canUnlockNow, updateStats]);
 
     if (!episode) {
         return (
             <div className="story-reader">
                 <div className="error-message">
                     <p>エピソードが見つかりません</p>
-                    <button onClick={() => navigate('/story')}>戻る</button>
+                    <button onClick={() => navigate('/story')}>物語一覧へ</button>
+                </div>
+            </div>
+        );
+    }
+
+    if (!unlockState?.unlocked && !unlockState?.canUnlockNow) {
+        return (
+            <div className="story-reader">
+                <div className="error-message">
+                    <p>このキャラ物語はまだ解放されていません</p>
+                    <p>{unlockState?.lockedReason || '条件を満たすと読めるようになります'}</p>
+                    <button onClick={() => navigate('/story')}>物語一覧へ</button>
                 </div>
             </div>
         );
@@ -45,15 +73,14 @@ const StoryReader = ({ stats }) => {
 
     // --- キャラクター表示ロジック ---
     const characterId = stats?.characterId || 'noah';
-    const isRen = characterId === 'ren';
+    const characterLabel = getCharacterLabel(characterId);
     const preferredRenderer = stats?.characterRenderer;
     const skinId = stats?.equippedSkin || 'default';
     const hasStoryLive2D = hasLive2DModelConfig(characterId, skinId);
     const shouldForceStoryLive2D = characterId === 'noah' && hasStoryLive2D;
 
-    // スピーカーの名前を置き換え（レンを選んでいる場合）
-    const displaySpeaker = (scene.speaker === 'ノア' && isRen) ? 'レン' : scene.speaker;
-    const isCharacterLine = displaySpeaker === 'ノア' || displaySpeaker === 'レン';
+    const displaySpeaker = scene.speaker === 'ノア' ? characterLabel : scene.speaker;
+    const isCharacterLine = displaySpeaker === characterLabel;
     const shouldShowCharacter = displaySpeaker === 'モノローグ' || isCharacterLine || displaySpeaker === 'あなた';
     const storyPose = createStoryPose(scene, { speaking: isCharacterLine });
     const renderer = resolveCharacterRenderer({
@@ -106,7 +133,7 @@ const StoryReader = ({ stats }) => {
                 <div className="tap-hint">▼ タップして続きを読む</div>
             )}
             {isLastScene && (
-                <div className="tap-hint">▼ タップしてストーリー選択に戻る</div>
+                <div className="tap-hint">▼ タップして物語一覧に戻る</div>
             )}
         </div>
     );

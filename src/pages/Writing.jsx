@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import CharacterStage from '../components/character/CharacterStage';
 import { EIKEN_WRITING_PROMPTS, WRITING_LEVELS } from '../data/eikenWritingPrompts';
+import { getCharacterLabel } from '../data/characterData';
 import { saveLastStudyTopic } from '../data/studyData';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
@@ -139,11 +140,6 @@ const getScoreTone = (score) => {
     return 'is-grow';
 };
 
-const CHARACTER_LABELS = {
-    noah: 'ノア',
-    ren: 'レン',
-};
-
 const BREAKDOWN_LABELS = {
     content: 'Content',
     organization: 'Organization',
@@ -190,7 +186,7 @@ const Writing = ({ stats, updateStats }) => {
         characterId,
         skinId,
     });
-    const characterLabel = CHARACTER_LABELS[characterId] || 'コーチ';
+    const characterLabel = getCharacterLabel(characterId) || 'コーチ';
 
     const [selectedLevel, setSelectedLevel] = useState(normalizedInitialLevel);
     const [selectedPromptId, setSelectedPromptId] = useState('');

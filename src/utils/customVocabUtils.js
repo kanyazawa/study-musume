@@ -1,6 +1,18 @@
 const STORAGE_KEY = 'customVocabEntries';
+const POSSESSIVE_PATTERN = /'s$/i;
+
+let vocabMeaningLookupCache = null;
+let vocabMeaningLookupPromise = null;
 
 const normalizeText = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+const normalizeLookupKey = (value) => (
+    String(value || '')
+        .toLowerCase()
+        .replace(POSSESSIVE_PATTERN, '')
+        .replace(/[^a-z\s-]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+);
 
 const normalizeEntry = (entry, index = 0) => {
     if (!entry || typeof entry !== 'object') return null;
@@ -105,3 +117,44 @@ export const getCustomVocabStudyItems = () => (
 export const getCustomVocabCount = () => getCustomVocabEntries().length;
 
 export const CUSTOM_VOCAB_STORAGE_KEY = STORAGE_KEY;
+
+const getVocabMeaningLookup = async () => {
+    if (vocabMeaningLookupCache) return vocabMeaningLookupCache;
+    if (vocabMeaningLookupPromise) return vocabMeaningLookupPromise;
+
+    vocabMeaningLookupPromise = import('../data/vocabData').then(({ getAllVocab }) => {
+        const lookup = new Map();
+        getAllVocab().forEach((entry) => {
+            const key = normalizeLookupKey(entry?.word);
+            if (key && !lookup.has(key)) {
+                lookup.set(key, entry.meaning);
+            }
+        });
+
+        vocabMeaningLookupCache = lookup;
+        return lookup;
+    });
+
+    return vocabMeaningLookupPromise;
+};
+
+export const getSuggestedMeaningForCustomVocab = async (word) => {
+    const lookup = await getVocabMeaningLookup();
+    const key = normalizeLookupKey(word);
+    if (!key) return '';
+
+    const candidates = [
+        key,
+        key.endsWith('s') ? key.slice(0, -1) : '',
+        key.endsWith('es') ? key.slice(0, -2) : '',
+        key.endsWith('ed') ? key.slice(0, -2) : '',
+        key.endsWith('ing') ? key.slice(0, -3) : '',
+    ].filter(Boolean);
+
+    for (const candidate of candidates) {
+        const meaning = lookup.get(candidate);
+        if (meaning) return meaning;
+    }
+
+    return '';
+};

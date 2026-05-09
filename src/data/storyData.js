@@ -521,6 +521,7 @@ export const STORY_EPISODES = [
         title: '秘密の桜並木',
         description: 'ノアが大切にしている場所へ。二人だけの約束が増えていく。',
         thumbnail: '🌸',
+        requiredStoryItemId: 'story_unlock_after_school',
         scenes: [
             {
                 speaker: 'ノア',
@@ -756,6 +757,7 @@ export const STORY_EPISODES = [
         title: '二人の約束',
         description: '恋人として迎える新しい朝。二人は未来へ進む約束を交わす。',
         thumbnail: '💍',
+        requiredStoryItemId: 'story_unlock_exam_promise',
         scenes: [
             {
                 speaker: 'モノローグ',

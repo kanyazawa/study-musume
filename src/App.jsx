@@ -76,7 +76,7 @@ function App() {
     );
   }
 
-  if (stats && !stats.hasSelectedCharacter) {
+  if (stats && !stats.hasSelectedCharacter && stats.tutorialCompleted) {
     return (
       <MobileContainer>
         <CharacterSelect onComplete={handleCharacterSelectComplete} />

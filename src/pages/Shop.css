@@ -126,6 +126,29 @@
     margin: 0;
 }
 
+.shop-gacha-link {
+    margin-top: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    border-radius: 999px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #f7a8c0 0%, #df8bd6 100%);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 8px 18px rgba(223, 139, 214, 0.24);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.shop-gacha-link:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px rgba(223, 139, 214, 0.3);
+}
+
 .category-tabs {
     display: flex;
     gap: 8px;

@@ -25,6 +25,8 @@ import CharacterGym from '../assets/images/character_gym.webp';
 import CharacterCasualGray from '../assets/images/character_casual_gray_hoodie.webp';
 import CharacterCasualBlack from '../assets/images/character_casual_hoodie.webp';
 import CharacterRen from '../assets/images/character_ren.webp';
+import FireflyNormal from '../assets/images/firefly/firefly_normal.webp';
+import SparkleSelectImage from '../assets/images/sparkle/sparkle_select.png';
 import { getDailyStats, getUsedSubjects, getDailyAccuracy } from '../utils/studyHistoryUtils';
 import {
     calculateSubjectAccuracy,
@@ -32,6 +34,7 @@ import {
     getDailyStats as getDayOfWeekStats,
     formatDuration,
 } from '../utils/statsUtils';
+import { getCharacterLabel } from '../data/characterData';
 import { STUDY_TOPICS } from '../data/studyTopics';
 
 const Stats = ({ stats = {} }) => {
@@ -54,11 +57,26 @@ const Stats = ({ stats = {} }) => {
         'skin_casual_gray_hoodie': CharacterCasualGray,
         'skin_casual_hoodie': CharacterCasualBlack
     };
-    // Add Ren support if needed, or stick to main char for now
-    const currentSkinImage = stats.characterId === 'ren' ? CharacterRen : (noahImages[stats.equippedSkin] || CharacterMain);
+    const renImages = {
+        'default': CharacterRen,
+    };
+    const fireflyImages = {
+        'default': FireflyNormal,
+    };
+    const sparkleImages = {
+        'default': SparkleSelectImage,
+    };
+    const characterImages = stats.characterId === 'sparkle'
+        ? sparkleImages
+        : stats.characterId === 'firefly'
+            ? fireflyImages
+            : stats.characterId === 'ren'
+                ? renImages
+                : noahImages;
+    const currentSkinImage = characterImages[stats.equippedSkin] || characterImages.default;
 
     // Character Name Logic
-    const characterName = stats.characterId === 'ren' ? 'レン' : 'ノア';
+    const characterName = getCharacterLabel(stats.characterId);
 
     // Get data
     const dailyStatsData = getDailyStats(period);

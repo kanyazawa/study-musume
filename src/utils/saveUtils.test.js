@@ -25,6 +25,30 @@ describe('saveUtils', () => {
     const stats = loadStats();
 
     expect(stats).toEqual(getDefaultStats());
+    expect(stats.calendarState).toEqual({
+      day: 1,
+      weekday: 'mon',
+      month: 4,
+      season: 'spring',
+      term: 'opening',
+      timeSlot: 'morning',
+      loopCount: 1,
+      lastAdvancedAt: null,
+    });
+    expect(stats.routeState).toEqual({
+      status: 'common',
+      characterId: null,
+      pendingCharacterId: null,
+      lockSourceEventId: '',
+      endingId: '',
+      lastUpdatedAt: null,
+    });
+    expect(stats.promiseState).toEqual({
+      activePromises: [],
+      completedPromiseIds: [],
+      brokenPromiseIds: [],
+      lastResolvedAt: null,
+    });
   });
 
   it('grants the welcome bonus once for legacy save data', () => {
@@ -71,5 +95,72 @@ describe('saveUtils', () => {
     await Promise.resolve();
 
     expect(syncFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('normalizes story progression state for legacy saves', () => {
+    localStorage.setItem(
+      'gameStats',
+      JSON.stringify({
+        calendarState: {
+          day: 0,
+          weekday: 'holiday',
+          timeSlot: 'lateNight',
+        },
+        routeState: {
+          status: 'locked',
+          characterId: 'noah',
+        },
+        promiseState: {
+          activePromises: [
+            {
+              id: 'promise-01',
+              title: '図書室',
+              timeSlot: 'night',
+            },
+          ],
+          completedPromiseIds: ['promise-02', '', 'promise-02'],
+        },
+      }),
+    );
+
+    const stats = loadStats();
+
+    expect(stats.calendarState).toEqual({
+      day: 1,
+      weekday: 'mon',
+      month: 4,
+      season: 'spring',
+      term: 'opening',
+      timeSlot: 'morning',
+      loopCount: 1,
+      lastAdvancedAt: null,
+    });
+    expect(stats.routeState).toEqual({
+      status: 'locked',
+      characterId: 'noah',
+      pendingCharacterId: null,
+      lockSourceEventId: '',
+      endingId: '',
+      lastUpdatedAt: null,
+    });
+    expect(stats.promiseState).toEqual({
+      activePromises: [
+        {
+          id: 'promise-01',
+          title: '図書室',
+          characterId: null,
+          dateKey: '',
+          timeSlot: 'night',
+          locationId: '',
+          eventId: '',
+          status: 'scheduled',
+          createdAt: null,
+          resolvedAt: null,
+        },
+      ],
+      completedPromiseIds: ['promise-02'],
+      brokenPromiseIds: [],
+      lastResolvedAt: null,
+    });
   });
 });

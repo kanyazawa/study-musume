@@ -1,0 +1,360 @@
+.tutorial-screen {
+    min-height: 100%;
+    position: relative;
+    padding: 20px 14px 28px;
+    background:
+        linear-gradient(180deg, rgba(255, 247, 253, 0.94), rgba(250, 241, 255, 0.92)),
+        var(--tutorial-bg-image) center / cover no-repeat;
+}
+
+.tutorial-backdrop {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at top right, rgba(255, 255, 255, 0.75), transparent 34%),
+        linear-gradient(180deg, rgba(255, 211, 230, 0.22), rgba(178, 221, 255, 0.18));
+    pointer-events: none;
+}
+
+.tutorial-shell {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 720px);
+    margin: 0 auto;
+    display: grid;
+    gap: 14px;
+}
+
+.tutorial-status-card,
+.tutorial-stage-card,
+.tutorial-dialogue-card,
+.tutorial-summary-card,
+.tutorial-choice-btn,
+.tutorial-character-card,
+.tutorial-gacha-card,
+.tutorial-feedback-card,
+.tutorial-quiz-card {
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 0 20px 40px rgba(155, 128, 174, 0.14);
+}
+
+.tutorial-status-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 20px;
+}
+
+.tutorial-status-card h1,
+.tutorial-section-head h2 {
+    margin: 0;
+    color: #5f4a71;
+}
+
+.tutorial-status-card p,
+.tutorial-section-head p,
+.tutorial-character-copy p,
+.tutorial-gacha-card p {
+    margin: 0;
+    color: #7c6c8e;
+}
+
+.tutorial-kicker {
+    margin: 0 0 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #d26b9e;
+}
+
+.tutorial-badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.tutorial-badges span,
+.tutorial-reward-strip span,
+.tutorial-gacha-rarity {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(240, 226, 255, 0.8);
+    color: #765987;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.tutorial-stage-card {
+    padding: 18px;
+}
+
+.tutorial-panel {
+    display: grid;
+    gap: 18px;
+}
+
+.tutorial-opening,
+.tutorial-event {
+    grid-template-columns: minmax(0, 210px) minmax(0, 1fr);
+    align-items: center;
+}
+
+.tutorial-portrait-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: end;
+    min-height: 260px;
+    padding: 12px;
+    border-radius: 24px;
+    background: linear-gradient(180deg, rgba(255, 222, 236, 0.55), rgba(218, 239, 255, 0.58));
+}
+
+.tutorial-main-portrait {
+    width: min(100%, 220px);
+    height: auto;
+    object-fit: contain;
+}
+
+.tutorial-dialogue-card {
+    display: grid;
+    gap: 12px;
+    padding: 20px;
+}
+
+.tutorial-dialogue-card.compact {
+    max-width: 560px;
+}
+
+.tutorial-dialogue-card > p:first-child,
+.tutorial-feedback-speaker {
+    margin: 0;
+    font-weight: 800;
+    color: #d26b9e;
+}
+
+.tutorial-line {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: #594d68;
+}
+
+.tutorial-primary-btn {
+    appearance: none;
+    border: 0;
+    border-radius: 18px;
+    padding: 16px 18px;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #ffffff;
+    background: linear-gradient(135deg, #ff9fc8, #ffb37f);
+    box-shadow: 0 14px 26px rgba(255, 152, 177, 0.24);
+    cursor: pointer;
+}
+
+.tutorial-primary-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.tutorial-section-head {
+    display: grid;
+    gap: 6px;
+}
+
+.tutorial-character-grid,
+.tutorial-summary-grid,
+.tutorial-gacha-grid,
+.tutorial-choice-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.tutorial-character-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tutorial-character-card {
+    appearance: none;
+    border: 2px solid transparent;
+    padding: 0;
+    overflow: hidden;
+    text-align: left;
+    cursor: pointer;
+}
+
+.tutorial-character-card.is-selected {
+    border-color: #ff9ec2;
+    box-shadow: 0 22px 42px rgba(255, 156, 194, 0.24);
+}
+
+.tutorial-character-image {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    background: linear-gradient(180deg, rgba(255, 230, 241, 0.6), rgba(214, 234, 255, 0.5));
+}
+
+.tutorial-character-copy {
+    display: grid;
+    gap: 6px;
+    padding: 14px;
+}
+
+.tutorial-character-copy strong {
+    color: #534365;
+}
+
+.tutorial-character-copy span {
+    color: #c56397;
+    font-weight: 700;
+}
+
+.tutorial-quiz-card {
+    padding: 20px;
+}
+
+.tutorial-quiz-word {
+    margin-bottom: 16px;
+    font-size: clamp(1.8rem, 5vw, 2.4rem);
+    font-weight: 900;
+    color: #57426c;
+    text-align: center;
+}
+
+.tutorial-choice-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tutorial-choice-btn {
+    appearance: none;
+    border: 2px solid transparent;
+    padding: 18px 14px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #5b4e6a;
+    cursor: pointer;
+}
+
+.tutorial-choice-btn.is-correct {
+    border-color: #79d6a0;
+    background: rgba(221, 255, 235, 0.96);
+}
+
+.tutorial-choice-btn.is-incorrect {
+    border-color: #ff9fb6;
+    background: rgba(255, 229, 236, 0.95);
+}
+
+.tutorial-reward-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.tutorial-feedback-card {
+    display: grid;
+    gap: 10px;
+    padding: 18px;
+}
+
+.tutorial-feedback-reward {
+    margin: 0;
+    color: #6b5c7b;
+    font-weight: 700;
+}
+
+.tutorial-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tutorial-summary-card {
+    display: grid;
+    gap: 8px;
+    padding: 18px;
+}
+
+.tutorial-summary-card span {
+    color: #9379a3;
+    font-size: 0.92rem;
+}
+
+.tutorial-summary-card strong {
+    color: #4f405f;
+    font-size: 1.35rem;
+}
+
+.tutorial-summary-card.is-bonus {
+    background: linear-gradient(135deg, rgba(255, 247, 194, 0.94), rgba(255, 231, 243, 0.96));
+}
+
+.tutorial-gacha-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tutorial-gacha-card {
+    display: grid;
+    gap: 8px;
+    padding: 16px;
+    min-height: 180px;
+    align-content: start;
+}
+
+.tutorial-gacha-card strong {
+    color: #504161;
+}
+
+.tutorial-gacha-card.is-ssr,
+.tutorial-gacha-card.rarity-SSR {
+    background:
+        radial-gradient(circle at top, rgba(255, 245, 179, 0.95), rgba(255, 255, 255, 0.95) 52%),
+        rgba(255, 255, 255, 0.96);
+    border-color: rgba(255, 214, 91, 0.76);
+    box-shadow: 0 0 0 1px rgba(255, 214, 91, 0.32), 0 16px 36px rgba(255, 211, 115, 0.22);
+}
+
+.tutorial-gacha-card.rarity-SR {
+    background: rgba(245, 235, 255, 0.96);
+}
+
+.tutorial-gacha-card.rarity-R {
+    background: rgba(235, 245, 255, 0.96);
+}
+
+.tutorial-gacha-emoji {
+    font-size: 2rem;
+}
+
+@media (max-width: 720px) {
+    .tutorial-opening,
+    .tutorial-event,
+    .tutorial-character-grid,
+    .tutorial-summary-grid,
+    .tutorial-gacha-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tutorial-choice-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tutorial-status-card {
+        padding: 16px;
+    }
+
+    .tutorial-stage-card {
+        padding: 14px;
+    }
+
+    .tutorial-shell {
+        gap: 12px;
+    }
+}

@@ -22,7 +22,7 @@ import { getLatestNoaAssistantMessageEntry } from '../utils/chatHistory';
 import { inferEmotionFromChatText } from '../utils/chatEmotionUtils';
 import { getEnabledHomeTouchAreas, getHomeTouchReaction } from '../data/homeTouchReactions';
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
-import { loadGoalTodos, saveGoalTodos } from '../utils/goalUtils';
+import { loadGoalTodos } from '../utils/goalUtils';
 import { getHomeReviewSummary } from '../utils/reviewUtils';
 import { applyRelationshipActivity } from '../utils/relationshipEventUtils';
 import { getUnreadRelationshipEvents } from '../utils/relationshipEventUtils';
@@ -70,25 +70,6 @@ const HOME_CHARACTER_PREVIEWS = {
         imageClassName: 'home-preview-guest-portrait',
         figureClassName: 'has-guest-preview',
     },
-};
-
-const TODO_PRAISE_REACTIONS = [
-    { emotion: 'happy', text: 'いいじゃない。そうやって終わらせていけるの、ちゃんとえらいわ。' },
-    { emotion: 'smile', text: 'ふふ、ひとつ片づいたわね。その調子で次も行けそうじゃない。' },
-    { emotion: 'happy', text: 'ちゃんと進んでるの、見えてるわよ。今の流れ、悪くないわ。' },
-    { emotion: 'smile', text: 'ナイス。べ、別に甘やかしてるわけじゃないけど、今のは褒めていいでしょ。' },
-    { emotion: 'relaxed', text: 'こうやって小さく終わらせていくの、大事なのよ。いい感じじゃない。' },
-];
-
-const formatTodoPraiseLabel = (text) => {
-    const normalized = String(text || '').trim();
-    if (!normalized) {
-        return '';
-    }
-
-    return normalized.length > 14
-        ? `${normalized.slice(0, 14)}...`
-        : normalized;
 };
 
 const Home = ({ stats, updateStats }) => {
@@ -263,6 +244,13 @@ const Home = ({ stats, updateStats }) => {
         () => incompleteGoalTodos.slice(0, 2),
         [incompleteGoalTodos],
     );
+    const headerSealLabel = characterId === 'ren'
+        ? 'R'
+        : characterId === 'firefly'
+            ? 'F'
+            : characterId === 'sparkle'
+                ? 'S'
+                : 'N';
 
     const stopTalkAnimation = useCallback(() => {
         if (talkAnimationTimerRef.current) {
@@ -684,35 +672,6 @@ const Home = ({ stats, updateStats }) => {
         return detail ? `${detail}を再開` : '前回の学習を再開';
     };
 
-    const handleToggleGoalTodo = (todoId) => {
-        const toggledTodo = goalTodos.find((todo) => todo.id === todoId);
-        const willComplete = toggledTodo ? !toggledTodo.completed : false;
-        const nextTodos = goalTodos.map((todo) => (
-            todo.id === todoId
-                ? { ...todo, completed: !todo.completed }
-                : todo
-        ));
-        const { todos } = saveGoalTodos(nextTodos);
-        setGoalTodos(todos);
-
-        if (willComplete) {
-            const reaction = TODO_PRAISE_REACTIONS[Math.floor(Math.random() * TODO_PRAISE_REACTIONS.length)];
-            const todoLabel = formatTodoPraiseLabel(toggledTodo?.text);
-            const nextSpeech = todoLabel
-                ? `「${todoLabel}」できたね。${reaction.text}`
-                : reaction.text;
-
-            lockManualSpeechPriority(2600);
-            setActiveHomeReaction({
-                emotion: reaction.emotion,
-                text: nextSpeech,
-            });
-            setSpeech(nextSpeech);
-            setBaseHomeEmotion(toVisibleHomeEmotion(reaction.emotion));
-            startTimedTalkAnimation(nextSpeech);
-        }
-    };
-
     return (
         <div className="home-screen">
             {/* Menu Modal */}
@@ -730,7 +689,7 @@ const Home = ({ stats, updateStats }) => {
             )}
 
             {/* Header Info */}
-            <div className="home-header">
+            <div className={`home-header home-header-${characterId}`}>
                 {/* Left Group: Rank, User, TP, Affection */}
                 <div className="header-left-group">
                     {/* Study Rank Block (Moved to Left) */}
@@ -744,10 +703,22 @@ const Home = ({ stats, updateStats }) => {
                     <div className="header-block user-tp-block">
                         {/* User Info Row */}
                         <div className="info-row user-row">
-                            <span className="user-name-text">{name}</span>
-                            {equippedTitle && (
-                                <span className="user-title-badge">「{equippedTitle}」</span>
-                            )}
+                            <div className="header-user-main">
+                                <span className={`header-character-seal is-${characterId}`} aria-hidden="true">
+                                    {headerSealLabel}
+                                </span>
+                                <span className="user-name-text">{name}</span>
+                                {equippedTitle && (
+                                    <span className="user-title-badge">「{equippedTitle}」</span>
+                                )}
+                            </div>
+                            <div className="header-affection-inline" aria-label={`好感度 レベル${affectionLevelInfo.level}`}>
+                                <span className="affection-icon">💖</span>
+                                <div className="affection-bar-bg is-inline">
+                                    <div className="affection-bar-fill" style={{ width: `${affectionProgress}%` }}></div>
+                                </div>
+                                <span className="affection-level">Lv.{affectionLevelInfo.level}</span>
+                            </div>
                         </div>
                         {/* TP Row */}
                         <div className="info-row tp-row">
@@ -757,17 +728,7 @@ const Home = ({ stats, updateStats }) => {
                                 </div>
                                 <span className="tp-text-compact">{tp}/{maxTp}</span>
                             </div>
-                        </div>
-                        {/* Affection Row */}
-                        <div className="info-row affection-row">
-                            <div className="affection-bar-container">
-                                <span className="affection-icon">💖</span>
-                                <div className="affection-bar-bg">
-                                    <div className="affection-bar-fill" style={{ width: `${affectionProgress}%` }}></div>
-                                </div>
-                                <span className="affection-level">Lv.{affectionLevelInfo.level}</span>
-                                <span className="affection-points">{affectionProgressLabel}</span>
-                            </div>
+                            <span className="affection-points inline">{affectionProgressLabel}</span>
                         </div>
                     </div>
                 </div>
@@ -819,12 +780,11 @@ const Home = ({ stats, updateStats }) => {
                     title={getReviewShortcutLabel()}
                 >
                     <span className={`home-review-priority-dot is-${homeReviewSummary.mode}`} aria-hidden="true" />
-                    <span className="home-review-title">弱点回収</span>
+                    <span className="home-review-title">復習</span>
                     <span className="home-review-value" aria-hidden="true">
-                        {homeReviewSummary.hasReviews
-                            ? `${homeReviewSummary.due}件`
-                            : 'GO'}
+                        {homeReviewSummary.hasReviews ? homeReviewSummary.due : 0}
                     </span>
+                    <span className="home-review-unit" aria-hidden="true">件</span>
                     {homeReviewSummary.reviewSetsToday > 0 && (
                         <span className="home-review-streak" aria-hidden="true">
                             {homeReviewSummary.reviewSetsToday}
@@ -833,75 +793,47 @@ const Home = ({ stats, updateStats }) => {
                 </button>
 
                 <section className="home-planner-card" aria-label="明日の目標とToDo">
-                    <div className="home-planner-header">
-                        <span className="home-planner-kicker">Plan</span>
-                        <strong>予定</strong>
-                    </div>
-
-                    <div className="home-planner-mini-row">
-                        <span className="home-planner-mini-label">明日</span>
-                        <span className="home-planner-mini-date">{formatShortDate(tomorrowDate)}</span>
+                    <div className="home-planner-header compact">
+                        <div className="home-planner-heading-copy">
+                            <span className="home-planner-kicker">Plan</span>
+                            <strong>明日</strong>
+                        </div>
+                        <span className="home-planner-date-chip">{formatShortDate(tomorrowDate)}</span>
                     </div>
 
                     <div className="home-planner-section compact">
                         {tomorrowFocus ? (
-                            <p className="home-focus-text">{tomorrowFocus}</p>
+                            <p className="home-focus-text is-condensed">{tomorrowFocus}</p>
                         ) : (
-                            <p className="home-planner-empty">
+                            <p className="home-planner-empty is-condensed">
                                 カレンダーに明日の目標を書くと、ここに出ます。
                             </p>
                         )}
                     </div>
 
-                    <div className="home-planner-divider" />
-
-                    <div className="home-planner-mini-row todo">
-                        <span className="home-planner-mini-label">残りToDo</span>
-                        <span className="home-planner-mini-count">{incompleteGoalTodos.length}件</span>
+                    <div className="home-planner-summary-row">
+                        <span className="home-planner-summary-label">ToDo</span>
+                        <span className="home-planner-summary-value">{incompleteGoalTodos.length}件</span>
                     </div>
 
                     {visibleGoalTodos.length > 0 ? (
-                        <div className="home-todo-list" role="list" aria-label="残りのToDo">
-                            {visibleGoalTodos.map((todo) => (
-                                <div key={todo.id} className="home-todo-item" role="listitem">
-                                    <button
-                                        type="button"
-                                        className={`home-todo-toggle ${todo.completed ? 'is-completed' : ''}`}
-                                        onClick={() => handleToggleGoalTodo(todo.id)}
-                                        aria-label={`${todo.text}を完了にする`}
-                                    >
-                                        <span aria-hidden="true">{todo.completed ? '✓' : ''}</span>
-                                    </button>
-                                    <span className="home-todo-text">{todo.text}</span>
-                                </div>
-                            ))}
-                        </div>
+                        <p className="home-todo-preview is-condensed">
+                            {visibleGoalTodos[0].text}
+                            {incompleteGoalTodos.length > 1 ? ` / ほか ${incompleteGoalTodos.length - 1} 件` : ''}
+                        </p>
                     ) : (
-                        <p className="home-todo-preview">
+                        <p className="home-todo-preview is-condensed">
                             いまのToDoは全部片付いています。
                         </p>
                     )}
 
-                    {incompleteGoalTodos.length > visibleGoalTodos.length && (
-                        <p className="home-todo-more">
-                            ほか {incompleteGoalTodos.length - visibleGoalTodos.length} 件
-                        </p>
-                    )}
-
-                    <div className="home-planner-actions">
+                    <div className="home-planner-actions compact">
                         <button
                             type="button"
-                            className="home-planner-link"
+                            className="home-planner-link compact"
                             onClick={() => navigate('/calendar')}
                         >
-                            カレンダー
-                        </button>
-                        <button
-                            type="button"
-                            className="home-planner-link secondary"
-                            onClick={() => navigate('/goal')}
-                        >
-                            目標
+                            予定
                         </button>
                     </div>
                 </section>
@@ -975,8 +907,12 @@ const Home = ({ stats, updateStats }) => {
 
                 {/* Action Buttons */}
                 <div className="action-area has-resume">
-                    <button className="battle-btn-large" onClick={() => navigate('/multiplayer-match')}>
-                        <span>⚔️ 単語バトル</span>
+                    <button
+                        className="battle-btn-large"
+                        onClick={() => navigate('/multiplayer-match')}
+                        aria-label="バトル"
+                    >
+                        <span>バトル</span>
                     </button>
                     <button
                         type="button"
@@ -985,13 +921,13 @@ const Home = ({ stats, updateStats }) => {
                         aria-label={getResumeStudyLabel()}
                         title={getResumeStudyLabel()}
                     >
-                        <span className="resume-study-main">▶ 前回の続きから</span>
+                        <span className="resume-study-main">続きから</span>
                         <span className="resume-study-sub">
                             {lastStudyTopic?.resumeLabel || lastStudyTopic?.topicName || '履歴がなければ授業一覧へ'}
                         </span>
                     </button>
-                    <button className="study-btn-large" onClick={() => navigate('/study')}>
-                        <span>📚 授業へ</span>
+                    <button className="study-btn-large" onClick={() => navigate('/study')} aria-label="勉強">
+                        <span>勉強</span>
                     </button>
                 </div>
 
@@ -1000,20 +936,21 @@ const Home = ({ stats, updateStats }) => {
                     <button
                         className="event-btn-side"
                         onClick={() => navigate('/character', { state: { openPanel: 'events' } })}
+                        aria-label="イベント"
                     >
-                        <span>📖 イベ</span>
+                        <span className="home-side-btn-label">イベ</span>
                         {unreadRelationshipEvents.length > 0 && (
                             <strong className="event-btn-badge">{unreadRelationshipEvents.length}</strong>
                         )}
                     </button>
-                    <button className="mission-btn-side" onClick={() => navigate('/missions')}>
-                        <span>📋 課題</span>
+                    <button className="mission-btn-side" onClick={() => navigate('/missions')} aria-label="課題">
+                        <span className="home-side-btn-label">課題</span>
                     </button>
-                    <button className="friend-btn" onClick={() => navigate('/friends')}>
-                        <span>🤝 仲間</span>
+                    <button className="friend-btn" onClick={() => navigate('/friends')} aria-label="仲間">
+                        <span className="home-side-btn-label">仲間</span>
                     </button>
-                    <button className="ranking-btn" onClick={() => navigate('/ranking')}>
-                        <span>🏆 順位表</span>
+                    <button className="ranking-btn" onClick={() => navigate('/ranking')} aria-label="順位">
+                        <span className="home-side-btn-label">順位</span>
                     </button>
                 </div>
 

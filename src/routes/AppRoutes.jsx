@@ -8,6 +8,7 @@ const Dialogue = lazy(() => import('../pages/Dialogue'));
 const CharacterInteraction = lazy(() => import('../pages/CharacterInteraction'));
 const Goal = lazy(() => import('../pages/Goal'));
 const Inventory = lazy(() => import('../pages/Inventory'));
+const VoiceCollection = lazy(() => import('../pages/VoiceCollection'));
 const Story = lazy(() => import('../pages/Story'));
 const StoryReader = lazy(() => import('../pages/StoryReader'));
 const RelationshipEventReader = lazy(() => import('../pages/RelationshipEventReader'));
@@ -17,6 +18,7 @@ const Missions = lazy(() => import('../pages/Missions'));
 const MissionsPageV0 = lazy(() => import('../pages/MissionsPageV0'));
 const CalendarPage = lazy(() => import('../pages/CalendarPage'));
 const Shop = lazy(() => import('../pages/Shop'));
+const Gacha = lazy(() => import('../pages/Gacha'));
 const Review = lazy(() => import('../pages/Review'));
 const Profile = lazy(() => import('../pages/Profile'));
 const Login = lazy(() => import('../pages/Login'));
@@ -32,15 +34,26 @@ const ExpressionPreview = lazy(() => import('../pages/ExpressionPreview'));
 const CustomVocab = lazy(() => import('../pages/CustomVocab'));
 const CustomVocabFlashcards = lazy(() => import('../pages/CustomVocabFlashcards'));
 const ReorderPractice = lazy(() => import('../pages/ReorderPractice'));
+const Tutorial = lazy(() => import('../pages/Tutorial'));
 
 const AppRoutes = ({ stats, updateStats, onLoginSuccess, currentUser }) => (
   <Suspense fallback={<LoadingScreen />}>
     <Routes>
       <Route path="/" element={<TitlePage stats={stats} />} />
       <Route
+        path="/tutorial"
+        element={
+          stats?.tutorialCompleted
+            ? <Navigate to="/home" replace />
+            : <Tutorial stats={stats} updateStats={updateStats} />
+        }
+      />
+      <Route
         path="/opening"
         element={
-          stats?.needsFirstPlayIntro
+          !stats?.tutorialCompleted
+            ? <Navigate to="/tutorial" replace />
+            : stats?.needsFirstPlayIntro
             ? <OpeningIntro stats={stats} updateStats={updateStats} />
             : <Navigate to="/home" replace />
         }
@@ -48,7 +61,9 @@ const AppRoutes = ({ stats, updateStats, onLoginSuccess, currentUser }) => (
       <Route
         path="/home"
         element={
-          stats?.needsFirstPlayIntro
+          !stats?.tutorialCompleted
+            ? <Navigate to="/tutorial" replace />
+            : stats?.needsFirstPlayIntro
             ? <Navigate to="/opening" replace />
             : <Home stats={stats} updateStats={updateStats} />
         }
@@ -57,8 +72,9 @@ const AppRoutes = ({ stats, updateStats, onLoginSuccess, currentUser }) => (
       <Route path="/dialogue" element={<Dialogue stats={stats} updateStats={updateStats} />} />
       <Route path="/character" element={<CharacterInteraction stats={stats} updateStats={updateStats} />} />
       <Route path="/inventory" element={<Inventory stats={stats} updateStats={updateStats} />} />
-      <Route path="/story" element={<Story stats={stats} />} />
-      <Route path="/story/:episodeId" element={<StoryReader stats={stats} />} />
+      <Route path="/voice-collection" element={<VoiceCollection stats={stats} />} />
+      <Route path="/story" element={<Story stats={stats} updateStats={updateStats} />} />
+      <Route path="/story/:episodeId" element={<StoryReader stats={stats} updateStats={updateStats} />} />
       <Route
         path="/relationship-events/:eventId"
         element={<RelationshipEventReader stats={stats} updateStats={updateStats} />}
@@ -70,7 +86,7 @@ const AppRoutes = ({ stats, updateStats, onLoginSuccess, currentUser }) => (
       <Route path="/missions-v0" element={<MissionsPageV0 />} />
       <Route path="/calendar" element={<CalendarPage stats={stats} updateStats={updateStats} />} />
       <Route path="/shop" element={<Shop stats={stats} updateStats={updateStats} />} />
-      <Route path="/gacha" element={<Navigate to="/shop" replace />} />
+      <Route path="/gacha" element={<Gacha stats={stats} updateStats={updateStats} />} />
       <Route path="/review" element={<Review stats={stats} updateStats={updateStats} />} />
       <Route path="/writing" element={<Writing stats={stats} updateStats={updateStats} />} />
       <Route path="/reading" element={<Reading stats={stats} updateStats={updateStats} />} />
@@ -85,7 +101,7 @@ const AppRoutes = ({ stats, updateStats, onLoginSuccess, currentUser }) => (
       />
       <Route path="/friends" element={<Friends stats={stats} updateStats={updateStats} />} />
       <Route path="/ranking" element={<Ranking />} />
-      <Route path="/character-select" element={<CharacterSelectPage updateStats={updateStats} />} />
+      <Route path="/character-select" element={<CharacterSelectPage stats={stats} updateStats={updateStats} />} />
       <Route
         path="/multiplayer-match"
         element={<MultiplayerMatch stats={stats} updateStats={updateStats} />}

@@ -21,6 +21,10 @@ import {
     speakWithBrowserTts,
     speakWithEngine,
 } from '../utils/voicevoxUtils';
+import {
+    addCustomVocabEntry,
+    getSuggestedMeaningForCustomVocab,
+} from '../utils/customVocabUtils';
 
 const MAX_INPUT_LENGTH = 160;
 const CLOUDFLARE_CHAT_ENDPOINT = 'https://study-musume.hide20080422.workers.dev/api/chat';
@@ -250,6 +254,12 @@ const NoaChatBox = ({
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [error, setError] = useState('');
     const [showUsageNotice, setShowUsageNotice] = useState(() => !hasAcknowledgedNoaChatNotice());
+    const [compactTab, setCompactTab] = useState('chat');
+    const [vocabWord, setVocabWord] = useState('');
+    const [vocabMeaning, setVocabMeaning] = useState('');
+    const [isVocabMeaningSuggested, setIsVocabMeaningSuggested] = useState(false);
+    const [vocabFeedback, setVocabFeedback] = useState('');
+    const vocabSuggestionRequestRef = useRef(0);
     const messageEndRef = useRef(null);
     const lastAssistantCallbackKeyRef = useRef('');
     const chatLimitState = useMemo(() => getNoaChatLimitSnapshot(nowTick), [nowTick]);
@@ -326,6 +336,58 @@ const NoaChatBox = ({
     const handleDismissNotice = () => {
         acknowledgeNoaChatNotice();
         setShowUsageNotice(false);
+    };
+
+    const fillSuggestedMeaningIfNeeded = async (nextWord = vocabWord, options = {}) => {
+        const trimmedMeaning = String(options.meaning ?? vocabMeaning).trim();
+        const trimmedWord = String(nextWord || '').trim();
+        if (!trimmedWord || trimmedMeaning) {
+            return trimmedMeaning;
+        }
+
+        const requestId = vocabSuggestionRequestRef.current + 1;
+        vocabSuggestionRequestRef.current = requestId;
+        const suggestedMeaning = await getSuggestedMeaningForCustomVocab(trimmedWord);
+        if (vocabSuggestionRequestRef.current !== requestId) {
+            return trimmedMeaning;
+        }
+
+        if (suggestedMeaning) {
+            setVocabMeaning((currentMeaning) => currentMeaning || suggestedMeaning);
+            setIsVocabMeaningSuggested(true);
+            return suggestedMeaning;
+        }
+
+        return trimmedMeaning;
+    };
+
+    const handleCompactVocabSubmit = (event) => {
+        event?.preventDefault?.();
+
+        const submit = async () => {
+            const nextMeaning = await fillSuggestedMeaningIfNeeded(vocabWord, { silent: true });
+            const result = addCustomVocabEntry({
+                word: vocabWord,
+                meaning: nextMeaning,
+            });
+
+            if (!result.ok) {
+                setVocabFeedback(
+                    result.reason === 'duplicate'
+                        ? '同じ単語と意味はもう入っています。'
+                        : '英単語と意味の両方を入れてください。'
+                );
+                return;
+            }
+
+            vocabSuggestionRequestRef.current += 1;
+            setVocabWord('');
+            setVocabMeaning('');
+            setIsVocabMeaningSuggested(false);
+            setVocabFeedback(`「${result.entry.word}」を追加しました。`);
+        };
+
+        void submit();
     };
 
     const handleSpeak = async (text, emotion = '') => {
@@ -451,36 +513,104 @@ const NoaChatBox = ({
         <div className={`noa-chat-shell ${embedded ? 'is-embedded' : ''} ${isCompact ? 'is-compact' : ''}`}>
             {isCompact ? (
                 <section className="noa-chat-bar" aria-label="ノアに話しかける">
-                    {error && <p className="noa-chat-error is-compact">{error}</p>}
-
-                    <form className="noa-chat-bar-form" onSubmit={handleSubmit}>
-                        <label className="noa-chat-bar-label" htmlFor="noa-chat-input-compact">
-                            ノアに話しかける
-                        </label>
-                        <p className="noa-chat-status is-compact">{chatStatusText}</p>
-                        {showUsageNotice && (
-                            <div className="noa-chat-notice is-compact" role="note">
-                                <p>{noticeText}</p>
-                                <button type="button" className="noa-chat-notice-btn" onClick={handleDismissNotice}>
-                                    了解
+                    <div className="noa-chat-bar-header">
+                        <div className="noa-chat-bar-title-row">
+                            <div className="noa-chat-bar-title-group">
+                                <span className="noa-chat-bar-label">ノアに話しかける</span>
+                                {compactTab === 'chat' && (
+                                    <p className="noa-chat-status is-compact">{chatStatusText}</p>
+                                )}
+                            </div>
+                            <div className="noa-chat-bar-tabs" role="tablist" aria-label="ホーム下の機能切り替え">
+                                <button
+                                    type="button"
+                                    className={`noa-chat-bar-tab ${compactTab === 'chat' ? 'is-active' : ''}`}
+                                    onClick={() => setCompactTab('chat')}
+                                    aria-pressed={compactTab === 'chat'}
+                                >
+                                    会話
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`noa-chat-bar-tab ${compactTab === 'vocab' ? 'is-active' : ''}`}
+                                    onClick={() => setCompactTab('vocab')}
+                                    aria-pressed={compactTab === 'vocab'}
+                                >
+                                    単語追加
                                 </button>
                             </div>
-                        )}
-                        <div className="noa-chat-bar-row">
-                            <textarea
-                                id="noa-chat-input-compact"
-                                className="noa-chat-input is-compact"
-                                value={input}
-                                onChange={(event) => setInput(event.target.value.slice(0, MAX_INPUT_LENGTH))}
-                                placeholder="ノアに聞きたいことを書く"
-                                rows={1}
-                            />
-                            <button type="submit" className="noa-chat-submit is-compact" disabled={isSubmitDisabled}>
-                                {isLoading ? <LoaderCircle size={16} className="noa-chat-spinner" /> : <SendHorizontal size={16} />}
-                                <span>{isLoading ? '考え中' : '話す'}</span>
-                            </button>
                         </div>
-                    </form>
+                    </div>
+
+                    {compactTab === 'chat' ? (
+                        <>
+                            {error && <p className="noa-chat-error is-compact">{error}</p>}
+
+                            <form className="noa-chat-bar-form" onSubmit={handleSubmit}>
+                                {showUsageNotice && (
+                                    <div className="noa-chat-notice is-compact" role="note">
+                                        <p>{noticeText}</p>
+                                        <button type="button" className="noa-chat-notice-btn" onClick={handleDismissNotice}>
+                                            了解
+                                        </button>
+                                    </div>
+                                )}
+                                <div className="noa-chat-bar-row">
+                                    <textarea
+                                        id="noa-chat-input-compact"
+                                        className="noa-chat-input is-compact"
+                                        value={input}
+                                        onChange={(event) => setInput(event.target.value.slice(0, MAX_INPUT_LENGTH))}
+                                        placeholder="ノアに聞きたいことを書く"
+                                        rows={1}
+                                    />
+                                    <button type="submit" className="noa-chat-submit is-compact" disabled={isSubmitDisabled}>
+                                        {isLoading ? <LoaderCircle size={16} className="noa-chat-spinner" /> : <SendHorizontal size={16} />}
+                                        <span>{isLoading ? '考え中' : '話す'}</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </>
+                    ) : (
+                        <form className="noa-chat-bar-form noa-chat-vocab-form" onSubmit={handleCompactVocabSubmit}>
+                            <div className="noa-chat-vocab-fields">
+                                <input
+                                    id="noa-chat-vocab-word"
+                                    className="noa-chat-input noa-chat-vocab-input is-compact"
+                                    type="text"
+                                    value={vocabWord}
+                                    onChange={(event) => {
+                                        vocabSuggestionRequestRef.current += 1;
+                                        if (isVocabMeaningSuggested) {
+                                            setVocabMeaning('');
+                                            setIsVocabMeaningSuggested(false);
+                                        }
+                                        setVocabWord(event.target.value);
+                                        setVocabFeedback('');
+                                    }}
+                                    onBlur={() => {
+                                        void fillSuggestedMeaningIfNeeded(vocabWord);
+                                    }}
+                                    placeholder="英単語・熟語"
+                                />
+                                <input
+                                    className="noa-chat-input noa-chat-vocab-input is-compact"
+                                    type="text"
+                                    value={vocabMeaning}
+                                    onChange={(event) => {
+                                        setVocabMeaning(event.target.value);
+                                        setIsVocabMeaningSuggested(false);
+                                        setVocabFeedback('');
+                                    }}
+                                    placeholder="意味"
+                                />
+                                <button type="submit" className="noa-chat-submit is-compact">
+                                    追加
+                                </button>
+                            </div>
+                            {vocabFeedback && <p className="noa-chat-feedback is-compact">{vocabFeedback}</p>}
+                        </form>
+                    )}
                 </section>
             ) : isPanelVisible ? (
                 <section className={`noa-chat-panel ${embedded ? 'is-embedded' : ''}`} aria-label="ノアと話す">

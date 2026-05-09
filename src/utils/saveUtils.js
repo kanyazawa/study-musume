@@ -3,6 +3,7 @@
  */
 
 import { mergeGameLoopStats } from './gameLoopUtils';
+import { loadStandaloneTutorialSnapshot, syncStandaloneTutorialSnapshot } from './tutorialStorage';
 
 const STORAGE_KEY = 'gameStats';
 
@@ -34,6 +35,10 @@ export const getDefaultStats = () => mergeGameLoopStats({
     hasSelectedCharacter: false, // 初回選択が完了しているか
     needsFirstPlayIntro: false,
     hasCompletedFirstPlayIntro: false,
+    tutorialCompleted: false,
+    tutorialHomeVariant: null,
+    favoriteCharacter: null,
+    ownedItems: [],
     characterRenderer: 'auto',
     characterQuality: 'high',
     // ログインボーナス
@@ -70,10 +75,17 @@ export const getDefaultStats = () => mergeGameLoopStats({
         readIds: [],
         notifiedIds: [],
     },
+    storyEpisodes: {
+        unlockedIds: [],
+        readIds: [],
+    },
     characterEvaluations: {},
     relationshipLastInteractionAt: null,
     reflectionEntries: [],
     lastBattleResult: null,
+    calendarState: null,
+    routeState: null,
+    promiseState: null,
     dailyLoopState: null,
     dailyLoop: null,
     examProgress: null,
@@ -135,8 +147,21 @@ const triggerCloudSync = () => {
  */
 export const saveStats = (stats) => {
     try {
-        const normalizedStats = mergeGameLoopStats(stats);
+        const normalizedStats = mergeGameLoopStats({
+            ...stats,
+            ownedItems: Array.isArray(stats?.ownedItems) && stats.ownedItems.length > 0
+                ? stats.ownedItems
+                : (Array.isArray(stats?.inventory) ? stats.inventory : []),
+        });
+
         localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedStats));
+        syncStandaloneTutorialSnapshot({
+            tutorialCompleted: normalizedStats.tutorialCompleted,
+            favoriteCharacter: normalizedStats.favoriteCharacter,
+            affection: normalizedStats.affection,
+            gems: normalizedStats.diamonds,
+            ownedItems: normalizedStats.ownedItems,
+        });
         console.log('Stats saved:', normalizedStats);
         triggerCloudSync();
     } catch (error) {
@@ -178,6 +203,7 @@ export const restoreAllSaveData = (data) => {
 export const loadStats = () => {
     try {
         const savedData = localStorage.getItem(STORAGE_KEY);
+        const tutorialSnapshot = loadStandaloneTutorialSnapshot();
 
         if (savedData) {
             const parsed = JSON.parse(savedData);
@@ -185,7 +211,29 @@ export const loadStats = () => {
             console.log('Stats loaded from localStorage:', parsed);
 
             // デフォルト値とマージ（新しいフィールドが追加された場合の対策）
-            const loadedStats = mergeGameLoopStats({ ...getDefaultStats(), ...parsed });
+            const loadedStats = mergeGameLoopStats({
+                ...getDefaultStats(),
+                ...parsed,
+                tutorialCompleted: parsed.tutorialCompleted ?? Boolean(parsed.hasSelectedCharacter),
+                hasSelectedCharacter: parsed.hasSelectedCharacter ?? Boolean(parsed.tutorialCompleted || tutorialSnapshot.tutorialCompleted || tutorialSnapshot.favoriteCharacter),
+                favoriteCharacter: parsed.favoriteCharacter ?? parsed.characterId ?? null,
+                affection: tutorialSnapshot.affection ?? parsed.affection ?? getDefaultStats().affection,
+                diamonds: tutorialSnapshot.gems ?? parsed.diamonds ?? getDefaultStats().diamonds,
+                ownedItems: Array.isArray(tutorialSnapshot.ownedItems)
+                    ? tutorialSnapshot.ownedItems
+                    : (parsed.ownedItems ?? parsed.inventory ?? []),
+                inventory: Array.isArray(parsed.inventory) && parsed.inventory.length > 0
+                    ? parsed.inventory
+                    : (Array.isArray(tutorialSnapshot.ownedItems) ? tutorialSnapshot.ownedItems : []),
+            });
+
+            if (tutorialSnapshot.tutorialCompleted !== null) {
+                loadedStats.tutorialCompleted = tutorialSnapshot.tutorialCompleted;
+            }
+
+            if (tutorialSnapshot.favoriteCharacter) {
+                loadedStats.favoriteCharacter = tutorialSnapshot.favoriteCharacter;
+            }
 
             // 初回ログインボーナスチェック（未受取ならダイヤ+3000）
             // 旧データ（undefined）または false の場合に付与
@@ -202,7 +250,16 @@ export const loadStats = () => {
         }
 
         console.log('No saved stats found, using defaults');
-        return mergeGameLoopStats(getDefaultStats());
+        return mergeGameLoopStats({
+            ...getDefaultStats(),
+            tutorialCompleted: tutorialSnapshot.tutorialCompleted ?? false,
+            hasSelectedCharacter: Boolean(tutorialSnapshot.tutorialCompleted || tutorialSnapshot.favoriteCharacter),
+            favoriteCharacter: tutorialSnapshot.favoriteCharacter ?? null,
+            affection: tutorialSnapshot.affection ?? getDefaultStats().affection,
+            diamonds: tutorialSnapshot.gems ?? getDefaultStats().diamonds,
+            ownedItems: Array.isArray(tutorialSnapshot.ownedItems) ? tutorialSnapshot.ownedItems : [],
+            inventory: Array.isArray(tutorialSnapshot.ownedItems) ? tutorialSnapshot.ownedItems : [],
+        });
     } catch (error) {
         console.error('Error loading stats:', error);
         return mergeGameLoopStats(getDefaultStats());

@@ -6,6 +6,7 @@ import LoadingScreen from '../components/UI/LoadingScreen';
 import { buildSpeechVariationProfile, getEngineBaseUrl, speakWithBrowserTts, speakWithEngine, prefetchEngine, isEngineAvailable, VOICEVOX_SPEAKERS, preloadCommonPhrases, resolveSpeakerIdForEngine, shouldAutoSpeakLine } from '../utils/voicevoxUtils';
 import { saveStudySession } from '../utils/studyHistoryUtils';
 import { STUDY_TOPICS } from '../data/studyTopics';
+import { getCharacterLabel } from '../data/characterData';
 import { updateMissionsOnStudy } from '../utils/missionUtils';
 import { updateStatsOnStudy, checkForNewAchievements } from '../utils/achievementUtils';
 import { addWrongQuestion } from '../utils/reviewUtils';
@@ -172,7 +173,7 @@ const Dialogue = ({ stats, updateStats }) => {
     // Character Selection Logic
     const characterId = stats?.characterId || 'noah';
     const isRen = characterId === 'ren';
-    const characterName = isRen ? 'レン' : 'ノア';
+    const characterName = getCharacterLabel(characterId);
 
     const [line, setLine] = useState(null);
     const [scenarioData, setScenarioData] = useState([]);
@@ -1087,7 +1088,7 @@ const Dialogue = ({ stats, updateStats }) => {
             setQuizCorrectStreak(nextStreak);
             setLastQuizResult('correct');
             const reactionVoiceSelection = resolveReactionVoiceSelection({ characterId, tone: nextFeedbackTone, streak: nextStreak });
-            if (reactionVoiceSelection.isRare) {
+            if (reactionVoiceSelection.shouldTriggerFeverFx) {
                 triggerFeverFx();
             }
             if (reactionVoiceSelection.file) {
@@ -1112,7 +1113,7 @@ const Dialogue = ({ stats, updateStats }) => {
                 const winText = isRen ? convertTone(rawWinText, 'ren') : rawWinText;
 
                 setLine({
-                    speaker: isRen ? 'レン' : 'ノア',
+                    speaker: characterName,
                     text: winText,
                     emotion: defaultWinReaction.emotion,
                     background: line.background || '',
@@ -1181,7 +1182,7 @@ const Dialogue = ({ stats, updateStats }) => {
                 const loseText = isRen ? convertTone(rawLoseText, 'ren') : rawLoseText;
 
                 setLine({
-                    speaker: isRen ? 'レン' : 'ノア',
+                    speaker: characterName,
                     text: loseText,
                     emotion: defaultLoseReaction.emotion,
                     background: line.background || '',
@@ -1249,7 +1250,7 @@ const Dialogue = ({ stats, updateStats }) => {
             setQuizCorrectStreak(nextStreak);
             setLastQuizResult('correct');
             const reactionVoiceSelection = resolveReactionVoiceSelection({ characterId, tone: nextFeedbackTone, streak: nextStreak });
-            if (reactionVoiceSelection.isRare) {
+            if (reactionVoiceSelection.shouldTriggerFeverFx) {
                 triggerFeverFx();
             }
             if (reactionVoiceSelection.file) {
@@ -1273,7 +1274,7 @@ const Dialogue = ({ stats, updateStats }) => {
                 const winText = isRen ? convertTone(rawWinText, 'ren') : rawWinText;
 
                 setLine({
-                    speaker: isRen ? 'レン' : 'ノア',
+                    speaker: characterName,
                     text: winText,
                     emotion: defaultWinReaction.emotion,
                     background: line.background || '',
@@ -1329,7 +1330,7 @@ const Dialogue = ({ stats, updateStats }) => {
             const loseText = isRen ? convertTone(rawLoseText, 'ren') : rawLoseText;
 
             setLine({
-                speaker: isRen ? 'レン' : 'ノア',
+                speaker: characterName,
                 text: loseText,
                 emotion: defaultLoseReaction.emotion,
                 background: line.background || '',

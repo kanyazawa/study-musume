@@ -73,6 +73,80 @@ const OPENING_VARIANTS = {
             },
         ],
     },
+    firefly: {
+        partnerName: 'ホタル',
+        chapterTitle: 'プロローグ',
+        lead: '試作パートナー、起動',
+        scenes: [
+            {
+                speaker: 'partner',
+                emotion: 'serious',
+                text: '待たせたわね。今日から私が、あんたの勉強を見る。まずは無理に全部やろうとしないで、一回ちゃんと進めるところからよ。'
+            },
+            {
+                speaker: 'you',
+                emotion: 'normal',
+                text: '助かる……。やる気はあるんだけど、何から触ればいいのかいつも散らかっちゃって。'
+            },
+            {
+                speaker: 'partner',
+                emotion: 'normal',
+                text: 'ホームでは TP と本番までの日数を見なさい。迷ったら「授業へ」からでいいわ。動きながら整えればいいの。'
+            },
+            {
+                speaker: 'partner',
+                emotion: 'serious',
+                text: '間違えた問題は「弱点ノート」に残るから、そこを回すだけでも進み方が変わる。新しい問題だけ追うのは後でもできるわ。'
+            },
+            {
+                speaker: 'partner',
+                emotion: 'happy',
+                text: '「課題」は毎日の区切り、「ストーリー」は続けた分だけ開く。小さく進めても、積み上がればちゃんと形になるわ。'
+            },
+            {
+                speaker: 'partner',
+                emotion: 'smile',
+                text: 'じゃ、試しに一回やってみましょ。完璧じゃなくていいから、今日は私と一緒に前へ出るの。'
+            },
+        ],
+    },
+    sparkle: {
+        partnerName: '花火',
+        chapterTitle: 'プロローグ',
+        lead: '退屈しのぎの共犯者',
+        scenes: [
+            {
+                speaker: 'partner',
+                emotion: 'smile',
+                text: 'やっと来たね。今日から君の勉強、わたしがちょっと面白くしてあげる。まずは肩の力を抜いて、一回ちゃんと進めてみようか。'
+            },
+            {
+                speaker: 'you',
+                emotion: 'normal',
+                text: '助かるよ……。やる気はあるんだけど、何から手をつければいいか迷ってばかりで。'
+            },
+            {
+                speaker: 'partner',
+                emotion: 'normal',
+                text: 'ホームでは TP と本番までの日数を見れば十分。迷ったら「授業へ」、それだけ覚えておけば最初は平気だよ。'
+            },
+            {
+                speaker: 'partner',
+                emotion: 'serious',
+                text: '間違えた問題は「弱点ノート」に残るから、そこを回収すると伸び方が変わる。新しい問題ばかり追うのは、そのあとでも遅くないよ。'
+            },
+            {
+                speaker: 'partner',
+                emotion: 'happy',
+                text: '「課題」は毎日のごほうび、「ストーリー」は続けたぶんだけ開いていく。小さく進めても、積み重なるとちゃんと効いてくるから。'
+            },
+            {
+                speaker: 'partner',
+                emotion: 'smile',
+                text: 'じゃあ始めようか。今日はわたしと一緒に、一歩だけでも前へ出る。それだけで十分だよ。'
+            },
+        ],
+    },
 };
 
 export const getOpeningIntroContent = (characterId = 'noah') =>

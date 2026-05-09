@@ -17,11 +17,12 @@ import {
 import { ALL_ITEMS } from '../data/itemData';
 import ItemVisual from '../components/ItemVisual';
 import { updateStatsOnShop } from '../utils/achievementUtils';
+import { addToInventory, getInventoryItemQuantity, isStackableItem } from '../utils/itemUtils';
 import './Shop.css';
 
 const SHOP_HISTORY_KEY = 'shop_purchase_history';
 
-const CATEGORIES = ['おすすめ', '衣装', '背景', 'ボイス', 'アクセ', '特別'];
+const CATEGORIES = ['おすすめ', 'おたすけ', '衣装', '背景', 'ボイス', 'アクセ', '特別'];
 
 const RARITY_LABELS = {
     SSR: 'プレミアム',
@@ -32,6 +33,12 @@ const RARITY_LABELS = {
 };
 
 const PRODUCT_DETAIL_COPY = {
+    assist: {
+        icon: Sparkles,
+        headline: 'ソロの早押しクイズで使える学習補助アイテムです',
+        usage: '持っている分だけソロクイズ中に使えます。使うと1個消費されます。',
+        highlights: ['消耗品として複数所持可能', 'ソロ対戦中にのみ使用', '1プレイで各種類1回まで'],
+    },
     skin: {
         icon: Shirt,
         headline: '着せ替えでホームの雰囲気を変えられます',
@@ -65,6 +72,9 @@ const PRODUCT_DETAIL_COPY = {
 };
 
 const SHOP_CATALOG = [
+    { itemId: 'assist_eliminate_choice', price: 60, category: 'おたすけ' },
+    { itemId: 'assist_chain_guard', price: 90, category: 'おたすけ' },
+    { itemId: 'assist_time_extend', price: 70, category: 'おたすけ' },
     { itemId: 'skin_casual', price: 320, category: '衣装' },
     { itemId: 'skin_casual_fall', price: 340, category: '衣装' },
     { itemId: 'skin_gym', price: 220, category: '衣装' },
@@ -105,18 +115,10 @@ const appendShopHistory = (entry) => {
     saveShopHistory(nextHistory);
 };
 
-const buildInventoryEntry = (item) => ({
-    itemId: item.id,
-    name: item.name,
-    type: item.type,
-    rarity: item.rarity,
-    emoji: item.emoji,
-    description: item.description,
-    quantity: 1,
-});
-
 const getCategoryLabel = (type) => {
     switch (type) {
+        case 'assist':
+            return 'おたすけ';
         case 'skin':
             return '衣装';
         case 'background':
@@ -156,6 +158,9 @@ const Shop = ({ stats, updateStats, onClose }) => {
     const diamonds = stats?.diamonds ?? 0;
     const inventory = stats?.inventory || [];
     const ownedIds = useMemo(() => new Set(inventory.map((item) => item.itemId)), [inventory]);
+    const inventoryQuantityById = useMemo(() => Object.fromEntries(
+        inventory.map((item) => [item.itemId, Math.max(0, Number(item?.quantity) || 0)])
+    ), [inventory]);
 
     const products = useMemo(() => SHOP_CATALOG
         .map((catalogItem) => {
@@ -176,7 +181,7 @@ const Shop = ({ stats, updateStats, onClose }) => {
     const filteredProducts = useMemo(() => {
         if (activeCategory === 'おすすめ') {
             return products
-                .filter((product) => !ownedIds.has(product.id))
+                .filter((product) => isStackableItem(product) || !ownedIds.has(product.id))
                 .slice(0, 6);
         }
 
@@ -203,7 +208,12 @@ const Shop = ({ stats, updateStats, onClose }) => {
     };
 
     const handleConfirmPurchase = () => {
-        if (!selectedProduct || ownedIds.has(selectedProduct.id) || diamonds < selectedProduct.price) {
+        if (!selectedProduct || diamonds < selectedProduct.price) {
+            return;
+        }
+
+        const stackable = isStackableItem(selectedProduct);
+        if (!stackable && ownedIds.has(selectedProduct.id)) {
             return;
         }
 
@@ -211,14 +221,14 @@ const Shop = ({ stats, updateStats, onClose }) => {
             const currentInventory = currentStats?.inventory || [];
             const currentOwned = currentInventory.some((item) => item.itemId === selectedProduct.id);
 
-            if (currentOwned) {
+            if (currentOwned && !stackable) {
                 return currentStats;
             }
 
             return {
                 ...currentStats,
                 diamonds: (currentStats?.diamonds || 0) - selectedProduct.price,
-                inventory: [...currentInventory, buildInventoryEntry(selectedProduct)],
+                inventory: addToInventory(currentInventory, selectedProduct, 1),
             };
         });
 
@@ -240,6 +250,8 @@ const Shop = ({ stats, updateStats, onClose }) => {
         if (!selectedProduct) return null;
 
         const owned = ownedIds.has(selectedProduct.id);
+        const quantity = getInventoryItemQuantity(inventory, selectedProduct.id);
+        const stackable = isStackableItem(selectedProduct);
         const detail = getProductDetailCopy(selectedProduct);
         const DetailIcon = detail.icon;
         const balanceAfterPurchase = diamonds - selectedProduct.price;
@@ -311,7 +323,13 @@ const Shop = ({ stats, updateStats, onClose }) => {
                                 {selectedProduct.price}
                             </strong>
                         </div>
-                        {!owned && (
+                        <div>
+                            <span className="summary-label">所持数</span>
+                            <strong className="summary-balance">
+                                ×{quantity}
+                            </strong>
+                        </div>
+                        {(!owned || stackable) && (
                             <div>
                                 <span className="summary-label">交換後</span>
                                 <strong className={balanceAfterPurchase < 0 ? 'summary-balance insufficient' : 'summary-balance'}>
@@ -324,9 +342,9 @@ const Shop = ({ stats, updateStats, onClose }) => {
                     {purchaseComplete ? (
                         <div className="purchase-complete">
                             <Check size={20} />
-                            <span>交換しました</span>
+                            <span>{stackable ? '追加しました' : '交換しました'}</span>
                         </div>
-                    ) : owned ? (
+                    ) : owned && !stackable ? (
                         <div className="already-owned">
                             <Check size={16} />
                             <span>所持しています</span>
@@ -378,9 +396,17 @@ const Shop = ({ stats, updateStats, onClose }) => {
                 <div className="shop-intro-card">
                     <p className="intro-heading">欲しいものを選んで交換できます</p>
                     <p className="intro-text">
-                        衣装や背景、ボイスなどをダイヤで交換できます。
+                        衣装や背景、ボイスに加えて、おたすけ消耗品もダイヤで交換できます。
                         ダイヤはミッションや学習の積み重ねで集まります。
                     </p>
+                    <button
+                        type="button"
+                        className="shop-gacha-link"
+                        onClick={() => navigate('/gacha')}
+                    >
+                        <Sparkles size={16} />
+                        <span>ごほうびガチャをひらく</span>
+                    </button>
                 </div>
 
                 <nav className="category-tabs">
@@ -398,11 +424,13 @@ const Shop = ({ stats, updateStats, onClose }) => {
                 <main className="products-grid">
                     {filteredProducts.map((product) => {
                         const owned = ownedIds.has(product.id);
+                        const quantity = inventoryQuantityById[product.id] || 0;
+                        const stackable = isStackableItem(product);
 
                         return (
                             <button
                                 key={product.id}
-                                className={`product-card ${owned ? 'owned' : ''}`}
+                                className={`product-card ${owned && !stackable ? 'owned' : ''}`}
                                 onClick={() => handleProductClick(product)}
                             >
                                 <div className="product-image-wrapper">
@@ -415,7 +443,7 @@ const Shop = ({ stats, updateStats, onClose }) => {
                                     {owned && (
                                         <div className="owned-badge">
                                             <Check size={12} />
-                                            <span>所持中</span>
+                                            <span>{stackable ? `所持 ×${quantity}` : '所持中'}</span>
                                         </div>
                                     )}
                                 </div>
@@ -423,7 +451,7 @@ const Shop = ({ stats, updateStats, onClose }) => {
                                     <div className="product-category">{product.category}</div>
                                     <h3 className="product-name">{product.name}</h3>
                                     <p className="product-description">{product.description}</p>
-                                    {!owned && (
+                                    {(!owned || stackable) && (
                                         <div className="product-price">
                                             <Diamond size={14} className="diamond-icon-small" />
                                             <span>{product.price}</span>

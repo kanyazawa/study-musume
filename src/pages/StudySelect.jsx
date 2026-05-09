@@ -1,28 +1,120 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import {
+    BookOpen,
+    BookOpenText,
+    ChevronLeft,
+    ChevronRight,
+    Home,
+    Languages,
+    NotebookPen,
+    Sparkles,
+} from 'lucide-react';
 import './StudySelect.css';
 import { STUDY_TOPICS } from '../data/studyTopics';
-import { saveLastStudyTopicFromItem } from '../data/studyData';
+import { getLastStudyTopic, saveLastStudyTopicFromItem } from '../data/studyData';
+
+const ENGLISH_SUBJECT_ID = 'english';
+
+const CATEGORY_ACCENTS = {
+    eng_vocab: 'vocab',
+    eng_grammar: 'grammar',
+    eng_reading: 'reading',
+    eng_writing: 'writing',
+};
+
+const CATEGORY_MENU_LABELS = {
+    eng_vocab: 'BATTLE',
+    eng_grammar: 'SKILL',
+    eng_reading: 'STORY',
+    eng_writing: 'CHECK',
+};
+
+const stripGloss = (label) => String(label || '').replace(/\s*\([^)]*\)/g, '').trim();
+
+const formatResumePath = (topic) => (
+    [topic?.subjectName, topic?.categoryName || topic?.chapterName, topic?.unitName]
+        .filter(Boolean)
+        .join(' / ')
+);
+
+const getChoiceMeta = (item, level) => {
+    if (level === 'unit') {
+        return item.chapters?.length ? `${item.chapters.length} STAGES` : 'START';
+    }
+
+    if (level === 'chapter') {
+        if (item.sections?.length) {
+            return `${item.sections.length} QUESTS`;
+        }
+        if (item.level) {
+            return 'BATTLE';
+        }
+        if (item.mode === 'reading') {
+            return 'READING';
+        }
+        if (item.mode === 'writing') {
+            return 'AI CHECK';
+        }
+        return 'LESSON';
+    }
+
+    if (level === 'section') {
+        return 'START';
+    }
+
+    return 'OPEN';
+};
+
+const getToneForItem = (currentLevel, selectedCategory, item) => {
+    if (currentLevel === 'unit') {
+        return CATEGORY_ACCENTS[selectedCategory?.id] || 'grammar';
+    }
+
+    if (currentLevel === 'chapter' || currentLevel === 'section') {
+        return CATEGORY_ACCENTS[selectedCategory?.id] || 'vocab';
+    }
+
+    return CATEGORY_ACCENTS[item.id] || 'support';
+};
 
 const StudySelect = ({ stats }) => {
     const navigate = useNavigate();
+    const englishSubject = STUDY_TOPICS.find((subject) => subject.id === ENGLISH_SUBJECT_ID) || null;
 
-    // 階層管理
-    const [currentLevel, setCurrentLevel] = useState('subject'); // 'subject' | 'category' | 'unit' | 'chapter' | 'section'
-    const [selectedSubject, setSelectedSubject] = useState(null);
+    const [currentLevel, setCurrentLevel] = useState('subject');
+    const [selectedSubject, setSelectedSubject] = useState(englishSubject);
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [selectedUnit, setSelectedUnit] = useState(null);
     const [selectedChapter, setSelectedChapter] = useState(null);
+    const [lastStudyTopic] = useState(() => getLastStudyTopic());
+    if (!englishSubject) {
+        return (
+            <div className="study-select-screen">
+                <div className="study-empty-state">
+                    <p>英語コースが見つかりませんでした。</p>
+                </div>
+            </div>
+        );
+    }
 
-    // 検索
-    const [searchQuery, setSearchQuery] = useState('');
+    const resumePath = formatResumePath(lastStudyTopic);
+    const englishCategories = englishSubject.categories || [];
+    const categoryMap = Object.fromEntries(englishCategories.map((category) => [category.id, category]));
 
-    const navigateToStudyItem = (item) => {
+    const resetToSubject = () => {
+        setCurrentLevel('subject');
+        setSelectedSubject(englishSubject);
+        setSelectedCategory(null);
+        setSelectedUnit(null);
+        setSelectedChapter(null);
+    };
+
+    const navigateToStudyItem = (item, context = {}) => {
         saveLastStudyTopicFromItem(item, {
-            subject: selectedSubject,
-            category: selectedCategory,
-            unit: selectedUnit,
+            subject: context.subject || selectedSubject || englishSubject,
+            category: context.category || selectedCategory,
+            unit: context.unit || selectedUnit,
         });
 
         if (item.level) {
@@ -38,157 +130,124 @@ const StudySelect = ({ stats }) => {
         }
     };
 
-    const handleDirectModeClick = (item, path) => {
-        saveLastStudyTopicFromItem(item, {
-            subject: selectedSubject,
-            category: selectedCategory,
-            unit: selectedUnit,
-        });
-        navigate(path);
-    };
-
-    // パンくずリスト
-    const breadcrumbs = [];
-    if (selectedSubject) {
-        breadcrumbs.push({ level: 'subject', name: selectedSubject.name });
-    }
-    if (selectedCategory) {
-        breadcrumbs.push({ level: 'category', name: selectedCategory.name });
-    }
-    if (selectedUnit) {
-        breadcrumbs.push({ level: 'unit', name: selectedUnit.name });
-    }
-    if (selectedChapter) {
-        breadcrumbs.push({ level: 'chapter', name: selectedChapter.name });
-    }
-
-    // 科目選択
-    const handleSubjectClick = (subject) => {
-        setSelectedSubject(subject);
-        setSelectedCategory(null);
-        setSelectedUnit(null);
-        setSelectedChapter(null);
-        setCurrentLevel('category');
-        setSearchQuery('');
-    };
-
-    // カテゴリー選択
-    const handleCategoryClick = (category) => {
+    const openCategory = (category) => {
+        setSelectedSubject(englishSubject);
         setSelectedCategory(category);
         setSelectedUnit(null);
         setSelectedChapter(null);
+
+        if (category.units?.length === 1) {
+            const [onlyUnit] = category.units;
+            setSelectedUnit(onlyUnit);
+
+            if (onlyUnit.chapters?.length) {
+                setCurrentLevel('chapter');
+                return;
+            }
+
+            navigateToStudyItem(onlyUnit, {
+                subject: englishSubject,
+                category,
+                unit: onlyUnit,
+            });
+            return;
+        }
+
         setCurrentLevel('unit');
-        setSearchQuery('');
     };
 
-    // 単元選択
     const handleUnitClick = (unit) => {
-        if (unit.chapters && unit.chapters.length > 0) {
-            // 章がある場合は章選択へ
+        if (unit.chapters?.length) {
             setSelectedUnit(unit);
             setSelectedChapter(null);
             setCurrentLevel('chapter');
-            setSearchQuery('');
-        } else {
-            // 章がない場合は直接学習へ
-            navigateToStudyItem(unit);
+            return;
         }
+
+        navigateToStudyItem(unit, {
+            subject: englishSubject,
+            category: selectedCategory,
+            unit,
+        });
     };
 
-    // 章選択
     const handleChapterClick = (chapter) => {
-        if (chapter.sections && chapter.sections.length > 0) {
-            // 節（セクション）がある場合は節選択へ
+        if (chapter.sections?.length) {
             setSelectedChapter(chapter);
             setCurrentLevel('section');
-            setSearchQuery('');
-        } else {
-            navigateToStudyItem(chapter);
+            return;
         }
+
+        navigateToStudyItem(chapter, {
+            subject: englishSubject,
+            category: selectedCategory,
+            unit: selectedUnit,
+        });
     };
 
-    // 節（セクション）選択
     const handleSectionClick = (section) => {
-        navigateToStudyItem(section);
+        navigateToStudyItem(section, {
+            subject: englishSubject,
+            category: selectedCategory,
+            unit: selectedUnit,
+        });
     };
 
-    // 戻る
     const handleBack = () => {
+        if (currentLevel === 'subject') {
+            navigate('/home');
+            return;
+        }
+
         if (currentLevel === 'section') {
             setCurrentLevel('chapter');
             setSelectedChapter(null);
-            setSearchQuery('');
-        } else if (currentLevel === 'chapter') {
-            setCurrentLevel('unit');
-            setSelectedUnit(null);
-            setSelectedChapter(null); // Clear chapter when going back to unit
-            setSearchQuery('');
-        } else if (currentLevel === 'unit') {
-            setCurrentLevel('category');
-            setSelectedCategory(null);
-            setSelectedUnit(null);
-            setSearchQuery('');
-        } else if (currentLevel === 'category') {
-            setCurrentLevel('subject');
-            setSelectedSubject(null);
-            setSearchQuery('');
-        } else {
-            navigate('/home');
+            return;
         }
+
+        if (currentLevel === 'chapter') {
+            if ((selectedCategory?.units?.length || 0) > 1) {
+                setCurrentLevel('unit');
+                setSelectedUnit(null);
+                setSelectedChapter(null);
+                return;
+            }
+
+            resetToSubject();
+            return;
+        }
+
+        resetToSubject();
     };
 
-    // パンくずクリック
     const handleBreadcrumbClick = (level) => {
         if (level === 'subject') {
-            setCurrentLevel('category');
-            setSelectedCategory(null);
-            setSelectedUnit(null);
-            setSelectedChapter(null);
-            setSearchQuery('');
-        } else if (level === 'category') {
-            setCurrentLevel('unit');
-            setSelectedUnit(null);
-            setSelectedChapter(null);
-            setSearchQuery('');
-        } else if (level === 'unit') {
+            resetToSubject();
+            return;
+        }
+
+        if (level === 'category' && selectedCategory) {
+            openCategory(selectedCategory);
+            return;
+        }
+
+        if (level === 'unit') {
             setCurrentLevel('chapter');
             setSelectedChapter(null);
-            setSearchQuery('');
         }
     };
 
-    // 表示データの取得とフィルタリング
     const getDisplayData = () => {
-        const query = searchQuery.toLowerCase();
-
-        if (currentLevel === 'subject') {
-            return STUDY_TOPICS.filter(subject =>
-                !query || subject.name.toLowerCase().includes(query)
-            );
-        }
-
-        if (currentLevel === 'category' && selectedSubject) {
-            return selectedSubject.categories.filter(category =>
-                !query || category.name.toLowerCase().includes(query)
-            );
-        }
-
         if (currentLevel === 'unit' && selectedCategory) {
-            return selectedCategory.units.filter(unit =>
-                !query || unit.name.toLowerCase().includes(query)
-            );
+            return selectedCategory.units || [];
         }
 
         if (currentLevel === 'chapter' && selectedUnit) {
-            return selectedUnit.chapters.filter(chapter =>
-                !query || chapter.name.toLowerCase().includes(query)
-            );
+            return selectedUnit.chapters || [];
         }
 
         if (currentLevel === 'section' && selectedChapter) {
-            return selectedChapter.sections.filter(section =>
-                !query || section.name.toLowerCase().includes(query)
-            );
+            return selectedChapter.sections || [];
         }
 
         return [];
@@ -196,212 +255,303 @@ const StudySelect = ({ stats }) => {
 
     const displayData = getDisplayData();
 
-    // タイトルを取得
+    const breadcrumbs = currentLevel === 'subject'
+        ? []
+        : [
+            { level: 'subject', name: englishSubject.name },
+            selectedCategory ? { level: 'category', name: selectedCategory.name } : null,
+            selectedUnit && currentLevel !== 'unit' ? { level: 'unit', name: stripGloss(selectedUnit.name) } : null,
+            selectedChapter && currentLevel === 'section' ? { level: 'chapter', name: stripGloss(selectedChapter.name) } : null,
+        ].filter(Boolean);
+
     const getTitle = () => {
-        if (currentLevel === 'subject') return '今日の授業を選ぶ';
-        if (currentLevel === 'category') return '分野を選ぶ';
-        if (currentLevel === 'unit') return '単元を選ぶ';
-        if (currentLevel === 'chapter') return '章を選ぶ';
-        if (currentLevel === 'section') return '演習テーマ';
-        return '今日の授業を選ぶ';
+        if (currentLevel === 'subject') return 'クエスト選択';
+        if (currentLevel === 'unit') return '文法ステージ';
+        if (currentLevel === 'chapter' && selectedCategory?.id === 'eng_vocab') return '単語ランク';
+        if (currentLevel === 'chapter' && selectedCategory?.id === 'eng_reading') return '読解ランク';
+        if (currentLevel === 'chapter' && selectedCategory?.id === 'eng_writing') return '作文ランク';
+        if (currentLevel === 'chapter') return 'レッスン選択';
+        if (currentLevel === 'section') return 'ステージ選択';
+        return 'クエスト選択';
     };
 
-    // タイトルを取得
+    const getLeadText = () => {
+        if (currentLevel === 'subject') {
+            return 'STAGE SELECT';
+        }
+
+        if (currentLevel === 'unit') {
+            return 'GRAMMAR';
+        }
+
+        if (currentLevel === 'chapter' && selectedCategory?.id === 'eng_vocab') {
+            return 'VOCAB';
+        }
+
+        if (currentLevel === 'chapter' && selectedCategory?.id === 'eng_reading') {
+            return 'READING';
+        }
+
+        if (currentLevel === 'chapter' && selectedCategory?.id === 'eng_writing') {
+            return 'WRITING';
+        }
+
+        if (currentLevel === 'chapter') {
+            return 'LESSON';
+        }
+
+        return 'QUEST';
+    };
+
+    const subjectActions = [
+        {
+            id: 'eng_vocab',
+            title: '英単語',
+            badge: 'BATTLE',
+            icon: BookOpen,
+            tone: 'vocab',
+            layout: 'large',
+            frame: 'battle',
+            onClick: () => openCategory(categoryMap.eng_vocab),
+        },
+        {
+            id: 'eng_grammar',
+            title: '文法',
+            badge: 'SKILL',
+            icon: Languages,
+            tone: 'grammar',
+            layout: 'large',
+            frame: 'resume',
+            onClick: () => openCategory(categoryMap.eng_grammar),
+        },
+        {
+            id: 'eng_reading',
+            title: '長文読解',
+            badge: 'STORY',
+            icon: BookOpenText,
+            tone: 'reading',
+            layout: 'large',
+            frame: 'study',
+            onClick: () => openCategory(categoryMap.eng_reading),
+        },
+        {
+            id: 'eng_writing',
+            title: 'ライティング',
+            badge: 'CHECK',
+            icon: NotebookPen,
+            tone: 'writing',
+            layout: 'small',
+            frame: 'friend',
+            onClick: () => openCategory(categoryMap.eng_writing),
+        },
+        {
+            id: 'review',
+            title: '弱点ノート',
+            badge: 'SUPPORT',
+            icon: Sparkles,
+            tone: 'support',
+            layout: 'small',
+            frame: 'mission',
+            onClick: () => navigate('/review'),
+        },
+        {
+            id: 'custom-vocab',
+            title: '自作単語',
+            badge: 'CUSTOM',
+            icon: BookOpen,
+            tone: 'support',
+            layout: 'small',
+            frame: 'event',
+            onClick: () => navigate('/custom-vocab'),
+        },
+    ];
+
+    const mainSubjectActions = subjectActions.filter((action) => action.layout === 'large');
+    const sideSubjectActions = subjectActions.filter((action) => action.layout === 'small');
+
+    const gridClassName = [
+        'study-choice-grid',
+        displayData.length >= 7 ? 'study-choice-grid--compact' : '',
+        displayData.length >= 12 ? 'study-choice-grid--dense' : '',
+        currentLevel === 'section' ? 'study-choice-grid--wide' : '',
+    ]
+        .filter(Boolean)
+        .join(' ');
+
+    const renderChoiceButton = (item, level, onClick) => (
+        <button
+            key={item.id}
+            type="button"
+            className={`study-choice-card is-${getToneForItem(level, selectedCategory, item)}`}
+            onClick={onClick}
+        >
+            <span className="study-choice-kicker">{getChoiceMeta(item, level)}</span>
+            <strong>{stripGloss(item.name)}</strong>
+            <span className="study-choice-arrow">
+                PLAY
+                <ChevronRight size={14} />
+            </span>
+        </button>
+    );
+
     return (
         <div className="study-select-screen">
-            {/* ヘッダー */}
             <div className="study-header">
-                <button className="back-btn" onClick={handleBack}>
-                    <ChevronLeft color="white" size={24} />
+                <button type="button" className="back-btn" onClick={handleBack} aria-label="戻る">
+                    <ChevronLeft size={20} />
                 </button>
-                <h2>{getTitle()}</h2>
-            </div>
-
-            {/* パンくずリスト */}
-            {breadcrumbs.length > 0 && (
-                <div className="breadcrumbs">
-                    {breadcrumbs.map((crumb, index) => (
-                        <React.Fragment key={index}>
-                            <span
-                                className={`breadcrumb ${index < breadcrumbs.length - 1 ? 'clickable' : ''}`}
-                                onClick={() => index < breadcrumbs.length - 1 && handleBreadcrumbClick(crumb.level)}
-                            >
-                                {crumb.name}
-                            </span>
-                            {index < breadcrumbs.length - 1 && <ChevronRight size={16} />}
-                        </React.Fragment>
-                    ))}
+                <div className="study-header-copy">
+                    <span className="study-header-kicker">ENGLISH MODE</span>
+                    <h1>{getTitle()}</h1>
+                    <p>{getLeadText()}</p>
                 </div>
-            )}
-
-            {/* 検索バー */}
-            <div className="search-bar">
-                <Search size={20} color="#999" />
-                <input
-                    type="text"
-                    placeholder={
-                        currentLevel === 'subject' ? '授業を検索...' :
-                            currentLevel === 'category' ? '分野を検索...' :
-                                currentLevel === 'unit' ? '単元を検索...' :
-                                    currentLevel === 'chapter' ? '章を検索...' :
-                                        'テーマを検索...'
-                    }
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                />
             </div>
 
-            {/* コンテンツ */}
-            <div className="study-content">
-                {/* 科目選択 */}
-                {currentLevel === 'subject' && (
+            <div className="study-screen-body">
+                {currentLevel === 'subject' ? (
                     <>
-                        <div className="subject-grid">
-                            {displayData.map((subject) => (
-                                <div
-                                    key={subject.id}
-                                    className="subject-card"
-                                    onClick={() => handleSubjectClick(subject)}
-                                >
-                                    <div className="subject-icon" style={{ backgroundColor: subject.color }}>
-                                        <subject.icon size={32} color="white" />
-                                    </div>
-                                    <span className="subject-name">{subject.name}</span>
-                                </div>
-                            ))}
-                        </div>
+                        <section className="study-hero-card study-hero-card--menu">
+                            <div className="study-hero-copy">
+                                <span className="study-chip">MAIN MENU</span>
+                                <h2>英語クエスト</h2>
+                                <p>ホーム画面みたいにメニューから選ぶ</p>
+                            </div>
 
-                        {/* 復習モードボタン */}
-                        <div className="review-mode-container">
-                            <button
-                                className="review-mode-btn"
-                                onClick={() => navigate('/review')}
-                            >
-                                <span className="review-icon">📚</span>
-                                <span className="review-label">弱点ノート</span>
-                                <span className="review-hint">つまずいた問題だけ回収</span>
-                            </button>
-                            <button
-                                className="writing-mode-btn"
-                                onClick={() => handleDirectModeClick({
-                                    id: 'eng_reading',
-                                    name: '長文読解',
-                                    topic: '長文読解',
-                                    mode: 'reading',
-                                }, '/reading')}
-                            >
-                                <span className="review-icon">R</span>
-                                <span className="review-label">長文読解</span>
-                                <span className="review-hint">読んで単語も拾う</span>
-                            </button>
-                            <button
-                                className="writing-mode-btn"
-                                onClick={() => handleDirectModeClick({
-                                    id: 'eng_writing',
-                                    name: '英検ライティング',
-                                    topic: '英検ライティング',
-                                    mode: 'writing',
-                                }, '/writing')}
-                            >
-                                <span className="review-icon">W</span>
-                                <span className="review-label">英検ライティング</span>
-                                <span className="review-hint">問題を見てAI採点</span>
-                            </button>
-                            <button
-                                className="reorder-mode-btn"
-                                onClick={() => navigate('/reorder-practice')}
-                            >
-                                <span className="review-icon">↔</span>
-                                <span className="review-label">並び替えクイズ</span>
-                                <span className="review-hint">語順をまとめて練習</span>
-                            </button>
-                            <button
-                                className="custom-vocab-mode-btn"
-                                onClick={() => navigate('/custom-vocab')}
-                            >
-                                <span className="review-icon">N</span>
-                                <span className="review-label">自作単語ノート</span>
-                                <span className="review-hint">単語を追加して覚える</span>
-                            </button>
-                        </div>
+                            {lastStudyTopic ? (
+                                <button
+                                    type="button"
+                                    className="resume-study-card"
+                                    onClick={() => navigate(lastStudyTopic.routePath)}
+                                >
+                                    <div className="resume-study-copy">
+                                        <span className="resume-study-label">CONTINUE</span>
+                                        <strong>{lastStudyTopic.resumeLabel || lastStudyTopic.topicName}</strong>
+                                        <span className="resume-study-path">
+                                            {resumePath || '前回の続きから再開'}
+                                        </span>
+                                    </div>
+                                    <span className="resume-study-cta">
+                                        PLAY
+                                        <ChevronRight size={16} />
+                                    </span>
+                                </button>
+                            ) : (
+                                <div className="resume-study-card is-empty">
+                                    <div className="resume-study-copy">
+                                        <span className="resume-study-label">CONTINUE</span>
+                                        <strong>NEW GAME</strong>
+                                        <span className="resume-study-path">下のボタンからスタート</span>
+                                    </div>
+                                </div>
+                            )}
+                        </section>
+
+                        <section className="study-panel study-panel--fill study-panel--menu">
+                            <div className="study-panel-title">
+                                <span>HOME STYLE</span>
+                                <strong>SELECT QUEST</strong>
+                            </div>
+
+                            <div className="study-home-menu">
+                                <div className="study-home-main-actions">
+                                    {mainSubjectActions.map((action) => {
+                                        const Icon = action.icon;
+                                        return (
+                                            <button
+                                                key={action.id}
+                                                type="button"
+                                                className={`study-home-large-btn is-${action.frame}`}
+                                                onClick={action.onClick}
+                                            >
+                                                <span className="study-home-badge">{action.badge}</span>
+                                                <div className="study-home-label">
+                                                    <span className="study-home-icon">
+                                                        <Icon size={16} />
+                                                    </span>
+                                                    <strong>{action.title}</strong>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="study-home-side-actions">
+                                    {sideSubjectActions.map((action) => {
+                                        const Icon = action.icon;
+                                        return (
+                                            <button
+                                                key={action.id}
+                                                type="button"
+                                                className={`study-home-side-btn is-${action.frame}`}
+                                                onClick={action.onClick}
+                                            >
+                                                <span className="study-home-side-badge">{action.badge}</span>
+                                                <span className="study-home-side-icon">
+                                                    <Icon size={16} />
+                                                </span>
+                                                <strong>{action.title}</strong>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </section>
+                    </>
+                ) : (
+                    <>
+                        {breadcrumbs.length > 0 && (
+                            <div className="breadcrumbs">
+                                {breadcrumbs.map((crumb, index) => (
+                                    <React.Fragment key={crumb.level}>
+                                        <button
+                                            type="button"
+                                            className={`breadcrumb ${index < breadcrumbs.length - 1 ? 'clickable' : ''}`}
+                                            onClick={() => index < breadcrumbs.length - 1 && handleBreadcrumbClick(crumb.level)}
+                                            disabled={index === breadcrumbs.length - 1}
+                                        >
+                                            {crumb.name}
+                                        </button>
+                                        {index < breadcrumbs.length - 1 && <ChevronRight size={12} />}
+                                    </React.Fragment>
+                                ))}
+                            </div>
+                        )}
+
+                        <section className="study-hero-card compact">
+                            <div className="study-hero-copy">
+                                <span className="study-chip">
+                                    {CATEGORY_MENU_LABELS[selectedCategory?.id] || selectedCategory?.name || selectedUnit?.name || 'ENGLISH'}
+                                </span>
+                                <h2>{getTitle()}</h2>
+                            </div>
+                        </section>
+
+                        <section className="study-panel study-panel--fill">
+                            {displayData.length > 0 ? (
+                                <div className={gridClassName}>
+                                    {currentLevel === 'unit' && displayData.map((item) => (
+                                        renderChoiceButton(item, 'unit', () => handleUnitClick(item))
+                                    ))}
+                                    {currentLevel === 'chapter' && displayData.map((item) => (
+                                        renderChoiceButton(item, 'chapter', () => handleChapterClick(item))
+                                    ))}
+                                    {currentLevel === 'section' && displayData.map((item) => (
+                                        renderChoiceButton(item, 'section', () => handleSectionClick(item))
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="study-empty-state">
+                                    <p>このカテゴリにはまだボタンがありません。</p>
+                                </div>
+                            )}
+                        </section>
                     </>
                 )}
-
-                {/* カテゴリー選択 */}
-                {currentLevel === 'category' && (
-                    <div className="category-list">
-                        {displayData.map((category) => (
-                            <div
-                                key={category.id}
-                                className="category-card"
-                                onClick={() => handleCategoryClick(category)}
-                            >
-                                <span className="category-name">{category.name}</span>
-                                <ChevronRight size={20} color="#999" />
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* 単元選択 */}
-                {currentLevel === 'unit' && (
-                    <div className="unit-list">
-                        {displayData.map((unit) => (
-                            <div
-                                key={unit.id}
-                                className="unit-card"
-                                onClick={() => handleUnitClick(unit)}
-                            >
-                                <span className="unit-name">{unit.name}</span>
-                                <ChevronRight size={20} color="#999" />
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* 章選択 */}
-                {currentLevel === 'chapter' && (
-                    <div className="unit-list">
-                        {displayData.map((chapter) => (
-                            <div
-                                key={chapter.id}
-                                className="unit-card"
-                                onClick={() => handleChapterClick(chapter)}
-                            >
-                                <span className="unit-name">{chapter.name}</span>
-                                <ChevronRight size={20} color="#999" />
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* 節(セクション)選択 */}
-                {currentLevel === 'section' && (
-                    <div className="unit-list">
-                        {displayData.map((section) => (
-                            <div
-                                key={section.id}
-                                className="unit-card"
-                                onClick={() => handleSectionClick(section)}
-                            >
-                                <span className="unit-name">{section.name}</span>
-                                <ChevronRight size={20} color="#999" />
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* 検索結果なし */}
-                {displayData.length === 0 && searchQuery && (
-                    <div className="no-results">
-                        <p>「{searchQuery}」に合う授業は見つかりませんでした</p>
-                    </div>
-                )}
             </div>
 
-            {/* ホームボタン */}
             <div className="bottom-area">
-                <button className="big-home-btn" onClick={() => navigate('/home')}>
+                <button type="button" className="big-home-btn" onClick={() => navigate('/home')}>
+                    <Home size={16} />
                     ホームへ戻る
                 </button>
             </div>

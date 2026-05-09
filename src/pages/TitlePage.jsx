@@ -11,7 +11,11 @@ const TitlePage = ({ stats }) => {
 
     const handleStart = () => {
         playBGM();
-        navigate(stats?.needsFirstPlayIntro ? '/opening' : '/home');
+        navigate(
+            stats?.tutorialCompleted
+                ? (stats?.needsFirstPlayIntro ? '/opening' : '/home')
+                : '/tutorial',
+        );
     };
 
     return (

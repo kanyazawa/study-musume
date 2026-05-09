@@ -292,10 +292,10 @@ const ReviewQuiz = ({
     }, []);
     const playReactionVoice = useCallback((tone, streak = 0) => {
         const selection = resolveReactionVoiceSelection({ characterId, tone, streak });
-        if (!selection.file) return;
-        if (selection.isRare) {
+        if (selection.shouldTriggerFeverFx) {
             triggerFeverFx();
         }
+        if (!selection.file) return;
 
         playVoice(selection.file, {
             channel: 'study-reaction',

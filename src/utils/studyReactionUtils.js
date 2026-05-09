@@ -128,19 +128,32 @@ export const getReactionVoiceFile = ({ characterId = 'noah', tone = null, streak
     return resolveReactionVoiceSelection({ characterId, tone, streak }).file;
 };
 
+export const shouldTriggerReactionFeverFx = ({ tone = null, streak = 0, isRare = false } = {}) => (
+    tone === 'chain_correct'
+    && streak >= REACTION_RARE_CHAIN_THRESHOLD
+    && (streak === REACTION_RARE_CHAIN_THRESHOLD || isRare)
+);
+
 export const resolveReactionVoiceSelection = ({ characterId = 'noah', tone = null, streak = 0 } = {}) => {
     const baseCandidates = getReactionVoiceCandidates({ characterId, tone, streak, includeRare: false });
     const allCandidates = getReactionVoiceCandidates({ characterId, tone, streak, includeRare: true });
-    const shouldUseRareCandidate = tone === 'chain_correct'
-        && streak >= REACTION_RARE_CHAIN_THRESHOLD
-        && allCandidates.length > baseCandidates.length
-        && Math.random() < REACTION_RARE_CHAIN_CHANCE;
+    const isRareChainEligible = tone === 'chain_correct' && streak >= REACTION_RARE_CHAIN_THRESHOLD;
+    const hasRareCandidates = allCandidates.length > baseCandidates.length;
+    const shouldUseRareCandidate = hasRareCandidates && (
+        streak === REACTION_RARE_CHAIN_THRESHOLD
+        || (isRareChainEligible && Math.random() < REACTION_RARE_CHAIN_CHANCE)
+    );
+    const shouldTriggerFeverFx = shouldTriggerReactionFeverFx({
+        tone,
+        streak,
+        isRare: shouldUseRareCandidate,
+    });
     const candidates = shouldUseRareCandidate
         ? allCandidates.slice(baseCandidates.length)
         : baseCandidates;
 
     if (candidates.length === 0) {
-        return { file: null, isRare: false };
+        return { file: null, isRare: false, shouldTriggerFeverFx };
     }
 
     const historyKey = `${characterId}:${tone}`;
@@ -154,6 +167,7 @@ export const resolveReactionVoiceSelection = ({ characterId = 'noah', tone = nul
     return {
         file: nextVoiceFile,
         isRare: shouldUseRareCandidate,
+        shouldTriggerFeverFx,
     };
 };
 

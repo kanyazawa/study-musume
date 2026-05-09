@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart3, Check, ChevronLeft, ChevronRight, Home, NotebookPen, Plus, Save, Trash2 } from 'lucide-react';
 import CalendarHeatmap from '../components/CalendarHeatmap';
 import { loadGoalTodos, saveGoalTodos } from '../utils/goalUtils';
+import { updateMissionsOnWriteDailyNote } from '../utils/missionUtils';
 import { getMonthlyStats, getMonthSummary, getStudyStreak } from '../utils/studyHistoryUtils';
 import './CalendarPage.css';
 
@@ -89,6 +90,13 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
         }
 
         const trimmedNote = noteDraft.trim();
+        const trimmedFocus = focusDraft.trim();
+        const hadSavedNote = String(calendarNotes[selectedDate] || '').trim().length > 0;
+        const shouldTrackDailyNoteMission = (
+            selectedDate === todayString
+            && trimmedNote.length > 0
+            && !hadSavedNote
+        );
 
         updateStats((currentStats) => {
             const nextNotes = { ...(currentStats?.calendarNotes || {}) };
@@ -100,7 +108,6 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
                 delete nextNotes[selectedDate];
             }
 
-            const trimmedFocus = focusDraft.trim();
             if (trimmedFocus) {
                 nextFocuses[selectedDate] = trimmedFocus;
             } else {
@@ -112,6 +119,10 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
                 calendarFocuses: nextFocuses,
             };
         });
+
+        if (shouldTrackDailyNoteMission) {
+            updateMissionsOnWriteDailyNote();
+        }
     };
 
     const selectedNoteLength = noteDraft.length;

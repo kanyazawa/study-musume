@@ -5,6 +5,9 @@ import CharacterGym from '../assets/images/character_gym.webp';
 import CharacterCasualGray from '../assets/images/character_casual_gray_hoodie.webp';
 import CharacterCasualBlack from '../assets/images/character_casual_hoodie.webp';
 import BgSunsetShop from '../assets/images/shop/bg_sunset_shop.jpg';
+import AssistHintCardShop from '../assets/images/shop/assist_hint_card_shop.webp';
+import AssistChainGuardShop from '../assets/images/shop/assist_chain_guard_shop.webp';
+import AssistTimeExtendShop from '../assets/images/shop/assist_time_extend_shop.webp';
 import VoiceCheerPackShop from '../assets/images/shop/voice_cheer_pack_shop.jpg';
 import VoiceGoodnightPackShop from '../assets/images/shop/voice_goodnight_pack_shop.jpg';
 import SpecialNameCallTicketShop from '../assets/images/shop/special_name_call_ticket_shop.jpg';
@@ -18,6 +21,9 @@ const ITEM_IMAGE_MAP = {
     'character_casual_gray_hoodie.webp': CharacterCasualGray,
     'character_casual_hoodie.webp': CharacterCasualBlack,
     'bg_sunset_shop.jpg': BgSunsetShop,
+    'assist_hint_card_shop.webp': AssistHintCardShop,
+    'assist_chain_guard_shop.webp': AssistChainGuardShop,
+    'assist_time_extend_shop.webp': AssistTimeExtendShop,
     'voice_cheer_pack_shop.jpg': VoiceCheerPackShop,
     'voice_goodnight_pack_shop.jpg': VoiceGoodnightPackShop,
     'special_name_call_ticket_shop.jpg': SpecialNameCallTicketShop,

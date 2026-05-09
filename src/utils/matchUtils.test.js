@@ -1,15 +1,20 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
     buildQuestionOptions,
+    clampTugPosition,
     FRIEND_MATCH_MODE_OPTIONS,
     FRIEND_MATCH_TARGET_OPTIONS,
     getBattleModeLabel,
     getNthCorrectAnswerTimestamp,
+    getTugPushAmount,
     normalizeBattleMode,
     normalizeTargetCorrect,
+    resolveTugAdvantageMeta,
+    resolveTugMomentumEvent,
     resolveWinnerUid,
     summarizeAnswers,
     shuffleArray,
+    TUG_GAUGE_LIMIT,
 } from './matchUtils';
 
 describe('matchUtils', () => {
@@ -70,6 +75,47 @@ describe('matchUtils', () => {
         expect(getBattleModeLabel('listening')).toBe('リスニング');
     });
 
+    it('returns tug push amounts with streak scaling and clamps gauge positions', () => {
+        expect(getTugPushAmount(1)).toBe(10);
+        expect(getTugPushAmount(2)).toBe(12);
+        expect(getTugPushAmount(3)).toBe(15);
+        expect(getTugPushAmount(8)).toBe(18);
+        expect(clampTugPosition(180)).toBe(TUG_GAUGE_LIMIT);
+        expect(clampTugPosition(-180)).toBe(-TUG_GAUGE_LIMIT);
+    });
+
+    it('describes tug advantage from each player perspective', () => {
+        expect(resolveTugAdvantageMeta(0)).toMatchObject({ label: '拮抗', tone: 'neutral' });
+        expect(resolveTugAdvantageMeta(28)).toMatchObject({ label: '優勢', tone: 'lead' });
+        expect(resolveTugAdvantageMeta(70, 'player2')).toMatchObject({ label: '大劣勢', tone: 'chase' });
+    });
+
+    it('detects lead changes, comebacks, and pressure moments', () => {
+        expect(resolveTugMomentumEvent({
+            previousPosition: -14,
+            nextPosition: 8,
+            actingPlayer: 'player1',
+            isCorrect: true,
+            streak: 2,
+        })).toMatchObject({ type: 'lead_change', label: '逆転！' });
+
+        expect(resolveTugMomentumEvent({
+            previousPosition: -52,
+            nextPosition: -37,
+            actingPlayer: 'player1',
+            isCorrect: true,
+            streak: 3,
+        })).toMatchObject({ type: 'comeback', label: '押し返した！' });
+
+        expect(resolveTugMomentumEvent({
+            previousPosition: 18,
+            nextPosition: 36,
+            actingPlayer: 'player1',
+            isCorrect: true,
+            streak: 4,
+        })).toMatchObject({ type: 'dominating', label: 'DOMINATING' });
+    });
+
     it('prefers the player who reached the target score first when scores tie', () => {
         const roomData = {
             player1: {
@@ -91,6 +137,15 @@ describe('matchUtils', () => {
         };
 
         expect(resolveWinnerUid(roomData, 10)).toBe('p1');
+    });
+
+    it('prefers tug position over score when gauge battle data exists', () => {
+        expect(resolveWinnerUid({
+            finishReason: 'questions_exhausted',
+            tugPosition: -18,
+            player1: { uid: 'p1', score: 8, answers: [] },
+            player2: { uid: 'p2', score: 7, answers: [] },
+        }, 10)).toBe('p2');
     });
 
     it('returns draw when both score and target timing are tied', () => {

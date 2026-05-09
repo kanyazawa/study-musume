@@ -1,0 +1,256 @@
+.voice-collection-page {
+    min-height: 100%;
+    background:
+        radial-gradient(circle at top, rgba(255, 196, 230, 0.28), transparent 32%),
+        linear-gradient(180deg, #17172d 0%, #22213e 45%, #121223 100%);
+    color: #fff7fb;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.voice-collection-header {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 16px;
+}
+
+.voice-collection-back {
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    color: inherit;
+    padding: 10px 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.voice-collection-title p {
+    margin: 0 0 4px;
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.voice-collection-title h1 {
+    margin: 0;
+    font-size: 28px;
+}
+
+.voice-collection-meter {
+    min-width: 92px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.12);
+    padding: 12px 14px;
+    text-align: right;
+}
+
+.voice-collection-meter span,
+.voice-collection-meter small {
+    display: block;
+}
+
+.voice-collection-meter span {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.voice-collection-meter small {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.voice-collection-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.9fr);
+    gap: 16px;
+}
+
+.voice-collection-hero-copy,
+.voice-collection-status,
+.voice-collection-card,
+.voice-collection-empty {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 18px 40px rgba(9, 7, 20, 0.24);
+    backdrop-filter: blur(12px);
+}
+
+.voice-collection-hero-copy,
+.voice-collection-status {
+    border-radius: 24px;
+    padding: 20px;
+}
+
+.voice-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 6px 10px;
+    background: linear-gradient(135deg, #ff8ac5, #ffc869);
+    color: #5f2146;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.voice-collection-hero-copy h2,
+.voice-collection-empty h3 {
+    margin: 12px 0 8px;
+}
+
+.voice-collection-hero-copy p,
+.voice-collection-status p,
+.voice-transcript,
+.voice-collection-empty p {
+    margin: 0;
+    line-height: 1.7;
+    color: rgba(255, 247, 251, 0.82);
+}
+
+.voice-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    margin-bottom: 12px;
+}
+
+.voice-status-badge.is-muted {
+    background: rgba(255, 188, 188, 0.18);
+    color: #ffd1d1;
+}
+
+.voice-collection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+}
+
+.voice-collection-card {
+    border-radius: 24px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.voice-collection-card.is-playing {
+    transform: translateY(-3px);
+    border-color: rgba(255, 152, 210, 0.6);
+    box-shadow: 0 22px 44px rgba(255, 105, 180, 0.18);
+}
+
+.voice-collection-visual {
+    width: 100%;
+    aspect-ratio: 1.2;
+    border-radius: 18px;
+    overflow: hidden;
+}
+
+.voice-collection-card-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.voice-collection-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+}
+
+.voice-rarity {
+    border-radius: 999px;
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.12);
+    font-weight: 700;
+}
+
+.voice-rarity.rarity-SSR {
+    color: #ffe38e;
+}
+
+.voice-rarity.rarity-SR {
+    color: #ffd3f6;
+}
+
+.voice-quantity,
+.voice-unlock-label {
+    color: rgba(255, 247, 251, 0.74);
+}
+
+.voice-collection-card h3 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.voice-preview-button,
+.voice-collection-empty-actions button {
+    border: 0;
+    border-radius: 16px;
+    padding: 12px 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.voice-preview-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #ff79bf, #ffb86f);
+    color: #4a1836;
+}
+
+.voice-preview-button.is-playing {
+    background: linear-gradient(135deg, #ffe287, #ff9ccf);
+}
+
+.voice-collection-empty {
+    grid-column: 1 / -1;
+    border-radius: 24px;
+    padding: 32px;
+    text-align: center;
+}
+
+.voice-collection-empty-actions {
+    margin-top: 18px;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+.voice-collection-empty-actions button {
+    background: rgba(255, 255, 255, 0.14);
+    color: inherit;
+}
+
+@media (max-width: 720px) {
+    .voice-collection-page {
+        padding: 16px;
+        gap: 16px;
+    }
+
+    .voice-collection-header,
+    .voice-collection-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .voice-collection-meter {
+        text-align: left;
+    }
+
+    .voice-collection-empty-actions {
+        flex-direction: column;
+    }
+}

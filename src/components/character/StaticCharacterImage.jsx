@@ -17,6 +17,11 @@ import RenNormal from '../../assets/images/ren_normal.webp';
 import RenAngry from '../../assets/images/ren_angry.webp';
 import RenHappy from '../../assets/images/ren_happy.webp';
 import RenSerious from '../../assets/images/ren_serious.webp';
+import FireflyBase from '../../assets/images/firefly/firefly_base.webp';
+import FireflyBlinkOverlay from '../../assets/images/firefly/firefly_overlay_blink.webp';
+import FireflySmileOverlay from '../../assets/images/firefly/firefly_overlay_smile.webp';
+import FireflySurprisedOverlay from '../../assets/images/firefly/firefly_overlay_surprised.webp';
+import SparkleSelectImage from '../../assets/images/sparkle/sparkle_select.png';
 import { getSkinFilter } from '../../utils/cosmeticUtils';
 
 const FACE_EFFECT_CONFIG = {
@@ -48,69 +53,136 @@ const FACE_EFFECT_CONFIG = {
     },
 };
 
-const NOAH_SKIN_IMAGES = {
-    default: CharacterMain,
-    skin_casual: CharacterCasual,
-    skin_casual_fall: CharacterCasualFall,
-    skin_gym: CharacterGym,
-    skin_casual_gray_hoodie: CharacterCasualGray,
-    skin_casual_hoodie: CharacterCasualBlack,
-};
-
-const REN_SKIN_IMAGES = {
-    default: CharacterRen,
-    skin_casual: CharacterRen,
-    skin_casual_fall: CharacterRen,
-};
-
-const NOAH_EXPRESSION_IMAGES = {
-    default: NoaNormal,
-    main: NoaNormal,
-    new: CharacterMain,
-    tsundere: NoaNormal,
-    user: CharacterUser,
-    happy: NoaHappy,
-    correct: NoaHappy,
-    normal: NoaNormal,
-    angry: NoaAngry,
-    serious: NoaAngry,
-    smile: NoaHappy,
-    shy: NoaBlink,
-    sad: NoaNormal,
-    surprised: NoaTalk,
-    relaxed: NoaBlink,
-};
-
-const REN_EXPRESSION_IMAGES = {
-    default: RenNormal,
-    main: RenNormal,
-    new: RenNormal,
-    happy: RenHappy,
-    correct: RenHappy,
-    normal: RenNormal,
-    angry: RenAngry,
-    serious: RenSerious,
-    smile: RenHappy,
-    shy: RenHappy,
-    sad: RenNormal,
-    surprised: RenHappy,
-    relaxed: RenNormal,
+const CHARACTER_IMAGE_SETS = {
+    noah: {
+        skinImages: {
+            default: CharacterMain,
+            skin_casual: CharacterCasual,
+            skin_casual_fall: CharacterCasualFall,
+            skin_gym: CharacterGym,
+            skin_casual_gray_hoodie: CharacterCasualGray,
+            skin_casual_hoodie: CharacterCasualBlack,
+        },
+        expressionImages: {
+            default: NoaNormal,
+            main: NoaNormal,
+            new: CharacterMain,
+            tsundere: NoaNormal,
+            user: CharacterUser,
+            happy: NoaHappy,
+            correct: NoaHappy,
+            normal: NoaNormal,
+            angry: NoaAngry,
+            serious: NoaAngry,
+            smile: NoaHappy,
+            shy: NoaBlink,
+            sad: NoaNormal,
+            surprised: NoaTalk,
+            relaxed: NoaBlink,
+        },
+        speakingExpressions: ['normal', 'happy', 'smile', 'surprised'],
+        speakingSource: NoaTalk,
+    },
+    ren: {
+        skinImages: {
+            default: CharacterRen,
+            skin_casual: CharacterRen,
+            skin_casual_fall: CharacterRen,
+        },
+        expressionImages: {
+            default: RenNormal,
+            main: RenNormal,
+            new: RenNormal,
+            happy: RenHappy,
+            correct: RenHappy,
+            normal: RenNormal,
+            angry: RenAngry,
+            serious: RenSerious,
+            smile: RenHappy,
+            shy: RenHappy,
+            sad: RenNormal,
+            surprised: RenHappy,
+            relaxed: RenNormal,
+        },
+    },
+    firefly: {
+        skinImages: {
+            default: FireflyBase,
+        },
+        expressionImages: {
+            default: FireflyBase,
+            main: FireflyBase,
+            new: FireflyBase,
+            tsundere: FireflyBase,
+            user: FireflyBase,
+            happy: FireflyBase,
+            correct: FireflyBase,
+            normal: FireflyBase,
+            angry: FireflyBase,
+            serious: FireflyBase,
+            smile: FireflyBase,
+            shy: FireflyBase,
+            sad: FireflyBase,
+            surprised: FireflyBase,
+            relaxed: FireflyBase,
+            blink: FireflyBase,
+            talk: FireflyBase,
+        },
+        expressionOverlays: {
+            happy: FireflySmileOverlay,
+            correct: FireflySmileOverlay,
+            smile: FireflySmileOverlay,
+            shy: FireflyBlinkOverlay,
+            relaxed: FireflyBlinkOverlay,
+            blink: FireflyBlinkOverlay,
+            surprised: FireflySurprisedOverlay,
+        },
+    },
+    sparkle: {
+        skinImages: {
+            default: SparkleSelectImage,
+        },
+        expressionImages: {
+            default: SparkleSelectImage,
+            main: SparkleSelectImage,
+            new: SparkleSelectImage,
+            tsundere: SparkleSelectImage,
+            user: SparkleSelectImage,
+            happy: SparkleSelectImage,
+            correct: SparkleSelectImage,
+            normal: SparkleSelectImage,
+            angry: SparkleSelectImage,
+            serious: SparkleSelectImage,
+            smile: SparkleSelectImage,
+            shy: SparkleSelectImage,
+            sad: SparkleSelectImage,
+            surprised: SparkleSelectImage,
+            relaxed: SparkleSelectImage,
+            blink: SparkleSelectImage,
+            talk: SparkleSelectImage,
+        },
+    },
 };
 
 const resolveImage = (characterId, skinId, pose = {}) => {
-    const isRen = characterId === 'ren';
-    const skinImages = isRen ? REN_SKIN_IMAGES : NOAH_SKIN_IMAGES;
-    const expressionImages = isRen ? REN_EXPRESSION_IMAGES : NOAH_EXPRESSION_IMAGES;
+    const characterImages = CHARACTER_IMAGE_SETS[characterId] || CHARACTER_IMAGE_SETS.noah;
+    const skinImages = characterImages.skinImages || CHARACTER_IMAGE_SETS.noah.skinImages;
+    const expressionImages = characterImages.expressionImages || CHARACTER_IMAGE_SETS.noah.expressionImages;
     const expressionKey = pose.expression || pose.emotion || 'normal';
     const isSpeaking = Boolean(pose?.speaking);
-    const hasNoahTalkVariant = !isRen && isSpeaking && ['normal', 'happy', 'smile', 'surprised'].includes(expressionKey);
-    const source = hasNoahTalkVariant
-        ? NoaTalk
+    const hasSpeakingVariant = isSpeaking
+        && characterImages.speakingSource
+        && Array.isArray(characterImages.speakingExpressions)
+        && characterImages.speakingExpressions.includes(expressionKey);
+    const source = hasSpeakingVariant
+        ? characterImages.speakingSource
         : expressionImages[expressionKey] || skinImages[skinId] || skinImages.default;
     const skinFallback = skinImages[skinId] || skinImages.default;
+    const overlaySource = characterImages.expressionOverlays?.[expressionKey] || null;
 
     return {
         source,
+        overlaySource,
         expressionKey,
         usesExpressionVariant: source !== skinFallback,
     };
@@ -332,7 +404,7 @@ const StaticCharacterImage = ({
     disableFaceEffects = false,
     chromaKey,
 }) => {
-    const { source, usesExpressionVariant, expressionKey } = resolveImage(characterId, skinId, pose);
+    const { source, overlaySource, usesExpressionVariant, expressionKey } = resolveImage(characterId, skinId, pose);
     const filter = getSkinFilter(skinId);
     const shouldKeepSkinFilter = !usesExpressionVariant;
     const resolvedSource = sourceOverride || source;
@@ -354,6 +426,14 @@ const StaticCharacterImage = ({
                     alt={alt}
                     className="character-static-base-image"
                     style={shouldKeepSkinFilter ? { filter } : undefined}
+                />
+            )}
+            {overlaySource && (
+                <img
+                    src={overlaySource}
+                    alt=""
+                    aria-hidden="true"
+                    className="character-static-expression-overlay"
                 />
             )}
             {faceEffectConfig && (

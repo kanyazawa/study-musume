@@ -164,6 +164,7 @@ npx cap open ios
 ```
 
 詳細手順は [docs/ios-quickstart.md](/C:/Users/Hide2/.gemini/study-musume/docs/ios-quickstart.md) にまとめています。
+App Store 提出前の確認項目は [docs/app-store-release-checklist.md](/C:/Users/Hide2/.gemini/study-musume/docs/app-store-release-checklist.md) にまとめています。
 
 補足:
 
@@ -172,6 +173,7 @@ npx cap open ios
 - 現在の Google ログイン実装は Web 向けのため、iOS ネイティブアプリで安定化するには後で native auth 対応が必要です
 
 iOS の native Google ログインへ置き換える実装計画は [docs/ios-native-auth-plan.md](/C:/Users/Hide2/.gemini/study-musume/docs/ios-native-auth-plan.md) にまとめています。
+`Sign in with Apple` の実装計画は [docs/ios-sign-in-with-apple-plan.md](/C:/Users/Hide2/.gemini/study-musume/docs/ios-sign-in-with-apple-plan.md) にまとめています。
 Swift plugin のテンプレートは [docs/ios-native-plugin-template/NativeGoogleAuth.swift](/C:/Users/Hide2/.gemini/study-musume/docs/ios-native-plugin-template/NativeGoogleAuth.swift) と [docs/ios-native-plugin-template/NativeGoogleAuthPlugin.swift](/C:/Users/Hide2/.gemini/study-musume/docs/ios-native-plugin-template/NativeGoogleAuthPlugin.swift) に置いてあります。`AppDelegate` と `Info.plist` 用の差し込み例も [docs/ios-native-plugin-template/AppDelegate.google-signin.swift.snippet](/C:/Users/Hide2/.gemini/study-musume/docs/ios-native-plugin-template/AppDelegate.google-signin.swift.snippet) と [docs/ios-native-plugin-template/Info.plist.google-signin.snippet.xml](/C:/Users/Hide2/.gemini/study-musume/docs/ios-native-plugin-template/Info.plist.google-signin.snippet.xml) に追加しています。
 
 ## デプロイ

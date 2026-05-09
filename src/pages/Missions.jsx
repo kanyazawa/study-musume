@@ -739,6 +739,8 @@ function resolveCoreMissionNavigationTarget(mission) {
             return { to: '/character' };
         case MISSION_TYPES.OPEN_STORY:
             return { to: '/story' };
+        case MISSION_TYPES.WRITE_DAILY_NOTE:
+            return { to: '/calendar' };
         case MISSION_TYPES.STUDY_ONCE:
         case MISSION_TYPES.STUDY_THREE_SUBJECTS:
         case MISSION_TYPES.STUDY_FIVE_TIMES:
