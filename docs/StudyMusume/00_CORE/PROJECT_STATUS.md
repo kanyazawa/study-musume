@@ -59,6 +59,7 @@
 - `03_CHARACTERS` の docs は `高瀬エマ` 単独前提に整理し、他ヒロイン案のメモは一旦外した
 - repo の作業本体は `C:\dev\study-musume` へ寄せ、退避コピーからの救出差分も `main` へ復旧した
 - AI運用ルールは `AGENTS.md` に `Terminal-First AI Workflow` として明文化した
+- AI が先に読むべき docs の順番も `AGENTS.md` に `Required Read Order` として明文化した
 - build は通る状態
 - ただし `エマ個別ルートの中盤以降`, `NoaChatBox のエマ版`, `エマ専用ボイス差し替え`, `既存複数ヒロイン前提UIの整理` はまだ薄い
 

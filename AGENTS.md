@@ -73,6 +73,18 @@ Project-specific guidance for Codex and similar coding agents working in `study-
 - 退避コピーから救出するときは、まず branch や commit を作ってから取り込む。
 - 迷ったら `場所を固定して、差分を見て、レビューしてから push` を優先する。
 
+## Required Read Order
+
+- AI は作業開始時に、まず次を確認する:
+  - `AGENTS.md`
+  - `docs/StudyMusume/00_CORE/AI_RULES.md`
+  - `docs/StudyMusume/00_CORE/PROJECT_STATUS.md`
+  - `docs/StudyMusume/00_CORE/TODO.md`
+- UI を触るときは追加で `docs/StudyMusume/01_UI/UI_RULES.md` を確認する。
+- デバッグや原因調査が主目的のときは追加で `docs/StudyMusume/04_DEBUG/DEBUG_RULES.md` を確認する。
+- 複数AI運用の進め方や役割分担を使うときは `docs/StudyMusume/00_CORE/MULTI_AI_WORKFLOW.md` と `docs/StudyMusume/00_CORE/AI_ROLE_PROMPTS.md` も確認する。
+- これらを読まずに広い範囲を変更しない。まず現在地と制約を合わせてから実装に入る。
+
 ## UI Generation Preferences
 
 - The user often uses v0 only as a rough layout generator, then pastes the result into this repo.
