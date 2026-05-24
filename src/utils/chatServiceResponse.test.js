@@ -90,6 +90,30 @@ describe('chatService structured responses', () => {
         expect(result.body).not.toHaveProperty('blocked');
     });
 
+    it('builds Emma chat prompts when characterId is emma', async () => {
+        const fetchImpl = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                output_text: '{"reply":"うん、そこ一緒に見よ。","emotion":"normal"}',
+                usage: { total_tokens: 10 },
+            }),
+        });
+
+        await createNoaChatResponse({
+            openAiApiKey: 'test-key',
+            body: {
+                characterId: 'emma',
+                message: 'ちょっと相談したい',
+                recentMessages: [],
+            },
+            fetchImpl,
+        });
+
+        const requestBody = JSON.parse(fetchImpl.mock.calls[0][1].body);
+        expect(JSON.stringify(requestBody)).toContain('高瀬エマ');
+        expect(JSON.stringify(requestBody)).toContain('少し不器用だけどやさしい学習パートナー');
+    });
+
     it('replaces unsafe assistant replies with a safe fallback', async () => {
         const fetchImpl = vi.fn().mockResolvedValue({
             ok: true,

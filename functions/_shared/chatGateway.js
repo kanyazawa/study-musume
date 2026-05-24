@@ -85,7 +85,7 @@ export const enforceChatGatewayAccess = ({ env = {}, body = {}, headers, now = D
             clientId,
             statusCode: 503,
             body: {
-                error: '今はノアと話せないわ。少し時間を置いてから試しなさい。',
+                error: '今は話せないみたい。少し時間を置いてから試して。',
                 code: 'chat_disabled',
             },
         };

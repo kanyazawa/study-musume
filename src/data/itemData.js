@@ -400,7 +400,7 @@ export const ALL_ITEMS = [
         description: 'ホームや学習の節目で、やさしく背中を押してくれるボイスセット。',
         voiceSetId: 'cheer_pack',
         unlockLabel: '学習応援ボイス',
-        previewVoicePath: 'tts-generated/home-reactions/noah/noah-reviewFocus-01.mp3',
+        previewVoicePath: 'tts-generated/home-reactions/emma/emma-reviewFocus-01.mp3',
         sampleTranscript: '今日はちゃんと積み上げよう。一緒に少しずつ進めていこ？',
     },
     {
@@ -413,7 +413,7 @@ export const ALL_ITEMS = [
         description: '一日の終わりにぴったりの、落ち着いた声のボイスセット。',
         voiceSetId: 'goodnight_pack',
         unlockLabel: 'おやすみボイス',
-        previewVoicePath: 'tts-generated/home-reactions/noah/noah-highAffection-01.mp3',
+        previewVoicePath: 'tts-generated/home-reactions/emma/emma-highAffection-01.mp3',
         sampleTranscript: '今日もおつかれさま。少しだけ肩の力を抜いて休もうね。',
     },
     {
@@ -427,7 +427,7 @@ export const ALL_ITEMS = [
         description: '放課後に一緒に勉強へ誘ってくれる特別ボイス。ホームやごほうび演出向けの報酬想定。',
         voiceSetId: 'after_school_invite',
         unlockLabel: 'ホーム追加ボイス',
-        previewVoicePath: 'tts-generated/home-reactions/noah/noah-default-03.mp3',
+        previewVoicePath: 'tts-generated/home-reactions/emma/emma-default-03.mp3',
         sampleTranscript: '放課後、少しだけ残っていかない？ 一緒なら勉強も頑張れそう。',
     },
     {
@@ -441,7 +441,7 @@ export const ALL_ITEMS = [
         description: '一日のスタートで背中を押してくれる応援ボイス。ログイン演出や朝枠の報酬向け。',
         voiceSetId: 'wakeup_call',
         unlockLabel: 'ログイン追加ボイス',
-        previewVoicePath: 'tts-generated/home-reactions/noah/noah-examSoon-01.mp3',
+        previewVoicePath: 'tts-generated/home-reactions/emma/emma-examSoon-01.mp3',
         sampleTranscript: 'おはよう。今日の一歩、ちゃんと見届けるから安心して進も？',
     },
     {

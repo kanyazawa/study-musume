@@ -1,9 +1,11 @@
 import NoahSelectImage from '../assets/images/noah_normal.webp';
+import EmmaSelectImage from '../assets/images/emma_home_preview_generated.png';
 import RenSelectImage from '../assets/images/character_ren.webp';
 import FireflySelectImage from '../assets/images/firefly/firefly_select.webp';
 import SparkleSelectImage from '../assets/images/sparkle/sparkle_select.png';
 
 export const CHARACTER_LABELS = {
+    emma: '高瀬エマ',
     noah: 'ノア',
     ren: 'レン',
     firefly: 'ホタル',
@@ -11,6 +13,12 @@ export const CHARACTER_LABELS = {
 };
 
 export const CHARACTER_SELECT_OPTIONS = [
+    {
+        id: 'emma',
+        name: CHARACTER_LABELS.emma,
+        image: EmmaSelectImage,
+        description: '放課後に英語を見てくれる学習パートナー。\nまずは静止画ベースのMVP表示で使えます。',
+    },
     {
         id: 'noah',
         name: CHARACTER_LABELS.noah,

@@ -1,4 +1,41 @@
 const OPENING_VARIANTS = {
+    emma: {
+        partnerName: '高瀬エマ',
+        chapterTitle: 'プロローグ',
+        lead: '放課後のやり直し',
+        scenes: [
+            {
+                speaker: 'partner',
+                emotion: 'serious',
+                text: '来た。じゃあ今日から、私が英語を見る。長くやる必要はないから、まずは基礎から揃えよ。'
+            },
+            {
+                speaker: 'you',
+                emotion: 'normal',
+                text: '助かるよ……。やる気はあるんだけど、何から直せばいいのか全然わからなくて。'
+            },
+            {
+                speaker: 'partner',
+                emotion: 'normal',
+                text: 'ホームでは TP と本番までの日数を見ればいい。迷ったら「授業へ」からで大丈夫。'
+            },
+            {
+                speaker: 'partner',
+                emotion: 'serious',
+                text: '間違えた問題は「弱点ノート」に残る。新しい範囲を増やすより、そこを埋めるほうが点に直結しやすい。'
+            },
+            {
+                speaker: 'partner',
+                emotion: 'relaxed',
+                text: '「課題」は毎日の区切り、「ストーリー」は続けた分だけ開く。焦らなくても、積めばちゃんと変わるから。'
+            },
+            {
+                speaker: 'partner',
+                emotion: 'smile',
+                text: 'じゃあ最初の一歩。今日は私と一緒に、一個だけ終わらせよ。そこからで十分。'
+            },
+        ],
+    },
     noah: {
         partnerName: 'ノア',
         chapterTitle: 'プロローグ',

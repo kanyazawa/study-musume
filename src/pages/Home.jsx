@@ -8,6 +8,7 @@ import MenuModal from '../components/MenuModal';
 import LoginBonusModal from '../components/LoginBonusModal';
 import NoaChatBox from '../components/NoaChatBox';
 import HomePreviewGeneratedChroma from '../assets/images/noah_home_preview_generated_chroma.png';
+import EmmaStandingImage from '../assets/images/emma_home_preview_generated.png';
 
 // Utils
 import { getAffectionLevel, getAffectionProgress, getHomeReaction, getNextLevel } from '../utils/affectionUtils';
@@ -18,11 +19,13 @@ import { updateMissionsOnInteract } from '../utils/missionUtils';
 import { checkForNewAchievements } from '../utils/achievementUtils';
 import { ACHIEVEMENTS } from '../data/achievements';
 import { processLoginBonus } from '../utils/loginBonusUtils';
-import { getLatestNoaAssistantMessageEntry } from '../utils/chatHistory';
+import { getCharacterChatTopicKey, getLatestNoaAssistantMessageEntry } from '../utils/chatHistory';
 import { inferEmotionFromChatText } from '../utils/chatEmotionUtils';
 import { getEnabledHomeTouchAreas, getHomeTouchReaction } from '../data/homeTouchReactions';
+import { CHARACTER_SELECT_OPTIONS, getCharacterLabel } from '../data/characterData';
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
 import { loadGoalTodos } from '../utils/goalUtils';
+import { getEmptyGameLoopState } from '../utils/gameLoopUtils';
 import { getHomeReviewSummary } from '../utils/reviewUtils';
 import { applyRelationshipActivity } from '../utils/relationshipEventUtils';
 import { getUnreadRelationshipEvents } from '../utils/relationshipEventUtils';
@@ -37,6 +40,18 @@ import {
 } from '../utils/homeExpressionLayers';
 
 const HOME_CHARACTER_PREVIEWS = {
+    'emma-mvp': {
+        characterId: 'emma',
+        source: EmmaStandingImage,
+        alt: 'Takase Emma standing portrait',
+        forceRenderer: 'image',
+        imageClassName: 'home-preview-emma-portrait',
+        figureClassName: 'has-emma-preview',
+        pose: {
+            idleMotion: 'gentle',
+            autoBlink: true,
+        },
+    },
     'generated-hoodie-main': {
         characterId: 'noah',
         source: HomePreviewGeneratedChroma,
@@ -72,6 +87,8 @@ const HOME_CHARACTER_PREVIEWS = {
     },
 };
 
+const EMMA_MVP_HOME_SPEECH = '今日は長くやらなくていい。まず一個だけ、一緒に見よ。';
+
 const Home = ({ stats, updateStats }) => {
     // Default stats if not provided (fallback)
     const {
@@ -89,6 +106,7 @@ const Home = ({ stats, updateStats }) => {
 
     const loginStreak = stats?.loginStreak || 0;
     const characterId = stats?.characterId || 'noah';
+    const selectedHeroineId = stats?.selectedHeroineId || stats?.favoriteCharacter || characterId;
     const preferredRenderer = stats?.characterRenderer;
     const hasHomeLive2D = hasLive2DModelConfig(characterId, equippedSkin);
     const currentBgStyle = getBackgroundStyle(equippedBackground);
@@ -128,6 +146,9 @@ const Home = ({ stats, updateStats }) => {
     const affectionLevelInfo = getAffectionLevel(affection);
     const affectionProgress = getAffectionProgress(affection);
     const nextAffectionLevelInfo = getNextLevel(affectionLevelInfo.level);
+    const tpPercent = maxTp > 0
+        ? Math.min(100, Math.max(0, (tp / maxTp) * 100))
+        : 0;
     const affectionProgressLabel = nextAffectionLevelInfo
         ? `${Number(affection).toLocaleString()} / ${Number(nextAffectionLevelInfo.points).toLocaleString()}`
         : `${Number(affection).toLocaleString()} / MAX`;
@@ -196,7 +217,25 @@ const Home = ({ stats, updateStats }) => {
 
     const countdownDisplay = getCountdownDisplay();
     const homeReviewSummary = useMemo(() => getHomeReviewSummary(stats), [stats]);
-    const homeTouchAreas = useMemo(() => getEnabledHomeTouchAreas(characterId), [characterId]);
+    const storyProgressFallback = useMemo(
+        () => getEmptyGameLoopState().storyProgressSummary,
+        [],
+    );
+    const isEmmaMvp = stats?.tutorialHomeVariant === 'emma-mvp';
+    const isEmmaActiveCharacter = characterId === 'emma';
+    const shouldUseEmmaMvpPresentation = isEmmaMvp && isEmmaActiveCharacter;
+    const supportsNoaChat = characterId === 'noah' || characterId === 'emma';
+    const chatHistoryKey = useMemo(() => getCharacterChatTopicKey(characterId), [characterId]);
+    const storyProgressSummary = stats?.storyProgressSummary || storyProgressFallback;
+    const featuredPromise = storyProgressSummary.featuredPromise;
+    const selectedHeroineOption = useMemo(
+        () => CHARACTER_SELECT_OPTIONS.find((character) => character.id === selectedHeroineId) || null,
+        [selectedHeroineId],
+    );
+    const selectedHeroineLabel = selectedHeroineOption?.name || getCharacterLabel(selectedHeroineId);
+    const selectedHeroineHint = selectedHeroineOption?.description?.split('\n')[0] || '今日いっしょに進める相手';
+    const displayedFocusCharacterLabel = storyProgressSummary.focusCharacterLabel;
+    const displayedPromiseCharacterLabel = featuredPromise?.characterLabel;
     const unreadRelationshipEvents = useMemo(() => getUnreadRelationshipEvents(stats), [stats]);
     const homeCharacterPreview = useMemo(() => {
         const previewKey = new URLSearchParams(location.search).get('characterPreview');
@@ -212,10 +251,21 @@ const Home = ({ stats, updateStats }) => {
 
         return preview;
     }, [characterId, location.search]);
-    const shouldForceHomeLive2D = !homeCharacterPreview && characterId === 'noah' && hasHomeLive2D;
+    const fallbackEmmaPreview = shouldUseEmmaMvpPresentation ? HOME_CHARACTER_PREVIEWS['emma-mvp'] : null;
+    const activeHomeCharacterPreview = homeCharacterPreview || fallbackEmmaPreview;
+    const isPreviewOnlyHomeCharacter = Boolean(
+        activeHomeCharacterPreview?.characterId
+        && activeHomeCharacterPreview.characterId !== characterId
+    );
+    const isHomeCharacterInteractive = !isPreviewOnlyHomeCharacter;
+    const homeTouchAreas = useMemo(
+        () => (isHomeCharacterInteractive ? getEnabledHomeTouchAreas(characterId) : []),
+        [characterId, isHomeCharacterInteractive],
+    );
+    const shouldForceHomeLive2D = !activeHomeCharacterPreview && characterId === 'noah' && hasHomeLive2D;
     const renderer = resolveCharacterRenderer({
-        preferredRenderer: homeCharacterPreview?.forceRenderer || (shouldForceHomeLive2D ? 'live2d' : preferredRenderer),
-        characterId,
+        preferredRenderer: activeHomeCharacterPreview?.forceRenderer || (shouldForceHomeLive2D ? 'live2d' : preferredRenderer),
+        characterId: activeHomeCharacterPreview?.characterId || characterId,
         skinId: equippedSkin,
     });
     const examDaysLeft = useMemo(() => {
@@ -251,7 +301,6 @@ const Home = ({ stats, updateStats }) => {
             : characterId === 'sparkle'
                 ? 'S'
                 : 'N';
-
     const stopTalkAnimation = useCallback(() => {
         if (talkAnimationTimerRef.current) {
             clearTimeout(talkAnimationTimerRef.current);
@@ -399,6 +448,10 @@ const Home = ({ stats, updateStats }) => {
 
     // Random speech on mount and click (好感度レベルに応じて)
     const talk = useCallback(async ({ source = 'system' } = {}) => {
+        if (!isHomeCharacterInteractive) {
+            return;
+        }
+
         if (source !== 'system' && isDuplicateInteraction(`talk:${source}`)) {
             return;
         }
@@ -448,9 +501,15 @@ const Home = ({ stats, updateStats }) => {
                 detail: '短いひとことでも、いつもの距離感が少しやわらいだ。',
             }).nextStats);
         }
-    }, [affection, characterId, examDaysLeft, homeReviewSummary.due, isDuplicateInteraction, loginStreak, maxTp, playVoice, startTimedTalkAnimation, stopTalkAnimation, tp, updateStats]);
+    }, [affection, characterId, examDaysLeft, homeReviewSummary.due, isDuplicateInteraction, isHomeCharacterInteractive, loginStreak, maxTp, playVoice, startTimedTalkAnimation, stopTalkAnimation, tp, updateStats]);
 
     const handleTouchAreaTap = useCallback(async (areaId, event) => {
+        if (!isHomeCharacterInteractive) {
+            event?.preventDefault?.();
+            event?.stopPropagation?.();
+            return;
+        }
+
         if (isDuplicateInteraction(`area:${areaId}`)) {
             event?.preventDefault?.();
             event?.stopPropagation?.();
@@ -499,9 +558,15 @@ const Home = ({ stats, updateStats }) => {
                 detail: '何気ないリアクションの応酬が、少しずつ親しさになっていく。',
             }).nextStats);
         }
-    }, [characterId, isDuplicateInteraction, lockManualSpeechPriority, playVoice, startTimedTalkAnimation, stopTalkAnimation, triggerTouchMotion, updateStats]);
+    }, [characterId, isDuplicateInteraction, isHomeCharacterInteractive, lockManualSpeechPriority, playVoice, startTimedTalkAnimation, stopTalkAnimation, triggerTouchMotion, updateStats]);
 
     const handleCharacterTap = useCallback((event) => {
+        if (!isHomeCharacterInteractive) {
+            event?.preventDefault?.();
+            event?.stopPropagation?.();
+            return;
+        }
+
         if (Date.now() < touchAreaTapGuardRef.current) {
             event?.preventDefault?.();
             event?.stopPropagation?.();
@@ -509,7 +574,7 @@ const Home = ({ stats, updateStats }) => {
         }
 
         void talk({ source: 'touch' });
-    }, [talk]);
+    }, [isHomeCharacterInteractive, talk]);
 
     const reactToUserMessage = useCallback((userText, { emotion: nextEmotion } = {}) => {
         const inferredEmotion = toVisibleHomeEmotion(
@@ -572,7 +637,23 @@ const Home = ({ stats, updateStats }) => {
     }, []);
 
     useEffect(() => {
-        const latestReply = getLatestNoaAssistantMessageEntry('general');
+        if (shouldUseEmmaMvpPresentation && isPreviewOnlyHomeCharacter) {
+            setActiveHomeReaction({
+                emotion: 'normal',
+                text: EMMA_MVP_HOME_SPEECH,
+            });
+            setSpeech(EMMA_MVP_HOME_SPEECH);
+            setBaseHomeEmotion('normal');
+            stopTalkAnimation();
+            return;
+        }
+
+        if (!supportsNoaChat) {
+            void talk();
+            return;
+        }
+
+        const latestReply = getLatestNoaAssistantMessageEntry(chatHistoryKey);
 
         if (latestReply?.content) {
             syncSpeechWithNoaReply(latestReply.content, {
@@ -583,7 +664,7 @@ const Home = ({ stats, updateStats }) => {
         }
 
         void talk();
-    }, [affectionLevelInfo.level, syncSpeechWithNoaReply, talk]);
+    }, [affectionLevelInfo.level, chatHistoryKey, isPreviewOnlyHomeCharacter, shouldUseEmmaMvpPresentation, stopTalkAnimation, supportsNoaChat, syncSpeechWithNoaReply, talk]);
 
     useEffect(() => {
         if (!shouldForceHomeLive2D || !updateStats || preferredRenderer === 'live2d') {
@@ -626,9 +707,6 @@ const Home = ({ stats, updateStats }) => {
         }
     ), [stopTalkAnimation, stopVoice]);
 
-    // Calculate TP percentage
-    const tpPercent = Math.min((tp / maxTp) * 100, 100);
-
     const handleOpenRecommendedReview = () => {
         if (!homeReviewSummary.hasReviews) {
             navigate('/study');
@@ -670,6 +748,22 @@ const Home = ({ stats, updateStats }) => {
             .filter(Boolean)
             .join(' / ');
         return detail ? `${detail}を再開` : '前回の学習を再開';
+    };
+
+    const handleOpenPromiseAction = () => {
+        if (featuredPromise?.actionRoutePath === '/review') {
+            handleOpenRecommendedReview();
+            return;
+        }
+
+        navigate('/character', { state: { openPanel: 'events' } });
+    };
+
+    const handleOpenHeroineSelect = () => {
+        if (isEmmaMvp) {
+            return;
+        }
+        navigate('/character-select');
     };
 
     return (
@@ -763,106 +857,174 @@ const Home = ({ stats, updateStats }) => {
                 {/* Placeholder for Room Background */}
                 {equippedBackground === 'default' && <div className="room-background"></div>}
 
-                {/* Countdown (Floating) */}
-                <div className="countdown-floating" onClick={() => navigate('/goal')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && navigate('/goal')}>
-                    <div className="countdown-title">{countdownDisplay.title}</div>
-                    <div className="countdown-days">
-                        <span className="days-num">{countdownDisplay.value}</span>
-                        {countdownDisplay.suffix && <span className="days-label">{countdownDisplay.suffix}</span>}
+                <section className="home-story-strip" aria-label="今日の流れ">
+                    <div className="home-story-strip-top">
+                        <span className="home-story-date">{storyProgressSummary.dateLabel}</span>
+                        <span className="home-story-weekday">{storyProgressSummary.weekdayLabel}</span>
+                        <span className="home-story-timeslot">{storyProgressSummary.timeSlotLabel}</span>
                     </div>
-                </div>
-
-                <button
-                    type="button"
-                    className={`home-review-card is-${homeReviewSummary.mode}`}
-                    onClick={handleOpenRecommendedReview}
-                    aria-label={getReviewShortcutLabel()}
-                    title={getReviewShortcutLabel()}
-                >
-                    <span className={`home-review-priority-dot is-${homeReviewSummary.mode}`} aria-hidden="true" />
-                    <span className="home-review-title">復習</span>
-                    <span className="home-review-value" aria-hidden="true">
-                        {homeReviewSummary.hasReviews ? homeReviewSummary.due : 0}
-                    </span>
-                    <span className="home-review-unit" aria-hidden="true">件</span>
-                    {homeReviewSummary.reviewSetsToday > 0 && (
-                        <span className="home-review-streak" aria-hidden="true">
-                            {homeReviewSummary.reviewSetsToday}
-                        </span>
-                    )}
-                </button>
-
-                <section className="home-planner-card" aria-label="明日の目標とToDo">
-                    <div className="home-planner-header compact">
-                        <div className="home-planner-heading-copy">
-                            <span className="home-planner-kicker">Plan</span>
-                            <strong>明日</strong>
+                    <div className="home-story-focus">注目: {displayedFocusCharacterLabel}</div>
+                    <div className="home-heroine-slot" aria-label="指定ヒロイン">
+                        <div className="home-heroine-copy">
+                            <span className="home-heroine-kicker">{isEmmaActiveCharacter ? 'Emma' : 'Partner'}</span>
+                            <strong className="home-heroine-name">{selectedHeroineLabel}</strong>
+                            <p className="home-heroine-hint">{selectedHeroineHint}</p>
                         </div>
-                        <span className="home-planner-date-chip">{formatShortDate(tomorrowDate)}</span>
-                    </div>
-
-                    <div className="home-planner-section compact">
-                        {tomorrowFocus ? (
-                            <p className="home-focus-text is-condensed">{tomorrowFocus}</p>
-                        ) : (
-                            <p className="home-planner-empty is-condensed">
-                                カレンダーに明日の目標を書くと、ここに出ます。
-                            </p>
+                        {!shouldUseEmmaMvpPresentation && (
+                            <button
+                                type="button"
+                                className="home-heroine-action"
+                                onClick={handleOpenHeroineSelect}
+                            >
+                                変更
+                            </button>
                         )}
                     </div>
+                    <p className="home-story-route">{storyProgressSummary.routeLabel}</p>
+                    <p className="home-story-mood">{storyProgressSummary.todayMoodCopy}</p>
+                </section>
 
-                    <div className="home-planner-summary-row">
-                        <span className="home-planner-summary-label">ToDo</span>
-                        <span className="home-planner-summary-value">{incompleteGoalTodos.length}件</span>
+                <section className="home-promise-card" aria-label="放課後の予定">
+                    <div className="home-promise-head">
+                        {featuredPromise ? '今日の予定' : '放課後の予定'}
                     </div>
-
-                    {visibleGoalTodos.length > 0 ? (
-                        <p className="home-todo-preview is-condensed">
-                            {visibleGoalTodos[0].text}
-                            {incompleteGoalTodos.length > 1 ? ` / ほか ${incompleteGoalTodos.length - 1} 件` : ''}
-                        </p>
+                    {featuredPromise ? (
+                        <>
+                            <div className="home-promise-title">{featuredPromise.title}</div>
+                            <div className="home-promise-meta">
+                                <span>{featuredPromise.timeSlotLabel}</span>
+                                <span>{displayedPromiseCharacterLabel}</span>
+                                <span>{featuredPromise.locationLabel}</span>
+                            </div>
+                            <p className="home-promise-body">{featuredPromise.body}</p>
+                            <p className="home-promise-hint">{featuredPromise.hint}</p>
+                            <button
+                                type="button"
+                                className="home-promise-action"
+                                onClick={handleOpenPromiseAction}
+                            >
+                                {featuredPromise.actionLabel}
+                            </button>
+                        </>
                     ) : (
-                        <p className="home-todo-preview is-condensed">
-                            いまのToDoは全部片付いています。
-                        </p>
+                        <>
+                            <p className="home-promise-empty">今日はまだ特別な約束はない</p>
+                            <p className="home-promise-hint">
+                                先に授業か復習を進めておくと、あとで落ち着いて話しやすい。
+                            </p>
+                            <button
+                                type="button"
+                                className="home-promise-action"
+                                onClick={handleOpenPromiseAction}
+                            >
+                                {storyProgressSummary.secondaryActionHint}
+                            </button>
+                        </>
                     )}
+                </section>
 
-                    <div className="home-planner-actions compact">
-                        <button
-                            type="button"
-                            className="home-planner-link compact"
-                            onClick={() => navigate('/calendar')}
-                        >
-                            予定
-                        </button>
+                <section className="home-study-status-row" aria-label="学習状況">
+                    {/* Countdown (Floating) */}
+                    <div className="countdown-floating" onClick={() => navigate('/goal')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && navigate('/goal')}>
+                        <div className="countdown-title">{countdownDisplay.title}</div>
+                        <div className="countdown-days">
+                            <span className="days-num">{countdownDisplay.value}</span>
+                            {countdownDisplay.suffix && <span className="days-label">{countdownDisplay.suffix}</span>}
+                        </div>
                     </div>
+
+                    <button
+                        type="button"
+                        className={`home-review-card is-${homeReviewSummary.mode}`}
+                        onClick={handleOpenRecommendedReview}
+                        aria-label={getReviewShortcutLabel()}
+                        title={getReviewShortcutLabel()}
+                    >
+                        <span className={`home-review-priority-dot is-${homeReviewSummary.mode}`} aria-hidden="true" />
+                        <span className="home-review-title">復習</span>
+                        <span className="home-review-value" aria-hidden="true">
+                            {homeReviewSummary.hasReviews ? homeReviewSummary.due : 0}
+                        </span>
+                        <span className="home-review-unit" aria-hidden="true">件</span>
+                        {homeReviewSummary.reviewSetsToday > 0 && (
+                            <span className="home-review-streak" aria-hidden="true">
+                                {homeReviewSummary.reviewSetsToday}
+                            </span>
+                        )}
+                    </button>
+
+                    <section className="home-planner-card" aria-label="明日の目標とToDo">
+                        <div className="home-planner-header compact">
+                            <div className="home-planner-heading-copy">
+                                <span className="home-planner-kicker">Plan</span>
+                                <strong>明日</strong>
+                            </div>
+                            <span className="home-planner-date-chip">{formatShortDate(tomorrowDate)}</span>
+                        </div>
+
+                        <div className="home-planner-section compact">
+                            {tomorrowFocus ? (
+                                <p className="home-focus-text is-condensed">{tomorrowFocus}</p>
+                            ) : (
+                                <p className="home-planner-empty is-condensed">
+                                    カレンダーに明日の目標を書くと、ここに出ます。
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="home-planner-summary-row">
+                            <span className="home-planner-summary-label">ToDo</span>
+                            <span className="home-planner-summary-value">{incompleteGoalTodos.length}件</span>
+                        </div>
+
+                        {visibleGoalTodos.length > 0 ? (
+                            <p className="home-todo-preview is-condensed">
+                                {visibleGoalTodos[0].text}
+                                {incompleteGoalTodos.length > 1 ? ` / ほか ${incompleteGoalTodos.length - 1} 件` : ''}
+                            </p>
+                        ) : (
+                            <p className="home-todo-preview is-condensed">
+                                いまのToDoは全部片付いています。
+                            </p>
+                        )}
+
+                        <div className="home-planner-actions compact">
+                            <button
+                                type="button"
+                                className="home-planner-link compact"
+                                onClick={() => navigate('/calendar')}
+                            >
+                                予定
+                            </button>
+                        </div>
+                    </section>
                 </section>
 
                 {/* Character Figure */}
                 <div
-                    className={`character-figure ${renderer === 'live2d' ? 'is-live2d' : ''} ${homeCharacterPreview?.figureClassName || ''}`}
+                    className={`character-figure ${renderer === 'live2d' ? 'is-live2d' : ''} ${activeHomeCharacterPreview?.figureClassName || ''}`}
                 >
                     <div
                         className={`character-touch-target ${touchMotion ? `motion-${touchMotion}` : ''}`}
                         style={touchMotionStyle || undefined}
-                        onPointerUp={handleCharacterTap}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => e.key === 'Enter' && void talk({ source: 'touch' })}
+                        onPointerUp={isHomeCharacterInteractive ? handleCharacterTap : undefined}
+                        role={isHomeCharacterInteractive ? 'button' : undefined}
+                        tabIndex={isHomeCharacterInteractive ? 0 : undefined}
+                        onKeyDown={isHomeCharacterInteractive ? (e) => e.key === 'Enter' && void talk({ source: 'touch' }) : undefined}
                     >
                         <CharacterStage
-                            characterId={characterId}
+                            characterId={activeHomeCharacterPreview?.characterId || characterId}
                             renderer={renderer}
                             skinId={equippedSkin}
                             accessoryIds={equippedAccessories}
                             scene="home"
-                            pose={homePose}
+                            pose={{ ...homePose, ...(activeHomeCharacterPreview?.pose || {}) }}
                             className="character-home"
-                            imageClassName={`char-image ${isTalkAnimating ? 'talk-burst' : ''} ${homeCharacterPreview?.imageClassName || ''}`}
-                            sourceOverride={homeCharacterPreview?.source}
-                            disableFaceEffects={homeCharacterPreview?.disableFaceEffects}
-                            chromaKey={homeCharacterPreview?.chromaKey}
-                            alt={homeCharacterPreview?.alt || 'Character'}
+                            imageClassName={`char-image ${isTalkAnimating ? 'talk-burst' : ''} ${activeHomeCharacterPreview?.imageClassName || ''}`}
+                            sourceOverride={activeHomeCharacterPreview?.source}
+                            disableFaceEffects={activeHomeCharacterPreview?.disableFaceEffects}
+                            chromaKey={activeHomeCharacterPreview?.chromaKey}
+                            alt={activeHomeCharacterPreview?.alt || 'Character'}
                         />
                         {renderer === 'live2d' && (homePose.live2dFaceAccent === 'blush' || homePose.live2dFaceAccent === 'shy') && (
                             <div className={`home-live2d-face-accent is-${homePose.live2dFaceAccent}`} aria-hidden="true">
@@ -908,11 +1070,12 @@ const Home = ({ stats, updateStats }) => {
                 {/* Action Buttons */}
                 <div className="action-area has-resume">
                     <button
-                        className="battle-btn-large"
-                        onClick={() => navigate('/multiplayer-match')}
-                        aria-label="バトル"
+                        className="study-btn-large"
+                        onClick={() => navigate('/study')}
+                        aria-label={storyProgressSummary.primaryActionHint}
+                        title={storyProgressSummary.studyPriorityLabel}
                     >
-                        <span>バトル</span>
+                        <span>勉強</span>
                     </button>
                     <button
                         type="button"
@@ -926,8 +1089,12 @@ const Home = ({ stats, updateStats }) => {
                             {lastStudyTopic?.resumeLabel || lastStudyTopic?.topicName || '履歴がなければ授業一覧へ'}
                         </span>
                     </button>
-                    <button className="study-btn-large" onClick={() => navigate('/study')} aria-label="勉強">
-                        <span>勉強</span>
+                    <button
+                        className="battle-btn-large"
+                        onClick={() => navigate('/multiplayer-match')}
+                        aria-label="バトル"
+                    >
+                        <span>バトル</span>
                     </button>
                 </div>
 
@@ -954,21 +1121,24 @@ const Home = ({ stats, updateStats }) => {
                     </button>
                 </div>
 
-                <NoaChatBox
-                    stats={stats}
-                    updateStats={updateStats}
-                    compact
-                    autoSpeakAssistant
-                    onAssistantReply={syncSpeechWithNoaReply}
-                    onUserMessage={reactToUserMessage}
-                    onAssistantSpeechStart={() => {
-                        stopTalkAnimation();
-                        setIsTalkAnimating(true);
-                    }}
-                    onAssistantSpeechEnd={() => {
-                        setIsTalkAnimating(false);
-                    }}
-                />
+                {supportsNoaChat && (
+                    <NoaChatBox
+                        stats={stats}
+                        characterId={characterId}
+                        updateStats={updateStats}
+                        compact
+                        autoSpeakAssistant
+                        onAssistantReply={syncSpeechWithNoaReply}
+                        onUserMessage={reactToUserMessage}
+                        onAssistantSpeechStart={() => {
+                            stopTalkAnimation();
+                            setIsTalkAnimating(true);
+                        }}
+                        onAssistantSpeechEnd={() => {
+                            setIsTalkAnimating(false);
+                        }}
+                    />
+                )}
             </div>
 
             {/* Footer removed */}

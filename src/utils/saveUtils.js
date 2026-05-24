@@ -32,6 +32,7 @@ export const getDefaultStats = () => mergeGameLoopStats({
     examDate: '',
     // キャラクター選択
     characterId: 'noah', // default: 'noah'
+    selectedHeroineId: null,
     hasSelectedCharacter: false, // 初回選択が完了しているか
     needsFirstPlayIntro: false,
     hasCompletedFirstPlayIntro: false,
@@ -147,8 +148,11 @@ const triggerCloudSync = () => {
  */
 export const saveStats = (stats) => {
     try {
+        const normalizedSelectedHeroineId = stats?.selectedHeroineId ?? stats?.favoriteCharacter ?? stats?.characterId ?? getDefaultStats().selectedHeroineId;
         const normalizedStats = mergeGameLoopStats({
             ...stats,
+            selectedHeroineId: normalizedSelectedHeroineId,
+            favoriteCharacter: normalizedSelectedHeroineId ?? stats?.favoriteCharacter ?? null,
             ownedItems: Array.isArray(stats?.ownedItems) && stats.ownedItems.length > 0
                 ? stats.ownedItems
                 : (Array.isArray(stats?.inventory) ? stats.inventory : []),
@@ -157,7 +161,7 @@ export const saveStats = (stats) => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedStats));
         syncStandaloneTutorialSnapshot({
             tutorialCompleted: normalizedStats.tutorialCompleted,
-            favoriteCharacter: normalizedStats.favoriteCharacter,
+            favoriteCharacter: normalizedStats.favoriteCharacter ?? normalizedStats.selectedHeroineId,
             affection: normalizedStats.affection,
             gems: normalizedStats.diamonds,
             ownedItems: normalizedStats.ownedItems,
@@ -216,7 +220,8 @@ export const loadStats = () => {
                 ...parsed,
                 tutorialCompleted: parsed.tutorialCompleted ?? Boolean(parsed.hasSelectedCharacter),
                 hasSelectedCharacter: parsed.hasSelectedCharacter ?? Boolean(parsed.tutorialCompleted || tutorialSnapshot.tutorialCompleted || tutorialSnapshot.favoriteCharacter),
-                favoriteCharacter: parsed.favoriteCharacter ?? parsed.characterId ?? null,
+                selectedHeroineId: parsed.selectedHeroineId ?? tutorialSnapshot.favoriteCharacter ?? parsed.favoriteCharacter ?? parsed.characterId ?? getDefaultStats().selectedHeroineId,
+                favoriteCharacter: parsed.selectedHeroineId ?? tutorialSnapshot.favoriteCharacter ?? parsed.favoriteCharacter ?? parsed.characterId ?? null,
                 affection: tutorialSnapshot.affection ?? parsed.affection ?? getDefaultStats().affection,
                 diamonds: tutorialSnapshot.gems ?? parsed.diamonds ?? getDefaultStats().diamonds,
                 ownedItems: Array.isArray(tutorialSnapshot.ownedItems)
@@ -232,7 +237,8 @@ export const loadStats = () => {
             }
 
             if (tutorialSnapshot.favoriteCharacter) {
-                loadedStats.favoriteCharacter = tutorialSnapshot.favoriteCharacter;
+                loadedStats.selectedHeroineId = parsed.selectedHeroineId ?? tutorialSnapshot.favoriteCharacter;
+                loadedStats.favoriteCharacter = loadedStats.selectedHeroineId;
             }
 
             // 初回ログインボーナスチェック（未受取ならダイヤ+3000）
@@ -254,7 +260,8 @@ export const loadStats = () => {
             ...getDefaultStats(),
             tutorialCompleted: tutorialSnapshot.tutorialCompleted ?? false,
             hasSelectedCharacter: Boolean(tutorialSnapshot.tutorialCompleted || tutorialSnapshot.favoriteCharacter),
-            favoriteCharacter: tutorialSnapshot.favoriteCharacter ?? null,
+            selectedHeroineId: tutorialSnapshot.favoriteCharacter ?? getDefaultStats().selectedHeroineId,
+            favoriteCharacter: tutorialSnapshot.favoriteCharacter ?? getDefaultStats().selectedHeroineId ?? null,
             affection: tutorialSnapshot.affection ?? getDefaultStats().affection,
             diamonds: tutorialSnapshot.gems ?? getDefaultStats().diamonds,
             ownedItems: Array.isArray(tutorialSnapshot.ownedItems) ? tutorialSnapshot.ownedItems : [],

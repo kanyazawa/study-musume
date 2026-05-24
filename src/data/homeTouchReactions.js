@@ -5,6 +5,12 @@ export const HOME_TOUCH_FEATURE_FLAGS = {
 };
 
 const HOME_TOUCH_STYLE_MAP = {
+    emma: {
+        face: 'まお / おちつき',
+        hair: 'まお / ふつー',
+        chest: 'まお / せつなめ',
+        default: 'まお / ふつー',
+    },
     noah: {
         face: 'まお / あまあま',
         hair: 'まお / からかい',
@@ -30,12 +36,19 @@ const withTouchMeta = (characterId, area, items) => items.map((item, index) => {
         ...item,
         area,
         id,
-        voice: item.voice || buildTouchVoicePath(characterId, area, id),
+        voice: Object.prototype.hasOwnProperty.call(item, 'voice') && item.voice !== ''
+            ? item.voice
+            : buildTouchVoicePath(characterId, area, id),
         ttsSpeaker: item.ttsSpeaker || styleMap[area] || styleMap.default,
     };
 });
 
 export const HOME_TOUCH_AREAS = {
+    emma: [
+        { id: 'hair', label: '髪', left: '33%', top: '8%', width: '34%', height: '16%' },
+        { id: 'face', label: '顔', left: '37%', top: '25%', width: '26%', height: '16%' },
+        { id: 'chest', label: '胸', left: '29%', top: '50%', width: '42%', height: '14%', gatedBy: 'chestEnabled' },
+    ],
     noah: [
         { id: 'hair', label: '髪', left: '33%', top: '8%', width: '34%', height: '16%' },
         { id: 'face', label: '顔', left: '37%', top: '25%', width: '26%', height: '16%' },
@@ -49,6 +62,23 @@ export const HOME_TOUCH_AREAS = {
 };
 
 export const HOME_TOUCH_REACTIONS = {
+    emma: {
+        face: withTouchMeta('emma', 'face', [
+            { emotion: 'relaxed', text: 'ん、顔？ ……そんなに近いと、ちょっとだけ困るかも。', voice: '' },
+            { emotion: 'smile', text: '様子見てくれたの？ ありがと。今日はちゃんと起きてるよ。', voice: '' },
+            { emotion: 'happy', text: 'そういう触れ方なら嫌じゃない。少しだけ、安心するし。', voice: '' },
+        ]),
+        hair: withTouchMeta('emma', 'hair', [
+            { emotion: 'smile', text: '髪、少しくすぐったい。……でも、そのくらいなら平気。', voice: '' },
+            { emotion: 'happy', text: '整ってるか見てくれてる？ なら、ちょっと助かる。', voice: '' },
+            { emotion: 'relaxed', text: 'そういう距離、前より慣れてきたかも。変かな。', voice: '' },
+        ]),
+        chest: withTouchMeta('emma', 'chest', [
+            { emotion: 'serious', text: 'そこはだめ。冗談でも急に来ないで。', voice: '' },
+            { emotion: 'angry', text: 'びっくりした……。そういうのは、ちゃんとやめて。', voice: '' },
+            { emotion: 'serious', text: '今のは注意。次はほんとに許さないから。', voice: '' },
+        ]),
+    },
     noah: {
         face: withTouchMeta('noah', 'face', [
             { emotion: 'happy', text: 'ち、近い近い。顔をつつくなら、せめて一言くらい言いなさいよ。' },

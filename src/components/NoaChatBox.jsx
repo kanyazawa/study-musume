@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { LoaderCircle, RefreshCcw, SendHorizontal, Volume2, X } from 'lucide-react';
 import './NoaChatBox.css';
-import { clearNoaChatMessages, getNoaChatMessages, saveNoaChatMessages } from '../utils/chatHistory';
+import { clearNoaChatMessages, getCharacterChatTopicKey, getNoaChatMessages, saveNoaChatMessages } from '../utils/chatHistory';
 import { inferEmotionFromChatText } from '../utils/chatEmotionUtils';
 import { applyRelationshipActivity } from '../utils/relationshipEventUtils';
 import {
@@ -28,8 +28,60 @@ import {
 
 const MAX_INPUT_LENGTH = 160;
 const CLOUDFLARE_CHAT_ENDPOINT = 'https://study-musume.hide20080422.workers.dev/api/chat';
-const NOA_CHAT_HISTORY_KEY = 'general';
-const NOA_CHAT_ANONYMOUS_ID_KEY = 'noaChatAnonymousId';
+const COMPANION_CHAT_ANONYMOUS_ID_KEY = 'companionChatAnonymousId';
+const LEGACY_NOA_CHAT_ANONYMOUS_ID_KEY = 'noaChatAnonymousId';
+
+const CHAT_CHARACTER_COPY = {
+    emma: {
+        id: 'emma',
+        displayName: '高瀬エマ',
+        shortName: 'エマ',
+        starterMessage: '少し話すくらいなら付き合うよ。勉強のことでも、今日の気分でも、短く振って。',
+        launcherLabel: 'エマに話しかける',
+        panelLabel: 'エマと話す',
+        placeholderCompact: 'エマに聞きたいことを書く',
+        placeholderFull: '例: さっきのところもう一回教えて / 今日はちょっと疲れた / 少し話そ',
+        usageLimitReached: (limit) => `今日はここまで。会話は1日${limit}往復までにしておこ。`,
+        cooldown: (seconds) => `少し間を空けよ。あと${seconds}秒でまた話せる。`,
+        remaining: (count, limit) => `今日の残り会話 ${count} / ${limit} 回`,
+        loading: 'エマが考え中...',
+        submitLabel: '話す',
+        thinkingLabel: '考え中',
+        resetAria: '会話をリセット',
+        speakLabel: '読む',
+        userMeta: 'あなたが聞いたこと',
+        relationSummary: 'エマと少し会話した',
+        relationDetail: '言葉を交わすたびに、前より自然に話せる空気ができてきた。',
+        ttsSpeaker: 'emma-chat',
+        chatTopicLabel: 'Emma',
+    },
+    noah: {
+        id: 'noah',
+        displayName: 'ノア',
+        shortName: 'ノア',
+        starterMessage: '少し話すくらいなら付き合うわ。勉強のことでも、今日の気分でも、短く振ってきなさい。',
+        launcherLabel: 'ノアに話しかける',
+        panelLabel: 'ノアと話す',
+        placeholderCompact: 'ノアに聞きたいことを書く',
+        placeholderFull: '例: さっきのところもう一回教えて / 今日はちょっと疲れた / 少し話そ',
+        usageLimitReached: (limit) => `今日はここまでよ。会話は1日${limit}往復までにしておきなさい。`,
+        cooldown: (seconds) => `少し間を空けなさい。あと${seconds}秒でまた話せるわ。`,
+        remaining: (count, limit) => `今日の残り会話 ${count} / ${limit} 回`,
+        loading: 'ノアが考え中...',
+        submitLabel: '話す',
+        thinkingLabel: '考え中',
+        resetAria: '会話をリセット',
+        speakLabel: '読む',
+        userMeta: 'あなたが聞いたこと',
+        relationSummary: 'ノアと少し会話した',
+        relationDetail: '言葉を交わすたびに、前より自然に話せる空気ができてきた。',
+        ttsSpeaker: 'noa-chat',
+        chatTopicLabel: 'NOA',
+    },
+};
+
+const getChatCharacterCopy = (characterId = 'noah') =>
+    CHAT_CHARACTER_COPY[characterId] || CHAT_CHARACTER_COPY.noah;
 
 const getChatEndpoints = () => {
     if (typeof window === 'undefined') {
@@ -66,7 +118,7 @@ const formatChatError = (errorMessage, endpoint) => {
     const message = String(errorMessage || '').trim();
 
     if (!message) {
-        return '今はうまくつながらないわ。少し時間を置いて試しなさい。';
+        return '今はうまくつながらないみたい。少し時間を置いて試して。';
     }
 
     if (message.includes('GEMINI_API_KEY or OPENAI_API_KEY is not set on the server')) {
@@ -96,9 +148,9 @@ const formatChatError = (errorMessage, endpoint) => {
     return message;
 };
 
-const buildStarterMessage = () => ({
+const buildStarterMessage = (copy) => ({
     role: 'assistant',
-    content: '少し話すくらいなら付き合うわ。勉強のことでも、今日の気分でも、短く振ってきなさい。',
+    content: copy.starterMessage,
     emotion: 'normal',
 });
 
@@ -124,26 +176,27 @@ const getNoaChatAnonymousId = () => {
     }
 
     try {
-        const savedValue = window.localStorage.getItem(NOA_CHAT_ANONYMOUS_ID_KEY);
+        const savedValue = window.localStorage.getItem(COMPANION_CHAT_ANONYMOUS_ID_KEY)
+            || window.localStorage.getItem(LEGACY_NOA_CHAT_ANONYMOUS_ID_KEY);
         if (savedValue) return savedValue;
 
         const nextValue = createAnonymousChatId();
-        window.localStorage.setItem(NOA_CHAT_ANONYMOUS_ID_KEY, nextValue);
+        window.localStorage.setItem(COMPANION_CHAT_ANONYMOUS_ID_KEY, nextValue);
         return nextValue;
     } catch {
         return createAnonymousChatId();
     }
 };
 
-const speakReplyWithSettings = async (text, { emotion = '', onStart, onEnd } = {}) => {
+const speakReplyWithSettings = async (text, { emotion = '', onStart, onEnd, ttsSpeaker = 'noa-chat' } = {}) => {
     const settings = getTtsSettings();
     if (!settings.enabled) return false;
     const speechProfile = buildSpeechVariationProfile(text, {
         emotion,
         browserPitch: settings.browserPitch,
         browserRate: settings.browserRate,
-        speaker: 'noa-chat',
-        seedHint: emotion || 'chat',
+        speaker: ttsSpeaker,
+        seedHint: emotion || ttsSpeaker,
     });
 
     const engineOrder = settings.engine === TTS_ENGINES.AUTO
@@ -191,7 +244,7 @@ const speakReplyWithSettings = async (text, { emotion = '', onStart, onEnd } = {
 };
 
 const requestNoaReply = async (payload) => {
-    let lastError = new Error('ノアへの接続に失敗したわ。');
+    let lastError = new Error('今はうまく返事できないみたい。少し時間を置いて試して。');
 
     for (const endpoint of getChatEndpoints()) {
         try {
@@ -221,9 +274,9 @@ const requestNoaReply = async (payload) => {
                 return responseBody;
             }
 
-            throw new Error(`ノアの返事を受け取れなかったわ。 (${endpoint})`);
+            throw new Error(`返事を受け取れなかったみたい。 (${endpoint})`);
         } catch (error) {
-            lastError = error instanceof Error ? error : new Error('ノアへの接続に失敗したわ。');
+            lastError = error instanceof Error ? error : new Error('今はうまく返事できないみたい。少し時間を置いて試して。');
         }
     }
 
@@ -232,6 +285,7 @@ const requestNoaReply = async (payload) => {
 
 const NoaChatBox = ({
     stats,
+    characterId: characterIdProp = null,
     updateStats = null,
     embedded = false,
     compact = false,
@@ -243,13 +297,16 @@ const NoaChatBox = ({
     onAssistantSpeechEnd = null,
 }) => {
     const { acquireVoiceFocus } = useSound();
+    const chatCharacterId = String(characterIdProp || stats?.characterId || 'noah').trim().toLowerCase() || 'noah';
+    const chatCopy = useMemo(() => getChatCharacterCopy(chatCharacterId), [chatCharacterId]);
+    const chatHistoryKey = useMemo(() => getCharacterChatTopicKey(chatCharacterId), [chatCharacterId]);
     const lastStudyTopicName = useMemo(() => getLastStudyTopicName(), []);
     const anonymousId = useMemo(() => getNoaChatAnonymousId(), []);
-    const starterMessages = useMemo(() => [buildStarterMessage()], []);
+    const starterMessages = useMemo(() => [buildStarterMessage(chatCopy)], [chatCopy]);
     const [nowTick, setNowTick] = useState(() => Date.now());
     const [isOpen, setIsOpen] = useState(false);
     const [input, setInput] = useState('');
-    const [messages, setMessages] = useState(() => getNoaChatMessages(NOA_CHAT_HISTORY_KEY, starterMessages));
+    const [messages, setMessages] = useState(() => getNoaChatMessages(chatHistoryKey, starterMessages));
     const [isLoading, setIsLoading] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [error, setError] = useState('');
@@ -264,10 +321,10 @@ const NoaChatBox = ({
     const lastAssistantCallbackKeyRef = useRef('');
     const chatLimitState = useMemo(() => getNoaChatLimitSnapshot(nowTick), [nowTick]);
     const chatStatusText = chatLimitState.isDailyLimitReached
-        ? `今日はここまでよ。会話は1日${chatLimitState.dailyLimit}往復までにしておきなさい。`
+        ? chatCopy.usageLimitReached(chatLimitState.dailyLimit)
         : chatLimitState.isCoolingDown
-            ? `少し間を空けなさい。あと${Math.ceil(chatLimitState.cooldownRemainingMs / 1000)}秒でまた話せるわ。`
-            : `今日の残り会話 ${chatLimitState.remainingCount} / ${chatLimitState.dailyLimit} 回`;
+            ? chatCopy.cooldown(Math.ceil(chatLimitState.cooldownRemainingMs / 1000))
+            : chatCopy.remaining(chatLimitState.remainingCount, chatLimitState.dailyLimit);
     const noticeText = 'AIの返答には誤りがあることがあります。困ったときは保護者・先生などの大人にも相談してください。';
     const isSubmitDisabled = isLoading
         || !clipText(input)
@@ -275,8 +332,9 @@ const NoaChatBox = ({
         || chatLimitState.isCoolingDown;
 
     useEffect(() => {
-        setMessages(getNoaChatMessages(NOA_CHAT_HISTORY_KEY, starterMessages));
-    }, [starterMessages]);
+        lastAssistantCallbackKeyRef.current = '';
+        setMessages(getNoaChatMessages(chatHistoryKey, starterMessages));
+    }, [chatHistoryKey, starterMessages]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return undefined;
@@ -321,13 +379,13 @@ const NoaChatBox = ({
     }, [messages, onAssistantReply]);
 
     const persistMessages = (nextMessages) => {
-        const saved = saveNoaChatMessages(NOA_CHAT_HISTORY_KEY, nextMessages);
+        const saved = saveNoaChatMessages(chatHistoryKey, nextMessages);
         setMessages(saved);
         return saved;
     };
 
     const handleReset = () => {
-        clearNoaChatMessages(NOA_CHAT_HISTORY_KEY);
+        clearNoaChatMessages(chatHistoryKey);
         lastAssistantCallbackKeyRef.current = '';
         setMessages(starterMessages);
         setError('');
@@ -398,6 +456,7 @@ const NoaChatBox = ({
             const releaseVoiceFocus = acquireVoiceFocus();
             const started = await speakReplyWithSettings(text, {
                 emotion,
+                ttsSpeaker: chatCopy.ttsSpeaker,
                 onStart: () => onAssistantSpeechStart?.(text),
                 onEnd: () => {
                     releaseVoiceFocus();
@@ -420,13 +479,13 @@ const NoaChatBox = ({
         const limitSnapshot = getNoaChatLimitSnapshot();
         if (limitSnapshot.isDailyLimitReached) {
             setNowTick(Date.now());
-            setError(`今日はここまでよ。ノアとの会話は1日${limitSnapshot.dailyLimit}往復までにしておきなさい。`);
+            setError(chatCopy.usageLimitReached(limitSnapshot.dailyLimit));
             return;
         }
 
         if (limitSnapshot.isCoolingDown) {
             setNowTick(Date.now());
-            setError(`少し間を空けなさい。あと${Math.ceil(limitSnapshot.cooldownRemainingMs / 1000)}秒でまた話せるわ。`);
+            setError(chatCopy.cooldown(Math.ceil(limitSnapshot.cooldownRemainingMs / 1000)));
             return;
         }
 
@@ -451,6 +510,8 @@ const NoaChatBox = ({
                 affection: stats?.affection || 0,
                 recentMessages: nextMessages,
                 anonymousId,
+                characterId: chatCharacterId,
+                characterName: chatCopy.displayName,
             });
 
             const assistantMessage = {
@@ -459,15 +520,15 @@ const NoaChatBox = ({
                 emotion: payload.emotion || inferEmotionFromChatText(payload.reply, { role: 'assistant' }),
             };
 
-            const saved = saveNoaChatMessages(NOA_CHAT_HISTORY_KEY, [...nextMessages, assistantMessage]);
+            const saved = saveNoaChatMessages(chatHistoryKey, [...nextMessages, assistantMessage]);
             setMessages(saved);
             recordSuccessfulNoaChatTurn();
             setNowTick(Date.now());
             if (typeof updateStats === 'function') {
                 updateStats((currentStats) => applyRelationshipActivity(currentStats, {
                     type: 'chat',
-                    summary: 'ノアと少し会話した',
-                    detail: '言葉を交わすたびに、前より自然に話せる空気ができてきた。',
+                    summary: chatCopy.relationSummary,
+                    detail: chatCopy.relationDetail,
                 }).nextStats);
             }
             if (autoSpeakAssistant) {
@@ -476,6 +537,7 @@ const NoaChatBox = ({
                     const releaseVoiceFocus = acquireVoiceFocus();
                     const started = await speakReplyWithSettings(assistantMessage.content, {
                         emotion: assistantMessage.emotion,
+                        ttsSpeaker: chatCopy.ttsSpeaker,
                         onStart: () => onAssistantSpeechStart?.(assistantMessage.content),
                         onEnd: () => {
                             releaseVoiceFocus();
@@ -512,11 +574,11 @@ const NoaChatBox = ({
     return (
         <div className={`noa-chat-shell ${embedded ? 'is-embedded' : ''} ${isCompact ? 'is-compact' : ''}`}>
             {isCompact ? (
-                <section className="noa-chat-bar" aria-label="ノアに話しかける">
+                <section className="noa-chat-bar" aria-label={chatCopy.launcherLabel}>
                     <div className="noa-chat-bar-header">
                         <div className="noa-chat-bar-title-row">
                             <div className="noa-chat-bar-title-group">
-                                <span className="noa-chat-bar-label">ノアに話しかける</span>
+                                <span className="noa-chat-bar-label">{chatCopy.launcherLabel}</span>
                                 {compactTab === 'chat' && (
                                     <p className="noa-chat-status is-compact">{chatStatusText}</p>
                                 )}
@@ -561,12 +623,12 @@ const NoaChatBox = ({
                                         className="noa-chat-input is-compact"
                                         value={input}
                                         onChange={(event) => setInput(event.target.value.slice(0, MAX_INPUT_LENGTH))}
-                                        placeholder="ノアに聞きたいことを書く"
+                                        placeholder={chatCopy.placeholderCompact}
                                         rows={1}
                                     />
                                     <button type="submit" className="noa-chat-submit is-compact" disabled={isSubmitDisabled}>
                                         {isLoading ? <LoaderCircle size={16} className="noa-chat-spinner" /> : <SendHorizontal size={16} />}
-                                        <span>{isLoading ? '考え中' : '話す'}</span>
+                                        <span>{isLoading ? chatCopy.thinkingLabel : chatCopy.submitLabel}</span>
                                     </button>
                                 </div>
                             </form>
@@ -613,14 +675,14 @@ const NoaChatBox = ({
                     )}
                 </section>
             ) : isPanelVisible ? (
-                <section className={`noa-chat-panel ${embedded ? 'is-embedded' : ''}`} aria-label="ノアと話す">
+                <section className={`noa-chat-panel ${embedded ? 'is-embedded' : ''}`} aria-label={chatCopy.panelLabel}>
                     <header className="noa-chat-header">
                         <div className="noa-chat-heading">
-                            <h2 className="noa-chat-title">ノア</h2>
+                            <h2 className="noa-chat-title">{chatCopy.displayName}</h2>
                             <p className="noa-chat-status">{chatStatusText}</p>
                         </div>
                         <div className="noa-chat-actions">
-                            <button type="button" className="noa-chat-icon-btn" onClick={handleReset} aria-label="会話をリセット">
+                            <button type="button" className="noa-chat-icon-btn" onClick={handleReset} aria-label={chatCopy.resetAria}>
                                 <RefreshCcw size={16} />
                             </button>
                             <button type="button" className="noa-chat-icon-btn" onClick={handleClose} aria-label="閉じる">
@@ -636,7 +698,7 @@ const NoaChatBox = ({
                                 className={`noa-chat-message ${message.role === 'user' ? 'is-user' : 'is-assistant'}`}
                             >
                                 <div className="noa-chat-message-meta">
-                                    <span>{message.role === 'user' ? 'あなたが聞いたこと' : 'ノア'}</span>
+                                    <span>{message.role === 'user' ? chatCopy.userMeta : chatCopy.shortName}</span>
                                     {message.role === 'assistant' && (
                                         <button
                                             type="button"
@@ -645,7 +707,7 @@ const NoaChatBox = ({
                                             disabled={isSpeaking}
                                         >
                                             <Volume2 size={14} />
-                                            <span>読む</span>
+                                            <span>{chatCopy.speakLabel}</span>
                                         </button>
                                     )}
                                 </div>
@@ -656,7 +718,7 @@ const NoaChatBox = ({
                         {isLoading && (
                             <div className="noa-chat-loading">
                                 <LoaderCircle size={16} className="noa-chat-spinner" />
-                                <span>ノアが考え中...</span>
+                                <span>{chatCopy.loading}</span>
                             </div>
                         )}
 
@@ -676,14 +738,14 @@ const NoaChatBox = ({
 
                     <form className="noa-chat-form" onSubmit={handleSubmit}>
                         <label className="noa-chat-label" htmlFor="noa-chat-input">
-                            ノアに話しかける
+                            {chatCopy.launcherLabel}
                         </label>
                         <textarea
                             id="noa-chat-input"
                             className="noa-chat-input"
                             value={input}
                             onChange={(event) => setInput(event.target.value.slice(0, MAX_INPUT_LENGTH))}
-                            placeholder="例: さっきのところもう一回教えて / 今日はちょっと疲れた / 少し話そ"
+                            placeholder={chatCopy.placeholderFull}
                             rows={3}
                         />
                         <div className="noa-chat-form-footer">
@@ -693,7 +755,7 @@ const NoaChatBox = ({
                             </div>
                             <button type="submit" className="noa-chat-submit" disabled={isSubmitDisabled}>
                                 <SendHorizontal size={16} />
-                                <span>話す</span>
+                                <span>{chatCopy.submitLabel}</span>
                             </button>
                         </div>
                     </form>

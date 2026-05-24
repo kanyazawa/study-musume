@@ -1,173 +1,61 @@
 import ClassroomBackground from '../assets/images/bg_classroom.webp';
-import NoahPortrait from '../assets/images/noah_normal.webp';
-import RenPortrait from '../assets/images/ren_normal.webp';
-import HotaruPortrait from '../assets/images/firefly/firefly_normal.webp';
+import EmmaPortrait from '../assets/images/emma_home_preview_generated.png';
 
 export const TUTORIAL_BACKGROUND_IMAGE = ClassroomBackground;
 
 export const TUTORIAL_OPENING_LINES = [
-    '…あんた、またサボろうとしてるでしょ',
-    '見ててあげるから、ちょっとくらいやりなさいよ',
+    'まだ残ってたんだ。もうみんな帰ったと思ってた。',
+    '……そのノート、英語のとこで止まってる。',
+    '難しい単元の前に、基礎が少し曖昧かも。',
+    '今日は長くやらなくていい。ひとつだけ、一緒に確認しよ。',
+    '現在完了とかより先に、まず be動詞。そこ揃えたほうが早いから。',
 ];
 
 export const TUTORIAL_CHARACTERS = [
     {
-        id: 'noah',
-        name: 'ノア',
-        archetype: 'ツンデレ幼なじみ',
-        description: '面倒見はいいけど、素直じゃないタイプ。',
-        image: NoahPortrait,
-    },
-    {
-        id: 'ren',
-        name: 'レン',
-        archetype: '甘やかし先輩',
-        description: 'やさしく背中を押してくれる頼れる先輩。',
-        image: RenPortrait,
-    },
-    {
-        id: 'hotaru',
-        name: 'ホタル',
-        archetype: '少し重い同級生',
-        description: '距離感は近め。でも一緒に頑張ってくれる。',
-        image: HotaruPortrait,
+        id: 'emma',
+        name: '高瀬エマ',
+        archetype: '帰国子女の同級生',
+        description: '放課後に英語を見てくれる、少し不器用な学習パートナー。',
+        image: EmmaPortrait,
     },
 ];
 
 export const TUTORIAL_QUIZ_QUESTIONS = [
     {
-        id: 'apple',
-        prompt: 'apple',
-        choices: ['りんご', '学校', '水', '友達'],
+        id: 'be-verb-intro',
+        prompt: 'I ___ a student.',
+        choices: ['am', 'are', 'is', 'be'],
         correctIndex: 0,
-    },
-    {
-        id: 'school',
-        prompt: 'school',
-        choices: ['本', '先生', '学校', '机'],
-        correctIndex: 2,
-    },
-    {
-        id: 'book',
-        prompt: 'book',
-        choices: ['本', '窓', 'えんぴつ', '犬'],
-        correctIndex: 0,
-    },
-    {
-        id: 'water',
-        prompt: 'water',
-        choices: ['火', '空', '水', '雲'],
-        correctIndex: 2,
-    },
-    {
-        id: 'friend',
-        prompt: 'friend',
-        choices: ['先生', '友達', '家族', '駅'],
-        correctIndex: 1,
+        lessonTitle: 'be動詞の基本',
+        lessonHint: '難しいところへ進む前に、ここだけ先に揃えよ。',
     },
 ];
 
 export const TUTORIAL_QUIZ_REWARDS = {
     correct: {
-        affection: 5,
+        affection: 6,
         gems: 20,
-        line: '…やるじゃん',
+        line: 'うん、合ってる。そうやって一個ずつ揃えればいい。',
     },
     incorrect: {
         affection: 0,
         gems: 5,
-        line: 'まぁ、最初だし次いこ',
+        line: '大丈夫。焦らなくていいから、主語に合わせてもう一回だけ見よ。',
     },
-    resultBonusGems: 1000,
 };
 
-export const TUTORIAL_GACHA_RESULTS = [
-    {
-        id: 'tutorial-ssr-noah-memory',
-        name: '放課後、二人だけの教室',
-        rarity: 'SSR',
-        type: 'memory',
-        emoji: '✨',
-        description: 'ノアの思い出カード',
-    },
-    {
-        id: 'tutorial-sr-noah-voice',
-        name: 'ノアの特別ボイス',
-        rarity: 'SR',
-        type: 'voice',
-        emoji: '🎙️',
-        description: '特別なひとことボイス',
-    },
-    {
-        id: 'tutorial-r-memory-piece-01',
-        name: 'メモリーピース',
-        rarity: 'R',
-        type: 'material',
-        emoji: '🧩',
-        description: '思い出を育てる欠片',
-    },
-    {
-        id: 'tutorial-r-memory-piece-02',
-        name: 'メモリーピース',
-        rarity: 'R',
-        type: 'material',
-        emoji: '🧩',
-        description: '思い出を育てる欠片',
-    },
-    {
-        id: 'tutorial-r-memory-piece-03',
-        name: 'メモリーピース',
-        rarity: 'R',
-        type: 'material',
-        emoji: '🧩',
-        description: '思い出を育てる欠片',
-    },
-    {
-        id: 'tutorial-r-memory-piece-04',
-        name: 'メモリーピース',
-        rarity: 'R',
-        type: 'material',
-        emoji: '🧩',
-        description: '思い出を育てる欠片',
-    },
-    {
-        id: 'tutorial-r-memory-piece-05',
-        name: 'メモリーピース',
-        rarity: 'R',
-        type: 'material',
-        emoji: '🧩',
-        description: '思い出を育てる欠片',
-    },
-    {
-        id: 'tutorial-r-memory-piece-06',
-        name: 'メモリーピース',
-        rarity: 'R',
-        type: 'material',
-        emoji: '🧩',
-        description: '思い出を育てる欠片',
-    },
-    {
-        id: 'tutorial-r-memory-piece-07',
-        name: 'メモリーピース',
-        rarity: 'R',
-        type: 'material',
-        emoji: '🧩',
-        description: '思い出を育てる欠片',
-    },
-    {
-        id: 'tutorial-r-memory-piece-08',
-        name: 'メモリーピース',
-        rarity: 'R',
-        type: 'material',
-        emoji: '🧩',
-        description: '思い出を育てる欠片',
-    },
+export const TUTORIAL_RESULT_LINES = [
+    'さっきより迷い方が減ってた。最初としては十分。',
+    '……続けられる人なんだ、って少し見直したかも。',
+    '明日も来るなら、次はこの続きまで一緒に見れる。',
 ];
 
 export const TUTORIAL_EVENT_LINES = [
-    '今日さ、思ったよりちゃんとやってたじゃん',
-    '…別に褒めてるわけじゃないけど',
-    'でも、また一緒にやってもいいかなって思っただけ',
+    'この時間、空き教室なら静かでちょうどいいから。',
+    '明日もここにいる。来るなら、途中で投げないで。',
+    '……別に義務じゃないけど。',
+    'でも、来たらちゃんと続きを見るよ。',
 ];
 
-export const TUTORIAL_HOME_LINE = '今日も少しだけやるでしょ？';
+export const TUTORIAL_HOME_LINE = '今日は長くやらなくていい。まず一個だけ、一緒に見よ。';

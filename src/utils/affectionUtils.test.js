@@ -41,4 +41,17 @@ describe('affectionUtils reaction variety', () => {
 
         expect(first.text).not.toBe(second.text);
     });
+
+    it('assigns Emma home reactions to Emma voice paths', () => {
+        const reaction = getHomeReaction({
+            affection: 0,
+            tp: 100,
+            maxTp: 100,
+            loginStreak: 0,
+            characterId: 'emma',
+        });
+
+        expect(reaction.voice).toContain('/audio/tts-generated/home-reactions/emma/');
+        expect(reaction.voice).toContain('emma-default');
+    });
 });
