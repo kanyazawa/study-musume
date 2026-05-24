@@ -35,6 +35,44 @@ Project-specific guidance for Codex and similar coding agents working in `study-
 - つまり、`実装担当` と `レビュー / 統合 / commit 担当` を分ける。
 - 最終判断と docs 更新は `Codex` 側に寄せる。
 
+## Terminal-First AI Workflow
+
+- この repo の正規作業場所は `C:\dev\study-musume` とする。
+- `C:\Users\Hide2\.gemini\study-musume` などの退避コピーは、参照や保険としては残してよいが、ふだんの実装先として使わない。
+- AI は作業開始時に、可能なら `cwd` が `C:\dev\study-musume` になっている前提で進める。
+- 作業の節目では `git status --short --branch` を見て、意図しない差分や作業場所の取り違えを先に防ぐ。
+- ターミナル操作は `1コマンドずつ実行` を基本にする。複数コマンドを1行に連結した提案は避ける。
+
+### Recommended Session Flow
+
+- 毎回の開始手順:
+  - `cd C:\dev\study-musume`
+  - `git status --short --branch`
+- 実装担当AIは `コード変更 -> 必要なテスト or 起動確認 -> 変更内容の要約` までを担当する。
+- レビュー担当AIは `git diff` や commit 差分を見て、`バグ / 回帰 / 足りないテスト / 命名や責務の崩れ` を優先して指摘する。
+- 指摘修正後に、別AIまたは同じレビュー担当AIで再チェックする。
+- 問題なければ `Codex` 側で `commit` と `push` を行う。
+
+### Role Boundaries
+
+- 実装AI:
+  - 主に `src/`, `functions/`, `netlify/`, `docs/StudyMusume/` を触る
+  - build, test, dev server の確認まで行ってよい
+- レビューAI:
+  - 原則として修正せず、差分レビューに集中する
+  - 抽象論より `壊れる箇所`, `確認不足`, `行動レベルの修正提案` を優先する
+- commit担当AI:
+  - `git status` が意図通りか確認してから commit する
+  - 退避コピーや無関係ファイルを巻き込まない
+
+### Safety Rules
+
+- `npm run dev` や長い diff 出力の最中に、次のコマンドを続けて貼らない。
+- pager が開いたら、抜けてから次のコマンドを実行する。
+- 変な未追跡ファイルや一時ファイルが出たら、いきなり消さずに中身を確認してから扱う。
+- 退避コピーから救出するときは、まず branch や commit を作ってから取り込む。
+- 迷ったら `場所を固定して、差分を見て、レビューしてから push` を優先する。
+
 ## UI Generation Preferences
 
 - The user often uses v0 only as a rough layout generator, then pastes the result into this repo.

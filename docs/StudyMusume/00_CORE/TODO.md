@@ -39,6 +39,8 @@
 ## 完了
 
 - [x] Obsidian を docs Vault として設定
+- [x] 正規作業場所を `C:\dev\study-musume` に固定し、退避コピーから必要差分を救出して `main` へ戻した
+- [x] `実装AI -> レビューAI -> 修正 -> Codexで再確認とcommit` の terminal-first 運用を `AGENTS.md` に明文化した
 - [x] 開発メモと仕様整理の土台を作成
 - [x] 英語学習 x 複数ヒロインの中核仕様を整理
 - [x] Home ベースのワイヤー方針を作成
