@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './StaticCharacterImage.css';
 import CharacterMain from '../../assets/images/character_new.webp';
 import CharacterUser from '../../assets/images/character_user.webp';
@@ -22,6 +22,8 @@ import FireflyBlinkOverlay from '../../assets/images/firefly/firefly_overlay_bli
 import FireflySmileOverlay from '../../assets/images/firefly/firefly_overlay_smile.webp';
 import FireflySurprisedOverlay from '../../assets/images/firefly/firefly_overlay_surprised.webp';
 import SparkleSelectImage from '../../assets/images/sparkle/sparkle_select.png';
+import EmmaStanding from '../../assets/images/emma_home_preview_generated.png';
+import EmmaStandingBlinkChroma from '../../assets/images/emma_home_preview_generated_blink_chroma.png';
 import { getSkinFilter } from '../../utils/cosmeticUtils';
 
 const FACE_EFFECT_CONFIG = {
@@ -49,6 +51,19 @@ const FACE_EFFECT_CONFIG = {
         cheekSize: '4.8%',
         mouthY: '24.1%',
         mouthSize: '4.2%',
+        effectOpacity: 0.9,
+    },
+    emma: {
+        leftEyeX: '45.6%',
+        rightEyeX: '54.4%',
+        eyeY: '17%',
+        eyeSize: '5.9%',
+        leftCheekX: '42.8%',
+        rightCheekX: '57.2%',
+        cheekY: '21.4%',
+        cheekSize: '4.8%',
+        mouthY: '24.2%',
+        mouthSize: '4.1%',
         effectOpacity: 0.9,
     },
 };
@@ -138,6 +153,30 @@ const CHARACTER_IMAGE_SETS = {
             surprised: FireflySurprisedOverlay,
         },
     },
+    emma: {
+        skinImages: {
+            default: EmmaStanding,
+        },
+        expressionImages: {
+            default: EmmaStanding,
+            main: EmmaStanding,
+            new: EmmaStanding,
+            tsundere: EmmaStanding,
+            user: EmmaStanding,
+            happy: EmmaStanding,
+            correct: EmmaStanding,
+            normal: EmmaStanding,
+            angry: EmmaStanding,
+            serious: EmmaStanding,
+            smile: EmmaStanding,
+            shy: EmmaStanding,
+            sad: EmmaStanding,
+            surprised: EmmaStanding,
+            relaxed: EmmaStanding,
+            blink: EmmaStandingBlinkChroma,
+            talk: EmmaStanding,
+        },
+    },
     sparkle: {
         skinImages: {
             default: SparkleSelectImage,
@@ -164,11 +203,37 @@ const CHARACTER_IMAGE_SETS = {
     },
 };
 
+const BLINKABLE_EXPRESSIONS = new Set(['normal', 'happy', 'correct', 'smile', 'serious', 'sad', 'relaxed', 'shy']);
+const EMMA_BLINK_CHROMA_KEY = {
+    red: 255,
+    green: 0,
+    blue: 255,
+    threshold: 34,
+    softness: 40,
+    despill: 0.18,
+};
+const CHROMA_KEYED_IMAGE_CACHE = new Map();
+const CHROMA_KEYED_IMAGE_PENDING = new Map();
+
+const getChromaKeyCacheKey = (src, chromaKey = {}) => (
+    JSON.stringify({
+        src,
+        red: chromaKey.red ?? 0,
+        green: chromaKey.green ?? 255,
+        blue: chromaKey.blue ?? 0,
+        threshold: chromaKey.threshold ?? 58,
+        softness: chromaKey.softness ?? 42,
+        despill: chromaKey.despill ?? 0.72,
+    })
+);
+const getPoseExpressionKey = (pose = {}) => pose.expression || pose.emotion || 'normal';
+const resolveCharacterImages = (characterId) => CHARACTER_IMAGE_SETS[characterId] || CHARACTER_IMAGE_SETS.noah;
+
 const resolveImage = (characterId, skinId, pose = {}) => {
-    const characterImages = CHARACTER_IMAGE_SETS[characterId] || CHARACTER_IMAGE_SETS.noah;
+    const characterImages = resolveCharacterImages(characterId);
     const skinImages = characterImages.skinImages || CHARACTER_IMAGE_SETS.noah.skinImages;
     const expressionImages = characterImages.expressionImages || CHARACTER_IMAGE_SETS.noah.expressionImages;
-    const expressionKey = pose.expression || pose.emotion || 'normal';
+    const expressionKey = getPoseExpressionKey(pose);
     const isSpeaking = Boolean(pose?.speaking);
     const hasSpeakingVariant = isSpeaking
         && characterImages.speakingSource
@@ -185,6 +250,7 @@ const resolveImage = (characterId, skinId, pose = {}) => {
         overlaySource,
         expressionKey,
         usesExpressionVariant: source !== skinFallback,
+        hasBlinkVariant: Boolean(expressionImages.blink),
     };
 };
 
@@ -298,28 +364,71 @@ const drawChromaKeyedImage = (canvas, image, chromaKey) => {
     return true;
 };
 
-const ChromaKeyedImage = ({ src, alt, chromaKey }) => {
-    const canvasRef = useRef(null);
-    const [failed, setFailed] = useState(false);
+const buildChromaKeyedImageDataUrl = (src, chromaKey) => {
+    const cacheKey = getChromaKeyCacheKey(src, chromaKey);
+    if (CHROMA_KEYED_IMAGE_CACHE.has(cacheKey)) {
+        return Promise.resolve(CHROMA_KEYED_IMAGE_CACHE.get(cacheKey));
+    }
 
-    useEffect(() => {
-        let cancelled = false;
+    if (CHROMA_KEYED_IMAGE_PENDING.has(cacheKey)) {
+        return CHROMA_KEYED_IMAGE_PENDING.get(cacheKey);
+    }
+
+    const pending = new Promise((resolve, reject) => {
         const image = new window.Image();
         image.decoding = 'async';
         image.onload = () => {
-            if (cancelled) {
+            const bufferCanvas = document.createElement('canvas');
+            const ok = drawChromaKeyedImage(bufferCanvas, image, chromaKey);
+            if (!ok) {
+                reject(new Error('Failed to draw chroma keyed image.'));
                 return;
             }
 
-            const ok = drawChromaKeyedImage(canvasRef.current, image, chromaKey);
-            setFailed(!ok);
+            const dataUrl = bufferCanvas.toDataURL('image/png');
+            CHROMA_KEYED_IMAGE_CACHE.set(cacheKey, dataUrl);
+            resolve(dataUrl);
         };
         image.onerror = () => {
-            if (!cancelled) {
-                setFailed(true);
-            }
+            reject(new Error(`Failed to load image: ${src}`));
         };
         image.src = src;
+    }).finally(() => {
+        CHROMA_KEYED_IMAGE_PENDING.delete(cacheKey);
+    });
+
+    CHROMA_KEYED_IMAGE_PENDING.set(cacheKey, pending);
+    return pending;
+};
+
+const ChromaKeyedImage = ({ src, alt, chromaKey }) => {
+    const [failed, setFailed] = useState(false);
+    const [processedSrc, setProcessedSrc] = useState('');
+
+    useEffect(() => {
+        let cancelled = false;
+        const cacheKey = getChromaKeyCacheKey(src, chromaKey);
+        setFailed(false);
+        if (CHROMA_KEYED_IMAGE_CACHE.has(cacheKey)) {
+            setProcessedSrc(CHROMA_KEYED_IMAGE_CACHE.get(cacheKey) || '');
+            return undefined;
+        }
+
+        setProcessedSrc('');
+
+        buildChromaKeyedImageDataUrl(src, chromaKey)
+            .then((nextProcessedSrc) => {
+                if (!cancelled) {
+                    setProcessedSrc(nextProcessedSrc);
+                    setFailed(false);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setProcessedSrc('');
+                    setFailed(true);
+                }
+            });
 
         return () => {
             cancelled = true;
@@ -336,12 +445,20 @@ const ChromaKeyedImage = ({ src, alt, chromaKey }) => {
         );
     }
 
+    if (!processedSrc) {
+        return (
+            <span
+                className="character-static-base-image"
+                aria-hidden="true"
+            />
+        );
+    }
+
     return (
-        <canvas
-            ref={canvasRef}
+        <img
+            src={processedSrc}
+            alt={alt}
             className="character-static-base-image"
-            role="img"
-            aria-label={alt}
         />
     );
 };
@@ -404,48 +521,114 @@ const StaticCharacterImage = ({
     disableFaceEffects = false,
     chromaKey,
 }) => {
-    const { source, overlaySource, usesExpressionVariant, expressionKey } = resolveImage(characterId, skinId, pose);
+    const [isBlinking, setIsBlinking] = useState(false);
+    const baseExpressionKey = getPoseExpressionKey(pose);
+    const characterImages = resolveCharacterImages(characterId);
+    const expressionImages = characterImages.expressionImages || {};
+    const canAutoBlink = Boolean(
+        pose?.autoBlink !== false
+        && expressionImages.blink
+        && !pose?.speaking
+        && BLINKABLE_EXPRESSIONS.has(baseExpressionKey)
+    );
+    const animatedPose = isBlinking ? { ...pose, expression: 'blink' } : pose;
+    const { source, overlaySource, usesExpressionVariant, expressionKey } = resolveImage(characterId, skinId, animatedPose);
     const filter = getSkinFilter(skinId);
     const shouldKeepSkinFilter = !usesExpressionVariant;
-    const resolvedSource = sourceOverride || source;
+    const resolvedSource = usesExpressionVariant ? source : (sourceOverride || source);
     const faceEffectConfig = disableFaceEffects ? null : FACE_EFFECT_CONFIG[characterId];
     const isCompactScene = pose?.scene === 'missions';
     const faceEffectMode = faceEffectConfig && !isCompactScene ? resolveFaceEffectMode(expressionKey) : '';
+    const idleMotionClass = pose?.idleMotion ? `idle-motion-${pose.idleMotion}` : '';
+    const resolvedChromaKey = chromaKey || (
+        characterId === 'emma' && expressionKey === 'blink'
+            ? EMMA_BLINK_CHROMA_KEY
+            : null
+    );
+
+    useEffect(() => {
+        if (characterId !== 'emma' || !expressionImages.blink || pose?.autoBlink === false) {
+            return undefined;
+        }
+
+        buildChromaKeyedImageDataUrl(expressionImages.blink, EMMA_BLINK_CHROMA_KEY).catch(() => {});
+        return undefined;
+    }, [characterId, expressionImages.blink, pose?.autoBlink]);
+
+    useEffect(() => {
+        if (!canAutoBlink) {
+            setIsBlinking(false);
+            return undefined;
+        }
+
+        let cancelled = false;
+        let blinkStartTimer = 0;
+        let blinkEndTimer = 0;
+
+        const queueBlink = () => {
+            const nextDelayMs = 1600 + Math.random() * 2400;
+            blinkStartTimer = window.setTimeout(() => {
+                if (cancelled) {
+                    return;
+                }
+
+                setIsBlinking(true);
+                blinkEndTimer = window.setTimeout(() => {
+                    if (cancelled) {
+                        return;
+                    }
+
+                    setIsBlinking(false);
+                    queueBlink();
+                }, 108);
+            }, nextDelayMs);
+        };
+
+        queueBlink();
+
+        return () => {
+            cancelled = true;
+            window.clearTimeout(blinkStartTimer);
+            window.clearTimeout(blinkEndTimer);
+        };
+    }, [baseExpressionKey, canAutoBlink, characterId, skinId]);
 
     return (
         <div className={['character-static-stage', className].filter(Boolean).join(' ')} style={style}>
-            {chromaKey ? (
-                <ChromaKeyedImage
-                    src={resolvedSource}
-                    alt={alt}
-                    chromaKey={chromaKey}
-                />
-            ) : (
-                <img
-                    src={resolvedSource}
-                    alt={alt}
-                    className="character-static-base-image"
-                    style={shouldKeepSkinFilter ? { filter } : undefined}
-                />
-            )}
-            {overlaySource && (
-                <img
-                    src={overlaySource}
-                    alt=""
-                    aria-hidden="true"
-                    className="character-static-expression-overlay"
-                />
-            )}
-            {faceEffectConfig && (
-                <div className="character-face-fx-layer" style={buildFaceEffectStyle(faceEffectConfig)}>
-                    <FaceEffectLayer
-                        mode={faceEffectMode}
-                        characterId={characterId}
-                        expressionKey={expressionKey}
-                        isSpeaking={Boolean(pose?.speaking)}
+            <div className={['character-static-motion-shell', idleMotionClass].filter(Boolean).join(' ')}>
+                {resolvedChromaKey ? (
+                    <ChromaKeyedImage
+                        src={resolvedSource}
+                        alt={alt}
+                        chromaKey={resolvedChromaKey}
                     />
-                </div>
-            )}
+                ) : (
+                    <img
+                        src={resolvedSource}
+                        alt={alt}
+                        className="character-static-base-image"
+                        style={shouldKeepSkinFilter ? { filter } : undefined}
+                    />
+                )}
+                {overlaySource && (
+                    <img
+                        src={overlaySource}
+                        alt=""
+                        aria-hidden="true"
+                        className="character-static-expression-overlay"
+                    />
+                )}
+                {faceEffectConfig && (
+                    <div className="character-face-fx-layer" style={buildFaceEffectStyle(faceEffectConfig)}>
+                        <FaceEffectLayer
+                            mode={faceEffectMode}
+                            characterId={characterId}
+                            expressionKey={expressionKey}
+                            isSpeaking={Boolean(pose?.speaking)}
+                        />
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

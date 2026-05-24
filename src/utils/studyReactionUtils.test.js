@@ -83,6 +83,17 @@ describe('studyReactionUtils', () => {
         })).toBe(null);
     });
 
+    it('builds Emma reaction voice candidates under the Emma namespace', () => {
+        const candidates = getReactionVoiceCandidates({
+            characterId: 'emma',
+            tone: 'chain_correct',
+        });
+
+        expect(candidates).toHaveLength(3);
+        expect(candidates.every((candidate) => candidate.includes('home-reactions/emma/'))).toBe(true);
+        expect(candidates.every((candidate) => candidate.includes('emma-highStreak'))).toBe(true);
+    });
+
     it('mixes in a rare chain voice after five streak when the rare roll hits', () => {
         const randomSpy = vi.spyOn(Math, 'random')
             .mockReturnValueOnce(0);

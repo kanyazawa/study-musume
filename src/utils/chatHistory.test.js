@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+    getCharacterChatTopicKey,
     getLatestNoaAssistantMessage,
     getLatestNoaAssistantMessageEntry,
     getNoaChatMessages,
@@ -36,5 +37,10 @@ describe('chatHistory', () => {
             content: '落ち着いていこう',
             emotion: 'serious',
         });
+    });
+
+    it('builds per-character chat history keys while preserving the legacy noah topic', () => {
+        expect(getCharacterChatTopicKey('noah')).toBe('general');
+        expect(getCharacterChatTopicKey('emma')).toBe('companion:emma');
     });
 });

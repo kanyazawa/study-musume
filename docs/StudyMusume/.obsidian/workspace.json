@@ -1,0 +1,224 @@
+{
+  "main": {
+    "id": "6f952da0f8b6a561",
+    "type": "split",
+    "children": [
+      {
+        "id": "5d3247041756b9b7",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "37a9d2b6fe478914",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "03_CHARACTERS/TAKASE_EMMA.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "TAKASE_EMMA"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "9ead7be2fc6bb6b2",
+    "type": "split",
+    "children": [
+      {
+        "id": "9bb20dac96fdaa86",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "cca2d81cbbebe073",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "ファイルエクスプローラ"
+            }
+          },
+          {
+            "id": "b09ec6e0e636d12c",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "検索"
+            }
+          },
+          {
+            "id": "8e2762a1acb859f0",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "ブックマーク"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "b6a258feeb3cdf6c",
+    "type": "split",
+    "children": [
+      {
+        "id": "3c08a7e7152d1e40",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "4da4e73502069db9",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "バックリンク"
+            }
+          },
+          {
+            "id": "c0be21c016783e93",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "アウトゴーイングリンク"
+            }
+          },
+          {
+            "id": "3fa9934c91a4e92b",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "タグ"
+            }
+          },
+          {
+            "id": "adff321fe592741c",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "すべてのプロパティ"
+            }
+          },
+          {
+            "id": "cb0b497e75a5dfb7",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "アウトライン"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:クイックスイッチャーを開く": false,
+      "graph:グラフビューを開く": false,
+      "canvas:新規キャンバスを作成": false,
+      "daily-notes:今日のデイリーノートを開く": false,
+      "templates:テンプレートを挿入": false,
+      "command-palette:コマンドパレットを開く": false,
+      "bases:新規ベースを作成": false
+    }
+  },
+  "active": "37a9d2b6fe478914",
+  "lastOpenFiles": [
+    "02_SYSTEMS/CHARACTER_CUSTOMIZATION_SYSTEM.md",
+    "00_CORE/MULTI_AI_WORKFLOW.md",
+    "00_CORE/EMMA_MVP_IMPLEMENTATION.md",
+    "00_CORE/AI_RULES.md",
+    "03_CHARACTERS/TAKASE_EMMA.md",
+    "03_CHARACTERS/HEROINES.md",
+    "03_CHARACTERS/SUB_CHARACTERS.md",
+    "03_CHARACTERS/RELATIONSHIPS.md",
+    "03_CHARACTERS/CHARACTER_RULES.md",
+    "02_SYSTEMS/TUTORIAL_SCRIPT_EMMA.md",
+    "07_MARKETING/MONETIZATION.md",
+    "06_WORLD/STORY_STRUCTURE.md",
+    "05_SNS/TIKTOK_IDEAS.md",
+    "05_SNS/SNS_STRATEGY.md",
+    "05_SNS/CONTENT_PLAN.md",
+    "00_CORE/PROJECT_STATUS.md",
+    "00_CORE/AI_ROLE_PROMPTS.md",
+    "00_CORE/ROADMAP.md",
+    "02_SYSTEMS/TUTORIAL_SYSTEM.md",
+    "00_CORE/TODO.md",
+    "README.md",
+    "05_SNS/X_POSTS.md",
+    "99_ARCHIVE/開発メモ.md.md",
+    "99_ARCHIVE/LEGACY_SYSTEMS.md",
+    "99_ARCHIVE/UNUSED_IDEAS.md",
+    "99_ARCHIVE/OLD_MEMOS.md",
+    "98_DAILY_LOG",
+    "08_ASSETS",
+    "07_MARKETING",
+    "06_WORLD",
+    "05_SNS",
+    "無題のファイル 1.base",
+    "05_REFERENCES",
+    "99_ARCHIVE",
+    "04_DEBUG",
+    "03_CHARACTERS",
+    "無題のファイル.canvas",
+    "無題のファイル 1.canvas"
+  ]
+}

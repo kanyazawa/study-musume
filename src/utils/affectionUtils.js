@@ -2,6 +2,20 @@ import { AFFECTION_LEVELS, AFFECTION_QUOTES, AFFECTION_QUOTES_REN } from '../dat
 import { HOME_REACTIONS } from '../data/homeReactions';
 
 const GIFT_REACTION_BY_RARITY = {
+    emma: {
+        SSR: [
+            { emotion: 'happy', text: 'え、これ……本当にくれるの？ そういうの、ちゃんと覚えてるから。' },
+            { emotion: 'happy', text: 'すごい。大事にする。今日は少しだけ、かなり嬉しい。' },
+        ],
+        SR: [
+            { emotion: 'happy', text: 'これ好きかも。私のこと考えて選んでくれたの、分かる。' },
+            { emotion: 'smile', text: 'ありがとう。こういう気遣い、すごく助かる。' },
+        ],
+        default: [
+            { emotion: 'normal', text: 'ありがと。使えそうだし、ちゃんと持っておく。'},
+            { emotion: 'happy', text: 'うん、嬉しい。……その、普通に嬉しいから困る。'},
+        ],
+    },
     noah: {
         SSR: [
             { emotion: 'happy', text: 'えっ、本当にこれくれるの？ず、ずるいわよ……嬉しすぎるじゃない。'},
@@ -33,6 +47,28 @@ const GIFT_REACTION_BY_RARITY = {
 };
 
 const QUIZ_REACTIONS = {
+    emma: {
+        correct: {
+            low: [
+                { emotion: 'happy', text: '正解。うん、その形で合ってる。' },
+                { emotion: 'smile', text: '合ってるよ。今の取り方、かなりいい。' },
+            ],
+            high: [
+                { emotion: 'happy', text: 'また正解。ちゃんと繋がってきたね、この調子。' },
+                { emotion: 'relaxed', text: 'いい感じ。迷い方が前よりずっと減ってる。' },
+            ],
+        },
+        incorrect: {
+            low: [
+                { emotion: 'serious', text: '惜しい。正解は「{correctAnswer}」。ここは先に揃えておきたい。' },
+                { emotion: 'normal', text: '違うね。答えは「{correctAnswer}」。焦らなくていいから、もう一回見よ。' },
+            ],
+            high: [
+                { emotion: 'normal', text: '今のミスは大丈夫。正解は「{correctAnswer}」。次で取り返せる。' },
+                { emotion: 'serious', text: '答えは「{correctAnswer}」。ここだけ直せば流れは戻せるよ。' },
+            ],
+        },
+    },
     noah: {
         correct: {
             low: [

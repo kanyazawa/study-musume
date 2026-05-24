@@ -43,6 +43,33 @@ const getDialogueChallengeScore = ({ quizKind = 'choice' } = {}) => {
     return 0;
 };
 
+const buildHomeReactionVoiceFile = (characterId, bucket, index) => (
+    `tts-generated/home-reactions/${characterId}/${characterId}-${bucket}-${String(index).padStart(2, '0')}.mp3`
+);
+
+const createReactionVoiceMap = (characterId) => ({
+    chain_correct: [
+        buildHomeReactionVoiceFile(characterId, 'highStreak', 1),
+        buildHomeReactionVoiceFile(characterId, 'highStreak', 2),
+        buildHomeReactionVoiceFile(characterId, 'highStreak', 3),
+    ],
+    comeback_correct: [
+        buildHomeReactionVoiceFile(characterId, 'reviewFocus', 1),
+        buildHomeReactionVoiceFile(characterId, 'reviewFocus', 2),
+        buildHomeReactionVoiceFile(characterId, 'reviewFocus', 3),
+    ],
+    hard_correct: [
+        buildHomeReactionVoiceFile(characterId, 'highAffection', 1),
+        buildHomeReactionVoiceFile(characterId, 'highAffection', 2),
+        buildHomeReactionVoiceFile(characterId, 'highAffection', 3),
+    ],
+    clutch_correct: [
+        buildHomeReactionVoiceFile(characterId, 'highStreak', 4),
+        buildHomeReactionVoiceFile(characterId, 'highStreak', 5),
+        buildHomeReactionVoiceFile(characterId, 'highStreak', 6),
+    ],
+});
+
 export const getReactionEmotion = (tone, fallback = null) => {
     switch (tone) {
         case 'correct':
@@ -64,39 +91,26 @@ export const getReactionEmotion = (tone, fallback = null) => {
 };
 
 const REACTION_VOICE_FILES = {
-    noah: {
-        chain_correct: [
-            'tts-generated/home-reactions/noah/noah-highStreak-01.mp3',
-            'tts-generated/home-reactions/noah/noah-highStreak-02.mp3',
-            'tts-generated/home-reactions/noah/noah-highStreak-03.mp3',
-        ],
-        comeback_correct: [
-            'tts-generated/home-reactions/noah/noah-reviewFocus-01.mp3',
-            'tts-generated/home-reactions/noah/noah-reviewFocus-02.mp3',
-            'tts-generated/home-reactions/noah/noah-reviewFocus-03.mp3',
-        ],
-        hard_correct: [
-            'tts-generated/home-reactions/noah/noah-highAffection-01.mp3',
-            'tts-generated/home-reactions/noah/noah-highAffection-02.mp3',
-            'tts-generated/home-reactions/noah/noah-highAffection-03.mp3',
-        ],
-        clutch_correct: [
-            'tts-generated/home-reactions/noah/noah-highStreak-04.mp3',
-            'tts-generated/home-reactions/noah/noah-highStreak-05.mp3',
-            'tts-generated/home-reactions/noah/noah-highStreak-06.mp3',
-        ],
-    },
+    emma: createReactionVoiceMap('emma'),
+    noah: createReactionVoiceMap('noah'),
 };
 
 const reactionVoiceHistory = new Map();
 const REACTION_RARE_CHAIN_THRESHOLD = 5;
 const REACTION_RARE_CHAIN_CHANCE = 0.28;
 const REACTION_RARE_VOICE_FILES = {
+    emma: {
+        chain_correct: [
+            buildHomeReactionVoiceFile('emma', 'highStreak', 4),
+            buildHomeReactionVoiceFile('emma', 'highStreak', 5),
+            buildHomeReactionVoiceFile('emma', 'highStreak', 6),
+        ],
+    },
     noah: {
         chain_correct: [
-            'tts-generated/home-reactions/noah/noah-highStreak-04.mp3',
-            'tts-generated/home-reactions/noah/noah-highStreak-05.mp3',
-            'tts-generated/home-reactions/noah/noah-highStreak-06.mp3',
+            buildHomeReactionVoiceFile('noah', 'highStreak', 4),
+            buildHomeReactionVoiceFile('noah', 'highStreak', 5),
+            buildHomeReactionVoiceFile('noah', 'highStreak', 6),
         ],
     },
 };

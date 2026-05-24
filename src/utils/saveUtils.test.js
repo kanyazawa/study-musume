@@ -49,6 +49,7 @@ describe('saveUtils', () => {
       brokenPromiseIds: [],
       lastResolvedAt: null,
     });
+    expect(stats.selectedHeroineId).toBeNull();
   });
 
   it('grants the welcome bonus once for legacy save data', () => {
@@ -162,5 +163,32 @@ describe('saveUtils', () => {
       brokenPromiseIds: [],
       lastResolvedAt: null,
     });
+  });
+
+  it('restores selectedHeroineId from legacy favoriteCharacter when needed', () => {
+    localStorage.setItem(
+      'gameStats',
+      JSON.stringify({
+        favoriteCharacter: 'ren',
+      }),
+    );
+
+    const stats = loadStats();
+
+    expect(stats.selectedHeroineId).toBe('ren');
+    expect(stats.favoriteCharacter).toBe('ren');
+  });
+
+  it('saves selectedHeroineId and favoriteCharacter in sync', () => {
+    saveStats({
+      characterId: 'emma',
+      selectedHeroineId: 'emma',
+      favoriteCharacter: 'noah',
+    });
+
+    const parsed = JSON.parse(localStorage.getItem('gameStats'));
+
+    expect(parsed.selectedHeroineId).toBe('emma');
+    expect(parsed.favoriteCharacter).toBe('emma');
   });
 });

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { getDownloadURL, ref as storageRef } from 'firebase/storage';
 import { isFirebaseConfigured, storage } from '../firebase/config';
 import { loadSoundSettings, saveSoundSettings } from '../utils/soundSettings';
+import { getVoiceFallbackCandidates, toLocalAudioPath } from '../utils/voicePathUtils';
 
 // BGM Imports
 import bgmTrack from '../assets/audio/after_school_sunbeams.mp3';
@@ -9,6 +10,13 @@ import bgmTrack from '../assets/audio/after_school_sunbeams.mp3';
 const SoundContext = createContext();
 const BGM_DUCK_MULTIPLIER = 0.42;
 const BGM_FADE_MS = 260;
+const clampMediaVolume = (value) => {
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) {
+        return 0;
+    }
+    return Math.max(0, Math.min(1, numericValue));
+};
 
 export const useSound = () => useContext(SoundContext);
 
@@ -48,7 +56,7 @@ const resolveAudioSource = async (filename, { defaultExtension = '.mp3' } = {}) 
         return url;
     }
 
-    const localPath = normalized.includes('.') ? `/audio/${normalized}` : `/audio/${normalized}${defaultExtension}`;
+    const localPath = toLocalAudioPath(normalized, { defaultExtension });
     audioPathCache.set(normalized, localPath);
     return localPath;
 };
@@ -71,7 +79,7 @@ export const SoundProvider = ({ children }) => {
     const getTargetBgmVolume = () => {
         if (isMuted) return 0;
         const duckMultiplier = voiceFocusCountRef.current > 0 ? BGM_DUCK_MULTIPLIER : 1;
-        return Math.max(0, Math.min(1, bgmVolume * duckMultiplier));
+        return clampMediaVolume(bgmVolume * duckMultiplier);
     };
 
     const cancelBgmFade = () => {
@@ -92,8 +100,8 @@ export const SoundProvider = ({ children }) => {
 
         cancelBgmFade();
 
-        const safeTargetVolume = Math.max(0, Math.min(1, nextVolume));
-        const startVolume = Number.isFinite(bgm.volume) ? bgm.volume : 0;
+        const safeTargetVolume = clampMediaVolume(nextVolume);
+        const startVolume = clampMediaVolume(bgm.volume);
 
         if (durationMs <= 0 || Math.abs(startVolume - safeTargetVolume) < 0.001) {
             bgm.volume = safeTargetVolume;
@@ -103,7 +111,8 @@ export const SoundProvider = ({ children }) => {
         const startTime = performance.now();
         const step = (now) => {
             const progress = Math.min(1, (now - startTime) / durationMs);
-            bgm.volume = startVolume + ((safeTargetVolume - startVolume) * progress);
+            const interpolatedVolume = startVolume + ((safeTargetVolume - startVolume) * progress);
+            bgm.volume = clampMediaVolume(interpolatedVolume);
 
             if (progress < 1) {
                 bgmFadeFrameRef.current = requestAnimationFrame(step);
@@ -191,7 +200,7 @@ export const SoundProvider = ({ children }) => {
     useEffect(() => {
         syncBgmVolume();
         activeVoicesRef.current.forEach((audio) => {
-            audio.volume = isMuted ? 0 : voiceVolume;
+            audio.volume = clampMediaVolume(isMuted ? 0 : voiceVolume);
         });
     }, [bgmVolume, isMuted, voiceVolume]);
 
@@ -247,7 +256,7 @@ export const SoundProvider = ({ children }) => {
         resolveAudioSource(filename)
             .then((path) => {
                 const audio = new Audio(path);
-                audio.volume = seVolume;
+                audio.volume = clampMediaVolume(seVolume);
                 return audio.play();
             })
             .catch((e) => console.warn(`Failed to play SE: ${filename}`, e));
@@ -256,13 +265,9 @@ export const SoundProvider = ({ children }) => {
     const playVoice = async (filename, options = {}) => {
         const { onStart, onEnd, channel = 'default' } = options;
         if (!filename || isMuted) return Promise.resolve(false);
-
-        let path = '';
-        try {
-            path = await resolveAudioSource(filename);
-        } catch (error) {
-            console.warn(`Failed to resolve Voice: ${filename}`, error);
-            return false;
+        const voiceCandidates = getVoiceFallbackCandidates(filename);
+        if (voiceCandidates.length === 0) {
+            return Promise.resolve(false);
         }
 
         return new Promise((resolve) => {
@@ -276,13 +281,13 @@ export const SoundProvider = ({ children }) => {
                 activeVoicesRef.current.delete(channel);
             }
 
-            const audio = new Audio(path);
             let settled = false;
             let started = false;
             const releaseVoiceFocus = acquireVoiceFocus();
+            let activeAudio = null;
 
             const handleStart = () => {
-                if (audio.__voiceDisposed) return;
+                if (activeAudio?.__voiceDisposed) return;
                 if (started) return;
                 started = true;
                 onStart?.();
@@ -290,13 +295,13 @@ export const SoundProvider = ({ children }) => {
 
             const handleEnd = () => {
                 releaseVoiceFocus();
-                if (audio.__voiceDisposed) {
-                    if (activeVoicesRef.current.get(channel) === audio) {
+                if (activeAudio?.__voiceDisposed) {
+                    if (activeVoicesRef.current.get(channel) === activeAudio) {
                         activeVoicesRef.current.delete(channel);
                     }
                     return;
                 }
-                if (activeVoicesRef.current.get(channel) === audio) {
+                if (activeVoicesRef.current.get(channel) === activeAudio) {
                     activeVoicesRef.current.delete(channel);
                 }
                 onEnd?.();
@@ -308,28 +313,61 @@ export const SoundProvider = ({ children }) => {
                 resolve(played);
             };
 
-            audio.preload = 'none';
-            audio.volume = isMuted ? 0 : voiceVolume;
-            audio.__releaseVoiceFocus = releaseVoiceFocus;
-            activeVoicesRef.current.set(channel, audio);
-            audio.addEventListener('play', handleStart, { once: true });
-            audio.addEventListener('ended', handleEnd, { once: true });
-            audio.addEventListener('error', () => {
-                console.warn(`Failed to load Voice: ${filename}`);
-                handleEnd();
-                finish(false);
-            }, { once: true });
+            const cleanupAttempt = (audio) => {
+                if (!audio) return;
+                audio.__voiceDisposed = true;
+                audio.pause();
+                audio.currentTime = 0;
+                audio.src = '';
+                if (activeVoicesRef.current.get(channel) === audio) {
+                    activeVoicesRef.current.delete(channel);
+                }
+            };
 
-            audio.play()
-                .then(() => {
-                    handleStart();
-                    finish(true);
-                })
-                .catch((e) => {
-                    console.warn(`Failed to play Voice: ${filename}`, e);
-                    handleEnd();
+            const attemptPlayback = async (candidateIndex = 0) => {
+                const candidate = voiceCandidates[candidateIndex];
+                if (!candidate) {
+                    releaseVoiceFocus();
                     finish(false);
-                });
+                    return;
+                }
+
+                let path = '';
+                try {
+                    path = await resolveAudioSource(candidate);
+                } catch (error) {
+                    console.warn(`Failed to resolve Voice: ${candidate}`, error);
+                    void attemptPlayback(candidateIndex + 1);
+                    return;
+                }
+
+                const audio = new Audio(path);
+                activeAudio = audio;
+                audio.preload = 'none';
+                audio.volume = clampMediaVolume(isMuted ? 0 : voiceVolume);
+                audio.__releaseVoiceFocus = releaseVoiceFocus;
+                activeVoicesRef.current.set(channel, audio);
+                audio.addEventListener('play', handleStart, { once: true });
+                audio.addEventListener('ended', handleEnd, { once: true });
+                audio.addEventListener('error', () => {
+                    console.warn(`Failed to load Voice: ${candidate}`);
+                    cleanupAttempt(audio);
+                    void attemptPlayback(candidateIndex + 1);
+                }, { once: true });
+
+                audio.play()
+                    .then(() => {
+                        handleStart();
+                        finish(true);
+                    })
+                    .catch((e) => {
+                        console.warn(`Failed to play Voice: ${candidate}`, e);
+                        cleanupAttempt(audio);
+                        void attemptPlayback(candidateIndex + 1);
+                    });
+            };
+
+            void attemptPlayback();
         });
     };
 

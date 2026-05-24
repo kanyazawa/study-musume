@@ -1,4 +1,5 @@
 import { getLastStudyTopic } from '../data/studyData';
+import { getCharacterLabel } from '../data/characterData';
 import { getDailyLoopSummary } from './dailyLoopUtils';
 import { getStoredGoalData } from './goalUtils';
 import { DEFAULT_RATING, getLevelFromRating, getNextLevelInfo, getRankFromRating } from './ratingUtils';
@@ -6,6 +7,166 @@ import { getHomeReviewSummary } from './reviewUtils';
 import { normalizeStoryProgressionStats } from './storyProgressionUtils';
 
 const clampNumber = (value, min, max) => Math.min(Math.max(value, min), max);
+
+const WEEKDAY_LABELS = {
+    mon: '月',
+    tue: '火',
+    wed: '水',
+    thu: '木',
+    fri: '金',
+    sat: '土',
+    sun: '日',
+};
+
+const TIME_SLOT_LABELS = {
+    morning: '朝',
+    day: '昼',
+    afterSchool: '放課後',
+    night: '夜',
+};
+
+const PROMISE_LOCATION_LABELS = {
+    library: '図書室',
+    classroom: '教室',
+    cafe: 'カフェ',
+    rooftop: '屋上',
+    hallway: '廊下',
+};
+
+const getPromiseLocationLabel = (promise = {}) => (
+    promise.locationLabel
+    || PROMISE_LOCATION_LABELS[promise.locationId]
+    || '校内'
+);
+
+const getRouteLabel = ({ routeStatus, hasPromise, reviewDueCount }) => {
+    if (reviewDueCount > 0 && hasPromise) {
+        return '約束はあるけど、先に片づけたいことがある';
+    }
+    if (reviewDueCount > 0) {
+        return '積み残しを片づける日';
+    }
+    if (routeStatus === 'locked') {
+        return '特別な相手との時間が、少しずつ形になってきた';
+    }
+    if (routeStatus === 'pending') {
+        return '今日は少しだけ、放課後が気になる';
+    }
+    return '少しずつ、勉強する時間が当たり前になってきた';
+};
+
+const getTodayMoodCopy = ({ routeStatus, hasPromise, reviewDueCount, focusCharacterLabel }) => {
+    if (reviewDueCount > 0 && hasPromise) {
+        return '期限切れの弱点を片づけると、放課後の時間を気持ちよく使える';
+    }
+    if (reviewDueCount > 0) {
+        return `今日は復習を先に終わらせると、${focusCharacterLabel}にも頑張りがちゃんと伝わる`;
+    }
+    if (hasPromise) {
+        return '授業を進めてから会いに行くと、昨日の続きが自然につながりそう';
+    }
+    if (routeStatus === 'locked') {
+        return '今日の勉強時間も、特別な関係を育てる大事な積み重ねになる';
+    }
+    return '今日は新しい内容を進めると、放課後の会話も自然につながりそう';
+};
+
+const getStudyPriority = ({ reviewDueCount }) => (
+    reviewDueCount > 0 ? 'review' : 'study'
+);
+
+const getStudyPriorityLabel = ({ reviewDueCount, hasPromise }) => {
+    if (reviewDueCount > 0 && hasPromise) {
+        return '約束の前に復習を終えたい日';
+    }
+    if (reviewDueCount > 0) {
+        return 'まずは復習を優先したい日';
+    }
+    if (hasPromise) {
+        return '授業を進めてから会いたい日';
+    }
+    return 'まずは授業を進めたい日';
+};
+
+const getReviewPriorityLabel = (reviewDueCount) => (
+    reviewDueCount > 0 ? '期限切れの復習がある' : '復習の急ぎはない'
+);
+
+const getActivePromise = (stats = {}) => {
+    const activePromises = Array.isArray(stats?.promiseState?.activePromises)
+        ? stats.promiseState.activePromises
+        : [];
+
+    return activePromises.find((promise) => promise?.status === 'scheduled' || promise?.status === 'available') || null;
+};
+
+const buildFeaturedPromise = ({ activePromise, reviewDueCount, characterLabel }) => {
+    if (!activePromise) {
+        return null;
+    }
+
+    return {
+        id: activePromise.id,
+        title: activePromise.title || `${characterLabel}との予定`,
+        characterId: activePromise.characterId || null,
+        characterLabel,
+        timeSlotLabel: TIME_SLOT_LABELS[activePromise.timeSlot] || '放課後',
+        locationLabel: getPromiseLocationLabel(activePromise),
+        status: activePromise.status || 'scheduled',
+        body: reviewDueCount > 0
+            ? 'このまま会いに行くこともできるけど、今日は先に復習を終えたい'
+            : 'この前の続きの勉強を一緒に進める約束がある',
+        hint: reviewDueCount > 0
+            ? '期限切れの弱点を片づけると、放課後の時間を気持ちよく使える'
+            : '先に今日の課題を少し進めておくと会話がつながりやすい',
+        actionLabel: reviewDueCount > 0 ? 'まず復習する' : '会いに行く',
+        actionRoutePath: reviewDueCount > 0 ? '/review' : '/character',
+    };
+};
+
+export const getStoryProgressSummary = (stats = {}, reviewSummary = null) => {
+    const normalizedStats = normalizeStoryProgressionStats(stats);
+    const calendarState = normalizedStats?.calendarState || {};
+    const routeState = normalizedStats?.routeState || {};
+    const reviewDueCount = Math.max(0, Number(reviewSummary?.due) || 0);
+    const isEmmaMvp = normalizedStats?.tutorialHomeVariant === 'emma-mvp';
+    const focusCharacterId = routeState.characterId
+        || routeState.pendingCharacterId
+        || normalizedStats?.selectedHeroineId
+        || normalizedStats?.favoriteCharacter
+        || normalizedStats?.characterId
+        || 'noah';
+    const shouldUseEmmaMvpLabel = isEmmaMvp && focusCharacterId === 'emma';
+    const focusCharacterLabel = shouldUseEmmaMvpLabel ? '高瀬エマ' : getCharacterLabel(focusCharacterId);
+    const routeStatus = routeState.status || 'common';
+    const activePromise = getActivePromise(normalizedStats);
+    const hasPromise = Boolean(activePromise);
+    const studyPriority = getStudyPriority({ reviewDueCount, hasPromise });
+
+    return {
+        dateLabel: `${Number(calendarState.month || 4)}月${Number(calendarState.day || 1)}日`,
+        weekdayLabel: WEEKDAY_LABELS[calendarState.weekday] || '月',
+        timeSlotLabel: TIME_SLOT_LABELS[calendarState.timeSlot] || '朝',
+        focusCharacterId,
+        focusCharacterLabel,
+        routeStatus,
+        routeLabel: getRouteLabel({ routeStatus, hasPromise, reviewDueCount }),
+        todayMoodCopy: getTodayMoodCopy({ routeStatus, hasPromise, reviewDueCount, focusCharacterLabel }),
+        studyPriority,
+        studyPriorityLabel: getStudyPriorityLabel({ reviewDueCount, hasPromise }),
+        reviewPriority: reviewDueCount > 0 ? 'due' : 'clear',
+        reviewPriorityLabel: getReviewPriorityLabel(reviewDueCount),
+        featuredPromise: buildFeaturedPromise({
+            activePromise,
+            reviewDueCount,
+            characterLabel: activePromise?.characterId
+                ? ((isEmmaMvp && activePromise.characterId === 'emma') ? '高瀬エマ' : getCharacterLabel(activePromise.characterId))
+                : focusCharacterLabel,
+        }),
+        primaryActionHint: reviewDueCount > 0 ? 'まず復習する' : '授業を進める',
+        secondaryActionHint: hasPromise ? '約束を確認する' : (shouldUseEmmaMvpLabel ? 'エマと話す' : '交流を見る'),
+    };
+};
 
 export const getDaysUntilExam = (examDate) => {
     if (!examDate) return null;
@@ -391,6 +552,11 @@ export const getEmptyGameLoopState = () => ({
         description: 'まずは新しい内容を1つ進めて、今日のループを始めましょう。',
         meta: '',
     },
+    storyProgressSummary: getStoryProgressSummary({}, {
+        hasReviews: false,
+        due: 0,
+        soonCount: 0,
+    }),
 });
 
 export const getGameLoopSnapshot = (stats = {}, overrides = {}) => {
@@ -426,6 +592,7 @@ export const getGameLoopSnapshot = (stats = {}, overrides = {}) => {
         battleProgress,
         recommendedNextAction,
     });
+    const storyProgressSummary = getStoryProgressSummary(stats, reviewSummary);
 
     return {
         dailyLoop,
@@ -434,6 +601,7 @@ export const getGameLoopSnapshot = (stats = {}, overrides = {}) => {
         reviewLoad,
         dailyGoals,
         recommendedNextAction,
+        storyProgressSummary,
     };
 };
 

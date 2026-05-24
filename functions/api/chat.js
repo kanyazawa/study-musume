@@ -64,7 +64,7 @@ export const onRequestPost = async (context) => {
             stage: 'exception',
         });
         return new Response(JSON.stringify({
-            error: '今はノアがうまく返事できないわ。少し時間を置いて試しなさい。',
+            error: '今はうまく返事できないみたい。少し時間を置いて試して。',
             code: 'chat_upstream_error',
         }), {
             status: 502,

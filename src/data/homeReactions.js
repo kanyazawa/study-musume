@@ -1,4 +1,14 @@
 const HOME_REACTION_STYLE_MAP = {
+    emma: {
+        happy: 'まお / ふつー',
+        smile: 'まお / おちつき',
+        relaxed: 'まお / おちつき',
+        shy: 'まお / せつなめ',
+        serious: 'まお / おちつき',
+        angry: 'まお / せつなめ',
+        normal: 'まお / ふつー',
+        default: 'まお / ふつー',
+    },
     noah: {
         happy: 'まお / あまあま',
         smile: 'まお / からかい',
@@ -31,12 +41,47 @@ const withHomeReactionMeta = (characterId, bucket, items) => items.map((item, in
     return {
         ...item,
         id,
-        voice: item.voice || buildHomeReactionVoicePath(characterId, id),
+        voice: Object.prototype.hasOwnProperty.call(item, 'voice') && item.voice !== ''
+            ? item.voice
+            : buildHomeReactionVoicePath(characterId, id),
         ttsSpeaker: item.ttsSpeaker || styleMap[emotionKey] || styleMap.default,
     };
 });
 
 export const HOME_REACTIONS = {
+    emma: {
+        lowTp: withHomeReactionMeta('emma', 'lowTp', [
+            { emotion: 'serious', text: '今日は詰め込みすぎないで。頭が散ってる時は、量より整え方のほうが大事。', voice: '' },
+            { emotion: 'normal', text: '疲れてるなら一問だけでもいいよ。そこで止めても、今日はちゃんと前進だから。', voice: '' },
+            { emotion: 'serious', text: '無理して続けると雑になる。休みながら進める日のほうが、あとで効くこともある。', voice: '' },
+        ]),
+        highStreak: withHomeReactionMeta('emma', 'highStreak', [
+            { emotion: 'happy', text: '続いてるね。派手じゃなくても、その積み上げ方はかなり強いと思う。', voice: '' },
+            { emotion: 'smile', text: '最近の流れ、いい感じ。今日も崩さないで一個だけ進めよう。', voice: '' },
+            { emotion: 'relaxed', text: '毎日ちゃんと来てるの、えらいよ。そういう人は後半で伸びるから。', voice: '' },
+        ]),
+        reviewFocus: withHomeReactionMeta('emma', 'reviewFocus', [
+            { emotion: 'serious', text: '今日は復習優先かな。曖昧なまま先へ行くより、ここで揃えたほうが早い。', voice: '' },
+            { emotion: 'normal', text: '弱点ノートが残ってるね。先にそこを軽くすると、次の授業がかなり楽になるよ。', voice: '' },
+            { emotion: 'happy', text: '前に迷ったところ、今なら取れそう。短くでも一回だけ回してみよ。', voice: '' },
+        ]),
+        examSoon: withHomeReactionMeta('emma', 'examSoon', [
+            { emotion: 'serious', text: '本番が近い時ほど、雑に広げないで。取るところを確実に取る形にしよ。', voice: '' },
+            { emotion: 'normal', text: '焦るより、再現できる形に整えるほうが大事。今日はその確認に使いたい。', voice: '' },
+            { emotion: 'relaxed', text: 'ここまで積んできた分は消えないよ。今日は落ち着いて、取れる問題を増やそ。', voice: '' },
+        ]),
+        highAffection: withHomeReactionMeta('emma', 'highAffection', [
+            { emotion: 'relaxed', text: '来てくれると少し安心する。今日はどこから一緒に見ようか。', voice: '' },
+            { emotion: 'smile', text: '最近は、同じ机で進めるのが前より自然になってきた気がする。', voice: '' },
+            { emotion: 'happy', text: '少し話してから始める？ そのほうが今日はうまく乗れそう。', voice: '' },
+        ]),
+        default: withHomeReactionMeta('emma', 'default', [
+            { emotion: 'normal', text: '今日は長くやらなくていい。まず一個だけ、一緒に見よ。', voice: '' },
+            { emotion: 'serious', text: '迷って止まるより、軽いところから入ったほうが早いよ。最初の一問、決めよ。', voice: '' },
+            { emotion: 'smile', text: '何からやるか決めたら、あとは進めるだけ。今日はその最初だけでも取ろ。', voice: '' },
+            { emotion: 'happy', text: '来たなら、少しだけでも前に進も。短く終えても意味はちゃんとあるから。', voice: '' },
+        ]),
+    },
     noah: {
         lowTp: withHomeReactionMeta('noah', 'lowTp', [
             { emotion: 'serious', text: '無理しすぎないでよ。少し休んでからでも遅くないんだから。' },

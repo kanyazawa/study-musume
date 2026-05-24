@@ -16,6 +16,27 @@ export const TUTORIAL_STEPS = {
     EVENT: 'event',
 };
 
+const normalizeTutorialStep = (step) => {
+    if (step === TUTORIAL_STEPS.CHARACTER) {
+        return TUTORIAL_STEPS.QUIZ;
+    }
+
+    if (step === TUTORIAL_STEPS.GACHA) {
+        return TUTORIAL_STEPS.EVENT;
+    }
+
+    if (
+        step !== TUTORIAL_STEPS.OPENING
+        && step !== TUTORIAL_STEPS.QUIZ
+        && step !== TUTORIAL_STEPS.RESULT
+        && step !== TUTORIAL_STEPS.EVENT
+    ) {
+        return TUTORIAL_STEPS.OPENING;
+    }
+
+    return step;
+};
+
 const parseJson = (value, fallback) => {
     if (!value) {
         return fallback;
@@ -42,6 +63,7 @@ export const getDefaultTutorialProgress = () => ({
     step: TUTORIAL_STEPS.OPENING,
     initializedStats: false,
     selectedCharacterId: null,
+    openingLineIndex: 0,
     quizIndex: 0,
     quizAnswers: [],
     pendingQuizResult: null,
@@ -51,6 +73,7 @@ export const getDefaultTutorialProgress = () => ({
     bonusGemsAwarded: 0,
     gachaDrawn: false,
     gachaResults: [],
+    resultLineIndex: 0,
     eventLineIndex: 0,
 });
 
@@ -59,6 +82,7 @@ export const loadTutorialProgress = () => {
     return {
         ...getDefaultTutorialProgress(),
         ...(savedProgress || {}),
+        step: normalizeTutorialStep(savedProgress?.step),
     };
 };
 

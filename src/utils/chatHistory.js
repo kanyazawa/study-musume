@@ -3,6 +3,15 @@ import { normalizeCharacterEmotion } from './characterPoseUtils';
 const STORAGE_KEY = 'noaChatHistory';
 const MAX_MESSAGES_PER_TOPIC = 6;
 
+export const getCharacterChatTopicKey = (characterId = 'noah') => {
+    const normalizedCharacterId = String(characterId || '').trim().toLowerCase();
+    if (!normalizedCharacterId || normalizedCharacterId === 'noah') {
+        return 'general';
+    }
+
+    return `companion:${normalizedCharacterId}`;
+};
+
 const normalizeMessage = (message) => {
     if (!message || typeof message.content !== 'string') return null;
 

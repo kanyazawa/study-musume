@@ -96,6 +96,18 @@ study-musume/
 └─ *.py                    画像処理用の補助スクリプト
 ```
 
+## 設計メモの入口
+
+`study-musume` 専用の設計メモは [docs/StudyMusume/README.md](/C:/Users/Hide2/.gemini/study-musume/docs/StudyMusume/README.md) を入口にしています。
+
+主な見どころ:
+
+- 現在地: [docs/StudyMusume/00_CORE/PROJECT_STATUS.md](/C:/Users/Hide2/.gemini/study-musume/docs/StudyMusume/00_CORE/PROJECT_STATUS.md)
+- 直近タスク: [docs/StudyMusume/00_CORE/TODO.md](/C:/Users/Hide2/.gemini/study-musume/docs/StudyMusume/00_CORE/TODO.md)
+- UI ルール: [docs/StudyMusume/01_UI/UI_RULES.md](/C:/Users/Hide2/.gemini/study-musume/docs/StudyMusume/01_UI/UI_RULES.md)
+- システム総論: [docs/StudyMusume/02_SYSTEMS/GAME_SYSTEMS.md](/C:/Users/Hide2/.gemini/study-musume/docs/StudyMusume/02_SYSTEMS/GAME_SYSTEMS.md)
+- ヒロイン案: [docs/StudyMusume/03_CHARACTERS/HEROINES.md](/C:/Users/Hide2/.gemini/study-musume/docs/StudyMusume/03_CHARACTERS/HEROINES.md)
+
 ## アプリの主要機能
 
 - 学習画面と会話シーン

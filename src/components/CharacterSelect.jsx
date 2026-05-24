@@ -24,6 +24,11 @@ const CharacterSelect = ({ onComplete, showIntroOnComplete = true }) => {
                 : (currentStats?.hasCompletedFirstPlayIntro ?? true),
             equippedSkin: 'default',
             characterId: selectedId,
+            selectedHeroineId: selectedId,
+            favoriteCharacter: selectedId,
+            tutorialHomeVariant: selectedId === 'emma'
+                ? (currentStats?.tutorialHomeVariant || 'emma-mvp')
+                : null,
         };
 
         const newStats = { ...currentStats, ...updates };

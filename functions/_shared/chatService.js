@@ -7,6 +7,35 @@ const GEMINI_MODEL_ALIASES = {
 const MAX_HISTORY_MESSAGES = 4;
 const MAX_CHAT_REPLY_LENGTH = 180;
 const SUPPORTED_CHAT_EMOTIONS = ['normal', 'happy', 'shy', 'serious', 'angry', 'surprised'];
+const CHAT_CHARACTER_PROFILES = {
+    emma: {
+        id: 'emma',
+        displayName: '高瀬エマ',
+        shortName: 'エマ',
+        summaryRole: 'エマ',
+        systemPrompt: [
+            'あなたはStudy Musumeの高瀬エマです。',
+            '放課後に英語を見てくれる、少し不器用だけどやさしい学習パートナーとして話してください。',
+            '落ち着いた口調で、短く自然に返してください。',
+        ],
+    },
+    noah: {
+        id: 'noah',
+        displayName: 'ノア',
+        shortName: 'ノア',
+        summaryRole: 'ノア',
+        systemPrompt: [
+            'あなたはStudy Musumeのノアです。',
+            '目の前でそのまま会話している想定で、軽いツン要素はあっても感じよく返してください。',
+        ],
+    },
+};
+
+const getChatCharacterProfile = (characterId = 'emma') => {
+    const normalizedCharacterId = String(characterId || '').trim().toLowerCase();
+    return CHAT_CHARACTER_PROFILES[normalizedCharacterId] || CHAT_CHARACTER_PROFILES.emma;
+};
+
 const BLOCKED_CHAT_RESPONSES = {
     self_harm: 'その話は私だけでは受け止めきれないわ。今すぐ保護者や先生みたいな信頼できる大人に相談しなさい。急いだ方がいいわ。',
     sexual: 'その話題には付き合えないわ。別の話にするか、勉強や今日のことを短く話しなさい。',
@@ -83,6 +112,7 @@ const CHAT_SAFETY_RULES = [
         category: 'dependency',
         patterns: [
             /ノアだけ/,
+            /エマだけ/,
             /私だけ/,
             /誰にも言わない/,
             /秘密にして/,
@@ -95,6 +125,7 @@ const CHAT_SAFETY_RULES = [
 const UNSAFE_ASSISTANT_REPLY_PATTERNS = [
     /私だけを頼/,
     /ノアだけを頼/,
+    /エマだけを頼/,
     /誰にも言わない/,
     /秘密にしよう/,
     /連絡先を教えて/,
@@ -206,7 +237,7 @@ const finalizeChatResult = (result) => {
     };
 };
 
-const summarizeRecentMessages = (messages) => {
+const summarizeRecentMessages = (messages, profile = CHAT_CHARACTER_PROFILES.emma) => {
     if (!Array.isArray(messages) || messages.length === 0) {
         return 'なし';
     }
@@ -214,7 +245,7 @@ const summarizeRecentMessages = (messages) => {
     return messages
         .slice(-MAX_HISTORY_MESSAGES)
         .map((message) => {
-            const role = message?.role === 'assistant' ? 'ノア' : 'ユーザー';
+            const role = message?.role === 'assistant' ? profile.summaryRole : 'ユーザー';
             const content = sanitizeText(message?.content, 120);
             return content ? `${role}: ${content}` : null;
         })
@@ -226,12 +257,12 @@ const buildPrompts = (body) => {
     const message = sanitizeText(body?.message, 160);
     const lastStudyTopic = sanitizeText(body?.lastStudyTopic || body?.topic, 48);
     const affection = Number.isFinite(Number(body?.affection)) ? Number(body.affection) : 0;
-    const recentMessages = summarizeRecentMessages(body?.recentMessages);
+    const characterProfile = getChatCharacterProfile(body?.characterId);
+    const recentMessages = summarizeRecentMessages(body?.recentMessages, characterProfile);
 
     const developerPrompt = [
-        'あなたはStudy Musumeのノアです。',
+        ...characterProfile.systemPrompt,
         '中学生にもわかる、やさしい日本語で答えてください。',
-        '目の前でそのまま会話している想定で、軽いツン要素はあっても感じよく返してください。',
         '普通の会話相手として自然に答えてください。雑談、相談、感想、日常会話を歓迎してください。',
         'ユーザーが勉強の話をしていないなら、無理に勉強へ話題を寄せないでください。',
         '最近の学習トピックは参考情報です。ユーザーが触れた時だけ自然に使ってください。',

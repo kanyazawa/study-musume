@@ -5,13 +5,12 @@ import './TutorialHome.css';
 
 const TutorialHome = ({ stats }) => {
     const navigate = useNavigate();
-    const favoriteCharacter = stats?.favoriteCharacter || 'noah';
     const gems = Number(stats?.diamonds || 0);
     const affection = Number(stats?.affection || 0);
 
     const selectedCharacter = useMemo(
-        () => TUTORIAL_CHARACTERS.find((character) => character.id === favoriteCharacter) || TUTORIAL_CHARACTERS[0],
-        [favoriteCharacter],
+        () => TUTORIAL_CHARACTERS[0],
+        [],
     );
 
     return (
@@ -35,20 +34,20 @@ const TutorialHome = ({ stats }) => {
                     </div>
                     <div className="tutorial-home-copy">
                         <strong>{selectedCharacter.name}</strong>
-                        <span>推し: {selectedCharacter.archetype}</span>
+                        <span>放課後の学習パートナー: {selectedCharacter.archetype}</span>
                         <p>「{TUTORIAL_HOME_LINE}」</p>
                     </div>
                 </main>
 
                 <nav className="tutorial-home-nav" aria-label="ホームメニュー">
                     <button type="button" className="tutorial-home-btn" onClick={() => navigate('/study')}>
-                        学習
+                        文法
                     </button>
-                    <button type="button" className="tutorial-home-btn" onClick={() => navigate('/gacha')}>
-                        ガチャ
+                    <button type="button" className="tutorial-home-btn" onClick={() => navigate('/writing')}>
+                        添削
                     </button>
                     <button type="button" className="tutorial-home-btn" onClick={() => navigate('/story')}>
-                        ストーリー
+                        約束
                     </button>
                 </nav>
             </div>
