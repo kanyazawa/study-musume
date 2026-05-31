@@ -3,6 +3,7 @@
  */
 
 import { DAILY_MISSIONS, MISSION_TYPES, getInitialMissionProgress } from '../data/missions';
+import { touchCloudSaveData } from './saveUtils';
 
 const MISSION_STORAGE_KEY = 'dailyMissions';
 const LAST_RESET_KEY = 'lastMissionReset';
@@ -30,6 +31,7 @@ export const loadMissions = () => {
             const freshProgress = getInitialMissionProgress();
             saveMissions(freshProgress);
             localStorage.setItem(LAST_RESET_KEY, today);
+            touchCloudSaveData();
             return freshProgress;
         }
 
@@ -41,6 +43,7 @@ export const loadMissions = () => {
         const initialProgress = getInitialMissionProgress();
         saveMissions(initialProgress);
         localStorage.setItem(LAST_RESET_KEY, today);
+        touchCloudSaveData();
         return initialProgress;
     } catch (error) {
         console.error('Error loading missions:', error);
@@ -54,6 +57,7 @@ export const loadMissions = () => {
 export const saveMissions = (missionProgress) => {
     try {
         localStorage.setItem(MISSION_STORAGE_KEY, JSON.stringify(missionProgress));
+        touchCloudSaveData();
     } catch (error) {
         console.error('Error saving missions:', error);
     }
@@ -141,6 +145,7 @@ const updateStudiedSubjects = (subject) => {
         if (!subjects.includes(subject)) {
             subjects.push(subject);
             localStorage.setItem(STUDIED_SUBJECTS_KEY, JSON.stringify(subjects));
+            touchCloudSaveData();
 
             // 3科目達成判定
             if (subjects.length >= 3) {
@@ -227,5 +232,6 @@ export const resetMissions = () => {
     saveMissions(freshProgress);
     localStorage.setItem(LAST_RESET_KEY, getTodayString());
     localStorage.removeItem(STUDIED_SUBJECTS_KEY);
+    touchCloudSaveData();
     return freshProgress;
 };

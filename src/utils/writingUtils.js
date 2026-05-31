@@ -1,3 +1,5 @@
+import { touchCloudSaveData } from './saveUtils';
+
 const WRITING_HISTORY_KEY = 'writingHistory';
 const WRITING_DRAFTS_KEY = 'writingDrafts';
 const MAX_HISTORY_ITEMS = 20;
@@ -40,6 +42,7 @@ export const saveWritingResult = (result) => {
         .slice(0, MAX_HISTORY_ITEMS);
 
     localStorage.setItem(WRITING_HISTORY_KEY, JSON.stringify(nextHistory));
+    touchCloudSaveData();
     return nextHistory;
 };
 
@@ -60,6 +63,7 @@ export const saveWritingDraft = (promptId, draft) => {
     const drafts = safeParse(localStorage.getItem(WRITING_DRAFTS_KEY) || '{}', {});
     drafts[promptId] = String(draft || '');
     localStorage.setItem(WRITING_DRAFTS_KEY, JSON.stringify(drafts));
+    touchCloudSaveData();
 };
 
 export const clearWritingDraft = (promptId) => {
@@ -70,6 +74,7 @@ export const clearWritingDraft = (promptId) => {
     const drafts = safeParse(localStorage.getItem(WRITING_DRAFTS_KEY) || '{}', {});
     delete drafts[promptId];
     localStorage.setItem(WRITING_DRAFTS_KEY, JSON.stringify(drafts));
+    touchCloudSaveData();
 };
 
 export const getWritingSummary = (history = getWritingHistory()) => {

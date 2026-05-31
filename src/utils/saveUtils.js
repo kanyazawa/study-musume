@@ -6,6 +6,7 @@ import { mergeGameLoopStats } from './gameLoopUtils';
 import { loadStandaloneTutorialSnapshot, syncStandaloneTutorialSnapshot } from './tutorialStorage';
 
 const STORAGE_KEY = 'gameStats';
+const SAVE_TIMESTAMP_KEY = '__saveDataUpdatedAt';
 
 /**
  * デフォルトの統計情報を取得
@@ -109,18 +110,33 @@ const SYNC_KEYS = [
     'studyHistory',
     'gachaHistory',
     'pityCounter',
+    'dailyMissions',
     'missionProgress',
     'lastMissionReset',
     'studiedSubjectsToday',
     'uma_main_goal',
     'uma_todos',
     'achievements',
+    'achievementStats',
     'statsTracking',
     'studyProgress',
     'lastStudyTopic',
     'writingHistory',
     'writingDrafts',
 ];
+
+const parseSaveTimestamp = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+};
+
+const readSaveTimestamp = () => parseSaveTimestamp(localStorage.getItem(SAVE_TIMESTAMP_KEY));
+
+const writeSaveTimestamp = (timestamp = Date.now()) => {
+    const normalized = parseSaveTimestamp(timestamp) || Date.now();
+    localStorage.setItem(SAVE_TIMESTAMP_KEY, String(normalized));
+    return normalized;
+};
 
 // デバウンスタイマー
 let _syncTimer = null;
@@ -141,6 +157,12 @@ const triggerCloudSync = () => {
     }, 5000);
 };
 
+export const touchCloudSaveData = (timestamp = Date.now()) => {
+    const savedAt = writeSaveTimestamp(timestamp);
+    triggerCloudSync();
+    return savedAt;
+};
+
 /**
  * 統計情報をlocalStorageに保存
  * @param {Object} stats - 保存する統計情報
@@ -154,6 +176,7 @@ export const saveStats = (stats) => {
                 : (Array.isArray(stats?.inventory) ? stats.inventory : []),
         });
 
+        touchCloudSaveData();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedStats));
         syncStandaloneTutorialSnapshot({
             tutorialCompleted: normalizedStats.tutorialCompleted,
@@ -163,7 +186,6 @@ export const saveStats = (stats) => {
             ownedItems: normalizedStats.ownedItems,
         });
         console.log('Stats saved:', normalizedStats);
-        triggerCloudSync();
     } catch (error) {
         console.error('Error saving stats:', error);
     }
@@ -172,16 +194,31 @@ export const saveStats = (stats) => {
 /**
  * 全セーブデータの一括収集
  */
-export const collectAllSaveData = () => {
+export const collectAllSaveData = ({ initializeTimestamp = true } = {}) => {
     const data = {};
+    let hasSyncedData = false;
     for (const key of SYNC_KEYS) {
         const val = localStorage.getItem(key);
         if (val !== null) {
             data[key] = val;
+            hasSyncedData = true;
         }
     }
-    data._savedAt = Date.now();
+    let savedAt = readSaveTimestamp();
+    if (!savedAt && initializeTimestamp && hasSyncedData) {
+        savedAt = writeSaveTimestamp();
+    }
+    data._savedAt = savedAt;
     return data;
+};
+
+export const getLocalSaveDataTimestamp = () => {
+    try {
+        return readSaveTimestamp();
+    } catch (error) {
+        console.error('Error reading save timestamp:', error);
+        return 0;
+    }
 };
 
 /**
@@ -193,6 +230,23 @@ export const restoreAllSaveData = (data) => {
         if (data[key] !== undefined && data[key] !== null) {
             localStorage.setItem(key, data[key]);
         }
+    }
+    if (data.gameStats) {
+        try {
+            const parsedStats = JSON.parse(data.gameStats);
+            syncStandaloneTutorialSnapshot({
+                tutorialCompleted: parsedStats.tutorialCompleted,
+                favoriteCharacter: parsedStats.favoriteCharacter,
+                affection: parsedStats.affection,
+                gems: parsedStats.diamonds,
+                ownedItems: parsedStats.ownedItems ?? parsedStats.inventory,
+            });
+        } catch (error) {
+            console.warn('Failed to sync tutorial snapshot during restore:', error);
+        }
+    }
+    if (parseSaveTimestamp(data._savedAt) > 0) {
+        localStorage.setItem(SAVE_TIMESTAMP_KEY, String(parseSaveTimestamp(data._savedAt)));
     }
 };
 
@@ -272,6 +326,7 @@ export const loadStats = () => {
 export const clearSaveData = () => {
     try {
         localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(SAVE_TIMESTAMP_KEY);
         console.log('Save data cleared');
     } catch (error) {
         console.error('Error clearing save data:', error);

@@ -3,6 +3,7 @@
 // ============================================
 
 import { getTodayString } from './loginBonusUtils';
+import { touchCloudSaveData } from './saveUtils';
 
 // 忘却曲線に基づく復習間隔（日数）
 const REVIEW_INTERVALS = [1, 3, 7, 14, 30];
@@ -316,6 +317,7 @@ export const getReviewQuestions = () => {
 export const saveReviewQuestions = (questions) => {
     try {
         localStorage.setItem('reviewQuestions', JSON.stringify(questions));
+        touchCloudSaveData();
     } catch (error) {
         console.error('Error saving review questions:', error);
     }

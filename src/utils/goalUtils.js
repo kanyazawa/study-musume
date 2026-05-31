@@ -1,3 +1,5 @@
+import { touchCloudSaveData } from './saveUtils';
+
 const MAIN_GOAL_STORAGE_KEY = 'uma_main_goal';
 const TODO_STORAGE_KEY = 'uma_todos';
 
@@ -22,6 +24,7 @@ const safeWriteStorage = (key, value) => {
 
     try {
         window.localStorage.setItem(key, value);
+        touchCloudSaveData();
         return true;
     } catch (error) {
         console.error(`Failed to write localStorage key "${key}":`, error);
@@ -96,4 +99,3 @@ export const getStoredGoalData = () => {
         todoCompletionPercent,
     };
 };
-

@@ -1,3 +1,5 @@
+import { touchCloudSaveData } from '../utils/saveUtils';
+
 // 学習トピックデータ
 export const STUDY_DATA = {
     science: {
@@ -287,6 +289,7 @@ export const saveLastStudyTopic = (subject, chapterId, topicId, topicName, chapt
     }
 
     window.localStorage.setItem(LAST_STUDY_TOPIC_STORAGE_KEY, JSON.stringify(data));
+    touchCloudSaveData();
     return data;
 };
 
@@ -350,6 +353,7 @@ export const getProgressData = () => {
 // 進捗データを保存する関数
 export const saveProgressData = (progressData) => {
     localStorage.setItem('studyProgress', JSON.stringify(progressData));
+    touchCloudSaveData();
 };
 
 // トピックをクリア済みにする関数

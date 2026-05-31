@@ -11,7 +11,8 @@ import {
     loadStats,
     saveStats,
     collectAllSaveData,
-    restoreAllSaveData
+    restoreAllSaveData,
+    getLocalSaveDataTimestamp
 } from "../utils/saveUtils";
 
 const buildRankingStatsPayload = (stats = {}) => ({
@@ -84,8 +85,8 @@ export const downloadAllSaveData = async (uid) => {
  */
 export const syncOnLogin = async (uid) => {
     try {
-        const localData = collectAllSaveData();
-        const localSavedAt = localData._savedAt || 0;
+        const localData = collectAllSaveData({ initializeTimestamp: false });
+        const localSavedAt = getLocalSaveDataTimestamp();
 
         const cloudResult = await downloadAllSaveData(uid);
 
