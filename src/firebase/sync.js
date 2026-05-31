@@ -4,7 +4,8 @@ import {
     getDoc,
     collection,
     addDoc,
-    serverTimestamp
+    serverTimestamp,
+    onSnapshot
 } from "firebase/firestore";
 import { db } from "./config";
 import {
@@ -76,6 +77,33 @@ export const downloadAllSaveData = async (uid) => {
         console.error('[CloudSync] Download失敗:', error);
         return { success: false, error: error.message };
     }
+};
+
+/**
+ * Firestore のセーブデータ更新を監視
+ * @param {string} uid
+ * @param {(payload: { data: Object, savedAt: number }) => void} callback
+ * @returns {() => void}
+ */
+export const subscribeToCloudSave = (uid, callback) => {
+    if (!db || !uid) {
+        return () => { };
+    }
+
+    const ref = doc(db, "users", uid, "saveData", "current");
+    return onSnapshot(ref, (snap) => {
+        if (!snap.exists()) {
+            return;
+        }
+
+        const data = snap.data();
+        callback({
+            data,
+            savedAt: data?._savedAt || 0,
+        });
+    }, (error) => {
+        console.error('[CloudSync] Subscribe失敗:', error);
+    });
 };
 
 /**

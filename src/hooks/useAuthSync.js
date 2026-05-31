@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { subscribeToAuthState, handleRedirectResult, ensureUserDocument } from '../firebase/auth';
 import { auth } from '../firebase/config';
-import { syncOnLogin, uploadAllSaveData } from '../firebase/sync';
+import { syncOnLogin, uploadAllSaveData, subscribeToCloudSave } from '../firebase/sync';
 import { claimPendingReferralRewards } from '../firebase/referrals';
 import { applyRewardToStats } from '../utils/referralUtils';
-import { loadStats, registerCloudSync, saveStats } from '../utils/saveUtils';
+import { loadStats, registerCloudSync, restoreAllSaveData, saveStats } from '../utils/saveUtils';
 import { isNativeIOSApp } from '../native/nativeGoogleAuth';
 
 export const useAuthSync = (setStats) => {
@@ -19,6 +19,8 @@ export const useAuthSync = (setStats) => {
   };
 
   useEffect(() => {
+    let saveDataUnsubscribe = null;
+
     if (!isNativeIOSApp()) {
       handleRedirectResult()
         .then((result) => {
@@ -33,6 +35,11 @@ export const useAuthSync = (setStats) => {
     }
 
     const unsubscribe = subscribeToAuthState(async (user) => {
+      if (saveDataUnsubscribe) {
+        saveDataUnsubscribe();
+        saveDataUnsubscribe = null;
+      }
+
       setCurrentUser(user);
       setAuthLoading(false);
 
@@ -59,6 +66,17 @@ export const useAuthSync = (setStats) => {
             await uploadAllSaveData(auth.currentUser.uid);
           }
         });
+
+        saveDataUnsubscribe = subscribeToCloudSave(user.uid, ({ data, savedAt }) => {
+          const localSavedAt = Number(localStorage.getItem('__saveDataUpdatedAt') || 0);
+          if (!savedAt || savedAt <= localSavedAt) {
+            return;
+          }
+
+          console.log('[CloudSync] 新しいクラウドデータを検出したため反映します');
+          restoreAllSaveData(data);
+          setStats(loadStats());
+        });
         return;
       }
 
@@ -66,6 +84,9 @@ export const useAuthSync = (setStats) => {
     });
 
     return () => {
+      if (saveDataUnsubscribe) {
+        saveDataUnsubscribe();
+      }
       registerCloudSync(null);
       unsubscribe();
     };
