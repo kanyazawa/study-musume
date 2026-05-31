@@ -1,0 +1,89 @@
+.cloud-sync-notice {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 14px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 12;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    width: max-content;
+    max-width: calc(100% - 28px);
+    padding: 11px 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(115, 142, 173, 0.24);
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 14px 34px rgba(14, 30, 51, 0.16);
+    color: #16314a;
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    pointer-events: none;
+    animation: cloudSyncNoticeEnter 180ms ease-out;
+}
+
+.cloud-sync-notice.is-syncing {
+    background: rgba(238, 247, 255, 0.95);
+    border-color: rgba(88, 140, 193, 0.28);
+}
+
+.cloud-sync-notice.is-success {
+    background: rgba(243, 255, 248, 0.96);
+    border-color: rgba(92, 164, 122, 0.28);
+    color: #17452e;
+}
+
+.cloud-sync-notice.is-error {
+    background: rgba(255, 244, 244, 0.96);
+    border-color: rgba(212, 108, 108, 0.3);
+    color: #7a1f1f;
+}
+
+.cloud-sync-notice__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: currentColor;
+    flex: 0 0 auto;
+}
+
+.cloud-sync-notice.is-syncing .cloud-sync-notice__dot {
+    animation: cloudSyncPulse 1.1s ease-in-out infinite;
+}
+
+.cloud-sync-notice__message {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@keyframes cloudSyncNoticeEnter {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+@keyframes cloudSyncPulse {
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.42;
+        transform: scale(0.76);
+    }
+}
+
+@media (min-width: 481px) {
+    .cloud-sync-notice {
+        top: 42px;
+    }
+}

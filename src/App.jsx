@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import MobileContainer from './components/Layout/MobileContainer';
 import AppLayout from './components/Layout/AppLayout';
+import CloudSyncNotice from './components/CloudSyncNotice';
 import LoadingScreen from './components/UI/LoadingScreen';
 import AppErrorBoundary from './components/UI/AppErrorBoundary';
 import { SoundProvider } from './contexts/SoundContext';
@@ -45,7 +46,7 @@ function App() {
     });
   }, []);
 
-  const { authLoading, handleLoginSuccess, currentUser } = useAuthSync(setPreviewStats);
+  const { authLoading, handleLoginSuccess, currentUser, syncNotice } = useAuthSync(setPreviewStats);
 
   const handleCharacterSelectComplete = (newStats) => {
     setPreviewStats(newStats);
@@ -98,6 +99,7 @@ function App() {
               />
             </AppLayout>
           </AppErrorBoundary>
+          <CloudSyncNotice notice={syncNotice} />
         </MobileContainer>
       </Router>
     </SoundProvider>
