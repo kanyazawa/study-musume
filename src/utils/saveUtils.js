@@ -121,6 +121,7 @@ const SYNC_KEYS = [
     'statsTracking',
     'studyProgress',
     'lastStudyTopic',
+    'vocabStudyState',
     'writingHistory',
     'writingDrafts',
 ];

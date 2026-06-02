@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Flame, Home as HomeIcon, Sparkles, Users, BarChart3, Clock, BookOpen, Target, TrendingUp, Settings, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Flame, Home as HomeIcon, Sparkles, Users, BarChart3, Clock, BookOpen, Target, TrendingUp, Settings } from 'lucide-react';
 import {
     BarChart,
     Bar,
@@ -34,8 +34,18 @@ import {
     getDailyStats as getDayOfWeekStats,
     formatDuration,
 } from '../utils/statsUtils';
+import { LEVEL_THRESHOLDS } from '../utils/ratingUtils';
+import { getVocabByLevel } from '../data/vocabData';
 import { getCharacterLabel } from '../data/characterData';
 import { STUDY_TOPICS } from '../data/studyTopics';
+import { getVocabLevelProgress } from '../utils/vocabStudyUtils';
+
+const VOCAB_STATUS_META = {
+    strong: { label: '得意', color: '#42e695' },
+    learning: { label: '学習中', color: '#4ecfff' },
+    weak: { label: '不得意', color: '#ff6ba6' },
+    unseen: { label: '未着手', color: 'rgba(255,255,255,0.26)' },
+};
 
 const Stats = ({ stats = {} }) => {
     const navigate = useNavigate();
@@ -250,6 +260,22 @@ const Stats = ({ stats = {} }) => {
         };
     }).sort((a, b) => b.minutes - a.minutes);
 
+    const vocabLevelStats = useMemo(() => LEVEL_THRESHOLDS.map((levelMeta) => {
+        const progress = getVocabLevelProgress(levelMeta.level, getVocabByLevel(levelMeta.level));
+        const pieData = [
+            { key: 'strong', value: progress.counts.strong, color: VOCAB_STATUS_META.strong.color, name: VOCAB_STATUS_META.strong.label },
+            { key: 'learning', value: progress.counts.learning, color: VOCAB_STATUS_META.learning.color, name: VOCAB_STATUS_META.learning.label },
+            { key: 'weak', value: progress.counts.weak, color: VOCAB_STATUS_META.weak.color, name: VOCAB_STATUS_META.weak.label },
+            { key: 'unseen', value: progress.counts.unseen, color: VOCAB_STATUS_META.unseen.color, name: VOCAB_STATUS_META.unseen.label },
+        ].filter((slice) => slice.value > 0);
+
+        return {
+            ...levelMeta,
+            progress,
+            pieData,
+        };
+    }), []);
+
     return (
         <div className="stats-screen">
             {/* Character Banner (V0) */}
@@ -430,6 +456,88 @@ const Stats = ({ stats = {} }) => {
                                         </Bar>
                                     </BarChart>
                                 </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        <div className="vocab-level-panel">
+                            <div className="vocab-level-panel-header">
+                                <div className="vocab-level-panel-title">
+                                    <div className="vocab-level-icon">🧠</div>
+                                    <div>
+                                        <h3>英単語レベル別の定着状況</h3>
+                                        <p>一周するまでは同じ単語を出さない進行に対応しています。</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="vocab-level-grid">
+                                {vocabLevelStats.map((levelStat) => (
+                                    <section key={levelStat.level} className="vocab-level-card">
+                                        <div className="vocab-level-card-head">
+                                            <div>
+                                                <p className="vocab-level-emoji">{levelStat.emoji} {levelStat.label}</p>
+                                                <h4>{levelStat.progress.studiedWords} / {levelStat.progress.totalWords} 語を学習</h4>
+                                            </div>
+                                            <div className="vocab-level-accuracy" style={{ color: levelStat.color }}>
+                                                {levelStat.progress.accuracy}%
+                                                <span>正答率</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="vocab-level-chart-row">
+                                            <div className="vocab-level-chart">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <PieChart>
+                                                        <Pie
+                                                            data={levelStat.pieData}
+                                                            dataKey="value"
+                                                            nameKey="name"
+                                                            innerRadius={38}
+                                                            outerRadius={58}
+                                                            paddingAngle={2}
+                                                            stroke="rgba(8, 10, 32, 0.55)"
+                                                            strokeWidth={2}
+                                                        >
+                                                            {levelStat.pieData.map((slice) => (
+                                                                <Cell key={`${levelStat.level}-${slice.key}`} fill={slice.color} />
+                                                            ))}
+                                                        </Pie>
+                                                        <Tooltip
+                                                            formatter={(value, name) => [`${value}語`, name]}
+                                                            contentStyle={{ backgroundColor: '#120a2c', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px' }}
+                                                            labelStyle={{ color: '#fff' }}
+                                                        />
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                            </div>
+
+                                            <div className="vocab-level-legend">
+                                                {Object.entries(VOCAB_STATUS_META).map(([key, meta]) => (
+                                                    <div key={`${levelStat.level}-${key}`} className="vocab-level-legend-item">
+                                                        <span className="vocab-level-legend-dot" style={{ background: meta.color }} />
+                                                        <span>{meta.label}</span>
+                                                        <strong>{levelStat.progress.counts[key]}</strong>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="vocab-level-weak-box">
+                                            <p>苦手候補</p>
+                                            {levelStat.progress.weakWords.length > 0 ? (
+                                                <div className="vocab-level-word-list">
+                                                    {levelStat.progress.weakWords.slice(0, 3).map((word) => (
+                                                        <span key={`${levelStat.level}-${word.entryKey}`} className="vocab-word-chip is-weak">
+                                                            {word.word}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <span className="vocab-level-empty">まだ大きな苦手は出ていません</span>
+                                            )}
+                                        </div>
+                                    </section>
+                                ))}
                             </div>
                         </div>
 

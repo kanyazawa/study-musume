@@ -102,6 +102,17 @@ const buildStarterMessage = () => ({
     emotion: 'normal',
 });
 
+const buildCustomVocabAddedReply = ({ word, meaning }) => {
+    const normalizedWord = clipText(word, 80);
+    const normalizedMeaning = clipText(meaning, 120);
+
+    if (!normalizedWord || !normalizedMeaning) {
+        return '';
+    }
+
+    return `${normalizedWord}の意味は${normalizedMeaning}よ。`;
+};
+
 const getLastStudyTopicName = () => {
     if (typeof window === 'undefined') {
         return '';
@@ -385,6 +396,20 @@ const NoaChatBox = ({
             setVocabMeaning('');
             setIsVocabMeaningSuggested(false);
             setVocabFeedback(`「${result.entry.word}」を追加しました。`);
+
+            const replyText = buildCustomVocabAddedReply(result.entry);
+            if (replyText) {
+                onAssistantReply?.(replyText, {
+                    animate: !autoSpeakAssistant,
+                    emotion: 'happy',
+                    force: true,
+                    source: 'custom-vocab',
+                });
+
+                if (autoSpeakAssistant) {
+                    void handleSpeak(replyText, 'happy');
+                }
+            }
         };
 
         void submit();

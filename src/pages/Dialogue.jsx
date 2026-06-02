@@ -15,9 +15,11 @@ import { getCurrentUser } from '../firebase/auth';
 import { convertTone } from '../utils/toneUtils';
 import { getQuizReaction } from '../utils/affectionUtils';
 import CharacterStage from '../components/character/CharacterStage';
+import SceneStageLayout from '../components/layout/SceneStageLayout';
 import TappableVocabText from '../components/TappableVocabText';
 import { parseCsvTable } from '../utils/csvUtils';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
+import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
 import { createDialoguePose } from '../utils/characterPoseUtils';
 import { applyCharacterEvaluationResult } from '../utils/characterEvaluationUtils';
 import { buildDailyLoopPhasePatch } from '../utils/dailyLoopUtils';
@@ -196,11 +198,22 @@ const Dialogue = ({ stats, updateStats }) => {
     const feverFxTimeoutRef = useRef(null);
     const ttsAvailabilityRef = useRef({ deepgram: false, aivis: false, voicevox: false });
     const preferredRenderer = stats?.characterRenderer;
+    const skinId = stats?.equippedSkin || 'default';
+    const hasDialogueLive2D = hasLive2DModelConfig(characterId, skinId);
+    const shouldForceDialogueLive2D = characterId === 'noah' && hasDialogueLive2D;
     const renderer = resolveCharacterRenderer({
-        preferredRenderer,
+        preferredRenderer: shouldForceDialogueLive2D ? 'live2d' : preferredRenderer,
         characterId,
-        skinId: stats?.equippedSkin || 'default',
+        skinId,
     });
+
+    useEffect(() => {
+        if (!shouldForceDialogueLive2D || !updateStats || preferredRenderer === 'live2d') {
+            return;
+        }
+
+        updateStats({ characterRenderer: 'live2d' });
+    }, [preferredRenderer, shouldForceDialogueLive2D, updateStats]);
 
     // Study session tracking
     const [sessionStartTime] = useState(Date.now());
@@ -1410,8 +1423,24 @@ const Dialogue = ({ stats, updateStats }) => {
     };
 
     return (
-        <div className={`dialogue-screen ${isFeverFxActive ? 'dialogue-fever-active' : ''}`} onClick={handleNext}>
-            <div className="room-background" style={bgStyle}></div>
+        <SceneStageLayout
+            rootClassName={`dialogue-screen ${isFeverFxActive ? 'dialogue-fever-active' : ''}`}
+            backgroundClassName="room-background"
+            backgroundStyle={bgStyle}
+            characterLayerClassName={`character-figure ${renderer === 'live2d' ? 'is-live2d' : ''} ${(line.graph || line.study_image) ? 'has-board' : ''}`}
+            character={(
+                <CharacterStage
+                    characterId={characterId}
+                    renderer={renderer}
+                    skinId={skinId}
+                    scene={characterScene}
+                    pose={dialoguePose}
+                    className={`character-dialogue ${(line.graph || line.study_image) ? 'with-board' : ''}`}
+                    imageClassName={`char-image-dialogue ${dialoguePose.effect === 'shake' ? 'effect-shake' : ''} ${dialoguePose.effect === 'glow' ? 'effect-glow' : ''} ${(line.graph || line.study_image) ? 'with-board' : ''}`}
+                />
+            )}
+            onClick={handleNext}
+        >
             {isFeverFxActive && (
                 <div className="dialogue-fever-burst" key={`dialogue-fever-${feverFxKey}`} aria-hidden="true">
                     <span>RARE VOICE</span>
@@ -1456,20 +1485,6 @@ const Dialogue = ({ stats, updateStats }) => {
                     </div>
                 </div>
             )}
-
-            <div
-                className={`character-figure ${(line.graph || line.study_image) ? 'has-board' : ''}`}
-            >
-                <CharacterStage
-                    characterId={characterId}
-                    renderer={renderer}
-                    skinId={stats?.equippedSkin || 'default'}
-                    scene={characterScene}
-                    pose={dialoguePose}
-                    className={`character-dialogue ${(line.graph || line.study_image) ? 'with-board' : ''}`}
-                    imageClassName={`char-image-dialogue ${dialoguePose.effect === 'shake' ? 'effect-shake' : ''} ${dialoguePose.effect === 'glow' ? 'effect-glow' : ''} ${(line.graph || line.study_image) ? 'with-board' : ''}`}
-                />
-            </div>
 
             <div className="dialogue-box">
                 <div className="name-tag">{isQuiz ? 'Question' : getDisplayName(line.speaker)}</div>
@@ -1556,7 +1571,7 @@ const Dialogue = ({ stats, updateStats }) => {
             </div>
 
             {/* Character Selection Overlay Removed */}
-        </div>
+        </SceneStageLayout>
     );
 };
 

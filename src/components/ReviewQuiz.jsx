@@ -10,6 +10,7 @@ import {
     getReviewChallengeProgressPreview,
 } from '../utils/reviewUtils';
 import CharacterStage from './character/CharacterStage';
+import SceneStageLayout from './layout/SceneStageLayout';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { useSound } from '../contexts/SoundContext';
 import BgClassroom from '../assets/images/bg_classroom.webp';
@@ -101,6 +102,7 @@ const formatReorderAnswer = (tokens = []) => normalizeAnswerText(
 const ReviewQuiz = ({
     questions,
     stats,
+    updateStats,
     dailyChallenge,
     onComplete,
     getRewardSummary,
@@ -163,10 +165,11 @@ const ReviewQuiz = ({
                 : 'calm';
     const characterId = stats?.characterId || 'noah';
     const skinId = stats?.equippedSkin || 'default';
+    const preferredRenderer = stats?.characterRenderer;
     const hasReviewLive2D = hasLive2DModelConfig(characterId, skinId);
     const shouldForceReviewLive2D = characterId === 'noah' && hasReviewLive2D;
     const renderer = resolveCharacterRenderer({
-        preferredRenderer: shouldForceReviewLive2D ? 'live2d' : stats?.characterRenderer,
+        preferredRenderer: shouldForceReviewLive2D ? 'live2d' : preferredRenderer,
         characterId,
         skinId,
     });
@@ -193,6 +196,14 @@ const ReviewQuiz = ({
         wrongCount: currentQuestion?.wrongCount || 0,
         priority,
     });
+
+    useEffect(() => {
+        if (!shouldForceReviewLive2D || !updateStats || preferredRenderer === 'live2d') {
+            return;
+        }
+
+        updateStats({ characterRenderer: 'live2d' });
+    }, [preferredRenderer, shouldForceReviewLive2D, updateStats]);
     const getChainAudioSrc = useCallback((streak) => {
         if (streak <= 1) return battleChain1Audio;
         if (streak === 2) return battleChain2Audio;
@@ -593,11 +604,38 @@ const ReviewQuiz = ({
     }
 
     return (
-        <div className={`mp-screen mp-playing-screen review-quiz-screen ${isMinimalUi ? 'review-quiz-screen-minimal' : ''} review-mood-${sceneMood} ${isFeverFxActive ? 'review-fx-fever' : ''}`}>
-            <div
-                className="mp-background"
-                style={{ backgroundImage: `url(${BgClassroom})`, opacity: 0.72 }}
-            />
+        <SceneStageLayout
+            rootClassName={`mp-screen mp-playing-screen review-quiz-screen review-quiz-scene ${isMinimalUi ? 'review-quiz-screen-minimal' : ''} review-mood-${sceneMood} ${isFeverFxActive ? 'review-fx-fever' : ''}`}
+            backgroundClassName="mp-background"
+            backgroundStyle={{ backgroundImage: `url(${BgClassroom})`, opacity: 0.72 }}
+            characterLayerClassName={`mp-character-area ${renderer === 'live2d' ? 'is-live2d' : ''}`}
+            character={(
+                <>
+                    <CharacterStage
+                        characterId={characterId}
+                        renderer={renderer}
+                        skinId={skinId}
+                        scene="review"
+                        pose={characterPose}
+                        className="character-match review-character-stage"
+                        imageClassName="mp-center-character"
+                        alt="Review Character"
+                    />
+                    {visibleReviewFaceAccent && (
+                        <div className={`mp-face-accent mp-face-accent-${visibleReviewFaceAccent} review-face-accent`} aria-hidden="true">
+                            {visibleReviewFaceAccent === 'heart' && (
+                                <>
+                                    <span className="mp-face-heart-orbit mp-face-heart-orbit-left">♥</span>
+                                    <span className="mp-face-heart-orbit mp-face-heart-orbit-right">♥</span>
+                                </>
+                            )}
+                            <span className="mp-face-eye mp-face-eye-left">{visibleReviewFaceAccent === 'heart' ? '♥' : '★'}</span>
+                            <span className="mp-face-eye mp-face-eye-right">{visibleReviewFaceAccent === 'heart' ? '♥' : '★'}</span>
+                        </div>
+                    )}
+                </>
+            )}
+        >
             {isFeverFxActive && (
                 <div className="review-fever-burst" key={`review-fever-${feverFxKey}`} aria-hidden="true">
                     <span className="review-fever-kicker">RARE VOICE</span>
@@ -655,31 +693,6 @@ const ReviewQuiz = ({
                     </div>
                 </div>
             )}
-
-            <div className={`mp-character-area ${renderer === 'live2d' ? 'is-live2d' : ''}`}>
-                <CharacterStage
-                    characterId={characterId}
-                    renderer={renderer}
-                    skinId={skinId}
-                    scene="review"
-                    pose={characterPose}
-                    className="character-match review-character-stage"
-                    imageClassName="mp-center-character"
-                    alt="Review Character"
-                />
-                {visibleReviewFaceAccent && (
-                    <div className={`mp-face-accent mp-face-accent-${visibleReviewFaceAccent} review-face-accent`} aria-hidden="true">
-                        {visibleReviewFaceAccent === 'heart' && (
-                            <>
-                                <span className="mp-face-heart-orbit mp-face-heart-orbit-left">♥</span>
-                                <span className="mp-face-heart-orbit mp-face-heart-orbit-right">♥</span>
-                            </>
-                        )}
-                        <span className="mp-face-eye mp-face-eye-left">{visibleReviewFaceAccent === 'heart' ? '♥' : '★'}</span>
-                        <span className="mp-face-eye mp-face-eye-right">{visibleReviewFaceAccent === 'heart' ? '♥' : '★'}</span>
-                    </div>
-                )}
-            </div>
 
             <div className={`mp-playing-content-wrapper review-playing-content ${isMinimalUi ? 'is-minimal' : ''}`}>
                 <div className={`mp-question-container review-question-container ${isMinimalUi ? 'is-minimal' : ''}`}>
@@ -884,7 +897,7 @@ const ReviewQuiz = ({
                     )}
                 </div>
             </div>
-        </div>
+        </SceneStageLayout>
     );
 };
 

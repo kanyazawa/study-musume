@@ -51,6 +51,7 @@ import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { resolveMatchCharacterPose } from '../utils/matchExpressionState';
 import { getGameLoopSnapshot } from '../utils/gameLoopUtils';
 import { getMatchFeedbackCopy, getReactionEmotion, resolveMatchReactionTone, resolveReactionVoiceSelection, shouldTriggerReactionFeverFx } from '../utils/studyReactionUtils';
+import { getNextVocabBatchForLevel, recordVocabAttempt } from '../utils/vocabStudyUtils';
 import './MultiplayerMatch.css';
 
 // Background & Character Images
@@ -251,7 +252,9 @@ const sanitizeMatchQuestions = (questions, fallbackMeanings = []) => {
         }
 
         return {
+            ...question,
             questionId: String(question?.questionId ?? word).trim() || word,
+            itemId: String(question?.itemId ?? question?.questionId ?? '').trim(),
             subject: String(question?.subject ?? '英単語バトル').trim() || '英単語バトル',
             word,
             correctAnswer,
@@ -281,6 +284,7 @@ const buildQuestionsFromVocabItems = (vocabItems, fallbackMeanings = []) => {
     return sanitizeMatchQuestions(
         (Array.isArray(vocabItems) ? vocabItems : []).map((item) => ({
             questionId: item?.id || item?.questionId || item?.word,
+            itemId: item?.id || item?.questionId || '',
             subject: item?.subject || '英単語バトル',
             word: item?.word,
             correctAnswer: item?.meaning,
@@ -1408,6 +1412,20 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         }, delayMs);
     }, [goToNextQuestion]);
 
+    const recordSoloVocabResult = useCallback((question, isCorrect) => {
+        if (!isSolo || !question) {
+            return;
+        }
+
+        recordVocabAttempt({
+            level: roomData?.level || soloLevel,
+            word: question.word,
+            meaning: question.correctAnswer,
+            itemId: question.itemId || question.questionId || '',
+            isCorrect,
+        });
+    }, [isSolo, roomData?.level, soloLevel]);
+
     const appendSoloQuestionBatch = useCallback(({ immediate = false } = {}) => {
         if (!isSolo || soloBatchLoadingRef.current || soloQuestionQueueRef.current.length === 0) {
             return false;
@@ -1533,7 +1551,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         if (isSolo) {
             const targetLevel = soloLevel;
             const questionCount = Math.min(selectedSoloSessionOption?.actualCount || soloVocabPool.length || 999, soloVocabPool.length);
-            const selectedVocabItems = shuffleArray(soloVocabPool).slice(0, questionCount);
+            const selectedVocabItems = getNextVocabBatchForLevel(targetLevel, soloVocabPool, questionCount);
             const initialVocabItems = selectedVocabItems.slice(0, soloInitialBatchSize);
             const remainingVocabItems = selectedVocabItems.slice(initialVocabItems.length);
             const initialQuestions = buildQuestionsFromVocabItems(initialVocabItems, questionOptionMeanings);
@@ -1702,6 +1720,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             setAnswerTone(nextAnswerTone);
             setPersistentEmotion(getReactionEmotion(nextAnswerTone, nextStreak >= 2 ? 'happy' : 'smile'));
             setLastAnswerResult('correct');
+            recordSoloVocabResult(question, true);
             if (shouldTriggerReactionFeverFx({ tone: nextAnswerTone, streak: nextStreak })) {
                 triggerFeverFx();
             }
@@ -1744,6 +1763,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             setAnswerTone(nextAnswerTone);
             setPersistentEmotion(getReactionEmotion(nextAnswerTone, 'angry'));
             setLastAnswerResult('incorrect');
+            recordSoloVocabResult(question, false);
             triggerAnswerFx('wrong');
             playUiTone(180, 180, { type: 'sawtooth', gain: 0.022 });
             if (isSolo) {
@@ -1768,7 +1788,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             });
             queueAdvance(false, WRONG_ANSWER_DELAY, submitPromise);
         }
-    }, [selectedAnswer, roomData, myUid, showFeedback, isSolo, roomId, myQuestionIndex, correctStreak, lastAnswerResult, myScore, timer, playMatchSE, playReactionVoice, playUiTone, queueAdvance, triggerAnswerFx, triggerChainCallout, clearChainCallout, cancelQuestionPronunciation, soloAssistState.continueState]);
+    }, [selectedAnswer, roomData, myUid, showFeedback, isSolo, roomId, myQuestionIndex, correctStreak, lastAnswerResult, myScore, timer, playMatchSE, playReactionVoice, playUiTone, queueAdvance, recordSoloVocabResult, triggerAnswerFx, triggerChainCallout, clearChainCallout, cancelQuestionPronunciation, soloAssistState.continueState]);
 
     // 「わからない」：正解を見せて不正解扱いで次へ
     const handleSkip = useCallback(() => {
@@ -1794,6 +1814,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         setSelectedAnswer('__skip__');
         setShowFeedback(true);
         clearInterval(timerIntervalRef.current);
+        recordSoloVocabResult(question, false);
         if (isSolo) {
             setRoomData(prev => prev ? ({
                 ...prev,
@@ -1820,7 +1841,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             options: question.options
         });
         queueAdvance(false, WRONG_ANSWER_DELAY, submitPromise);
-    }, [selectedAnswer, roomData, myUid, isSolo, roomId, myQuestionIndex, playUiTone, queueAdvance, triggerAnswerFx, clearChainCallout, cancelQuestionPronunciation, soloAssistState.continueState]);
+    }, [selectedAnswer, roomData, myUid, isSolo, roomId, myQuestionIndex, playUiTone, queueAdvance, recordSoloVocabResult, triggerAnswerFx, clearChainCallout, cancelQuestionPronunciation, soloAssistState.continueState]);
 
     const handleReplayPronunciation = useCallback(() => {
         if (!isListeningBattle || !roomData || selectedAnswer !== null) return;
@@ -1910,6 +1931,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         setShowFeedback(true);
         triggerAnswerFx('wrong');
         playUiTone(140, 260, { type: 'sawtooth', gain: 0.02 });
+        recordSoloVocabResult(question, false);
         if (isSolo) {
             setRoomData(prev => prev ? ({
                 ...prev,
@@ -1937,7 +1959,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         });
 
         queueAdvance(false, WRONG_ANSWER_DELAY, submitPromise);
-    }, [selectedAnswer, roomData, myUid, isSolo, roomId, myQuestionIndex, playUiTone, queueAdvance, triggerAnswerFx, clearChainCallout, cancelQuestionPronunciation, soloAssistState.continueState]);
+    }, [selectedAnswer, roomData, myUid, isSolo, roomId, myQuestionIndex, playUiTone, queueAdvance, recordSoloVocabResult, triggerAnswerFx, clearChainCallout, cancelQuestionPronunciation, soloAssistState.continueState]);
 
     // 問題タイマー（問題が変わるたびにリセット）
     useEffect(() => {

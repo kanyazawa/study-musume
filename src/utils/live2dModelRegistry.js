@@ -172,4 +172,23 @@ export const getLive2DModelStatusHints = (characterId = 'noah', skinId = 'defaul
     };
 };
 
+export const getAllLive2DModelConfigs = () => {
+    const uniqueConfigs = new Map();
+
+    Object.values(LIVE2D_MODEL_REGISTRY).forEach((characterModels) => {
+        Object.values(characterModels || {}).forEach((config) => {
+            if (!config?.modelJson) {
+                return;
+            }
+
+            const key = config.modelJson || config.modelId || config.modelName;
+            if (!uniqueConfigs.has(key)) {
+                uniqueConfigs.set(key, config);
+            }
+        });
+    });
+
+    return Array.from(uniqueConfigs.values());
+};
+
 export default LIVE2D_MODEL_REGISTRY;

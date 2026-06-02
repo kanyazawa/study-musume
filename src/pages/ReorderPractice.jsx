@@ -15,6 +15,7 @@ const ReorderPractice = ({ stats, updateStats }) => {
             <ReviewQuiz
                 questions={questions}
                 stats={stats}
+                updateStats={updateStats}
                 dailyChallenge={null}
                 exitLabel="学習メニューへ戻る"
                 uiDensity="minimal"

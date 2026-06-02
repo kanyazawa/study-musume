@@ -1,7 +1,6 @@
-import React, { Suspense, lazy } from 'react';
+import React from 'react';
 import StaticCharacterImage from './StaticCharacterImage';
-
-const Live2DViewer = lazy(() => import('./Live2DViewer'));
+import Live2DViewer from './Live2DViewer';
 
 const CharacterStage = ({
     characterId = 'noah',
@@ -43,15 +42,13 @@ const CharacterStage = ({
 
     if (effectiveRenderer === 'live2d') {
         return (
-            <Suspense fallback={imageFallback}>
-                <Live2DViewer
-                    characterId={characterId}
-                    skinId={skinId}
-                    pose={stagedPose}
-                    className={combinedClassName}
-                    fallback={imageFallback}
-                />
-            </Suspense>
+            <Live2DViewer
+                characterId={characterId}
+                skinId={skinId}
+                pose={stagedPose}
+                className={combinedClassName}
+                fallback={imageFallback}
+            />
         );
     }
 

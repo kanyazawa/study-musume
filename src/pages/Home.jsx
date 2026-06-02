@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import './Home.css';
 // Footer removed
 import CharacterStage from '../components/character/CharacterStage';
+import SceneStageLayout from '../components/layout/SceneStageLayout';
 import MenuModal from '../components/MenuModal';
 import LoginBonusModal from '../components/LoginBonusModal';
 import NoaChatBox from '../components/NoaChatBox';
@@ -22,7 +23,6 @@ import { getLatestNoaAssistantMessageEntry } from '../utils/chatHistory';
 import { inferEmotionFromChatText } from '../utils/chatEmotionUtils';
 import { getEnabledHomeTouchAreas, getHomeTouchReaction } from '../data/homeTouchReactions';
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
-import { loadGoalTodos } from '../utils/goalUtils';
 import { getHomeReviewSummary } from '../utils/reviewUtils';
 import { applyRelationshipActivity } from '../utils/relationshipEventUtils';
 import { getUnreadRelationshipEvents } from '../utils/relationshipEventUtils';
@@ -108,7 +108,6 @@ const Home = ({ stats, updateStats }) => {
     const [touchMotionStyle, setTouchMotionStyle] = useState(null);
     const [live2dImpact, setLive2dImpact] = useState(null);
     const [lastStudyTopic, setLastStudyTopic] = useState(() => getLastStudyTopic());
-    const [goalTodos, setGoalTodos] = useState(() => loadGoalTodos());
     const talkAnimationTimerRef = useRef(null);
     const userInputEmotionTimerRef = useRef(null);
     const touchMotionTimerRef = useRef(null);
@@ -230,20 +229,6 @@ const Home = ({ stats, updateStats }) => {
 
         return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     }, [examDate]);
-    const tomorrowDate = useMemo(() => {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        return tomorrow.toISOString().split('T')[0];
-    }, []);
-    const tomorrowFocus = (stats?.calendarFocuses || {})[tomorrowDate] || '';
-    const incompleteGoalTodos = useMemo(
-        () => goalTodos.filter((todo) => !todo.completed),
-        [goalTodos],
-    );
-    const visibleGoalTodos = useMemo(
-        () => incompleteGoalTodos.slice(0, 2),
-        [incompleteGoalTodos],
-    );
     const headerSealLabel = characterId === 'ren'
         ? 'R'
         : characterId === 'firefly'
@@ -518,8 +503,8 @@ const Home = ({ stats, updateStats }) => {
         scheduleUserInputEmotion(inferredEmotion);
     }, [scheduleUserInputEmotion]);
 
-    const syncSpeechWithNoaReply = useCallback((replyText, { animate = false, emotion: replyEmotion } = {}) => {
-        if (Date.now() < speechPriorityLockRef.current) {
+    const syncSpeechWithNoaReply = useCallback((replyText, { animate = false, emotion: replyEmotion, force = false } = {}) => {
+        if (!force && Date.now() < speechPriorityLockRef.current) {
             return;
         }
 
@@ -561,9 +546,6 @@ const Home = ({ stats, updateStats }) => {
         const handleStorage = (event) => {
             if (event.key === 'lastStudyTopic') {
                 setLastStudyTopic(getLastStudyTopic());
-            }
-            if (event.key === 'uma_todos') {
-                setGoalTodos(loadGoalTodos());
             }
         };
 
@@ -759,9 +741,77 @@ const Home = ({ stats, updateStats }) => {
             </div>
 
             {/* Main Content Area (Room & Character) */}
-            <div className="room-container" style={equippedBackground !== 'default' ? currentBgStyle : {}}>
-                {/* Placeholder for Room Background */}
-                {equippedBackground === 'default' && <div className="room-background"></div>}
+            <SceneStageLayout
+                rootClassName="room-container"
+                rootStyle={equippedBackground !== 'default' ? currentBgStyle : undefined}
+                backgroundClassName={equippedBackground === 'default' ? 'room-background' : ''}
+                character={(
+                    <div
+                        className={`character-figure ${renderer === 'live2d' ? 'is-live2d' : ''} ${homeCharacterPreview?.figureClassName || ''}`}
+                    >
+                        <div
+                            className={`character-touch-target ${touchMotion ? `motion-${touchMotion}` : ''}`}
+                            style={touchMotionStyle || undefined}
+                            onPointerUp={handleCharacterTap}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => e.key === 'Enter' && void talk({ source: 'touch' })}
+                        >
+                            <CharacterStage
+                                characterId={characterId}
+                                renderer={renderer}
+                                skinId={equippedSkin}
+                                accessoryIds={equippedAccessories}
+                                scene="home"
+                                pose={homePose}
+                                className="character-home"
+                                imageClassName={`char-image ${isTalkAnimating ? 'talk-burst' : ''} ${homeCharacterPreview?.imageClassName || ''}`}
+                                sourceOverride={homeCharacterPreview?.source}
+                                disableFaceEffects={homeCharacterPreview?.disableFaceEffects}
+                                chromaKey={homeCharacterPreview?.chromaKey}
+                                alt={homeCharacterPreview?.alt || 'Character'}
+                            />
+                            {renderer === 'live2d' && (homePose.live2dFaceAccent === 'blush' || homePose.live2dFaceAccent === 'shy') && (
+                                <div className={`home-live2d-face-accent is-${homePose.live2dFaceAccent}`} aria-hidden="true">
+                                    <span className="home-live2d-blush left" />
+                                    <span className="home-live2d-blush right" />
+                                    {homePose.live2dFaceAccent === 'shy' && (
+                                        <>
+                                            <span className="home-live2d-eye-lid left" />
+                                            <span className="home-live2d-eye-lid right" />
+                                            <span className="home-live2d-mouth-shy" />
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {homeTouchAreas.length > 0 && (
+                            <div className="home-touch-hotspot-layer">
+                                {homeTouchAreas.map((area) => (
+                                    <button
+                                        key={area.id}
+                                        type="button"
+                                        className={`home-touch-hotspot is-${area.id}`}
+                                        style={{
+                                            left: area.left,
+                                            top: area.top,
+                                            width: area.width,
+                                            height: area.height,
+                                        }}
+                                        onPointerUp={(event) => { void handleTouchAreaTap(area.id, event); }}
+                                        aria-label={`${area.label}をタップ`}
+                                    />
+                                ))}
+                            </div>
+                        )}
+
+                        <div className="speech-bubble">
+                            <p>{speech}</p>
+                        </div>
+                    </div>
+                )}
+            >
 
                 {/* Countdown (Floating) */}
                 <div className="countdown-floating" onClick={() => navigate('/goal')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && navigate('/goal')}>
@@ -791,119 +841,6 @@ const Home = ({ stats, updateStats }) => {
                         </span>
                     )}
                 </button>
-
-                <section className="home-planner-card" aria-label="明日の目標とToDo">
-                    <div className="home-planner-header compact">
-                        <div className="home-planner-heading-copy">
-                            <span className="home-planner-kicker">Plan</span>
-                            <strong>明日</strong>
-                        </div>
-                        <span className="home-planner-date-chip">{formatShortDate(tomorrowDate)}</span>
-                    </div>
-
-                    <div className="home-planner-section compact">
-                        {tomorrowFocus ? (
-                            <p className="home-focus-text is-condensed">{tomorrowFocus}</p>
-                        ) : (
-                            <p className="home-planner-empty is-condensed">
-                                カレンダーに明日の目標を書くと、ここに出ます。
-                            </p>
-                        )}
-                    </div>
-
-                    <div className="home-planner-summary-row">
-                        <span className="home-planner-summary-label">ToDo</span>
-                        <span className="home-planner-summary-value">{incompleteGoalTodos.length}件</span>
-                    </div>
-
-                    {visibleGoalTodos.length > 0 ? (
-                        <p className="home-todo-preview is-condensed">
-                            {visibleGoalTodos[0].text}
-                            {incompleteGoalTodos.length > 1 ? ` / ほか ${incompleteGoalTodos.length - 1} 件` : ''}
-                        </p>
-                    ) : (
-                        <p className="home-todo-preview is-condensed">
-                            いまのToDoは全部片付いています。
-                        </p>
-                    )}
-
-                    <div className="home-planner-actions compact">
-                        <button
-                            type="button"
-                            className="home-planner-link compact"
-                            onClick={() => navigate('/calendar')}
-                        >
-                            予定
-                        </button>
-                    </div>
-                </section>
-
-                {/* Character Figure */}
-                <div
-                    className={`character-figure ${renderer === 'live2d' ? 'is-live2d' : ''} ${homeCharacterPreview?.figureClassName || ''}`}
-                >
-                    <div
-                        className={`character-touch-target ${touchMotion ? `motion-${touchMotion}` : ''}`}
-                        style={touchMotionStyle || undefined}
-                        onPointerUp={handleCharacterTap}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => e.key === 'Enter' && void talk({ source: 'touch' })}
-                    >
-                        <CharacterStage
-                            characterId={characterId}
-                            renderer={renderer}
-                            skinId={equippedSkin}
-                            accessoryIds={equippedAccessories}
-                            scene="home"
-                            pose={homePose}
-                            className="character-home"
-                            imageClassName={`char-image ${isTalkAnimating ? 'talk-burst' : ''} ${homeCharacterPreview?.imageClassName || ''}`}
-                            sourceOverride={homeCharacterPreview?.source}
-                            disableFaceEffects={homeCharacterPreview?.disableFaceEffects}
-                            chromaKey={homeCharacterPreview?.chromaKey}
-                            alt={homeCharacterPreview?.alt || 'Character'}
-                        />
-                        {renderer === 'live2d' && (homePose.live2dFaceAccent === 'blush' || homePose.live2dFaceAccent === 'shy') && (
-                            <div className={`home-live2d-face-accent is-${homePose.live2dFaceAccent}`} aria-hidden="true">
-                                <span className="home-live2d-blush left" />
-                                <span className="home-live2d-blush right" />
-                                {homePose.live2dFaceAccent === 'shy' && (
-                                    <>
-                                        <span className="home-live2d-eye-lid left" />
-                                        <span className="home-live2d-eye-lid right" />
-                                        <span className="home-live2d-mouth-shy" />
-                                    </>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {homeTouchAreas.length > 0 && (
-                        <div className="home-touch-hotspot-layer">
-                            {homeTouchAreas.map((area) => (
-                                <button
-                                    key={area.id}
-                                    type="button"
-                                    className={`home-touch-hotspot is-${area.id}`}
-                                    style={{
-                                        left: area.left,
-                                        top: area.top,
-                                        width: area.width,
-                                        height: area.height,
-                                    }}
-                                    onPointerUp={(event) => { void handleTouchAreaTap(area.id, event); }}
-                                    aria-label={`${area.label}をタップ`}
-                                />
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Speech Bubble */}
-                    <div className="speech-bubble">
-                        <p>{speech}</p>
-                    </div>
-                </div>
 
                 {/* Action Buttons */}
                 <div className="action-area has-resume">
@@ -969,17 +906,11 @@ const Home = ({ stats, updateStats }) => {
                         setIsTalkAnimating(false);
                     }}
                 />
-            </div>
+            </SceneStageLayout>
 
             {/* Footer removed */}
         </div>
     );
-};
-
-const formatShortDate = (dateString) => {
-    const date = new Date(`${dateString}T00:00:00`);
-    const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
-    return `${date.getMonth() + 1}/${date.getDate()} ${weekDays[date.getDay()]}`;
 };
 
 export default Home;

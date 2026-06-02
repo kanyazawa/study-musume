@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     BookOpen,
@@ -11,8 +11,14 @@ import {
     Sparkles,
 } from 'lucide-react';
 import './StudySelect.css';
+import CharacterStage from '../components/character/CharacterStage';
+import SceneStageLayout from '../components/layout/SceneStageLayout';
 import { STUDY_TOPICS } from '../data/studyTopics';
 import { getLastStudyTopic, saveLastStudyTopicFromItem } from '../data/studyData';
+import { createHomePose } from '../utils/characterPoseUtils';
+import { resolveCharacterRenderer } from '../utils/characterRenderer';
+import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
+import { getBackgroundStyle } from '../utils/cosmeticUtils';
 
 const ENGLISH_SUBJECT_ID = 'english';
 
@@ -28,6 +34,15 @@ const CATEGORY_MENU_LABELS = {
     eng_grammar: 'SKILL',
     eng_reading: 'STORY',
     eng_writing: 'CHECK',
+};
+
+const CATEGORY_DESCRIPTIONS = {
+    eng_vocab: '単語バトルでテンポよく覚える',
+    eng_grammar: '文法ステージを順番に進める',
+    eng_reading: '長文を読んで内容をつかむ',
+    eng_writing: 'AI 採点で英作文を確認する',
+    review: 'まちがえた問題だけをやり直す',
+    'custom-vocab': '自分で作った単語帳を使う',
 };
 
 const stripGloss = (label) => String(label || '').replace(/\s*\([^)]*\)/g, '').trim();
@@ -81,6 +96,16 @@ const getToneForItem = (currentLevel, selectedCategory, item) => {
 const StudySelect = ({ stats }) => {
     const navigate = useNavigate();
     const englishSubject = STUDY_TOPICS.find((subject) => subject.id === ENGLISH_SUBJECT_ID) || null;
+    const characterId = stats?.characterId || 'noah';
+    const equippedSkin = stats?.equippedSkin || 'default';
+    const equippedBackground = stats?.equippedBackground || 'default';
+    const equippedAccessories = Array.isArray(stats?.equippedAccessories) ? stats.equippedAccessories : [];
+    const currentBgStyle = getBackgroundStyle(equippedBackground);
+    const renderer = resolveCharacterRenderer({
+        preferredRenderer: hasLive2DModelConfig(characterId, equippedSkin) ? 'live2d' : stats?.characterRenderer,
+        characterId,
+        skinId: equippedSkin,
+    });
 
     const [currentLevel, setCurrentLevel] = useState('subject');
     const [selectedSubject, setSelectedSubject] = useState(englishSubject);
@@ -303,6 +328,25 @@ const StudySelect = ({ stats }) => {
         return 'QUEST';
     };
 
+    const stageTitle = getTitle();
+    const stageLeadText = getLeadText();
+    const stageMessage = currentLevel === 'subject'
+        ? '上のキャラを見ながら、下のメニューから行きたいクエストを選ぼう。'
+        : `${selectedCategory?.name || selectedUnit?.name || selectedChapter?.name || '次のクエスト'}から進めよう。`;
+    const stagePose = useMemo(
+        () => createHomePose({
+            emotion: currentLevel === 'subject' ? 'happy' : 'normal',
+            text: stageMessage,
+        }),
+        [currentLevel, stageMessage]
+    );
+    const selectedPathLabel = [
+        selectedCategory?.name,
+        selectedUnit?.name ? stripGloss(selectedUnit.name) : '',
+        selectedChapter?.name ? stripGloss(selectedChapter.name) : '',
+    ]
+        .filter(Boolean)
+        .join(' / ');
     const subjectActions = [
         {
             id: 'eng_vocab',
@@ -310,8 +354,7 @@ const StudySelect = ({ stats }) => {
             badge: 'BATTLE',
             icon: BookOpen,
             tone: 'vocab',
-            layout: 'large',
-            frame: 'battle',
+            description: CATEGORY_DESCRIPTIONS.eng_vocab,
             onClick: () => openCategory(categoryMap.eng_vocab),
         },
         {
@@ -320,8 +363,7 @@ const StudySelect = ({ stats }) => {
             badge: 'SKILL',
             icon: Languages,
             tone: 'grammar',
-            layout: 'large',
-            frame: 'resume',
+            description: CATEGORY_DESCRIPTIONS.eng_grammar,
             onClick: () => openCategory(categoryMap.eng_grammar),
         },
         {
@@ -330,8 +372,7 @@ const StudySelect = ({ stats }) => {
             badge: 'STORY',
             icon: BookOpenText,
             tone: 'reading',
-            layout: 'large',
-            frame: 'study',
+            description: CATEGORY_DESCRIPTIONS.eng_reading,
             onClick: () => openCategory(categoryMap.eng_reading),
         },
         {
@@ -340,8 +381,7 @@ const StudySelect = ({ stats }) => {
             badge: 'CHECK',
             icon: NotebookPen,
             tone: 'writing',
-            layout: 'small',
-            frame: 'friend',
+            description: CATEGORY_DESCRIPTIONS.eng_writing,
             onClick: () => openCategory(categoryMap.eng_writing),
         },
         {
@@ -350,8 +390,7 @@ const StudySelect = ({ stats }) => {
             badge: 'SUPPORT',
             icon: Sparkles,
             tone: 'support',
-            layout: 'small',
-            frame: 'mission',
+            description: CATEGORY_DESCRIPTIONS.review,
             onClick: () => navigate('/review'),
         },
         {
@@ -360,14 +399,10 @@ const StudySelect = ({ stats }) => {
             badge: 'CUSTOM',
             icon: BookOpen,
             tone: 'support',
-            layout: 'small',
-            frame: 'event',
+            description: CATEGORY_DESCRIPTIONS['custom-vocab'],
             onClick: () => navigate('/custom-vocab'),
         },
     ];
-
-    const mainSubjectActions = subjectActions.filter((action) => action.layout === 'large');
-    const sideSubjectActions = subjectActions.filter((action) => action.layout === 'small');
 
     const gridClassName = [
         'study-choice-grid',
@@ -402,103 +437,51 @@ const StudySelect = ({ stats }) => {
                 </button>
                 <div className="study-header-copy">
                     <span className="study-header-kicker">ENGLISH MODE</span>
-                    <h1>{getTitle()}</h1>
-                    <p>{getLeadText()}</p>
+                    <h1>{stageTitle}</h1>
+                    <p>{stageLeadText}</p>
                 </div>
             </div>
 
             <div className="study-screen-body">
-                {currentLevel === 'subject' ? (
-                    <>
-                        <section className="study-hero-card study-hero-card--menu">
-                            <div className="study-hero-copy">
-                                <span className="study-chip">MAIN MENU</span>
-                                <h2>英語クエスト</h2>
-                                <p>ホーム画面みたいにメニューから選ぶ</p>
+                <SceneStageLayout
+                    rootClassName="study-room-container"
+                    rootStyle={equippedBackground !== 'default' ? currentBgStyle : undefined}
+                    backgroundClassName={equippedBackground === 'default' ? 'study-room-background' : ''}
+                    character={(
+                        <div className={`study-character-figure ${renderer === 'live2d' ? 'is-live2d' : ''}`}>
+                            <div className="study-character-touch-target character-touch-target">
+                            <CharacterStage
+                                characterId={characterId}
+                                renderer={renderer}
+                                skinId={equippedSkin}
+                                    accessoryIds={equippedAccessories}
+                                    pose={{ ...stagePose, scene: 'home' }}
+                                    scene="home"
+                                    className="study-character-home character-home"
+                                    imageClassName="char-image study-character-image"
+                                    imageStyle={{
+                                        height: '100%',
+                                        width: '100%',
+                                        '--character-stage-overflow': 'visible',
+                                    }}
+                                    alt="案内キャラクター"
+                                />
                             </div>
+                        </div>
+                    )}
+                >
 
-                            {lastStudyTopic ? (
-                                <button
-                                    type="button"
-                                    className="resume-study-card"
-                                    onClick={() => navigate(lastStudyTopic.routePath)}
-                                >
-                                    <div className="resume-study-copy">
-                                        <span className="resume-study-label">CONTINUE</span>
-                                        <strong>{lastStudyTopic.resumeLabel || lastStudyTopic.topicName}</strong>
-                                        <span className="resume-study-path">
-                                            {resumePath || '前回の続きから再開'}
-                                        </span>
-                                    </div>
-                                    <span className="resume-study-cta">
-                                        PLAY
-                                        <ChevronRight size={16} />
-                                    </span>
-                                </button>
-                            ) : (
-                                <div className="resume-study-card is-empty">
-                                    <div className="resume-study-copy">
-                                        <span className="resume-study-label">CONTINUE</span>
-                                        <strong>NEW GAME</strong>
-                                        <span className="resume-study-path">下のボタンからスタート</span>
-                                    </div>
-                                </div>
-                            )}
-                        </section>
+                    <div className="study-scene-note">
+                        <span className="study-scene-note-kicker">
+                            {CATEGORY_MENU_LABELS[selectedCategory?.id] || stageLeadText}
+                        </span>
+                        <strong>{currentLevel === 'subject' ? 'どのクエストにする？' : stageTitle}</strong>
+                        <p>{stageMessage}</p>
+                    </div>
 
-                        <section className="study-panel study-panel--fill study-panel--menu">
-                            <div className="study-panel-title">
-                                <span>HOME STYLE</span>
-                                <strong>SELECT QUEST</strong>
-                            </div>
+                    <section className="study-bottom-sheet">
+                        <div className="study-sheet-handle" aria-hidden="true" />
 
-                            <div className="study-home-menu">
-                                <div className="study-home-main-actions">
-                                    {mainSubjectActions.map((action) => {
-                                        const Icon = action.icon;
-                                        return (
-                                            <button
-                                                key={action.id}
-                                                type="button"
-                                                className={`study-home-large-btn is-${action.frame}`}
-                                                onClick={action.onClick}
-                                            >
-                                                <span className="study-home-badge">{action.badge}</span>
-                                                <div className="study-home-label">
-                                                    <span className="study-home-icon">
-                                                        <Icon size={16} />
-                                                    </span>
-                                                    <strong>{action.title}</strong>
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-
-                                <div className="study-home-side-actions">
-                                    {sideSubjectActions.map((action) => {
-                                        const Icon = action.icon;
-                                        return (
-                                            <button
-                                                key={action.id}
-                                                type="button"
-                                                className={`study-home-side-btn is-${action.frame}`}
-                                                onClick={action.onClick}
-                                            >
-                                                <span className="study-home-side-badge">{action.badge}</span>
-                                                <span className="study-home-side-icon">
-                                                    <Icon size={16} />
-                                                </span>
-                                                <strong>{action.title}</strong>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </section>
-                    </>
-                ) : (
-                    <>
                         {breadcrumbs.length > 0 && (
                             <div className="breadcrumbs">
                                 {breadcrumbs.map((crumb, index) => (
@@ -517,43 +500,107 @@ const StudySelect = ({ stats }) => {
                             </div>
                         )}
 
-                        <section className="study-hero-card compact">
-                            <div className="study-hero-copy">
-                                <span className="study-chip">
-                                    {CATEGORY_MENU_LABELS[selectedCategory?.id] || selectedCategory?.name || selectedUnit?.name || 'ENGLISH'}
+                        <div className="study-sheet-heading">
+                            <div className="study-sheet-heading-main">
+                                <span className="study-sheet-kicker">
+                                    {CATEGORY_MENU_LABELS[selectedCategory?.id] || stageLeadText}
                                 </span>
-                                <h2>{getTitle()}</h2>
+                                <h3>{stageTitle}</h3>
                             </div>
-                        </section>
-
-                        <section className="study-panel study-panel--fill">
-                            {displayData.length > 0 ? (
-                                <div className={gridClassName}>
-                                    {currentLevel === 'unit' && displayData.map((item) => (
-                                        renderChoiceButton(item, 'unit', () => handleUnitClick(item))
-                                    ))}
-                                    {currentLevel === 'chapter' && displayData.map((item) => (
-                                        renderChoiceButton(item, 'chapter', () => handleChapterClick(item))
-                                    ))}
-                                    {currentLevel === 'section' && displayData.map((item) => (
-                                        renderChoiceButton(item, 'section', () => handleSectionClick(item))
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="study-empty-state">
-                                    <p>このカテゴリにはまだボタンがありません。</p>
-                                </div>
+                            {selectedPathLabel && (
+                                <p className="study-sheet-path">{selectedPathLabel}</p>
                             )}
-                        </section>
-                    </>
-                )}
-            </div>
+                        </div>
 
-            <div className="bottom-area">
-                <button type="button" className="big-home-btn" onClick={() => navigate('/home')}>
-                    <Home size={16} />
-                    ホームへ戻る
-                </button>
+                        {currentLevel === 'subject' ? (
+                            <>
+                                {lastStudyTopic ? (
+                                    <button
+                                        type="button"
+                                        className="resume-study-card"
+                                        onClick={() => navigate(lastStudyTopic.routePath || '/study')}
+                                    >
+                                        <div className="resume-study-copy">
+                                            <span className="resume-study-label">CONTINUE</span>
+                                            <strong>{lastStudyTopic.resumeLabel || lastStudyTopic.topicName}</strong>
+                                            <span className="resume-study-path">
+                                                {resumePath || '前回の続きから再開'}
+                                            </span>
+                                        </div>
+                                        <span className="resume-study-cta">
+                                            PLAY
+                                            <ChevronRight size={16} />
+                                        </span>
+                                    </button>
+                                ) : (
+                                    <div className="resume-study-card is-empty">
+                                        <div className="resume-study-copy">
+                                            <span className="resume-study-label">CONTINUE</span>
+                                            <strong>NEW GAME</strong>
+                                            <span className="resume-study-path">下のメニューからクエストを選ぼう</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="study-subject-grid">
+                                    {subjectActions.map((action) => {
+                                        const Icon = action.icon;
+                                        return (
+                                            <button
+                                                key={action.id}
+                                                type="button"
+                                                className={`study-subject-card is-${action.tone}`}
+                                                onClick={action.onClick}
+                                            >
+                                                <div className="study-subject-head">
+                                                    <span className="study-subject-badge">{action.badge}</span>
+                                                    <span className="study-subject-icon">
+                                                        <Icon size={18} />
+                                                    </span>
+                                                </div>
+                                                <div className="study-subject-copy">
+                                                    <strong>{action.title}</strong>
+                                                    <span>{action.description}</span>
+                                                </div>
+                                                <span className="study-subject-arrow">
+                                                    SELECT
+                                                    <ChevronRight size={14} />
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </>
+                        ) : (
+                            <div className="study-panel study-panel--fill study-panel--sheet">
+                                {displayData.length > 0 ? (
+                                    <div className={gridClassName}>
+                                        {currentLevel === 'unit' && displayData.map((item) => (
+                                            renderChoiceButton(item, 'unit', () => handleUnitClick(item))
+                                        ))}
+                                        {currentLevel === 'chapter' && displayData.map((item) => (
+                                            renderChoiceButton(item, 'chapter', () => handleChapterClick(item))
+                                        ))}
+                                        {currentLevel === 'section' && displayData.map((item) => (
+                                            renderChoiceButton(item, 'section', () => handleSectionClick(item))
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="study-empty-state">
+                                        <p>このカテゴリにはまだボタンがありません。</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="study-bottom-actions">
+                            <button type="button" className="big-home-btn" onClick={() => navigate('/home')}>
+                                <Home size={16} />
+                                ホームへ戻る
+                            </button>
+                        </div>
+                    </section>
+                </SceneStageLayout>
             </div>
         </div>
     );
