@@ -2131,6 +2131,8 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             ? initCoachCopy.subline
             : `正解でゲージを押し込みつつ、先に${matchTargetCorrect}問取るか押し切れば勝ち。`;
         const initCoachLabel = getCharacterLabel(myCharacterId);
+        const initStartLabel = isSolo ? `${selectedSoloSessionOption?.actualCount || 0}問で始める` : '対戦相手を探す';
+        const reviewDueCount = gameLoopSnapshot.reviewLoad.due;
 
         return (
             <div className="mp-screen mp-screen-init">
@@ -2152,45 +2154,77 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                                     <div className="mp-rules">
                                         <div className="mp-rule-item">📘 {soloLevelMeta.label}</div>
                                         <div className="mp-rule-item">⏱️ 1問{ANSWER_TIME_LIMIT}秒</div>
-                                        <div className="mp-rule-item">🔁 間違いだけ再挑戦</div>
+                                        <div className="mp-rule-item">🔁 ミスだけ再挑戦</div>
                                     </div>
                                 </div>
                                 <div className="mp-init-character-wrap" aria-hidden="true">
                                     {renderAvatar(null, myCharacterId, myEquippedSkin, myCharacterId)}
                                 </div>
                             </div>
-                            {selectedSoloSessionOption && (
-                                <div className="mp-solo-plan-card mp-solo-plan-card-init">
-                                    <div className="mp-solo-plan-header">
-                                        <div>
-                                            <span className="mp-solo-plan-kicker">Question Select</span>
-                                            <h3>何問やるか選ぼう</h3>
-                                        </div>
-                                        <div className="mp-solo-plan-total">
-                                            全{soloVocabPool.length}問
-                                        </div>
+                            <div className="mp-init-bottom-sheet">
+                                <div className="mp-init-sheet-top">
+                                    <div className="mp-init-sheet-copy">
+                                        <span className="mp-init-sheet-kicker">Solo Lesson</span>
+                                        <h3>{soloLevelMeta.label}</h3>
                                     </div>
-                                    <div className="mp-solo-plan-grid">
-                                        {soloSessionOptions.map((option) => (
-                                            <button
-                                                key={option.id}
-                                                type="button"
-                                                className={`mp-solo-plan-option ${selectedSoloSessionOption.id === option.id ? 'active' : ''}`}
-                                                onClick={() => setSelectedSoloSessionId(option.id)}
-                                            >
-                                                <span className="mp-solo-plan-option-kicker">{option.label}</span>
-                                                <strong>{option.actualCount}問</strong>
-                                                <span>{option.eta}</span>
-                                                <p>{option.description}</p>
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <div className="mp-solo-plan-summary">
-                                        <span>今回は {selectedSoloSessionOption.actualCount} 問で終了</span>
-                                        <span>{gameLoopSnapshot.recommendedNextAction.label}</span>
-                                    </div>
+                                    <div className="mp-init-sheet-badge">全{soloVocabPool.length}問</div>
                                 </div>
-                            )}
+                                <div className="mp-init-sheet-meta">
+                                    <div className="mp-rule-item">⏱️ 1問{ANSWER_TIME_LIMIT}秒</div>
+                                    <div className="mp-rule-item">🔁 ミスだけ再挑戦</div>
+                                    {reviewDueCount > 0 && <div className="mp-rule-item">📝 復習 {reviewDueCount}件</div>}
+                                </div>
+                                {selectedSoloSessionOption && (
+                                    <div className="mp-solo-plan-card mp-solo-plan-card-init">
+                                        <div className="mp-solo-plan-header">
+                                            <div>
+                                                <span className="mp-solo-plan-kicker">Today</span>
+                                                <h3>今日はどこまでやる？</h3>
+                                            </div>
+                                            <div className="mp-solo-plan-total">
+                                                {selectedSoloSessionOption.actualCount}問
+                                            </div>
+                                        </div>
+                                        <div className="mp-solo-plan-grid">
+                                            {soloSessionOptions.map((option) => (
+                                                <button
+                                                    key={option.id}
+                                                    type="button"
+                                                    className={`mp-solo-plan-option ${selectedSoloSessionOption.id === option.id ? 'active' : ''}`}
+                                                    onClick={() => setSelectedSoloSessionId(option.id)}
+                                                >
+                                                    <span className="mp-solo-plan-option-kicker">{option.label}</span>
+                                                    <strong>{option.actualCount}問</strong>
+                                                    <span>{option.eta}</span>
+                                                    <p>{option.description}</p>
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="mp-solo-plan-summary">
+                                            <span>{selectedSoloSessionOption.actualCount}問でひと区切り</span>
+                                            {reviewDueCount > 0 && <span>終わったら復習 {reviewDueCount}件</span>}
+                                        </div>
+                                    </div>
+                                )}
+                                <div className="mp-init-actions mp-init-actions-solo">
+                                    <button
+                                        className="mp-start-btn mp-start-btn-init"
+                                        onClick={startMatching}
+                                        disabled={!canStartSoloSession}
+                                    >
+                                        <Swords size={24} />
+                                        <span>{initStartLabel}</span>
+                                    </button>
+                                    {isSolo && !canStartSoloSession && (
+                                        <div className="mp-error">
+                                            {soloLevel === CUSTOM_SOLO_LEVEL
+                                                ? '自作単語は2語以上登録すると出題できます。'
+                                                : 'このレベルは出題できる単語が不足しています。'}
+                                        </div>
+                                    )}
+                                    {error && <div className="mp-error">{error}</div>}
+                                </div>
+                            </div>
                         </>
                     ) : (
                         <>
@@ -2211,29 +2245,22 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                                 <p>
                                     {gameLoopSnapshot.reviewLoad.due > 0
                                         ? `いまは弱点ノートに ${gameLoopSnapshot.reviewLoad.due} 件あるので、終わったら復習に戻る流れがきれいです。`
-                                        : 'ここで知識を実戦で試し、取りこぼした分を弱点ノートへ返していくのが主ループです。'}
+                                    : 'ここで知識を実戦で試し、取りこぼした分を弱点ノートへ返していくのが主ループです。'}
                                 </p>
+                            </div>
+                            <div className="mp-init-actions">
+                                <button
+                                    className="mp-start-btn mp-start-btn-init"
+                                    onClick={startMatching}
+                                    disabled={!canStartSoloSession}
+                                >
+                                    <Swords size={24} />
+                                    <span>{initStartLabel}</span>
+                                </button>
+                                {error && <div className="mp-error">{error}</div>}
                             </div>
                         </>
                     )}
-                    <div className="mp-init-actions">
-                        <button
-                            className="mp-start-btn mp-start-btn-init"
-                            onClick={startMatching}
-                            disabled={!canStartSoloSession}
-                        >
-                            <Swords size={24} />
-                            <span>{isSolo ? `${selectedSoloSessionOption?.actualCount || 0}問で始める` : '対戦相手を探す'}</span>
-                        </button>
-                        {isSolo && !canStartSoloSession && (
-                            <div className="mp-error">
-                                {soloLevel === CUSTOM_SOLO_LEVEL
-                                    ? '自作単語は2語以上登録すると出題できます。'
-                                    : 'このレベルは出題できる単語が不足しています。'}
-                            </div>
-                        )}
-                        {error && <div className="mp-error">{error}</div>}
-                    </div>
                 </div>
             </div>
         );
@@ -2416,6 +2443,15 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             : soloAssistState.continueState === 'spent'
                 ? '見直し 発動済み'
                 : '見直し';
+        const continueAssistCompactStatus = soloAssistState.continueState === 'armed'
+            ? '待機中'
+            : soloAssistState.continueState === 'spent'
+                ? '使用済'
+                : continueAssistCount > 0
+                    ? `x${continueAssistCount}`
+                    : 'なし';
+        const hintAssistCompactStatus = hintAssistCount > 0 ? `x${hintAssistCount}` : 'なし';
+        const timeAssistCompactStatus = timeAssistCount > 0 ? `+${SOLO_ASSIST_TIME_BONUS}秒` : 'なし';
 
         // 進行度の計算 (%)
         // ソロモード時は「全問題数」に対する進捗、対戦モード時は「目標正解数」に対する進捗
@@ -2622,10 +2658,6 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                     <div className="mp-bottom-area">
                         {isSolo && (
                             <div className="mp-assist-panel">
-                                <div className="mp-assist-head">
-                                    <strong>おたすけ</strong>
-                                    <span>1プレイで各1回まで</span>
-                                </div>
                                 <div className="mp-assist-grid">
                                     <button
                                         type="button"
@@ -2634,16 +2666,17 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                                         disabled={!canUseHintAssist}
                                     >
                                         <strong>ヒント</strong>
-                                        <span>{hintAssistCount > 0 ? `不正解を1つ隠す ×${hintAssistCount}` : '在庫なし'}</span>
+                                        <span>{hintAssistCompactStatus}</span>
                                     </button>
                                     <button
                                         type="button"
                                         className={`mp-assist-btn ${soloAssistState.continueState === 'armed' ? 'is-armed' : ''} ${soloAssistState.continueState === 'spent' ? 'is-used' : ''}`}
                                         onClick={handleArmContinueAssist}
                                         disabled={!canUseContinueAssist}
+                                        title={continueAssistLabel}
                                     >
-                                        <strong>{continueAssistLabel}</strong>
-                                        <span>{continueAssistCount > 0 ? `次のミスでチェイン維持 ×${continueAssistCount}` : '在庫なし'}</span>
+                                        <strong>見直し</strong>
+                                        <span>{continueAssistCompactStatus}</span>
                                     </button>
                                     <button
                                         type="button"
@@ -2652,7 +2685,16 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                                         disabled={!canUseTimeAssist}
                                     >
                                         <strong>集中</strong>
-                                        <span>{timeAssistCount > 0 ? `残り時間 +${SOLO_ASSIST_TIME_BONUS}秒 ×${timeAssistCount}` : '在庫なし'}</span>
+                                        <span>{timeAssistCompactStatus}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="mp-assist-btn mp-assist-btn-skip"
+                                        onClick={handleSkip}
+                                        disabled={selectedAnswer !== null}
+                                    >
+                                        <strong>わからない</strong>
+                                        <span>次へ</span>
                                     </button>
                                 </div>
                             </div>
@@ -2685,16 +2727,17 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                             })}
                         </div>
 
-                        {/* わからないボタン（常に表示、回答後はdisabledで位置を固定） */}
-                        <div className="mp-skip-wrapper">
-                            <button 
-                                className="mp-skip-btn" 
-                                onClick={handleSkip}
-                                disabled={selectedAnswer !== null}
-                            >
-                                🤔 わからない
-                            </button>
-                        </div>
+                        {!isSolo && (
+                            <div className="mp-skip-wrapper">
+                                <button 
+                                    className="mp-skip-btn" 
+                                    onClick={handleSkip}
+                                    disabled={selectedAnswer !== null}
+                                >
+                                    🤔 わからない
+                                </button>
+                            </div>
+                        )}
 
                         {/* 自分のプログレスバーとステータス */}
                         <div className="mp-bottom-status-wrapper">

@@ -18,6 +18,11 @@ const LIVE2D_MODEL_REGISTRY = {
                 scale: 8.5,
             },
             stageOverrides: {
+                home: {
+                    x: 0,
+                    y: -0.8,
+                    scale: 7.7,
+                },
                 preview: {
                     y: -0.22,
                     scale: 6.4,

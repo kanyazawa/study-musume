@@ -161,6 +161,10 @@
     height: 100%;
 }
 
+.dialogue-screen .character-figure.is-live2d {
+    top: -10vh;
+}
+
 .expression-normal {
     border-color: var(--uma-pink);
     background: rgba(237, 130, 174, 0.1);

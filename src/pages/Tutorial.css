@@ -2,27 +2,25 @@
     min-height: 100%;
     position: relative;
     padding: 20px 14px 28px;
-    background:
-        linear-gradient(180deg, rgba(255, 247, 253, 0.94), rgba(250, 241, 255, 0.92)),
-        var(--tutorial-bg-image) center / cover no-repeat;
+    background: var(--tutorial-bg-image) center / cover no-repeat;
 }
 
 .tutorial-backdrop {
     position: absolute;
     inset: 0;
     background:
-        radial-gradient(circle at top right, rgba(255, 255, 255, 0.75), transparent 34%),
-        linear-gradient(180deg, rgba(255, 211, 230, 0.22), rgba(178, 221, 255, 0.18));
+        linear-gradient(180deg, rgba(23, 28, 38, 0.16), rgba(23, 28, 38, 0.06) 26%, rgba(247, 235, 226, 0.42) 100%);
     pointer-events: none;
 }
 
 .tutorial-shell {
     position: relative;
     z-index: 1;
-    width: min(100%, 720px);
+    width: min(100%, 430px);
     margin: 0 auto;
     display: grid;
     gap: 14px;
+    min-height: calc(100dvh - 48px);
 }
 
 .tutorial-status-card,
@@ -42,16 +40,28 @@
 
 .tutorial-status-card {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 14px;
-    padding: 20px;
+    padding: 14px 16px;
+    backdrop-filter: blur(10px);
 }
 
 .tutorial-status-card h1,
 .tutorial-section-head h2 {
     margin: 0;
     color: #5f4a71;
+}
+
+.tutorial-status-copy h1 {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.tutorial-status-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .tutorial-status-card p,
@@ -92,19 +102,42 @@
     font-weight: 700;
 }
 
+.tutorial-skip-btn {
+    appearance: none;
+    border: 0;
+    border-radius: 999px;
+    padding: 10px 14px;
+    color: #6f5a81;
+    background: rgba(255, 252, 255, 0.82);
+    font-size: 0.9rem;
+    font-weight: 800;
+    box-shadow: 0 10px 22px rgba(80, 55, 49, 0.08);
+    cursor: pointer;
+}
+
 .tutorial-stage-card {
-    padding: 18px;
+    padding: 16px;
+    margin-top: auto;
+    border-radius: 28px 28px 0 0;
+    background: linear-gradient(180deg, rgba(255, 250, 245, 0.95), rgba(250, 243, 236, 0.98));
+    backdrop-filter: blur(10px);
 }
 
 .tutorial-panel {
     display: grid;
-    gap: 18px;
+    gap: 14px;
 }
 
-.tutorial-opening,
-.tutorial-event {
-    grid-template-columns: minmax(0, 210px) minmax(0, 1fr);
-    align-items: center;
+.tutorial-scene-hero {
+    position: relative;
+    min-height: 280px;
+    padding: 6px 0 0;
+}
+
+.tutorial-scene-character {
+    position: absolute;
+    inset: 8px 0 0 0;
+    pointer-events: none;
 }
 
 .tutorial-portrait-wrap {
@@ -114,13 +147,43 @@
     min-height: 260px;
     padding: 12px;
     border-radius: 24px;
-    background: linear-gradient(180deg, rgba(255, 222, 236, 0.55), rgba(218, 239, 255, 0.58));
+    background: linear-gradient(180deg, rgba(255, 222, 236, 0.3), rgba(218, 239, 255, 0.22));
+}
+
+.tutorial-scene-bubble {
+    position: absolute;
+    left: 0;
+    right: 138px;
+    bottom: 0;
+    z-index: 2;
+    padding: 16px 18px;
+    border-radius: 22px;
+    background: rgba(255, 252, 249, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.68);
+    box-shadow: 0 16px 32px rgba(67, 46, 40, 0.12);
+    backdrop-filter: blur(10px);
 }
 
 .tutorial-main-portrait {
     width: min(100%, 220px);
     height: auto;
     object-fit: contain;
+}
+
+.tutorial-scene-speaker {
+    margin: 0 0 4px;
+    color: #d26b9e;
+    font-weight: 900;
+    font-size: 0.82rem;
+    letter-spacing: 0.06em;
+}
+
+.tutorial-scene-text {
+    margin: 0;
+    color: #594d68;
+    font-size: 0.92rem;
+    line-height: 1.65;
+    white-space: pre-wrap;
 }
 
 .tutorial-dialogue-card {
@@ -167,7 +230,25 @@
 
 .tutorial-section-head {
     display: grid;
-    gap: 6px;
+    gap: 4px;
+}
+
+.tutorial-story-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tutorial-story-tags span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(240, 226, 255, 0.8);
+    color: #765987;
+    font-size: 0.84rem;
+    font-weight: 700;
 }
 
 .tutorial-character-grid,
@@ -334,8 +415,6 @@
 }
 
 @media (max-width: 720px) {
-    .tutorial-opening,
-    .tutorial-event,
     .tutorial-character-grid,
     .tutorial-summary-grid,
     .tutorial-gacha-grid {
@@ -347,7 +426,13 @@
     }
 
     .tutorial-status-card {
-        padding: 16px;
+        align-items: stretch;
+        padding: 14px;
+    }
+
+    .tutorial-status-actions {
+        flex-direction: column;
+        align-items: flex-end;
     }
 
     .tutorial-stage-card {
@@ -356,5 +441,14 @@
 
     .tutorial-shell {
         gap: 12px;
+    }
+
+    .tutorial-scene-hero {
+        min-height: 258px;
+    }
+
+    .tutorial-scene-bubble {
+        right: 124px;
+        padding: 14px 16px;
     }
 }

@@ -6,8 +6,9 @@ import HotaruPortrait from '../assets/images/firefly/firefly_normal.webp';
 export const TUTORIAL_BACKGROUND_IMAGE = ClassroomBackground;
 
 export const TUTORIAL_OPENING_LINES = [
-    '…あんた、またサボろうとしてるでしょ',
-    '見ててあげるから、ちょっとくらいやりなさいよ',
+    'こんな退屈そうな顔してる人、はじめて見た。今日から隣の席になったノアよ。',
+    '帰国子女だからって何でもできるわけじゃないけど、勉強くらいなら見てあげる。',
+    '放課後、少しだけ付き合いなさい。あんたの毎日、ちょっとはマシにしてあげる。',
 ];
 
 export const TUTORIAL_CHARACTERS = [
@@ -165,9 +166,9 @@ export const TUTORIAL_GACHA_RESULTS = [
 ];
 
 export const TUTORIAL_EVENT_LINES = [
-    '今日さ、思ったよりちゃんとやってたじゃん',
-    '…別に褒めてるわけじゃないけど',
-    'でも、また一緒にやってもいいかなって思っただけ',
+    '転校初日なのに、もう放課後まで付き合ってるなんて変な感じ。',
+    'でも、退屈だった毎日よりは少しだけ面白いかも。',
+    'だから明日も来なさいよ。隣の席なんだし、それくらい当然でしょ。',
 ];
 
-export const TUTORIAL_HOME_LINE = '今日も少しだけやるでしょ？';
+export const TUTORIAL_HOME_LINE = '明日も放課後、ちゃんと来ること。';

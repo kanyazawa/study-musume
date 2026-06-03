@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Check, ChevronLeft, ChevronRight, Home, NotebookPen, Plus, Save, Trash2 } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Home, NotebookPen, Plus, Save, Trash2 } from 'lucide-react';
 import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
 import CalendarHeatmap from '../components/CalendarHeatmap';
 import CharacterStage from '../components/character/CharacterStage';
@@ -172,12 +172,6 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
     const selectedNoteLength = noteDraft.length;
     const hasSelectedStudy = (selectedStats?.totalMinutes || 0) > 0;
     const completedGoalTodoCount = goalTodos.filter((todo) => todo.completed).length;
-    const monthStudyRate = monthSummary.daysInMonth > 0
-        ? Math.round((monthSummary.studyDays / monthSummary.daysInMonth) * 100)
-        : 0;
-    const plannerTodoLabel = goalTodos.length > 0
-        ? `${completedGoalTodoCount}/${goalTodos.length} 完了`
-        : 'ToDoを追加';
     const weakWordTotal = vocabLevelStats.reduce((sum, levelStat) => sum + levelStat.progress.counts.weak, 0);
     const studiedWordTotal = vocabLevelStats.reduce((sum, levelStat) => sum + levelStat.progress.studiedWords, 0);
 
@@ -294,28 +288,18 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
 
     return (
         <div className="calendar-page">
-            <div className="calendar-stage-shell">
-                <div className="calendar-coach-dock">
-                    <div className="calendar-scene-nav">
-                        <button className="back-btn" onClick={() => navigate('/home')} aria-label="ホームへ戻る">
-                            <ChevronLeft size={22} />
-                        </button>
-                        <button
-                            className="stats-link-btn calendar-top-stats-btn"
-                            onClick={() => navigate('/stats')}
-                        >
-                            <BarChart3 size={16} />
-                            統計を見る
-                        </button>
-                    </div>
-
-                    <div className="calendar-coach-body">
-                        <div className="calendar-coach-portrait-wrap">
-                            <div className="calendar-coach-rank">SCHEDULE PARTNER</div>
-                            <div className="calendar-coach-portrait">
+            <div className="calendar-scene-background" aria-hidden="true" />
+            <div className="calendar-scene-background-overlay" aria-hidden="true" />
+            <div className="calendar-scene-shell">
+                <section className="calendar-hero">
+                    <div className="calendar-face-safe-zone" aria-hidden="true" />
+                    <div className="calendar-hero-character-zone">
+                        <div className="calendar-coach-portrait">
+                            <div className="calendar-coach-portrait-glow" aria-hidden="true" />
+                            <div className="calendar-coach-portrait-frame">
                                 <CharacterStage
                                     characterId={characterId}
-                                    renderer={renderer === 'live2d' ? 'image' : renderer}
+                                    renderer={renderer}
                                     skinId={equippedSkin}
                                     accessoryIds={equippedAccessories}
                                     pose={{ ...coachPose, scene: 'home' }}
@@ -330,335 +314,221 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
                                 />
                             </div>
                         </div>
+                    </div>
 
+                    <div className="calendar-hero-panel">
                         <div className="calendar-coach-panel">
-                            <div className="calendar-scene-eyebrow">TRAINING NOTEBOOK</div>
-                            <div className="calendar-scene-heading">
-                                <div>
-                                    <h1>育成手帳</h1>
-                                    <p>{characterLabel}にスケジュールを管理してもらう、ソシャゲ風のカレンダー画面。</p>
-                                </div>
-                                <div className="calendar-scene-date-badge">
-                                    <span>SELECT</span>
-                                    <strong>{selectedDate ? formatShortDate(selectedDate) : `${currentMonth}月`}</strong>
-                                </div>
-                            </div>
-
-                            <div className="calendar-coach-speech">
+                            <div className="calendar-coach-speech calendar-speech-bubble">
                                 <div className="calendar-coach-name">{characterLabel}</div>
                                 <p>{coachSpeech}</p>
                             </div>
-
-                            <div className="calendar-scene-status-row">
-                                <div className="calendar-scene-status-card">
-                                    <span>連続学習</span>
-                                    <strong>{streak}日</strong>
-                                    <small>{streak >= 7 ? '好調' : '継続中'}</small>
-                                </div>
-                                <div className="calendar-scene-status-card">
-                                    <span>今月の進行</span>
-                                    <strong>{monthStudyRate}%</strong>
-                                    <small>{monthSummary.studyDays}日ログ</small>
-                                </div>
-                                <div className="calendar-scene-status-card">
-                                    <span>タスク管理</span>
-                                    <strong>{plannerTodoLabel}</strong>
-                                    <small>{noteDraft.trim() ? 'メモ記入済み' : 'メモ待ち'}</small>
-                                </div>
-                            </div>
                         </div>
                     </div>
-                </div>
+                </section>
 
-                <div className="calendar-book-shell">
-                    <div className="calendar-panel-switcher" role="tablist" aria-label="表示切り替え">
-                        {PANEL_OPTIONS.map((panel) => (
-                            <button
-                                key={panel.id}
-                                type="button"
-                                role="tab"
-                                aria-selected={activePanel === panel.id}
-                                className={`calendar-panel-tab ${activePanel === panel.id ? 'is-active' : ''}`}
-                                onClick={() => setActivePanel(panel.id)}
-                            >
-                                {panel.label}
-                            </button>
-                        ))}
-                    </div>
-                    <div className="calendar-book-rings" aria-hidden="true">
-                        {Array.from({ length: 4 }).map((_, index) => (
-                            <span key={index} className="calendar-book-ring" />
-                        ))}
-                    </div>
-
-                    {activePanel === 'calendar' && (
-                        <div className="calendar-book-page">
-                        {streak > 0 && (
-                            <div className="streak-banner">
-                                <div className="streak-icon">🔥</div>
-                                <div className="streak-info">
-                                    <div className="streak-label">連続学習</div>
-                                    <div className="streak-value">{streak}日</div>
-                                </div>
-                                <div className="streak-message">
-                                    {streak >= 30 ? '絶好調！' : streak >= 7 ? '仕上がってきたね' : '毎日えらい'}
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="calendar-book-header">
-                            <div>
-                                <div className="calendar-note-eyebrow">MONTHLY PLANNER</div>
-                                <h2>{currentYear}年 {currentMonth}月の手帳</h2>
-                                <p>学習量、メモ、明日の目標をひとつの手帳にまとめて残せます。</p>
-                            </div>
-                            <div className="calendar-book-seal">
-                                <strong>{monthStudyRate}%</strong>
-                                <span>達成</span>
-                            </div>
-                        </div>
-
-                        <div className="month-selector">
-                            <button className="month-nav-btn" onClick={() => changeMonth(-1)}>
-                                <ChevronLeft size={20} />
-                            </button>
-                            <div className="month-display">
-                                <span className="year">{currentYear}年</span>
-                                <span className="month">{currentMonth}月</span>
-                            </div>
-                            <button className="month-nav-btn" onClick={() => changeMonth(1)}>
-                                <ChevronRight size={20} />
-                            </button>
-                            <button className="today-btn" onClick={goToCurrentMonth}>
-                                今月に戻る
-                            </button>
-                        </div>
-
-                        <div className="calendar-overview-strip">
-                            <div className="calendar-overview-pill warm">
-                                <span className="overview-label">学習日数</span>
-                                <strong>{monthSummary.studyDays}日</strong>
-                                <small>今月ログが残っている日</small>
-                            </div>
-                            <div className="calendar-overview-pill mint">
-                                <span className="overview-label">総学習時間</span>
-                                <strong>{monthSummary.totalMinutes}分</strong>
-                                <small>{monthSummary.totalHours}時間ぶん記録</small>
-                            </div>
-                            <div className="calendar-overview-pill sky">
-                                <span className="overview-label">選択中の状態</span>
-                                <strong>{hasSelectedStudy ? '学習済み' : 'これから予定を書く日'}</strong>
-                                <small>{focusDraft.trim() ? `目標: ${focusDraft.trim()}` : 'ひとこと目標を追加しよう'}</small>
-                            </div>
-                        </div>
-
-                        <CalendarHeatmap
-                            year={currentYear}
-                            month={currentMonth}
-                            monthlyStats={monthlyStats}
-                            selectedDate={selectedDate}
-                            onDayClick={handleDayClick}
-                        />
-                        </div>
-                    )}
-                </div>
-
-                {activePanel === 'calendar' && (
-                    <div className="calendar-detail-grid">
-                        <div className="calendar-note-panel">
-                        <div className="calendar-note-header">
-                            <div>
-                                <div className="calendar-note-eyebrow">DAILY NOTE</div>
-                                <h3>
-                                    <NotebookPen size={18} />
-                                    {selectedDate ? `${formatDate(selectedDate)}のメモ` : '日付を選んでメモ'}
-                                </h3>
-                            </div>
-                            <button
-                                className="note-save-btn"
-                                onClick={handleSaveNote}
-                                disabled={!selectedDate}
-                            >
-                                <Save size={16} />
-                                保存
-                            </button>
-                        </div>
-
-                        {selectedDate && (
-                            <div className="selected-day-summary">
-                                <div className="selected-chip">
-                                    学習時間 {selectedStats?.totalMinutes || 0}分
-                                </div>
-                                <div className="selected-chip">
-                                    学習回数 {selectedStats?.sessionCount || 0}回
-                                </div>
-                                <div className="selected-chip">
-                                    {hasSelectedStudy ? '学習あり' : '学習なし'}
-                                </div>
-                                <div className="selected-chip">
-                                    {noteDraft.trim() ? 'メモあり' : 'メモなし'}
-                                </div>
-                            </div>
-                        )}
-
-                        <textarea
-                            className="calendar-note-input"
-                            value={noteDraft}
-                            onChange={(event) => setNoteDraft(event.target.value.slice(0, 300))}
-                            placeholder="その日の勉強メモ、やること、振り返りを書けます"
-                            disabled={!selectedDate}
-                        />
-
-                        <div className="calendar-focus-block">
-                            <div className="calendar-focus-label">
-                                ホームに出すひとこと目標
-                            </div>
-                            <input
-                                className="calendar-focus-input"
-                                type="text"
-                                value={focusDraft}
-                                onChange={(event) => setFocusDraft(event.target.value.slice(0, 80))}
-                                placeholder="例: 英単語20個だけ終わらせる"
-                                disabled={!selectedDate}
-                            />
-                            <div className="calendar-focus-help">
-                                この日付が次の日の予定になるタイミングで、ホームに表示されます
-                            </div>
-                        </div>
-
-                        <div className="calendar-note-footer">
-                            <span>選択した日付ごとに保存されます</span>
-                            <span>{selectedNoteLength}/300</span>
-                        </div>
-                        </div>
-
-                        <div className="month-summary month-summary-compact">
-                            <div className="month-summary-header">
-                                <div>
-                                    <div className="calendar-note-eyebrow">MONTH RESULT</div>
-                                    <h3>月間統計</h3>
-                                    <p>{selectedDate ? `${formatDate(selectedDate)}の内容もここから見返せます。` : '月の進み具合をチェックしよう。'}</p>
-                                </div>
-                                <div className="month-summary-ribbon">
-                                    <span>MANAGED BY</span>
-                                    <strong>{characterLabel}</strong>
-                                </div>
-                            </div>
-                            <div className="summary-grid">
-                                <div className="summary-item">
-                                    <div className="summary-label">総学習時間</div>
-                                    <div className="summary-value">
-                                        {monthSummary.totalHours} 時間
-                                    </div>
-                                    <div className="summary-detail">
-                                        {monthSummary.totalMinutes}分
-                                    </div>
-                                </div>
-                                <div className="summary-item">
-                                    <div className="summary-label">学習日数</div>
-                                    <div className="summary-value">
-                                        {monthSummary.studyDays} 日
-                                    </div>
-                                    <div className="summary-detail">
-                                        /{monthSummary.daysInMonth}日
-                                    </div>
-                                </div>
-                                <div className="summary-item">
-                                    <div className="summary-label">平均学習時間</div>
-                                    <div className="summary-value">
-                                        {monthSummary.avgMinutes} 分
-                                    </div>
-                                    <div className="summary-detail">
-                                        /日
-                                    </div>
-                                </div>
-                                <div className="summary-item">
-                                    <div className="summary-label">学習率</div>
-                                    <div className="summary-value">
-                                        {monthStudyRate}%
-                                    </div>
-                                    <div className="summary-detail">
-                                        達成度
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {activePanel === 'todo' && (
-                    <div className="calendar-single-panel">
-                        <div className="calendar-todo-panel">
-                        <div className="calendar-todo-header">
-                            <div>
-                                <div className="calendar-note-eyebrow">TODO</div>
-                                <h3>やることリスト</h3>
-                            </div>
-                            <div className="calendar-todo-progress">
-                                {completedGoalTodoCount}/{goalTodos.length || 0}
-                            </div>
-                        </div>
-
-                        <div className="calendar-todo-input-row">
-                            <input
-                                className="calendar-todo-input"
-                                type="text"
-                                value={todoInput}
-                                onChange={(event) => setTodoInput(event.target.value)}
-                                onKeyDown={(event) => {
-                                    if (event.key === 'Enter') {
-                                        handleAddTodo();
-                                    }
-                                }}
-                                placeholder="今週やることを追加"
-                            />
-                            <button
-                                type="button"
-                                className="calendar-todo-add-btn"
-                                onClick={handleAddTodo}
-                            >
-                                <Plus size={16} />
-                                追加
-                            </button>
-                        </div>
-
-                        <div className="calendar-todo-list">
-                            {goalTodos.length > 0 ? goalTodos.map((todo) => (
-                                <div
-                                    key={todo.id}
-                                    className={`calendar-todo-item ${todo.completed ? 'completed' : ''}`}
+                <section className="calendar-workspace">
+                    <div className="calendar-control-panel">
+                        <div className="calendar-panel-switcher" role="tablist" aria-label="表示切り替え">
+                            {PANEL_OPTIONS.map((panel) => (
+                                <button
+                                    key={panel.id}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={activePanel === panel.id}
+                                    className={`calendar-panel-tab ${activePanel === panel.id ? 'is-active' : ''}`}
+                                    onClick={() => setActivePanel(panel.id)}
                                 >
-                                    <button
-                                        type="button"
-                                        className="calendar-todo-toggle"
-                                        onClick={() => handleToggleTodo(todo.id)}
-                                        aria-label={todo.completed ? '未完了に戻す' : '完了にする'}
-                                    >
-                                        {todo.completed && <Check size={14} />}
-                                    </button>
-                                    <span className="calendar-todo-text">{todo.text}</span>
-                                    <button
-                                        type="button"
-                                        className="calendar-todo-delete"
-                                        onClick={() => handleDeleteTodo(todo.id)}
-                                        aria-label="削除"
-                                    >
-                                        <Trash2 size={15} />
-                                    </button>
-                                </div>
-                            )) : (
-                                <div className="calendar-todo-empty">
-                                    まだToDoはありません。明日の目標と一緒にここで整理できます。
-                                </div>
-                            )}
+                                    {panel.label}
+                                </button>
+                            ))}
                         </div>
-                        </div>
-                    </div>
-                )}
 
-                {activePanel === 'vocab' && (
-                    <div className="calendar-single-panel">
-                        <div className="calendar-vocab-panel">
+                        {activePanel === 'calendar' && (
+                            <div className="calendar-panel-stack">
+                                <div className="calendar-sheet calendar-book-page">
+                                {streak > 0 && (
+                                    <div className="streak-banner">
+                                        <div className="streak-icon">🔥</div>
+                                        <div className="streak-info">
+                                            <div className="streak-label">連続学習</div>
+                                            <div className="streak-value">{streak}日</div>
+                                        </div>
+                                        <div className="streak-message">
+                                            {streak >= 30 ? '絶好調！' : streak >= 7 ? '仕上がってきたね' : '毎日えらい'}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="month-selector">
+                                    <button type="button" className="month-nav-btn" onClick={() => changeMonth(-1)}>
+                                        <ChevronLeft size={20} />
+                                    </button>
+                                    <div className="month-display">
+                                        <span className="year">{currentYear}年</span>
+                                        <span className="month">{currentMonth}月</span>
+                                    </div>
+                                    <button type="button" className="month-nav-btn" onClick={() => changeMonth(1)}>
+                                        <ChevronRight size={20} />
+                                    </button>
+                                    <button type="button" className="today-btn" onClick={goToCurrentMonth}>
+                                        今月に戻る
+                                    </button>
+                                </div>
+
+                                <CalendarHeatmap
+                                    year={currentYear}
+                                    month={currentMonth}
+                                    monthlyStats={monthlyStats}
+                                    selectedDate={selectedDate}
+                                    onDayClick={handleDayClick}
+                                />
+                                </div>
+
+                                <div className="calendar-detail-grid">
+                                    <div className="calendar-sheet calendar-note-panel">
+                                        <div className="calendar-note-header">
+                                            <div>
+                                                <div className="calendar-note-eyebrow">DAILY NOTE</div>
+                                                <h3>
+                                                    <NotebookPen size={18} />
+                                                    {selectedDate ? `${formatDate(selectedDate)}のメモ` : '日付を選んでメモ'}
+                                                </h3>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                className="note-save-btn"
+                                                onClick={handleSaveNote}
+                                                disabled={!selectedDate}
+                                            >
+                                                <Save size={16} />
+                                                保存
+                                            </button>
+                                        </div>
+
+                                        {selectedDate && (
+                                            <div className="selected-day-summary">
+                                                <div className="selected-chip">
+                                                    学習時間 {selectedStats?.totalMinutes || 0}分
+                                                </div>
+                                                <div className="selected-chip">
+                                                    学習回数 {selectedStats?.sessionCount || 0}回
+                                                </div>
+                                                <div className="selected-chip">
+                                                    {hasSelectedStudy ? '学習あり' : '学習なし'}
+                                                </div>
+                                                <div className="selected-chip">
+                                                    {noteDraft.trim() ? 'メモあり' : 'メモなし'}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <textarea
+                                            className="calendar-note-input"
+                                            value={noteDraft}
+                                            onChange={(event) => setNoteDraft(event.target.value.slice(0, 300))}
+                                            placeholder="その日の勉強メモ、やること、振り返りを書けます"
+                                            disabled={!selectedDate}
+                                        />
+
+                                        <div className="calendar-focus-block">
+                                            <div className="calendar-focus-label">
+                                                ホームに出すひとこと目標
+                                            </div>
+                                            <input
+                                                className="calendar-focus-input"
+                                                type="text"
+                                                value={focusDraft}
+                                                onChange={(event) => setFocusDraft(event.target.value.slice(0, 80))}
+                                                placeholder="例: 英単語20個だけ終わらせる"
+                                                disabled={!selectedDate}
+                                            />
+                                            <div className="calendar-focus-help">
+                                                この日付が次の日の予定になるタイミングで、ホームに表示されます
+                                            </div>
+                                        </div>
+
+                                        <div className="calendar-note-footer">
+                                            <span>選択した日付ごとに保存されます</span>
+                                            <span>{selectedNoteLength}/300</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activePanel === 'todo' && (
+                            <div className="calendar-single-panel">
+                                <div className="calendar-sheet calendar-todo-panel">
+                            <div className="calendar-todo-header">
+                                <div>
+                                    <div className="calendar-note-eyebrow">TODO</div>
+                                    <h3>やることリスト</h3>
+                                </div>
+                                <div className="calendar-todo-progress">
+                                    {completedGoalTodoCount}/{goalTodos.length || 0}
+                                </div>
+                            </div>
+
+                            <div className="calendar-todo-input-row">
+                                <input
+                                    className="calendar-todo-input"
+                                    type="text"
+                                    value={todoInput}
+                                    onChange={(event) => setTodoInput(event.target.value)}
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter') {
+                                            handleAddTodo();
+                                        }
+                                    }}
+                                    placeholder="今週やることを追加"
+                                />
+                                <button
+                                    type="button"
+                                    className="calendar-todo-add-btn"
+                                    onClick={handleAddTodo}
+                                >
+                                    <Plus size={16} />
+                                    追加
+                                </button>
+                            </div>
+
+                            <div className="calendar-todo-list">
+                                {goalTodos.length > 0 ? goalTodos.map((todo) => (
+                                    <div
+                                        key={todo.id}
+                                        className={`calendar-todo-item ${todo.completed ? 'completed' : ''}`}
+                                    >
+                                        <button
+                                            type="button"
+                                            className="calendar-todo-toggle"
+                                            onClick={() => handleToggleTodo(todo.id)}
+                                            aria-label={todo.completed ? '未完了に戻す' : '完了にする'}
+                                        >
+                                            {todo.completed && <Check size={14} />}
+                                        </button>
+                                        <span className="calendar-todo-text">{todo.text}</span>
+                                        <button
+                                            type="button"
+                                            className="calendar-todo-delete"
+                                            onClick={() => handleDeleteTodo(todo.id)}
+                                            aria-label="削除"
+                                        >
+                                            <Trash2 size={15} />
+                                        </button>
+                                    </div>
+                                )) : (
+                                    <div className="calendar-todo-empty">
+                                        まだToDoはありません。明日の目標と一緒にここで整理できます。
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                            </div>
+                        )}
+
+                        {activePanel === 'vocab' && (
+                            <div className="calendar-single-panel">
+                                <div className="calendar-sheet calendar-vocab-panel">
                             <div className="calendar-todo-header">
                                 <div>
                                     <div className="calendar-note-eyebrow">VOCAB PROGRESS</div>
@@ -731,15 +601,17 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
                                 ))}
                             </div>
                         </div>
+                            </div>
+                        )}
                     </div>
-                )}
 
-                <div className="bottom-area">
-                    <button className="big-home-btn" onClick={() => navigate('/home')}>
-                        <Home size={20} />
-                        ホーム
-                    </button>
-                </div>
+                    <div className="bottom-area">
+                        <button type="button" className="big-home-btn" onClick={() => navigate('/home')}>
+                            <Home size={20} />
+                            ホーム
+                        </button>
+                    </div>
+                </section>
             </div>
         </div>
     );

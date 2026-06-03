@@ -932,6 +932,20 @@
     filter: drop-shadow(0 14px 18px rgba(49, 57, 72, 0.2));
 }
 
+/* Live2D viewport pass */
+.character-interaction-screen .character-figure.is-live2d {
+    height: 100dvh;
+    min-height: calc(100% - 66px);
+    max-height: none;
+}
+
+.character-interaction-screen .character-figure.is-live2d > *,
+.character-interaction-screen .character-figure.is-live2d [data-live2d-ready],
+.character-interaction-screen .character-figure.is-live2d canvas {
+    height: 100%;
+    min-height: 100%;
+}
+
 .gift-effect-overlay {
     z-index: 120;
     width: min(86%, 360px);

@@ -6,7 +6,6 @@ import {
     Clock3,
     Diamond,
     Heart,
-    HelpCircle,
     Home,
     Menu,
     Percent,
@@ -23,6 +22,8 @@ import {
 } from '../utils/gachaUtils';
 import { GACHA_POOL, RARITY } from '../data/gachaItems';
 import { getAffectionLevel, getAffectionProgress, getNextLevel } from '../utils/affectionUtils';
+import BgClassroom from '../assets/images/bg_classroom.webp';
+import NoahNormal from '../assets/images/noah_normal.webp';
 import './Gacha.css';
 
 const IS_LITE_DEPLOY = import.meta.env.VITE_LITE_DEPLOY === 'true';
@@ -34,29 +35,29 @@ const JACKPOT_CHARACTER = '/jackpot_character.jpg';
 const SECTION_CONFIG = {
     pickup: {
         label: 'ピックアップ',
-        kicker: 'もっと近づくチャンス！',
-        title: 'ピックアップガチャ',
-        subtitle: '期間限定で特別な報酬をGET',
-        description: '注目の衣装や思い出アイテムを前面に出すレイアウトです。',
-        rateLines: ['10回以内にSR以上確定', 'SSR排出率 5% 表示枠'],
+        kicker: '放課後',
+        title: '限定',
+        subtitle: '今だけの衣装',
+        note: 'SSR 5%',
+        rateLines: ['SSR 5%', '10連 SR+'],
         accentClass: 'pickup',
     },
     premium: {
         label: 'プレミアム',
-        kicker: '特別な演出と豪華報酬',
-        title: 'プレミアムガチャ',
-        subtitle: '衣装・背景・アクセ中心の上位枠',
-        description: '希少アイテムが並ぶ見せ場用の構成です。',
-        rateLines: ['SSR / SR を大きく見せる枠', '上位レアを主役にした表示'],
+        kicker: '特別枠',
+        title: '豪華',
+        subtitle: '衣装と背景',
+        note: '演出強め',
+        rateLines: ['SR狙い', '演出UP'],
         accentClass: 'premium',
     },
     normal: {
         label: 'ノーマル',
-        kicker: '日々のごほうびを集める',
-        title: 'ノーマルガチャ',
-        subtitle: 'プレゼントや小物を気軽に集める',
-        description: '日常報酬を並べる軽めの構成です。',
-        rateLines: ['R以上の見せ方確認用', '素材系の導線確認用'],
+        kicker: '毎日',
+        title: '定番',
+        subtitle: '素材と小物',
+        note: '軽く回す',
+        rateLines: ['単発向け', '素材集め'],
         accentClass: 'normal',
     },
 };
@@ -148,6 +149,9 @@ const Gacha = ({ stats, updateStats }) => {
     );
     const historyCount = history.length;
     const pityProgress = Math.min((pityCount / 100) * 100, 100);
+    const affectionLabel = nextAffectionLevel
+        ? `${formatNumber(affection)} / ${formatNumber(nextAffectionLevel.points)}`
+        : 'MAX';
 
     useEffect(() => {
         setPityCount(getCurrentPity());
@@ -208,7 +212,7 @@ const Gacha = ({ stats, updateStats }) => {
             }
 
             audioRef.current = new Audio(GACHA_AUDIO);
-            audioRef.current.play().catch(() => { });
+            audioRef.current.play().catch(() => {});
         } catch {
             // noop
         }
@@ -241,225 +245,165 @@ const Gacha = ({ stats, updateStats }) => {
 
     return (
         <div className="gacha-shell-page">
-            <div className="gacha-page-frame">
-                <header className="gacha-topbar">
-                    <div className="gacha-topbar-left">
-                        <button className="gacha-back-btn" type="button" onClick={() => navigate('/shop')} aria-label="購買部へ戻る">
-                            <ChevronLeft size={28} />
-                        </button>
+            <div className="gacha-mobile-frame">
+                <header className="gacha-header">
+                    <button className="gacha-back-btn" type="button" onClick={() => navigate('/home')} aria-label="ホームへ戻る">
+                        <ChevronLeft size={22} />
+                    </button>
 
-                        <div className="gacha-title-block">
-                            <h1>ガチャ</h1>
-                            <button className="gacha-help-btn" type="button" onClick={() => setShowRates(true)} aria-label="提供割合を見る">
-                                <HelpCircle size={20} />
-                            </button>
-                        </div>
+                    <div className="gacha-header-copy">
+                        <span>{currentSection.kicker}</span>
+                        <h1>ガチャ</h1>
                     </div>
 
-                    <div className="gacha-topbar-stats">
-                        <div className="gacha-stat-card">
-                            <div className="gacha-stat-head">
-                                <Diamond size={18} />
-                                <span>ジェム</span>
-                            </div>
-                            <strong>{formatNumber(diamonds)}</strong>
-                        </div>
-
-                        <div className="gacha-stat-card affection">
-                            <div className="gacha-stat-head">
-                                <Heart size={18} />
-                                <span>好感度</span>
-                            </div>
-                            <div className="gacha-affection-row">
-                                <span className="gacha-affection-level">Lv.{affectionLevelInfo.level}</span>
-                                <span className="gacha-affection-progress">
-                                    {formatNumber(affection)}
-                                    {nextAffectionLevel ? ` / ${formatNumber(nextAffectionLevel.points)}` : ' / MAX'}
-                                </span>
-                            </div>
-                            <div className="gacha-affection-bar">
-                                <div className="gacha-affection-fill" style={{ width: `${affectionProgress}%` }} />
-                            </div>
-                        </div>
+                    <div className="gacha-header-wallet" aria-label="所持ジェム">
+                        <Diamond size={16} />
+                        <strong>{formatNumber(diamonds)}</strong>
                     </div>
                 </header>
 
-                <div className="gacha-stage-layout">
-                    <aside className="gacha-side-tabs" aria-label="ガチャ種別">
-                        {Object.entries(SECTION_CONFIG).map(([sectionKey, section]) => (
-                            <button
-                                key={sectionKey}
-                                type="button"
-                                className={`gacha-side-tab ${activeSection === sectionKey ? 'is-active' : ''}`}
-                                onClick={() => setActiveSection(sectionKey)}
-                            >
-                                <span className="gacha-side-tab-kicker">{sectionKey === 'pickup' ? '✦' : sectionKey === 'premium' ? '◈' : '○'}</span>
-                                <span>{section.label}</span>
-                            </button>
-                        ))}
-                    </aside>
+                <section
+                    className={`gacha-scene is-${currentSection.accentClass}`}
+                    style={{ '--gacha-scene-bg': `url(${BgClassroom})` }}
+                >
+                    <div className="gacha-scene-overlay" aria-hidden="true" />
 
-                    <section className={`gacha-stage-card is-${currentSection.accentClass}`}>
-                        <div className="gacha-stage-backdrop" />
-                        <div className="gacha-stage-sparkles" aria-hidden="true">
-                            <span />
-                            <span />
-                            <span />
-                            <span />
+                    <div className="gacha-scene-top">
+                        <div className="gacha-tabs" aria-label="ガチャ種別">
+                            {Object.entries(SECTION_CONFIG).map(([sectionKey, section]) => (
+                                <button
+                                    key={sectionKey}
+                                    type="button"
+                                    className={`gacha-tab ${activeSection === sectionKey ? 'is-active' : ''}`}
+                                    onClick={() => setActiveSection(sectionKey)}
+                                >
+                                    {section.label}
+                                </button>
+                            ))}
                         </div>
 
-                        <div className="gacha-stage-main">
-                            <div className="gacha-stage-art">
-                                <div className="gacha-placeholder-caption">Illustration Placeholder</div>
-                                <div className="gacha-silhouette">
-                                    <div className="gacha-silhouette-head" />
-                                    <div className="gacha-silhouette-body" />
-                                </div>
+                        <div className="gacha-hero-bubble">
+                            <p className="gacha-hero-kicker">{currentSection.kicker}</p>
+                            <h2>{currentSection.title}</h2>
+                            <p className="gacha-hero-subtitle">{currentSection.subtitle}</p>
+
+                            <div className="gacha-hero-tags">
+                                {currentSection.rateLines.map((line) => (
+                                    <span key={line}>{line}</span>
+                                ))}
                             </div>
 
-                            <div className="gacha-stage-copy">
-                                <div className="gacha-stage-copy-inner">
-                                    <p className="gacha-stage-kicker">{currentSection.kicker}</p>
-                                    <h2>{currentSection.title}</h2>
-                                    <p className="gacha-stage-subtitle">{currentSection.subtitle}</p>
-                                    <p className="gacha-stage-description">{currentSection.description}</p>
+                            <div className="gacha-hero-affection">
+                                <span className="gacha-hero-affection-level">
+                                    <Heart size={14} />
+                                    Lv.{affectionLevelInfo.level}
+                                </span>
+                                <span className="gacha-hero-affection-progress">{affectionLabel}</span>
+                            </div>
+                            <div className="gacha-hero-affection-bar" aria-hidden="true">
+                                <div className="gacha-hero-affection-fill" style={{ width: `${affectionProgress}%` }} />
+                            </div>
+                        </div>
+                    </div>
 
-                                    <div className="gacha-rate-summary">
-                                        {currentSection.rateLines.map((line) => (
-                                            <span key={line}>{line}</span>
-                                        ))}
+                    <div className="gacha-character-zone" aria-hidden="true">
+                        <div className="gacha-character-halo" />
+                        <img className="gacha-character-image" src={NoahNormal} alt="" />
+                    </div>
+
+                    <section className="gacha-bottom-sheet">
+                        <div className="gacha-bottom-sheet-body">
+                            <div className="gacha-sheet-head">
+                                <div>
+                                    <p className="gacha-sheet-label">{currentSection.label}</p>
+                                    <strong>{currentSection.note}</strong>
+                                </div>
+
+                                <button type="button" className="gacha-sheet-link" onClick={() => navigate('/missions')}>
+                                    集める
+                                </button>
+                            </div>
+
+                            <div className="gacha-sheet-stats">
+                                <article className="gacha-sheet-stat">
+                                    <span>ジェム</span>
+                                    <strong>{formatNumber(diamonds)}</strong>
+                                </article>
+
+                                <article className="gacha-sheet-stat is-progress">
+                                    <div className="gacha-sheet-stat-row">
+                                        <span>ポイント</span>
+                                        <strong>{pityCount} / 100</strong>
                                     </div>
-                                </div>
+                                    <div className="gacha-point-bar">
+                                        <div className="gacha-point-fill" style={{ width: `${pityProgress}%` }} />
+                                    </div>
+                                </article>
                             </div>
 
-                            <div className="gacha-stage-tools">
-                                <button type="button" className="gacha-square-tool" onClick={() => setShowHistory(true)}>
-                                    <Clock3 size={22} />
-                                    <span>ガチャ履歴</span>
+                            <div className="gacha-feature-strip" aria-label="注目アイテム">
+                                {featuredItems.map((item, index) => (
+                                    <article key={`${activeSection}-${item.id}-${index}`} className="gacha-feature-card">
+                                        <span className={`gacha-feature-rarity rarity-${item.rarity}`}>
+                                            {index === 1 ? 'NEW' : item.rarity}
+                                        </span>
+                                        <div className="gacha-feature-emoji">{item.emoji || '✦'}</div>
+                                        <strong>{item.name}</strong>
+                                    </article>
+                                ))}
+                            </div>
+
+                            <div className="gacha-tool-row">
+                                <button type="button" className="gacha-tool-button" onClick={() => setShowHistory(true)}>
+                                    <Clock3 size={16} />
+                                    <span>履歴 {historyCount}</span>
                                 </button>
 
-                                <button type="button" className="gacha-square-tool" onClick={() => setShowRates(true)}>
-                                    <Percent size={22} />
-                                    <span>提供割合</span>
+                                <button type="button" className="gacha-tool-button" onClick={() => setShowRates(true)}>
+                                    <Percent size={16} />
+                                    <span>割合</span>
                                 </button>
 
-                                <button type="button" className="gacha-detail-link" onClick={() => navigate('/character')}>
-                                    <Search size={18} />
-                                    <span>キャラ詳細</span>
+                                <button type="button" className="gacha-tool-button" onClick={() => navigate('/character')}>
+                                    <Search size={16} />
+                                    <span>キャラ</span>
                                 </button>
                             </div>
                         </div>
 
-                        <div className="gacha-draw-area">
-                            <div className="gacha-wallet-pill">
-                                <div className="gacha-wallet-left">
-                                    <Diamond size={18} />
-                                    <span>所持ジェム</span>
-                                </div>
-                                <strong>{formatNumber(diamonds)}</strong>
-                                <button type="button" className="gacha-wallet-plus" onClick={() => navigate('/missions')} aria-label="ジェムを集める">
-                                    +
-                                </button>
-                            </div>
-
+                        <div className="gacha-bottom-sheet-footer">
                             <div className="gacha-draw-buttons">
                                 <button
                                     type="button"
-                                    className="gacha-draw-btn is-highlight"
+                                    className="gacha-draw-btn is-single"
                                     onClick={() => handleGacha(1)}
                                     disabled={showVideo}
                                 >
-                                    <span className="gacha-draw-badge">配置サンプル</span>
-                                    <strong>1回引く</strong>
+                                    <span className="gacha-draw-label">1回</span>
+                                    <strong>{GACHA_COST.SINGLE}</strong>
                                     <span className="gacha-draw-cost">
-                                        <Diamond size={16} />
-                                        {GACHA_COST.SINGLE}
+                                        <Diamond size={14} />
+                                        単発
                                     </span>
                                 </button>
 
                                 <button
                                     type="button"
-                                    className="gacha-draw-btn"
-                                    onClick={() => handleGacha(1)}
-                                    disabled={showVideo}
-                                >
-                                    <strong>1回引く</strong>
-                                    <span className="gacha-draw-cost">
-                                        <Diamond size={16} />
-                                        {GACHA_COST.SINGLE}
-                                    </span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    className="gacha-draw-btn is-wide"
+                                    className="gacha-draw-btn is-ten"
                                     onClick={() => handleGacha(10)}
                                     disabled={showVideo}
                                 >
-                                    <strong>10回引く</strong>
+                                    <span className="gacha-draw-badge">SR+</span>
+                                    <span className="gacha-draw-label">10回</span>
+                                    <strong>{GACHA_COST.TEN}</strong>
                                     <span className="gacha-draw-cost">
-                                        <Diamond size={16} />
-                                        {GACHA_COST.TEN}
+                                        <Diamond size={14} />
+                                        10連
                                     </span>
-                                    <span className="gacha-draw-badge bottom">SR以上1枚確定！</span>
                                 </button>
                             </div>
                         </div>
                     </section>
-                </div>
-
-                <section className="gacha-featured-section">
-                    <div className="gacha-section-title">✧ {currentSection.label}キャラ枠 ✧</div>
-
-                    <div className="gacha-featured-grid">
-                        {featuredItems.map((item, index) => (
-                            <article
-                                key={`${activeSection}-${item.id}-${index}`}
-                                className={`gacha-feature-card ${index === 1 ? 'is-center' : ''}`}
-                            >
-                                <div className={`gacha-feature-visual rarity-${item.rarity}`}>
-                                    <span className="gacha-feature-tag">
-                                        {index === 1 ? 'NEW!' : item.rarity}
-                                    </span>
-                                    <div className="gacha-feature-emoji">{item.emoji || '✦'}</div>
-                                    <div className="gacha-feature-placeholder-label">Card Art</div>
-                                </div>
-
-                                <div className="gacha-feature-copy">
-                                    <div className="gacha-feature-rarity">{item.rarity}</div>
-                                    <strong>{item.name}</strong>
-                                    <p>{item.description}</p>
-                                </div>
-                            </article>
-                        ))}
-                    </div>
-
-                    <div className="gacha-feature-dots" aria-hidden="true">
-                        {Array.from({ length: 6 }).map((_, index) => (
-                            <span key={index} className={index === 3 ? 'is-active' : ''} />
-                        ))}
-                    </div>
-                </section>
-
-                <section className="gacha-progress-row">
-                    <article className="gacha-exchange-card">
-                        <div className="gacha-mini-icon">🎟️</div>
-                        <div className="gacha-progress-copy">
-                            <strong>交換所</strong>
-                            <span>{historyCount} 件の履歴</span>
-                        </div>
-                    </article>
-
-                    <article className="gacha-point-card">
-                        <div className="gacha-progress-copy">
-                            <strong>ガチャポイント</strong>
-                            <span>{pityCount} / 100</span>
-                        </div>
-                        <div className="gacha-point-bar">
-                            <div className="gacha-point-fill" style={{ width: `${pityProgress}%` }} />
-                        </div>
-                        <span className="gacha-point-note">100ptでSSR確定！</span>
-                    </article>
                 </section>
 
                 <nav className="gacha-bottom-nav" aria-label="下部メニュー">
@@ -470,7 +414,7 @@ const Gacha = ({ stats, updateStats }) => {
                             className={`gacha-bottom-item ${id === 'gacha' ? 'is-active' : ''}`}
                             onClick={() => navigate(to)}
                         >
-                            <Icon size={24} />
+                            <Icon size={20} />
                             <span>{label}</span>
                         </button>
                     ))}
@@ -510,7 +454,7 @@ const Gacha = ({ stats, updateStats }) => {
             {gachaResults && (
                 <div className="result-overlay" onClick={closeResults}>
                     <div className="result-particles">
-                        {Array.from({ length: 24 }).map((_, index) => (
+                        {Array.from({ length: 20 }).map((_, index) => (
                             <div
                                 key={index}
                                 className={`particle particle-${index % 5}`}
@@ -525,15 +469,15 @@ const Gacha = ({ stats, updateStats }) => {
 
                     <div className="results-modal-rich" onClick={(event) => event.stopPropagation()}>
                         <button className="close-btn-x" type="button" onClick={closeResults} aria-label="閉じる">
-                            <X size={22} />
+                            <X size={20} />
                         </button>
 
                         <div className="result-title-area">
                             <h3 className="result-title-rich">ガチャ結果</h3>
                             <div className="result-summary">
-                                {gachaResults.length}件獲得
-                                {gachaResults.some((item) => item.rarity === 'SSR') && <span className="summary-ssr">SSR!</span>}
-                                {gachaResults.some((item) => item.rarity === 'SR') && <span className="summary-sr">SR!</span>}
+                                {gachaResults.length}件
+                                {gachaResults.some((item) => item.rarity === 'SSR') && <span className="summary-ssr">SSR</span>}
+                                {gachaResults.some((item) => item.rarity === 'SR') && <span className="summary-sr">SR</span>}
                             </div>
                         </div>
 
@@ -629,7 +573,7 @@ const Gacha = ({ stats, updateStats }) => {
                             </div>
                             <p className="rate-note-small">10連でSR以上1個確定</p>
                             <p className="rate-note-small">100pt到達でSSR確定</p>
-                            <p className="rate-note-small">今回は配置確認用のワイヤー構成です</p>
+                            <p className="rate-note-small">レイアウト優先の軽い構成です</p>
                         </div>
                     </div>
                 </div>

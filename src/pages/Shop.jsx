@@ -2,22 +2,27 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     ArrowLeft,
-    Clock3,
-    HelpCircle,
-    Diamond,
-    X,
     Check,
-    Shirt,
+    Clock3,
+    Diamond,
+    HelpCircle,
     Image as ImageIcon,
-    Volume2,
-    Sparkles,
     PackageCheck,
+    Shirt,
+    Sparkles,
+    Volume2,
     Wand2,
+    X,
 } from 'lucide-react';
-import { ALL_ITEMS } from '../data/itemData';
+import CharacterStage from '../components/character/CharacterStage';
 import ItemVisual from '../components/ItemVisual';
+import { getCharacterLabel } from '../data/characterData';
+import { ALL_ITEMS } from '../data/itemData';
 import { updateStatsOnShop } from '../utils/achievementUtils';
+import { createHomePose } from '../utils/characterPoseUtils';
+import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { addToInventory, getInventoryItemQuantity, isStackableItem } from '../utils/itemUtils';
+import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
 import './Shop.css';
 
 const SHOP_HISTORY_KEY = 'shop_purchase_history';
@@ -30,6 +35,58 @@ const RARITY_LABELS = {
     R: 'ベーシック',
     N_PLUS: 'ノーマル+',
     N: 'ノーマル',
+};
+
+const CATEGORY_SCENE_COPY = {
+    おすすめ: {
+        badge: 'PICK UP',
+        emotion: 'smile',
+        intro: 'まずは持っていないもの中心で見やすく並べています。',
+        speech: (name) => `今日は「${name}」から見てみよっか。気になるものをひとつずつ選べるよ。`,
+        empty: '気になるものから、ゆっくり見ていこっか。',
+    },
+    おたすけ: {
+        badge: 'SUPPORT',
+        emotion: 'happy',
+        intro: '学習中に使いやすい消耗品をまとめています。',
+        speech: (name) => `困ったときは「${name}」みたいなおたすけアイテムが便利だよ。`,
+        empty: 'クイズを少し楽にしたいときに使えるよ。',
+    },
+    衣装: {
+        badge: 'DRESS UP',
+        emotion: 'happy',
+        intro: 'ホームや学習画面の空気を変えたいときの着せ替えです。',
+        speech: (name) => `「${name}」に着替えると、いつもの雰囲気もけっこう変わるよ。`,
+        empty: '気分を変えたい日に着せ替えを選んでみてね。',
+    },
+    背景: {
+        badge: 'SCENE',
+        emotion: 'normal',
+        intro: 'いっしょに過ごす場所を変えられる背景コレクションです。',
+        speech: (name) => `「${name}」にすると、部屋の空気まで変わる感じがするよ。`,
+        empty: '背景を変えると、ホームの印象もがらっと変わるよ。',
+    },
+    ボイス: {
+        badge: 'VOICE',
+        emotion: 'smile',
+        intro: '節目の演出に向いたボイス系アイテムです。',
+        speech: (name) => `「${name}」はコレクション向き。あとで聞き返したくなるかも。`,
+        empty: '声まわりのコレクションを少しずつ増やしていけるよ。',
+    },
+    アクセ: {
+        badge: 'ACCENT',
+        emotion: 'happy',
+        intro: 'Live2D や見た目に小さな変化を足せるアクセです。',
+        speech: (name) => `「${name}」みたいな小物は、仕上げに足すとかわいいよ。`,
+        empty: '最後のひと味を足したいときにぴったりだよ。',
+    },
+    特別: {
+        badge: 'SPECIAL',
+        emotion: 'surprised',
+        intro: '記念に残したい特別アイテムだけを集めています。',
+        speech: (name) => `「${name}」はちょっと特別。取っておきたくなるラインだよ。`,
+        empty: '特別なものだけ、ここにそっと並べてあるよ。',
+    },
 };
 
 const PRODUCT_DETAIL_COPY = {
@@ -134,13 +191,11 @@ const getCategoryLabel = (type) => {
     }
 };
 
-const getProductDetailCopy = (product) => {
-    return PRODUCT_DETAIL_COPY[product?.type] || {
-        icon: PackageCheck,
-        headline: '学習を少し楽しくしてくれるアイテムです',
-        usage: '交換後はアイテムボックスで確認できます。',
-        highlights: ['アイテムボックスに追加', '所持数を管理', '必要なタイミングで使用'],
-    };
+const getProductDetailCopy = (product) => PRODUCT_DETAIL_COPY[product?.type] || {
+    icon: PackageCheck,
+    headline: '学習を少し楽しくしてくれるアイテムです',
+    usage: '交換後はアイテムボックスで確認できます。',
+    highlights: ['アイテムボックスに追加', '所持数を管理', '必要なタイミングで使用'],
 };
 
 const getRarityLabel = (rarity) => RARITY_LABELS[rarity] || rarity || 'ITEM';
@@ -157,10 +212,22 @@ const Shop = ({ stats, updateStats, onClose }) => {
 
     const diamonds = stats?.diamonds ?? 0;
     const inventory = stats?.inventory || [];
+    const characterId = stats?.characterId || 'noah';
+    const characterLabel = getCharacterLabel(characterId) || 'ノア';
+    const equippedSkin = stats?.equippedSkin || 'default';
+    const equippedAccessories = Array.isArray(stats?.equippedAccessories) ? stats.equippedAccessories : [];
+    const preferredRenderer = stats?.characterRenderer;
+    const canUseLive2D = hasLive2DModelConfig(characterId, equippedSkin);
+
     const ownedIds = useMemo(() => new Set(inventory.map((item) => item.itemId)), [inventory]);
     const inventoryQuantityById = useMemo(() => Object.fromEntries(
-        inventory.map((item) => [item.itemId, Math.max(0, Number(item?.quantity) || 0)])
+        inventory.map((item) => [item.itemId, Math.max(0, Number(item?.quantity) || 0)]),
     ), [inventory]);
+    const renderer = useMemo(() => resolveCharacterRenderer({
+        preferredRenderer: canUseLive2D ? 'live2d' : preferredRenderer,
+        characterId,
+        skinId: equippedSkin,
+    }), [canUseLive2D, characterId, equippedSkin, preferredRenderer]);
 
     const products = useMemo(() => SHOP_CATALOG
         .map((catalogItem) => {
@@ -175,7 +242,10 @@ const Shop = ({ stats, updateStats, onClose }) => {
         })
         .filter(Boolean), []);
 
-    const productMap = useMemo(() => Object.fromEntries(products.map((product) => [product.id, product])), [products]);
+    const productMap = useMemo(
+        () => Object.fromEntries(products.map((product) => [product.id, product])),
+        [products],
+    );
     const selectedProduct = selectedProductId ? productMap[selectedProductId] : null;
 
     const filteredProducts = useMemo(() => {
@@ -188,11 +258,22 @@ const Shop = ({ stats, updateStats, onClose }) => {
         return products.filter((product) => product.category === activeCategory);
     }, [activeCategory, ownedIds, products]);
 
+    const featuredProduct = selectedProduct || filteredProducts[0] || products[0] || null;
+    const categorySceneCopy = CATEGORY_SCENE_COPY[activeCategory] || CATEGORY_SCENE_COPY.おすすめ;
+    const heroCopy = featuredProduct
+        ? categorySceneCopy.speech(featuredProduct.name)
+        : categorySceneCopy.empty;
+    const heroPose = useMemo(() => createHomePose({
+        emotion: categorySceneCopy.emotion,
+        text: heroCopy,
+    }), [categorySceneCopy.emotion, heroCopy]);
+
     const handleBack = () => {
         if (onClose) {
             onClose();
             return;
         }
+
         navigate('/home');
     };
 
@@ -325,9 +406,7 @@ const Shop = ({ stats, updateStats, onClose }) => {
                         </div>
                         <div>
                             <span className="summary-label">所持数</span>
-                            <strong className="summary-balance">
-                                ×{quantity}
-                            </strong>
+                            <strong className="summary-balance">×{quantity}</strong>
                         </div>
                         {(!owned || stackable) && (
                             <div>
@@ -351,6 +430,7 @@ const Shop = ({ stats, updateStats, onClose }) => {
                         </div>
                     ) : (
                         <button
+                            type="button"
                             className={`purchase-btn ${diamonds < selectedProduct.price ? 'disabled' : ''}`}
                             onClick={() => setShowConfirmDialog(true)}
                             disabled={diamonds < selectedProduct.price}
@@ -370,105 +450,152 @@ const Shop = ({ stats, updateStats, onClose }) => {
 
     return (
         <div className="shop-page">
+            <div className="shop-scene-background" aria-hidden="true" />
+            <div className="shop-scene-background-overlay" aria-hidden="true" />
+
             <div className="shop-container">
-                <header className="shop-header">
-                    <button className="header-btn" onClick={handleBack} aria-label="戻る">
-                        <ArrowLeft size={24} />
-                    </button>
-                    <h1 className="header-title">購買部</h1>
-                    <div className="header-actions">
-                        <button className="header-btn" aria-label="購入履歴" onClick={() => setShowHistory(true)}>
-                            <Clock3 size={20} />
-                        </button>
-                        <button className="header-btn" aria-label="ヘルプ" onClick={() => setShowHelp(true)}>
-                            <HelpCircle size={20} />
-                        </button>
-                    </div>
-                </header>
-
-                <div className="currency-bar">
-                    <div className="currency-display">
-                        <Diamond size={18} className="diamond-icon" />
-                        <span className="currency-amount">{diamonds.toLocaleString()}</span>
-                    </div>
-                </div>
-
-                <div className="shop-intro-card">
-                    <p className="intro-heading">欲しいものを選んで交換できます</p>
-                    <p className="intro-text">
-                        衣装や背景、ボイスに加えて、おたすけ消耗品もダイヤで交換できます。
-                        ダイヤはミッションや学習の積み重ねで集まります。
-                    </p>
-                    <button
-                        type="button"
-                        className="shop-gacha-link"
-                        onClick={() => navigate('/gacha')}
-                    >
-                        <Sparkles size={16} />
-                        <span>ごほうびガチャをひらく</span>
-                    </button>
-                </div>
-
-                <nav className="category-tabs">
-                    {CATEGORIES.map((category) => (
-                        <button
-                            key={category}
-                            className={`tab-btn ${activeCategory === category ? 'active' : ''}`}
-                            onClick={() => setActiveCategory(category)}
-                        >
-                            {category}
-                        </button>
-                    ))}
-                </nav>
-
-                <main className="products-grid">
-                    {filteredProducts.map((product) => {
-                        const owned = ownedIds.has(product.id);
-                        const quantity = inventoryQuantityById[product.id] || 0;
-                        const stackable = isStackableItem(product);
-
-                        return (
-                            <button
-                                key={product.id}
-                                className={`product-card ${owned && !stackable ? 'owned' : ''}`}
-                                onClick={() => handleProductClick(product)}
-                            >
-                                <div className="product-image-wrapper">
-                                    <ItemVisual
-                                        item={product}
-                                        className="product-image"
-                                        fallbackText={product.name.charAt(0)}
-                                        alt={product.name}
-                                    />
-                                    {owned && (
-                                        <div className="owned-badge">
-                                            <Check size={12} />
-                                            <span>{stackable ? `所持 ×${quantity}` : '所持中'}</span>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="product-info">
-                                    <div className="product-category">{product.category}</div>
-                                    <h3 className="product-name">{product.name}</h3>
-                                    <p className="product-description">{product.description}</p>
-                                    {(!owned || stackable) && (
-                                        <div className="product-price">
-                                            <Diamond size={14} className="diamond-icon-small" />
-                                            <span>{product.price}</span>
-                                        </div>
-                                    )}
-                                </div>
+                <section className="shop-hero">
+                    <div className="shop-scene-nav">
+                        {onClose ? (
+                            <button type="button" className="header-btn shop-nav-btn" onClick={handleBack} aria-label="戻る">
+                                <ArrowLeft size={22} />
                             </button>
-                        );
-                    })}
-                </main>
+                        ) : (
+                            <div className="shop-scene-badge">購買部</div>
+                        )}
+
+                        <div className="shop-nav-actions">
+                            <button
+                                type="button"
+                                className="header-btn shop-nav-btn"
+                                aria-label="購入履歴"
+                                onClick={() => setShowHistory(true)}
+                            >
+                                <Clock3 size={19} />
+                            </button>
+                            <button
+                                type="button"
+                                className="header-btn shop-nav-btn"
+                                aria-label="ヘルプ"
+                                onClick={() => setShowHelp(true)}
+                            >
+                                <HelpCircle size={19} />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="currency-bar">
+                        <div className="currency-display">
+                            <Diamond size={17} className="diamond-icon" />
+                            <span className="currency-amount">{diamonds.toLocaleString()}</span>
+                        </div>
+                    </div>
+
+                    <div className="shop-hero-character-zone" aria-hidden="true">
+                        <div className="shop-hero-glow" />
+                        <div className="shop-hero-character-frame">
+                            <CharacterStage
+                                characterId={characterId}
+                                renderer={renderer}
+                                skinId={equippedSkin}
+                                accessoryIds={equippedAccessories}
+                                pose={{ ...heroPose, scene: 'home' }}
+                                scene="home"
+                                className="shop-hero-character"
+                                imageStyle={{
+                                    height: '100%',
+                                    width: '100%',
+                                    '--character-stage-overflow': 'visible',
+                                }}
+                                alt={`${characterLabel} portrait`}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="shop-hero-panel">
+                        <div className="shop-scene-eyebrow">{categorySceneCopy.badge}</div>
+                        <div className="shop-coach-card shop-speech-bubble">
+                            <div className="shop-coach-name">{characterLabel}</div>
+                            <p>{heroCopy}</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section className="shop-workspace">
+                    <div className="shop-control-panel">
+                        <nav className="category-tabs" aria-label="カテゴリ">
+                            {CATEGORIES.map((category) => (
+                                <button
+                                    key={category}
+                                    type="button"
+                                    className={`tab-btn ${activeCategory === category ? 'active' : ''}`}
+                                    onClick={() => setActiveCategory(category)}
+                                >
+                                    {category}
+                                </button>
+                            ))}
+                        </nav>
+
+                        <main className="products-grid">
+                            {filteredProducts.map((product) => {
+                                const owned = ownedIds.has(product.id);
+                                const quantity = inventoryQuantityById[product.id] || 0;
+                                const stackable = isStackableItem(product);
+
+                                return (
+                                    <button
+                                        key={product.id}
+                                        type="button"
+                                        className={`product-card ${owned && !stackable ? 'owned' : ''}`}
+                                        onClick={() => handleProductClick(product)}
+                                    >
+                                        <div className="product-image-wrapper">
+                                            <div className="product-card-topline">
+                                                <span className="product-category">{product.category}</span>
+                                                {(!owned || stackable) && (
+                                                    <span className="product-price-chip">
+                                                        <Diamond size={12} className="diamond-icon-small" />
+                                                        {product.price}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <ItemVisual
+                                                item={product}
+                                                className="product-image"
+                                                fallbackText={product.name.charAt(0)}
+                                                alt={product.name}
+                                            />
+
+                                            {owned && (
+                                                <div className="owned-badge">
+                                                    <Check size={12} />
+                                                    <span>{stackable ? `×${quantity}` : '所持中'}</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="product-info">
+                                            <h3 className="product-name">{product.name}</h3>
+                                            <p className="product-description">{product.description}</p>
+                                            <div className="product-card-footer">
+                                                <span className="product-rarity">{getRarityLabel(product.rarity)}</span>
+                                                <span className="product-action-hint">詳細</span>
+                                            </div>
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </main>
+                    </div>
+                </section>
             </div>
 
             {selectedProduct && (
                 <div className="modal-overlay" onClick={closeModal}>
                     <div className="modal-sheet" onClick={(event) => event.stopPropagation()}>
                         <div className="modal-handle" />
-                        <button className="modal-close" onClick={closeModal} aria-label="閉じる">
+                        <button type="button" className="modal-close" onClick={closeModal} aria-label="閉じる">
                             <X size={20} />
                         </button>
 
@@ -490,10 +617,10 @@ const Shop = ({ stats, updateStats, onClose }) => {
                             交換後の残高: {(diamonds - selectedProduct.price).toLocaleString()} ダイヤ
                         </div>
                         <div className="confirm-actions">
-                            <button className="confirm-cancel" onClick={() => setShowConfirmDialog(false)}>
+                            <button type="button" className="confirm-cancel" onClick={() => setShowConfirmDialog(false)}>
                                 キャンセル
                             </button>
-                            <button className="confirm-ok" onClick={handleConfirmPurchase}>
+                            <button type="button" className="confirm-ok" onClick={handleConfirmPurchase}>
                                 交換する
                             </button>
                         </div>
@@ -506,7 +633,7 @@ const Shop = ({ stats, updateStats, onClose }) => {
                     <div className="sheet-dialog" onClick={(event) => event.stopPropagation()}>
                         <div className="sheet-header">
                             <h3>購入履歴</h3>
-                            <button className="sheet-close" onClick={() => setShowHistory(false)} aria-label="閉じる">
+                            <button type="button" className="sheet-close" onClick={() => setShowHistory(false)} aria-label="閉じる">
                                 <X size={18} />
                             </button>
                         </div>
@@ -539,14 +666,13 @@ const Shop = ({ stats, updateStats, onClose }) => {
                     <div className="sheet-dialog" onClick={(event) => event.stopPropagation()}>
                         <div className="sheet-header">
                             <h3>購買部について</h3>
-                            <button className="sheet-close" onClick={() => setShowHelp(false)} aria-label="閉じる">
+                            <button type="button" className="sheet-close" onClick={() => setShowHelp(false)} aria-label="閉じる">
                                 <X size={18} />
                             </button>
                         </div>
                         <div className="sheet-body">
                             <p className="sheet-copy">
-                                購買部では、集めたダイヤを使って衣装や背景などを交換できます。
-                                手に入れたアイテムはアイテムボックスやキャラ画面で確認できます。
+                                集めたダイヤで衣装や背景を交換できます。まずは下のカテゴリから気になるものを選んでください。
                             </p>
                         </div>
                     </div>

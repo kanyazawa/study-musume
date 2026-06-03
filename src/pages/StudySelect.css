@@ -645,3 +645,19 @@
         margin-inline: auto;
     }
 }
+
+/* Live2D viewport pass */
+.study-character-figure.is-live2d {
+    height: 100dvh;
+    min-height: 100%;
+    max-height: none;
+}
+
+.study-character-figure.is-live2d > :not(.speech-bubble),
+.study-character-figure.is-live2d .study-character-touch-target,
+.study-character-figure.is-live2d .study-character-home,
+.study-character-figure.is-live2d [data-live2d-ready],
+.study-character-figure.is-live2d canvas {
+    height: 100%;
+    min-height: 100%;
+}

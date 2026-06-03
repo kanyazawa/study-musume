@@ -287,6 +287,10 @@ const Tutorial = ({ stats, updateStats }) => {
         navigate('/home', { replace: true });
     };
 
+    const handleSkipTutorial = () => {
+        completeTutorial();
+    };
+
     const handleAdvanceEvent = () => {
         const isLastLine = progress.eventLineIndex >= TUTORIAL_EVENT_LINES.length - 1;
         if (isLastLine) {
@@ -303,46 +307,69 @@ const Tutorial = ({ stats, updateStats }) => {
     const stepIndex = getStepIndex(progress.step);
     const totalGemsDisplay = progress.gemsEarned + progress.bonusGemsAwarded;
     const progressLabel = STEP_LABELS[progress.step] || STEP_LABELS[TUTORIAL_STEPS.OPENING];
+    const tutorialHeroText = (
+        progress.step === TUTORIAL_STEPS.OPENING
+            ? TUTORIAL_OPENING_LINES.join('\n')
+            : progress.step === TUTORIAL_STEPS.CHARACTER
+                ? 'まずは、これから一緒に進める相手を選びなさい。直感でいいわ。'
+                : progress.step === TUTORIAL_STEPS.QUIZ
+                    ? (progress.pendingQuizResult?.line || '退屈な毎日を変えたいなら、まずは一問ずつ。')
+                    : progress.step === TUTORIAL_STEPS.RESULT
+                        ? '悪くないスタートね。ごほうびも用意してある。'
+                        : progress.step === TUTORIAL_STEPS.GACHA
+                            ? (progress.gachaDrawn ? 'ほら、ちゃんと結果が返ってきたでしょ。' : 'ここまでやったんだから、ごほうびくらい受け取りなさい。')
+                            : currentEventLine
+    );
 
     return (
         <div className="tutorial-screen" style={{ '--tutorial-bg-image': `url(${TUTORIAL_BACKGROUND_IMAGE})` }}>
             <div className="tutorial-backdrop" />
             <div className="tutorial-shell">
                 <header className="tutorial-status-card">
-                    <div>
-                        <p className="tutorial-kicker">First Meeting</p>
-                        <h1>はじめての学習体験</h1>
+                    <div className="tutorial-status-copy">
+                        <h1>チュートリアル</h1>
                     </div>
-                    <div className="tutorial-badges">
-                        <span>{stepIndex} / {TOTAL_STEPS}</span>
-                        <span>{progressLabel}</span>
+                    <div className="tutorial-status-actions">
+                        <div className="tutorial-badges">
+                            <span>{stepIndex} / {TOTAL_STEPS}</span>
+                            <span>{progressLabel}</span>
+                        </div>
+                        <button type="button" className="tutorial-skip-btn" onClick={handleSkipTutorial}>
+                            スキップ
+                        </button>
                     </div>
                 </header>
 
+                <section className="tutorial-scene-hero">
+                    <div className="tutorial-scene-character">
+                        <div className="tutorial-portrait-wrap">
+                            <img className="tutorial-main-portrait" src={TUTORIAL_CHARACTERS[0].image} alt="ノア" />
+                        </div>
+                    </div>
+                    <div className="tutorial-scene-bubble">
+                        <div className="tutorial-scene-speaker">ノア</div>
+                        <p className="tutorial-scene-text">{tutorialHeroText}</p>
+                    </div>
+                </section>
+
                 <section className="tutorial-stage-card">
                     {progress.step === TUTORIAL_STEPS.OPENING && (
-                        <div className="tutorial-panel tutorial-opening">
-                            <div className="tutorial-portrait-wrap">
-                                <img className="tutorial-main-portrait" src={TUTORIAL_CHARACTERS[0].image} alt="ノア" />
+                        <div className="tutorial-panel">
+                            <div className="tutorial-story-tags">
+                                <span>転校生</span>
+                                <span>帰国子女</span>
+                                <span>となり席</span>
                             </div>
-                            <div className="tutorial-dialogue-card">
-                                <p>ノア</p>
-                                {TUTORIAL_OPENING_LINES.map((line) => (
-                                    <p key={line} className="tutorial-line">「{line}」</p>
-                                ))}
-                                <button type="button" className="tutorial-primary-btn" onClick={handleMoveToCharacterStep}>
-                                    はじめる
-                                </button>
-                            </div>
+                            <button type="button" className="tutorial-primary-btn" onClick={handleMoveToCharacterStep}>
+                                はじめる
+                            </button>
                         </div>
                     )}
 
                     {progress.step === TUTORIAL_STEPS.CHARACTER && (
                         <div className="tutorial-panel">
                             <div className="tutorial-section-head">
-                                <p className="tutorial-kicker">Favorite</p>
                                 <h2>推しを選ぶ</h2>
-                                <p>最初の3人から1人だけ選べます。選んだ推しは `favoriteCharacter` に保存されます。</p>
                             </div>
 
                             <div className="tutorial-character-grid">
@@ -377,8 +404,7 @@ const Tutorial = ({ stats, updateStats }) => {
                     {progress.step === TUTORIAL_STEPS.QUIZ && (
                         <div className="tutorial-panel">
                             <div className="tutorial-section-head">
-                                <p className="tutorial-kicker">Quiz</p>
-                                <h2>やさしい英単語クイズ</h2>
+                                <h2>英単語クイズ</h2>
                                 <p>{progress.quizIndex + 1} / {TUTORIAL_QUIZ_QUESTIONS.length} 問目</p>
                             </div>
 
@@ -433,8 +459,7 @@ const Tutorial = ({ stats, updateStats }) => {
                     {progress.step === TUTORIAL_STEPS.RESULT && (
                         <div className="tutorial-panel">
                             <div className="tutorial-section-head">
-                                <p className="tutorial-kicker">Result</p>
-                                <h2>初回結果</h2>
+                                <h2>結果</h2>
                             </div>
 
                             <div className="tutorial-summary-grid">
@@ -476,9 +501,8 @@ const Tutorial = ({ stats, updateStats }) => {
                     {progress.step === TUTORIAL_STEPS.GACHA && (
                         <div className="tutorial-panel">
                             <div className="tutorial-section-head">
-                                <p className="tutorial-kicker">Gacha</p>
                                 <h2>初回10連ガチャ</h2>
-                                <p>初回10連は SSR 1枚確定です。</p>
+                                <p>SSR1枚確定</p>
                             </div>
 
                             {!progress.gachaDrawn && (
@@ -516,21 +540,14 @@ const Tutorial = ({ stats, updateStats }) => {
                     )}
 
                     {progress.step === TUTORIAL_STEPS.EVENT && (
-                        <div className="tutorial-panel tutorial-event">
-                            <div className="tutorial-portrait-wrap">
-                                <img className="tutorial-main-portrait" src={TUTORIAL_CHARACTERS[0].image} alt="ノア" />
+                        <div className="tutorial-panel">
+                            <div className="tutorial-reward-strip">
+                                <span>推し: {selectedCharacter.name}</span>
+                                <span>{TUTORIAL_HOME_LINE}</span>
                             </div>
-                            <div className="tutorial-dialogue-card">
-                                <p>ノア</p>
-                                <p className="tutorial-line">「{currentEventLine}」</p>
-                                <div className="tutorial-reward-strip">
-                                    <span>推し: {selectedCharacter.name}</span>
-                                    <span>{TUTORIAL_HOME_LINE}</span>
-                                </div>
-                                <button type="button" className="tutorial-primary-btn" onClick={handleAdvanceEvent}>
-                                    {progress.eventLineIndex === TUTORIAL_EVENT_LINES.length - 1 ? 'ホームへ' : '次へ'}
-                                </button>
-                            </div>
+                            <button type="button" className="tutorial-primary-btn" onClick={handleAdvanceEvent}>
+                                {progress.eventLineIndex === TUTORIAL_EVENT_LINES.length - 1 ? 'ホームへ' : '次へ'}
+                            </button>
                         </div>
                     )}
                 </section>

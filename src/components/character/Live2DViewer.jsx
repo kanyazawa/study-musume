@@ -1105,7 +1105,7 @@ const Live2DViewer = ({
                     bottom: 0,
                     zIndex: 1,
                     overflow: 'visible',
-                    transform: 'none',
+                    transform: 'var(--live2d-viewer-transform, none)',
                     opacity: status === 'ready' ? 1 : 0,
                 }}
             />
