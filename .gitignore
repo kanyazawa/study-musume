@@ -50,3 +50,7 @@ edge-dom.out
 # Local generated export work
 tmp/
 tools/ffmpeg/
+
+# Obsidian personal workspace state
+docs/StudyMusume/.obsidian/app.json
+docs/StudyMusume/.obsidian/workspace.json
