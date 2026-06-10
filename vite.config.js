@@ -67,5 +67,6 @@ export default defineConfig({
   },
   server: {
     allowedHosts: true,
+    strictPort: true,
   },
 })

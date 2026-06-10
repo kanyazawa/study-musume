@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:main": "vite --host 127.0.0.1 --port 5173",
     "build": "vite build",
     "chat:check": "node scripts/check-noa-chat.mjs",
     "tts:aivis": "node scripts/export-aivis-voices.mjs",
