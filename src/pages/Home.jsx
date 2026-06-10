@@ -1,14 +1,14 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './Home.css';
 // Footer removed
 import CharacterStage from '../components/character/CharacterStage';
+import SceneStageLayout from '../components/layout/SceneStageLayout';
 import MenuModal from '../components/MenuModal';
 import LoginBonusModal from '../components/LoginBonusModal';
 import NoaChatBox from '../components/NoaChatBox';
 import HomePreviewGeneratedChroma from '../assets/images/noah_home_preview_generated_chroma.png';
-import EmmaStandingImage from '../assets/images/emma_home_preview_generated.png';
 
 // Utils
 import { getAffectionLevel, getAffectionProgress, getHomeReaction, getNextLevel } from '../utils/affectionUtils';
@@ -19,18 +19,23 @@ import { updateMissionsOnInteract } from '../utils/missionUtils';
 import { checkForNewAchievements } from '../utils/achievementUtils';
 import { ACHIEVEMENTS } from '../data/achievements';
 import { processLoginBonus } from '../utils/loginBonusUtils';
-import { getCharacterChatTopicKey, getLatestNoaAssistantMessageEntry } from '../utils/chatHistory';
+import { getLatestNoaAssistantMessageEntry } from '../utils/chatHistory';
 import { inferEmotionFromChatText } from '../utils/chatEmotionUtils';
 import { getEnabledHomeTouchAreas, getHomeTouchReaction } from '../data/homeTouchReactions';
-import { CHARACTER_SELECT_OPTIONS, getCharacterLabel } from '../data/characterData';
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
-import { loadGoalTodos } from '../utils/goalUtils';
-import { getEmptyGameLoopState } from '../utils/gameLoopUtils';
 import { getHomeReviewSummary } from '../utils/reviewUtils';
 import { applyRelationshipActivity } from '../utils/relationshipEventUtils';
 import { getUnreadRelationshipEvents } from '../utils/relationshipEventUtils';
 import { useSound } from '../contexts/SoundContext';
 import { getLastStudyTopic } from '../data/studyData';
+import { personalizePlayerText } from '../utils/playerName';
+import { loadGoalTodos, saveGoalTodos } from '../utils/goalUtils';
+import {
+    SEASONAL_EVENTS,
+    getSeasonalEventProgress,
+    getSeasonalEventRemainingDays,
+    isSeasonalEventActive,
+} from '../data/seasonalEvents';
 import {
     HOME_EXPRESSION_LAYER,
     createHomeExpressionLayer,
@@ -40,18 +45,6 @@ import {
 } from '../utils/homeExpressionLayers';
 
 const HOME_CHARACTER_PREVIEWS = {
-    'emma-mvp': {
-        characterId: 'emma',
-        source: EmmaStandingImage,
-        alt: 'Takase Emma standing portrait',
-        forceRenderer: 'image',
-        imageClassName: 'home-preview-emma-portrait',
-        figureClassName: 'has-emma-preview',
-        pose: {
-            idleMotion: 'gentle',
-            autoBlink: true,
-        },
-    },
     'generated-hoodie-main': {
         characterId: 'noah',
         source: HomePreviewGeneratedChroma,
@@ -87,7 +80,46 @@ const HOME_CHARACTER_PREVIEWS = {
     },
 };
 
-const EMMA_MVP_HOME_SPEECH = '今日は長くやらなくていい。まず一個だけ、一緒に見よ。';
+const getLocalDateKey = (date = new Date()) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const formatBoardDateLabel = (dateKey) => {
+    const [year, month, day] = String(dateKey || '').split('-').map(Number);
+    if (![year, month, day].every(Number.isFinite)) {
+        return '';
+    }
+
+    return `${month}/${day}`;
+};
+
+const resolveHomeFocusBoard = (calendarFocuses = {}) => {
+    const focusEntries = Object.entries(calendarFocuses)
+        .map(([dateKey, text]) => [dateKey, String(text || '').trim()])
+        .filter(([, text]) => text.length > 0);
+
+    if (focusEntries.length === 0) {
+        return null;
+    }
+
+    const todayKey = getLocalDateKey();
+    const exactToday = focusEntries.find(([dateKey]) => dateKey === todayKey);
+
+    if (exactToday) {
+        return {
+            dateKey: exactToday[0],
+            dateLabel: formatBoardDateLabel(exactToday[0]),
+            kicker: '今日のひとこと',
+            text: exactToday[1],
+            tone: 'today',
+        };
+    }
+
+    return null;
+};
 
 const Home = ({ stats, updateStats }) => {
     // Default stats if not provided (fallback)
@@ -106,7 +138,6 @@ const Home = ({ stats, updateStats }) => {
 
     const loginStreak = stats?.loginStreak || 0;
     const characterId = stats?.characterId || 'noah';
-    const selectedHeroineId = stats?.selectedHeroineId || stats?.favoriteCharacter || characterId;
     const preferredRenderer = stats?.characterRenderer;
     const hasHomeLive2D = hasLive2DModelConfig(characterId, equippedSkin);
     const currentBgStyle = getBackgroundStyle(equippedBackground);
@@ -125,8 +156,9 @@ const Home = ({ stats, updateStats }) => {
     const [touchMotion, setTouchMotion] = useState('');
     const [touchMotionStyle, setTouchMotionStyle] = useState(null);
     const [live2dImpact, setLive2dImpact] = useState(null);
+    const [homeGoalTodos, setHomeGoalTodos] = useState(() => loadGoalTodos());
     const [lastStudyTopic, setLastStudyTopic] = useState(() => getLastStudyTopic());
-    const [goalTodos, setGoalTodos] = useState(() => loadGoalTodos());
+    const displaySpeech = useMemo(() => personalizePlayerText(speech, stats), [speech, stats]);
     const talkAnimationTimerRef = useRef(null);
     const userInputEmotionTimerRef = useRef(null);
     const touchMotionTimerRef = useRef(null);
@@ -146,14 +178,11 @@ const Home = ({ stats, updateStats }) => {
     const affectionLevelInfo = getAffectionLevel(affection);
     const affectionProgress = getAffectionProgress(affection);
     const nextAffectionLevelInfo = getNextLevel(affectionLevelInfo.level);
-    const tpPercent = maxTp > 0
-        ? Math.min(100, Math.max(0, (tp / maxTp) * 100))
-        : 0;
     const affectionProgressLabel = nextAffectionLevelInfo
         ? `${Number(affection).toLocaleString()} / ${Number(nextAffectionLevelInfo.points).toLocaleString()}`
         : `${Number(affection).toLocaleString()} / MAX`;
     const examDate = stats?.examDate || '';
-    const homeExpressionLayers = useMemo(() => [
+    const homeExpressionLayers = [
         activeHomeReaction
             ? createHomeExpressionLayer(HOME_EXPRESSION_LAYER.REACTION, {
                 emotion: activeHomeReaction.emotion,
@@ -170,8 +199,8 @@ const Home = ({ stats, updateStats }) => {
                 pose: live2dImpact,
             })
             : null,
-    ].filter(Boolean), [activeHomeReaction, live2dImpact, userInputEmotion]);
-    const homeExpressionState = useMemo(() => resolveHomeExpressionLayers({
+    ].filter(Boolean);
+    const homeExpressionState = resolveHomeExpressionLayers({
         baseEmotion: baseHomeEmotion,
         speech,
         tp,
@@ -179,14 +208,14 @@ const Home = ({ stats, updateStats }) => {
         affectionLevel: affectionLevelInfo.level,
         examDate,
         layers: homeExpressionLayers,
-    }), [affectionLevelInfo.level, baseHomeEmotion, examDate, homeExpressionLayers, maxTp, speech, tp]);
-    const homePose = useMemo(() => ({
+    });
+    const homePose = {
         ...createHomePose({
             ...homeExpressionState.pose,
-            text: speech,
+            text: displaySpeech,
         }, { speaking: isTalkAnimating }),
         speechNonce,
-    }), [homeExpressionState.pose, isTalkAnimating, speech, speechNonce]);
+    };
 
     const getCountdownDisplay = () => {
         if (!examDate) {
@@ -217,26 +246,26 @@ const Home = ({ stats, updateStats }) => {
 
     const countdownDisplay = getCountdownDisplay();
     const homeReviewSummary = useMemo(() => getHomeReviewSummary(stats), [stats]);
-    const storyProgressFallback = useMemo(
-        () => getEmptyGameLoopState().storyProgressSummary,
+    const homeFocusBoard = useMemo(() => resolveHomeFocusBoard(stats?.calendarFocuses || {}), [stats?.calendarFocuses]);
+    const pendingHomeTodos = useMemo(
+        () => homeGoalTodos.filter((todo) => !todo.completed && String(todo.text || '').trim().length > 0),
+        [homeGoalTodos],
+    );
+    const visibleHomeTodos = useMemo(() => pendingHomeTodos.slice(0, 2), [pendingHomeTodos]);
+    const homeTouchAreas = useMemo(() => getEnabledHomeTouchAreas(characterId), [characterId]);
+    const unreadRelationshipEvents = useMemo(() => getUnreadRelationshipEvents(stats), [stats]);
+    const seasonalHomeEvent = useMemo(
+        () => SEASONAL_EVENTS.find((event) => isSeasonalEventActive(event)) || null,
         [],
     );
-    const isEmmaMvp = stats?.tutorialHomeVariant === 'emma-mvp';
-    const isEmmaActiveCharacter = characterId === 'emma';
-    const shouldUseEmmaMvpPresentation = isEmmaMvp && isEmmaActiveCharacter;
-    const supportsNoaChat = characterId === 'noah' || characterId === 'emma';
-    const chatHistoryKey = useMemo(() => getCharacterChatTopicKey(characterId), [characterId]);
-    const storyProgressSummary = stats?.storyProgressSummary || storyProgressFallback;
-    const featuredPromise = storyProgressSummary.featuredPromise;
-    const selectedHeroineOption = useMemo(
-        () => CHARACTER_SELECT_OPTIONS.find((character) => character.id === selectedHeroineId) || null,
-        [selectedHeroineId],
+    const seasonalHomeEventProgress = useMemo(
+        () => (seasonalHomeEvent ? getSeasonalEventProgress(stats, seasonalHomeEvent.id) : null),
+        [seasonalHomeEvent, stats],
     );
-    const selectedHeroineLabel = selectedHeroineOption?.name || getCharacterLabel(selectedHeroineId);
-    const selectedHeroineHint = selectedHeroineOption?.description?.split('\n')[0] || '今日いっしょに進める相手';
-    const displayedFocusCharacterLabel = storyProgressSummary.focusCharacterLabel;
-    const displayedPromiseCharacterLabel = featuredPromise?.characterLabel;
-    const unreadRelationshipEvents = useMemo(() => getUnreadRelationshipEvents(stats), [stats]);
+    const seasonalHomeEventRemainingDays = useMemo(
+        () => (seasonalHomeEvent ? getSeasonalEventRemainingDays(seasonalHomeEvent) : null),
+        [seasonalHomeEvent],
+    );
     const homeCharacterPreview = useMemo(() => {
         const previewKey = new URLSearchParams(location.search).get('characterPreview');
         const preview = HOME_CHARACTER_PREVIEWS[previewKey];
@@ -251,21 +280,10 @@ const Home = ({ stats, updateStats }) => {
 
         return preview;
     }, [characterId, location.search]);
-    const fallbackEmmaPreview = shouldUseEmmaMvpPresentation ? HOME_CHARACTER_PREVIEWS['emma-mvp'] : null;
-    const activeHomeCharacterPreview = homeCharacterPreview || fallbackEmmaPreview;
-    const isPreviewOnlyHomeCharacter = Boolean(
-        activeHomeCharacterPreview?.characterId
-        && activeHomeCharacterPreview.characterId !== characterId
-    );
-    const isHomeCharacterInteractive = !isPreviewOnlyHomeCharacter;
-    const homeTouchAreas = useMemo(
-        () => (isHomeCharacterInteractive ? getEnabledHomeTouchAreas(characterId) : []),
-        [characterId, isHomeCharacterInteractive],
-    );
-    const shouldForceHomeLive2D = !activeHomeCharacterPreview && characterId === 'noah' && hasHomeLive2D;
+    const shouldForceHomeLive2D = !homeCharacterPreview && characterId === 'noah' && hasHomeLive2D;
     const renderer = resolveCharacterRenderer({
-        preferredRenderer: activeHomeCharacterPreview?.forceRenderer || (shouldForceHomeLive2D ? 'live2d' : preferredRenderer),
-        characterId: activeHomeCharacterPreview?.characterId || characterId,
+        preferredRenderer: homeCharacterPreview?.forceRenderer || (shouldForceHomeLive2D ? 'live2d' : preferredRenderer),
+        characterId,
         skinId: equippedSkin,
     });
     const examDaysLeft = useMemo(() => {
@@ -280,20 +298,6 @@ const Home = ({ stats, updateStats }) => {
 
         return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     }, [examDate]);
-    const tomorrowDate = useMemo(() => {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        return tomorrow.toISOString().split('T')[0];
-    }, []);
-    const tomorrowFocus = (stats?.calendarFocuses || {})[tomorrowDate] || '';
-    const incompleteGoalTodos = useMemo(
-        () => goalTodos.filter((todo) => !todo.completed),
-        [goalTodos],
-    );
-    const visibleGoalTodos = useMemo(
-        () => incompleteGoalTodos.slice(0, 2),
-        [incompleteGoalTodos],
-    );
     const headerSealLabel = characterId === 'ren'
         ? 'R'
         : characterId === 'firefly'
@@ -301,15 +305,16 @@ const Home = ({ stats, updateStats }) => {
             : characterId === 'sparkle'
                 ? 'S'
                 : 'N';
+
     const stopTalkAnimation = useCallback(() => {
         if (talkAnimationTimerRef.current) {
             clearTimeout(talkAnimationTimerRef.current);
             talkAnimationTimerRef.current = null;
         }
         setIsTalkAnimating(false);
-    }, [setIsTalkAnimating]);
+    }, []);
 
-    const scheduleUserInputEmotion = useCallback((nextEmotion) => {
+    const scheduleUserInputEmotion = (nextEmotion) => {
         if (userInputEmotionTimerRef.current) {
             clearTimeout(userInputEmotionTimerRef.current);
             userInputEmotionTimerRef.current = null;
@@ -325,9 +330,9 @@ const Home = ({ stats, updateStats }) => {
             setUserInputEmotion(null);
             userInputEmotionTimerRef.current = null;
         }, 3800);
-    }, [setUserInputEmotion]);
+    };
 
-    const startTimedTalkAnimation = useCallback((text) => {
+    const startTimedTalkAnimation = (text) => {
         if (talkAnimationTimerRef.current) {
             clearTimeout(talkAnimationTimerRef.current);
             talkAnimationTimerRef.current = null;
@@ -341,9 +346,9 @@ const Home = ({ stats, updateStats }) => {
             setIsTalkAnimating(false);
             talkAnimationTimerRef.current = null;
         }, Math.max(1500, String(text || '').length * 150));
-    }, [setIsTalkAnimating]);
+    };
 
-    const triggerTouchMotion = useCallback((areaId) => {
+    const triggerTouchMotion = (areaId) => {
         if (touchMotionTimerRef.current) {
             clearTimeout(touchMotionTimerRef.current);
             touchMotionTimerRef.current = null;
@@ -429,9 +434,9 @@ const Home = ({ stats, updateStats }) => {
             setTouchMotionStyle(null);
             touchMotionTimerRef.current = null;
         }, duration + (areaId === 'chest' ? 160 : 0));
-    }, []);
+    };
 
-    const isDuplicateInteraction = useCallback((key, windowMs = 700) => {
+    const isDuplicateInteraction = (key, windowMs = 700) => {
         const now = Date.now();
         const last = interactionDedupRef.current;
         if (last.key === key && now - last.timestamp < windowMs) {
@@ -440,18 +445,14 @@ const Home = ({ stats, updateStats }) => {
 
         interactionDedupRef.current = { key, timestamp: now };
         return false;
-    }, []);
+    };
 
-    const lockManualSpeechPriority = useCallback((durationMs = 1800) => {
+    const lockManualSpeechPriority = (durationMs = 1800) => {
         speechPriorityLockRef.current = Date.now() + durationMs;
-    }, []);
+    };
 
     // Random speech on mount and click (好感度レベルに応じて)
-    const talk = useCallback(async ({ source = 'system' } = {}) => {
-        if (!isHomeCharacterInteractive) {
-            return;
-        }
-
+    const talk = async ({ source = 'system' } = {}) => {
         if (source !== 'system' && isDuplicateInteraction(`talk:${source}`)) {
             return;
         }
@@ -477,6 +478,8 @@ const Home = ({ stats, updateStats }) => {
         const played = reaction.voice
             ? await playVoice(reaction.voice, {
                 channel: 'home',
+                requiresUserInteraction: source === 'system',
+                suppressBlockedError: source === 'system',
                 onStart: () => {
                     startTimedTalkAnimation(reaction.text);
                 },
@@ -501,15 +504,9 @@ const Home = ({ stats, updateStats }) => {
                 detail: '短いひとことでも、いつもの距離感が少しやわらいだ。',
             }).nextStats);
         }
-    }, [affection, characterId, examDaysLeft, homeReviewSummary.due, isDuplicateInteraction, isHomeCharacterInteractive, loginStreak, maxTp, playVoice, startTimedTalkAnimation, stopTalkAnimation, tp, updateStats]);
+    };
 
-    const handleTouchAreaTap = useCallback(async (areaId, event) => {
-        if (!isHomeCharacterInteractive) {
-            event?.preventDefault?.();
-            event?.stopPropagation?.();
-            return;
-        }
-
+    const handleTouchAreaTap = async (areaId, event) => {
         if (isDuplicateInteraction(`area:${areaId}`)) {
             event?.preventDefault?.();
             event?.stopPropagation?.();
@@ -558,15 +555,9 @@ const Home = ({ stats, updateStats }) => {
                 detail: '何気ないリアクションの応酬が、少しずつ親しさになっていく。',
             }).nextStats);
         }
-    }, [characterId, isDuplicateInteraction, isHomeCharacterInteractive, lockManualSpeechPriority, playVoice, startTimedTalkAnimation, stopTalkAnimation, triggerTouchMotion, updateStats]);
+    };
 
-    const handleCharacterTap = useCallback((event) => {
-        if (!isHomeCharacterInteractive) {
-            event?.preventDefault?.();
-            event?.stopPropagation?.();
-            return;
-        }
-
+    const handleCharacterTap = (event) => {
         if (Date.now() < touchAreaTapGuardRef.current) {
             event?.preventDefault?.();
             event?.stopPropagation?.();
@@ -574,17 +565,17 @@ const Home = ({ stats, updateStats }) => {
         }
 
         void talk({ source: 'touch' });
-    }, [isHomeCharacterInteractive, talk]);
+    };
 
-    const reactToUserMessage = useCallback((userText, { emotion: nextEmotion } = {}) => {
+    const reactToUserMessage = (userText, { emotion: nextEmotion } = {}) => {
         const inferredEmotion = toVisibleHomeEmotion(
             nextEmotion || inferEmotionFromChatText(userText, { role: 'user' })
         );
         scheduleUserInputEmotion(inferredEmotion);
-    }, [scheduleUserInputEmotion]);
+    };
 
-    const syncSpeechWithNoaReply = useCallback((replyText, { animate = false, emotion: replyEmotion } = {}) => {
-        if (Date.now() < speechPriorityLockRef.current) {
+    const syncSpeechWithNoaReply = (replyText, { animate = false, emotion: replyEmotion, force = false } = {}) => {
+        if (!force && Date.now() < speechPriorityLockRef.current) {
             return;
         }
 
@@ -616,7 +607,44 @@ const Home = ({ stats, updateStats }) => {
         } else {
             stopTalkAnimation();
         }
-    }, [affectionLevelInfo.level, examDate, maxTp, setBaseHomeEmotion, setSpeech, startTimedTalkAnimation, stopTalkAnimation, tp]);
+    };
+
+    const runSystemHomeTalk = useEffectEvent(async () => {
+        const reaction = getHomeReaction({
+            affection,
+            tp,
+            maxTp,
+            loginStreak,
+            characterId,
+            reviewDueCount: homeReviewSummary.due,
+            examDaysLeft,
+        });
+        setActiveHomeReaction(reaction);
+        setSpeech(reaction.text);
+        setBaseHomeEmotion(toVisibleHomeEmotion(reaction.emotion || 'normal'));
+        startTimedTalkAnimation(reaction.text);
+
+        const played = reaction.voice
+            ? await playVoice(reaction.voice, {
+                channel: 'home',
+                requiresUserInteraction: true,
+                suppressBlockedError: true,
+                onStart: () => {
+                    startTimedTalkAnimation(reaction.text);
+                },
+                onEnd: () => {
+                    stopTalkAnimation();
+                },
+            })
+            : false;
+
+        if (!played && reaction.voice) {
+            stopTalkAnimation();
+            startTimedTalkAnimation(reaction.text);
+        }
+
+        updateMissionsOnInteract();
+    });
 
     useEffect(() => {
         setLastStudyTopic(getLastStudyTopic());
@@ -628,7 +656,7 @@ const Home = ({ stats, updateStats }) => {
                 setLastStudyTopic(getLastStudyTopic());
             }
             if (event.key === 'uma_todos') {
-                setGoalTodos(loadGoalTodos());
+                setHomeGoalTodos(loadGoalTodos());
             }
         };
 
@@ -637,34 +665,40 @@ const Home = ({ stats, updateStats }) => {
     }, []);
 
     useEffect(() => {
-        if (shouldUseEmmaMvpPresentation && isPreviewOnlyHomeCharacter) {
-            setActiveHomeReaction({
-                emotion: 'normal',
-                text: EMMA_MVP_HOME_SPEECH,
-            });
-            setSpeech(EMMA_MVP_HOME_SPEECH);
-            setBaseHomeEmotion('normal');
-            stopTalkAnimation();
-            return;
-        }
-
-        if (!supportsNoaChat) {
-            void talk();
-            return;
-        }
-
-        const latestReply = getLatestNoaAssistantMessageEntry(chatHistoryKey);
+        const latestReply = getLatestNoaAssistantMessageEntry('general');
 
         if (latestReply?.content) {
-            syncSpeechWithNoaReply(latestReply.content, {
-                animate: true,
-                emotion: latestReply.emotion,
+            const nextSpeech = String(latestReply.content || '').trim();
+            if (!nextSpeech) {
+                return;
+            }
+
+            const inferredReplyEmotion = latestReply.emotion || inferEmotionFromChatText(nextSpeech, { role: 'assistant' });
+            const visibleReplyEmotion = toVisibleHomeEmotion(
+                inferredReplyEmotion !== 'normal'
+                    ? inferredReplyEmotion
+                    : inferHomeEmotion({
+                        emotion: 'normal',
+                        speech: nextSpeech,
+                        tp,
+                        maxTp,
+                        affectionLevel: affectionLevelInfo.level,
+                        examDate,
+                    })
+            );
+
+            setActiveHomeReaction({
+                emotion: visibleReplyEmotion,
+                text: nextSpeech,
             });
+            setSpeech(nextSpeech);
+            setBaseHomeEmotion(visibleReplyEmotion);
+            startTimedTalkAnimation(nextSpeech);
             return;
         }
 
-        void talk();
-    }, [affectionLevelInfo.level, chatHistoryKey, isPreviewOnlyHomeCharacter, shouldUseEmmaMvpPresentation, stopTalkAnimation, supportsNoaChat, syncSpeechWithNoaReply, talk]);
+        void runSystemHomeTalk();
+    }, [affectionLevelInfo.level, examDate, maxTp, tp]);
 
     useEffect(() => {
         if (!shouldForceHomeLive2D || !updateStats || preferredRenderer === 'live2d') {
@@ -706,6 +740,9 @@ const Home = ({ stats, updateStats }) => {
             }
         }
     ), [stopTalkAnimation, stopVoice]);
+
+    // Calculate TP percentage
+    const tpPercent = Math.min((tp / maxTp) * 100, 100);
 
     const handleOpenRecommendedReview = () => {
         if (!homeReviewSummary.hasReviews) {
@@ -750,20 +787,16 @@ const Home = ({ stats, updateStats }) => {
         return detail ? `${detail}を再開` : '前回の学習を再開';
     };
 
-    const handleOpenPromiseAction = () => {
-        if (featuredPromise?.actionRoutePath === '/review') {
-            handleOpenRecommendedReview();
-            return;
-        }
+    const handleHomeTodoToggle = (todoId) => {
+        const result = saveGoalTodos(homeGoalTodos.map((todo) => (
+            todo.id === todoId
+                ? { ...todo, completed: !todo.completed }
+                : todo
+        )));
 
-        navigate('/character', { state: { openPanel: 'events' } });
-    };
-
-    const handleOpenHeroineSelect = () => {
-        if (isEmmaMvp) {
-            return;
+        if (result.ok) {
+            setHomeGoalTodos(result.todos);
         }
-        navigate('/character-select');
     };
 
     return (
@@ -853,229 +886,189 @@ const Home = ({ stats, updateStats }) => {
             </div>
 
             {/* Main Content Area (Room & Character) */}
-            <div className="room-container" style={equippedBackground !== 'default' ? currentBgStyle : {}}>
-                {/* Placeholder for Room Background */}
-                {equippedBackground === 'default' && <div className="room-background"></div>}
-
-                <section className="home-story-strip" aria-label="今日の流れ">
-                    <div className="home-story-strip-top">
-                        <span className="home-story-date">{storyProgressSummary.dateLabel}</span>
-                        <span className="home-story-weekday">{storyProgressSummary.weekdayLabel}</span>
-                        <span className="home-story-timeslot">{storyProgressSummary.timeSlotLabel}</span>
-                    </div>
-                    <div className="home-story-focus">注目: {displayedFocusCharacterLabel}</div>
-                    <div className="home-heroine-slot" aria-label="指定ヒロイン">
-                        <div className="home-heroine-copy">
-                            <span className="home-heroine-kicker">{isEmmaActiveCharacter ? 'Emma' : 'Partner'}</span>
-                            <strong className="home-heroine-name">{selectedHeroineLabel}</strong>
-                            <p className="home-heroine-hint">{selectedHeroineHint}</p>
-                        </div>
-                        {!shouldUseEmmaMvpPresentation && (
-                            <button
-                                type="button"
-                                className="home-heroine-action"
-                                onClick={handleOpenHeroineSelect}
-                            >
-                                変更
-                            </button>
-                        )}
-                    </div>
-                    <p className="home-story-route">{storyProgressSummary.routeLabel}</p>
-                    <p className="home-story-mood">{storyProgressSummary.todayMoodCopy}</p>
-                </section>
-
-                <section className="home-promise-card" aria-label="放課後の予定">
-                    <div className="home-promise-head">
-                        {featuredPromise ? '今日の予定' : '放課後の予定'}
-                    </div>
-                    {featuredPromise ? (
-                        <>
-                            <div className="home-promise-title">{featuredPromise.title}</div>
-                            <div className="home-promise-meta">
-                                <span>{featuredPromise.timeSlotLabel}</span>
-                                <span>{displayedPromiseCharacterLabel}</span>
-                                <span>{featuredPromise.locationLabel}</span>
-                            </div>
-                            <p className="home-promise-body">{featuredPromise.body}</p>
-                            <p className="home-promise-hint">{featuredPromise.hint}</p>
-                            <button
-                                type="button"
-                                className="home-promise-action"
-                                onClick={handleOpenPromiseAction}
-                            >
-                                {featuredPromise.actionLabel}
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <p className="home-promise-empty">今日はまだ特別な約束はない</p>
-                            <p className="home-promise-hint">
-                                先に授業か復習を進めておくと、あとで落ち着いて話しやすい。
-                            </p>
-                            <button
-                                type="button"
-                                className="home-promise-action"
-                                onClick={handleOpenPromiseAction}
-                            >
-                                {storyProgressSummary.secondaryActionHint}
-                            </button>
-                        </>
-                    )}
-                </section>
-
-                <section className="home-study-status-row" aria-label="学習状況">
-                    {/* Countdown (Floating) */}
-                    <div className="countdown-floating" onClick={() => navigate('/goal')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && navigate('/goal')}>
-                        <div className="countdown-title">{countdownDisplay.title}</div>
-                        <div className="countdown-days">
-                            <span className="days-num">{countdownDisplay.value}</span>
-                            {countdownDisplay.suffix && <span className="days-label">{countdownDisplay.suffix}</span>}
-                        </div>
-                    </div>
-
-                    <button
-                        type="button"
-                        className={`home-review-card is-${homeReviewSummary.mode}`}
-                        onClick={handleOpenRecommendedReview}
-                        aria-label={getReviewShortcutLabel()}
-                        title={getReviewShortcutLabel()}
+            <SceneStageLayout
+                rootClassName="room-container"
+                rootStyle={equippedBackground !== 'default' ? currentBgStyle : undefined}
+                backgroundClassName={equippedBackground === 'default' ? 'room-background' : ''}
+                character={(
+                    <div
+                        className={`character-figure ${renderer === 'live2d' ? 'is-live2d' : ''} ${homeCharacterPreview?.figureClassName || ''}`}
                     >
-                        <span className={`home-review-priority-dot is-${homeReviewSummary.mode}`} aria-hidden="true" />
-                        <span className="home-review-title">復習</span>
-                        <span className="home-review-value" aria-hidden="true">
-                            {homeReviewSummary.hasReviews ? homeReviewSummary.due : 0}
-                        </span>
-                        <span className="home-review-unit" aria-hidden="true">件</span>
-                        {homeReviewSummary.reviewSetsToday > 0 && (
-                            <span className="home-review-streak" aria-hidden="true">
-                                {homeReviewSummary.reviewSetsToday}
-                            </span>
-                        )}
-                    </button>
-
-                    <section className="home-planner-card" aria-label="明日の目標とToDo">
-                        <div className="home-planner-header compact">
-                            <div className="home-planner-heading-copy">
-                                <span className="home-planner-kicker">Plan</span>
-                                <strong>明日</strong>
-                            </div>
-                            <span className="home-planner-date-chip">{formatShortDate(tomorrowDate)}</span>
-                        </div>
-
-                        <div className="home-planner-section compact">
-                            {tomorrowFocus ? (
-                                <p className="home-focus-text is-condensed">{tomorrowFocus}</p>
-                            ) : (
-                                <p className="home-planner-empty is-condensed">
-                                    カレンダーに明日の目標を書くと、ここに出ます。
-                                </p>
+                        <div
+                            className={`character-touch-target ${touchMotion ? `motion-${touchMotion}` : ''}`}
+                            style={touchMotionStyle || undefined}
+                            onPointerUp={handleCharacterTap}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => e.key === 'Enter' && void talk({ source: 'touch' })}
+                        >
+                            <CharacterStage
+                                characterId={characterId}
+                                renderer={renderer}
+                                skinId={equippedSkin}
+                                accessoryIds={equippedAccessories}
+                                scene="home"
+                                pose={homePose}
+                                className="character-home"
+                                imageClassName={`char-image ${isTalkAnimating ? 'talk-burst' : ''} ${homeCharacterPreview?.imageClassName || ''}`}
+                                sourceOverride={homeCharacterPreview?.source}
+                                disableFaceEffects={homeCharacterPreview?.disableFaceEffects}
+                                chromaKey={homeCharacterPreview?.chromaKey}
+                                alt={homeCharacterPreview?.alt || 'Character'}
+                            />
+                            {renderer === 'live2d' && (homePose.live2dFaceAccent === 'blush' || homePose.live2dFaceAccent === 'shy') && (
+                                <div className={`home-live2d-face-accent is-${homePose.live2dFaceAccent}`} aria-hidden="true">
+                                    <span className="home-live2d-blush left" />
+                                    <span className="home-live2d-blush right" />
+                                    {homePose.live2dFaceAccent === 'shy' && (
+                                        <>
+                                            <span className="home-live2d-eye-lid left" />
+                                            <span className="home-live2d-eye-lid right" />
+                                            <span className="home-live2d-mouth-shy" />
+                                        </>
+                                    )}
+                                </div>
                             )}
                         </div>
 
-                        <div className="home-planner-summary-row">
-                            <span className="home-planner-summary-label">ToDo</span>
-                            <span className="home-planner-summary-value">{incompleteGoalTodos.length}件</span>
-                        </div>
-
-                        {visibleGoalTodos.length > 0 ? (
-                            <p className="home-todo-preview is-condensed">
-                                {visibleGoalTodos[0].text}
-                                {incompleteGoalTodos.length > 1 ? ` / ほか ${incompleteGoalTodos.length - 1} 件` : ''}
-                            </p>
-                        ) : (
-                            <p className="home-todo-preview is-condensed">
-                                いまのToDoは全部片付いています。
-                            </p>
-                        )}
-
-                        <div className="home-planner-actions compact">
-                            <button
-                                type="button"
-                                className="home-planner-link compact"
-                                onClick={() => navigate('/calendar')}
-                            >
-                                予定
-                            </button>
-                        </div>
-                    </section>
-                </section>
-
-                {/* Character Figure */}
-                <div
-                    className={`character-figure ${renderer === 'live2d' ? 'is-live2d' : ''} ${activeHomeCharacterPreview?.figureClassName || ''}`}
-                >
-                    <div
-                        className={`character-touch-target ${touchMotion ? `motion-${touchMotion}` : ''}`}
-                        style={touchMotionStyle || undefined}
-                        onPointerUp={isHomeCharacterInteractive ? handleCharacterTap : undefined}
-                        role={isHomeCharacterInteractive ? 'button' : undefined}
-                        tabIndex={isHomeCharacterInteractive ? 0 : undefined}
-                        onKeyDown={isHomeCharacterInteractive ? (e) => e.key === 'Enter' && void talk({ source: 'touch' }) : undefined}
-                    >
-                        <CharacterStage
-                            characterId={activeHomeCharacterPreview?.characterId || characterId}
-                            renderer={renderer}
-                            skinId={equippedSkin}
-                            accessoryIds={equippedAccessories}
-                            scene="home"
-                            pose={{ ...homePose, ...(activeHomeCharacterPreview?.pose || {}) }}
-                            className="character-home"
-                            imageClassName={`char-image ${isTalkAnimating ? 'talk-burst' : ''} ${activeHomeCharacterPreview?.imageClassName || ''}`}
-                            sourceOverride={activeHomeCharacterPreview?.source}
-                            disableFaceEffects={activeHomeCharacterPreview?.disableFaceEffects}
-                            chromaKey={activeHomeCharacterPreview?.chromaKey}
-                            alt={activeHomeCharacterPreview?.alt || 'Character'}
-                        />
-                        {renderer === 'live2d' && (homePose.live2dFaceAccent === 'blush' || homePose.live2dFaceAccent === 'shy') && (
-                            <div className={`home-live2d-face-accent is-${homePose.live2dFaceAccent}`} aria-hidden="true">
-                                <span className="home-live2d-blush left" />
-                                <span className="home-live2d-blush right" />
-                                {homePose.live2dFaceAccent === 'shy' && (
-                                    <>
-                                        <span className="home-live2d-eye-lid left" />
-                                        <span className="home-live2d-eye-lid right" />
-                                        <span className="home-live2d-mouth-shy" />
-                                    </>
-                                )}
+                        {homeTouchAreas.length > 0 && (
+                            <div className="home-touch-hotspot-layer">
+                                {homeTouchAreas.map((area) => (
+                                    <button
+                                        key={area.id}
+                                        type="button"
+                                        className={`home-touch-hotspot is-${area.id}`}
+                                        style={{
+                                            left: area.left,
+                                            top: area.top,
+                                            width: area.width,
+                                            height: area.height,
+                                        }}
+                                        onPointerUp={(event) => { void handleTouchAreaTap(area.id, event); }}
+                                        aria-label={`${area.label}をタップ`}
+                                    />
+                                ))}
                             </div>
                         )}
-                    </div>
 
-                    {homeTouchAreas.length > 0 && (
-                        <div className="home-touch-hotspot-layer">
-                            {homeTouchAreas.map((area) => (
-                                <button
-                                    key={area.id}
-                                    type="button"
-                                    className={`home-touch-hotspot is-${area.id}`}
-                                    style={{
-                                        left: area.left,
-                                        top: area.top,
-                                        width: area.width,
-                                        height: area.height,
-                                    }}
-                                    onPointerUp={(event) => { void handleTouchAreaTap(area.id, event); }}
-                                    aria-label={`${area.label}をタップ`}
-                                />
-                            ))}
+                        <div className="speech-bubble">
+                            <p>{displaySpeech}</p>
                         </div>
-                    )}
+                    </div>
+                )}
+            >
 
-                    {/* Speech Bubble */}
-                    <div className="speech-bubble">
-                        <p>{speech}</p>
+                {/* Countdown (Floating) */}
+                <div className="countdown-floating" onClick={() => navigate('/goal')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && navigate('/goal')}>
+                    <div className="countdown-title">{countdownDisplay.title}</div>
+                    <div className="countdown-days">
+                        <span className="days-num">{countdownDisplay.value}</span>
+                        {countdownDisplay.suffix && <span className="days-label">{countdownDisplay.suffix}</span>}
                     </div>
                 </div>
+
+                <button
+                    type="button"
+                    className={`home-review-card is-${homeReviewSummary.mode}`}
+                    onClick={handleOpenRecommendedReview}
+                    aria-label={getReviewShortcutLabel()}
+                    title={getReviewShortcutLabel()}
+                >
+                    <span className={`home-review-priority-dot is-${homeReviewSummary.mode}`} aria-hidden="true" />
+                    <span className="home-review-title">復習</span>
+                    <span className="home-review-value" aria-hidden="true">
+                        {homeReviewSummary.hasReviews ? homeReviewSummary.due : 0}
+                    </span>
+                    <span className="home-review-unit" aria-hidden="true">件</span>
+                    {homeReviewSummary.reviewSetsToday > 0 && (
+                        <span className="home-review-streak" aria-hidden="true">
+                            {homeReviewSummary.reviewSetsToday}
+                        </span>
+                    )}
+                </button>
+
+                {homeFocusBoard && (
+                    <section className={`home-focus-board is-${homeFocusBoard.tone}`} aria-label={`${homeFocusBoard.kicker}: ${homeFocusBoard.text}`}>
+                        <span className="home-focus-board-pin" aria-hidden="true" />
+                        <div className="home-focus-board-meta">
+                            <span className="home-focus-board-kicker">{homeFocusBoard.kicker}</span>
+                            {homeFocusBoard.dateLabel && (
+                                <span className="home-focus-board-date">{homeFocusBoard.dateLabel}</span>
+                            )}
+                        </div>
+                        <p className="home-focus-board-text">{homeFocusBoard.text}</p>
+                    </section>
+                )}
+
+                {visibleHomeTodos.length > 0 && (
+                    <section
+                        className={`home-planner-card ${homeFocusBoard ? 'with-focus-board' : 'is-standalone'}`}
+                        aria-label={`未完了のToDo ${pendingHomeTodos.length}件`}
+                    >
+                        <div className="home-planner-header compact">
+                            <div className="home-planner-heading-copy">
+                                <span className="home-planner-kicker">TODO</span>
+                                <strong>今日やること</strong>
+                            </div>
+                            <span className="home-planner-date-chip">{pendingHomeTodos.length}件</span>
+                        </div>
+
+                        <div className="home-planner-section compact">
+                            <div className="home-todo-list">
+                                {visibleHomeTodos.map((todo) => (
+                                    <div key={todo.id} className="home-todo-item">
+                                        <button
+                                            type="button"
+                                            className="home-todo-toggle"
+                                            onClick={() => handleHomeTodoToggle(todo.id)}
+                                            aria-label={`「${todo.text}」を完了にする`}
+                                            title="タップで完了"
+                                        >
+                                            <span>✓</span>
+                                        </button>
+                                        <p className="home-todo-preview is-condensed">{todo.text}</p>
+                                    </div>
+                                ))}
+                            </div>
+                            {pendingHomeTodos.length > visibleHomeTodos.length && (
+                                <p className="home-todo-more">ほか {pendingHomeTodos.length - visibleHomeTodos.length} 件</p>
+                            )}
+                        </div>
+                    </section>
+                )}
+
+                {seasonalHomeEvent && (
+                    <button
+                        type="button"
+                        className={`home-seasonal-banner ${seasonalHomeEventProgress?.completed ? 'is-cleared' : ''}`}
+                        onClick={() => navigate(`/seasonal-events/${seasonalHomeEvent.id}`)}
+                        aria-label={`${seasonalHomeEvent.title}へ移動`}
+                    >
+                        <span className="home-seasonal-banner-kicker">{seasonalHomeEvent.bannerKicker}</span>
+                        <strong className="home-seasonal-banner-title">{seasonalHomeEvent.homeBannerTitle}</strong>
+                        <span className="home-seasonal-banner-meta">
+                            {seasonalHomeEventProgress?.completed
+                                ? 'CLEAR'
+                                : seasonalHomeEventRemainingDays === 0
+                                    ? '今日まで'
+                                    : `あと${seasonalHomeEventRemainingDays}日`}
+                        </span>
+                        {!seasonalHomeEventProgress?.completed && (
+                            <span className="home-seasonal-banner-badge" aria-hidden="true">
+                                NEW
+                            </span>
+                        )}
+                    </button>
+                )}
 
                 {/* Action Buttons */}
                 <div className="action-area has-resume">
                     <button
-                        className="study-btn-large"
-                        onClick={() => navigate('/study')}
-                        aria-label={storyProgressSummary.primaryActionHint}
-                        title={storyProgressSummary.studyPriorityLabel}
+                        className="battle-btn-large"
+                        onClick={() => navigate('/multiplayer-match')}
+                        aria-label="バトル"
                     >
-                        <span>勉強</span>
+                        <span>バトル</span>
                     </button>
                     <button
                         type="button"
@@ -1089,12 +1082,8 @@ const Home = ({ stats, updateStats }) => {
                             {lastStudyTopic?.resumeLabel || lastStudyTopic?.topicName || '履歴がなければ授業一覧へ'}
                         </span>
                     </button>
-                    <button
-                        className="battle-btn-large"
-                        onClick={() => navigate('/multiplayer-match')}
-                        aria-label="バトル"
-                    >
-                        <span>バトル</span>
+                    <button className="study-btn-large" onClick={() => navigate('/study')} aria-label="勉強">
+                        <span>勉強</span>
                     </button>
                 </div>
 
@@ -1121,35 +1110,26 @@ const Home = ({ stats, updateStats }) => {
                     </button>
                 </div>
 
-                {supportsNoaChat && (
-                    <NoaChatBox
-                        stats={stats}
-                        characterId={characterId}
-                        updateStats={updateStats}
-                        compact
-                        autoSpeakAssistant
-                        onAssistantReply={syncSpeechWithNoaReply}
-                        onUserMessage={reactToUserMessage}
-                        onAssistantSpeechStart={() => {
-                            stopTalkAnimation();
-                            setIsTalkAnimating(true);
-                        }}
-                        onAssistantSpeechEnd={() => {
-                            setIsTalkAnimating(false);
-                        }}
-                    />
-                )}
-            </div>
+                <NoaChatBox
+                    stats={stats}
+                    updateStats={updateStats}
+                    compact
+                    autoSpeakAssistant
+                    onAssistantReply={syncSpeechWithNoaReply}
+                    onUserMessage={reactToUserMessage}
+                    onAssistantSpeechStart={() => {
+                        stopTalkAnimation();
+                        setIsTalkAnimating(true);
+                    }}
+                    onAssistantSpeechEnd={() => {
+                        setIsTalkAnimating(false);
+                    }}
+                />
+            </SceneStageLayout>
 
             {/* Footer removed */}
         </div>
     );
-};
-
-const formatShortDate = (dateString) => {
-    const date = new Date(`${dateString}T00:00:00`);
-    const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
-    return `${date.getMonth() + 1}/${date.getDate()} ${weekDays[date.getDay()]}`;
 };
 
 export default Home;
