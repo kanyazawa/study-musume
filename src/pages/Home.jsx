@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import './Home.css';
 // Footer removed
 import CharacterStage from '../components/character/CharacterStage';
-import SceneStageLayout from '../components/layout/SceneStageLayout';
+import SceneStageLayout from '../components/Layout/SceneStageLayout';
 import MenuModal from '../components/MenuModal';
 import LoginBonusModal from '../components/LoginBonusModal';
 import NoaChatBox from '../components/NoaChatBox';

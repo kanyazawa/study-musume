@@ -1,0 +1,43 @@
+.scene-stage-layout {
+    position: relative;
+    isolation: isolate;
+    --scene-character-layer-top-extend: clamp(40px, 6dvh, 72px);
+    --scene-character-inline-overscan: clamp(40px, 10vw, 88px);
+    --scene-character-inline-shift: 0px;
+}
+
+.scene-stage-background {
+    position: absolute;
+    inset: 0;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.scene-stage-character-layer {
+    position: absolute;
+    top: calc(-1 * var(--scene-character-layer-top-extend));
+    right: 0;
+    bottom: 0;
+    left: 0;
+    overflow: visible;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    width: 100%;
+    min-width: 0;
+    padding: inherit;
+    box-sizing: border-box;
+    --character-stage-inline-overscan: var(--scene-character-inline-overscan);
+    --character-stage-inline-shift: var(--scene-character-inline-shift);
+    --character-stage-inline-width: calc(100% + var(--character-stage-inline-overscan));
+    --character-stage-inline-max-width: none;
+    --character-stage-inline-offset: calc(var(--character-stage-inline-shift) - (var(--character-stage-inline-overscan) / 2));
+}
+
+.scene-stage-character-layer > * {
+    max-width: 100%;
+}
