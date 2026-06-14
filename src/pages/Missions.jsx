@@ -117,6 +117,9 @@ const styles = {
         inset: '0 -28px 18% -28px',
         pointerEvents: 'none',
     },
+    heroStageLive2d: {
+        top: '-14vh',
+    },
     bottomSheet: {
         position: 'relative',
         zIndex: 4,
@@ -1235,6 +1238,9 @@ export default function Missions({ stats, updateStats }) {
         characterId,
         skinId: equippedSkin,
     });
+    const heroStageStyle = renderer === 'live2d'
+        ? { ...styles.heroStage, ...styles.heroStageLive2d }
+        : styles.heroStage;
 
     const missionPose = useMemo(
         () => createHomePose({
@@ -1252,7 +1258,7 @@ export default function Missions({ stats, updateStats }) {
 
                 <section style={styles.hero}>
                     <div style={styles.heroAura} />
-                    <div style={styles.heroStage}>
+                    <div style={heroStageStyle}>
                         <CharacterStage
                             characterId={characterId}
                             renderer={renderer}

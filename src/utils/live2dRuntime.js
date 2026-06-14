@@ -2,9 +2,28 @@ import { Capacitor } from '@capacitor/core';
 
 const scriptLoadCache = new Map();
 const assetProbeCache = new Map();
+const assetFetchCache = new Map();
+const live2dPreloadCache = new Map();
 const TYRANO_CANVAS_ID = 'live2d_canvas_tyrano';
+const TYRANO_SUSPEND_TIMEOUT_KEY = '__tyranolive2d_suspend_timeout__';
+const TYRANO_SUSPEND_DELAY_MS = 240;
 
 const TYRANO_RUNTIME = 'tyrano-v4';
+
+const getPersistentLive2dHost = () =>
+    document.getElementById('live2d-global-host')
+    || document.querySelector('.mobile-content')
+    || document.getElementById('root')
+    || document.body;
+
+const clearPendingTyranoSuspend = () => {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    window.clearTimeout(window[TYRANO_SUSPEND_TIMEOUT_KEY]);
+    window[TYRANO_SUSPEND_TIMEOUT_KEY] = null;
+};
 
 /**
  * Live2D canvas のホストを、まずキャラのステージ近辺に寄せて決める。
@@ -24,6 +43,94 @@ const getAbsoluteUrl = (url) => {
     } catch {
         return url;
     }
+};
+
+const fetchAsset = async (url) => {
+    if (!url) {
+        return null;
+    }
+
+    const absoluteUrl = getAbsoluteUrl(url);
+    if (assetFetchCache.has(absoluteUrl)) {
+        return assetFetchCache.get(absoluteUrl);
+    }
+
+    const request = fetch(absoluteUrl, { method: 'GET' })
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error(`Failed to fetch asset: ${absoluteUrl}`);
+            }
+            return response;
+        });
+
+    assetFetchCache.set(absoluteUrl, request);
+    return request;
+};
+
+const resolveModelAssetUrl = (modelJsonUrl, assetPath) => {
+    if (!assetPath) {
+        return '';
+    }
+
+    try {
+        return new URL(assetPath, getAbsoluteUrl(modelJsonUrl)).toString();
+    } catch {
+        return assetPath;
+    }
+};
+
+const collectModelAssetUrls = (modelJsonUrl, modelJson) => {
+    const fileReferences = modelJson?.FileReferences || {};
+    const urls = new Set();
+    const addAsset = (assetPath) => {
+        if (!assetPath) {
+            return;
+        }
+        urls.add(resolveModelAssetUrl(modelJsonUrl, assetPath));
+    };
+
+    addAsset(fileReferences.Moc);
+    addAsset(fileReferences.Physics);
+    addAsset(fileReferences.Pose);
+    addAsset(fileReferences.UserData);
+    addAsset(fileReferences.DisplayInfo);
+
+    (fileReferences.Textures || []).forEach(addAsset);
+    (fileReferences.Expressions || []).forEach((expression) => addAsset(expression?.File));
+    Object.values(fileReferences.Motions || {}).forEach((motions) => {
+        (motions || []).forEach((motion) => addAsset(motion?.File));
+        (motions || []).forEach((motion) => addAsset(motion?.Sound));
+    });
+
+    return Array.from(urls);
+};
+
+export const preloadLive2DAssets = async (modelConfigs = []) => {
+    const preloadTargets = Array.isArray(modelConfigs) ? modelConfigs.filter(Boolean) : [];
+
+    await Promise.allSettled(preloadTargets.map(async (config) => {
+        const cacheKey = config.modelJson || config.modelId || config.modelName || JSON.stringify(config);
+        if (live2dPreloadCache.has(cacheKey)) {
+            return live2dPreloadCache.get(cacheKey);
+        }
+
+        const preloadPromise = (async () => {
+            await ensureLive2DSdk(config.sdkScripts || []);
+
+            if (!config.modelJson) {
+                return;
+            }
+
+            const modelResponse = await fetchAsset(config.modelJson);
+            const modelJson = await modelResponse.json();
+            const assetUrls = collectModelAssetUrls(config.modelJson, modelJson);
+
+            await Promise.allSettled(assetUrls.map((assetUrl) => fetchAsset(assetUrl)));
+        })();
+
+        live2dPreloadCache.set(cacheKey, preloadPromise);
+        return preloadPromise;
+    }));
 };
 
 export const probeAssetUrl = async (url) => {
@@ -123,6 +230,8 @@ export const mountTyranoCanvas = (container) => {
         return null;
     }
 
+    clearPendingTyranoSuspend();
+
     // SDK は document.getElementById(TYRANO_CANVAS_ID) で canvas を探す。
     // 可能ならキャラステージ配下に載せ、ホーム内 UI と同じ重なり順で扱う。
     const host = getLive2dCanvasHost(container);
@@ -204,6 +313,9 @@ export const ensureTyranoManager = async ({ sdkScripts = [], resourcesPath = '',
         if (resourcesPath && typeof cached.setResourcesPath === 'function') {
             cached.setResourcesPath(resourcesPath);
         }
+        if (canvas && cached.lappdelegate) {
+            cached.lappdelegate.canvas = canvas;
+        }
         return cached;
     }
 
@@ -242,12 +354,69 @@ export const destroyTyranoManager = () => {
         return;
     }
 
-    // SDK のリリースは行わない（再初期化でシングルトンが壊れるため）
-    // canvas は body レベルで永続管理するため削除せず非表示にする
+    clearPendingTyranoSuspend();
+
+    const plugin = window.tyranolive2dplugin;
+    const cached = window[TYRANO_MANAGER_CACHE_KEY];
+
+    if (typeof plugin?.releaseTyranoManager === 'function') {
+        try {
+            plugin.releaseTyranoManager();
+        } catch {
+            // Fall through to local cleanup so a broken release does not block re-init.
+        }
+    } else if (cached && typeof cached.deleteAllModel === 'function') {
+        try {
+            cached.deleteAllModel();
+        } catch {
+            // Ignore partial teardown failures from prototype runtime.
+        }
+    }
+
+    window[TYRANO_MANAGER_CACHE_KEY] = null;
+
     const canvas = document.getElementById(TYRANO_CANVAS_ID);
     if (canvas) {
-        canvas.style.display = 'none';
+        canvas.remove();
     }
+};
+
+export const suspendTyranoManager = () => {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    clearPendingTyranoSuspend();
+
+    const canvas = document.getElementById(TYRANO_CANVAS_ID);
+    const host = getPersistentLive2dHost();
+    if (!canvas || !host) {
+        return;
+    }
+
+    const canvasRect = canvas.getBoundingClientRect();
+    const hostRect = host.getBoundingClientRect();
+
+    if (canvas.parentElement !== host) {
+        host.appendChild(canvas);
+    }
+
+    canvas.style.display = 'block';
+    canvas.style.position = host === document.body ? 'fixed' : 'absolute';
+    canvas.style.left = host === document.body
+        ? `${Math.round(canvasRect.left)}px`
+        : `${Math.round(canvasRect.left - hostRect.left + host.scrollLeft)}px`;
+    canvas.style.top = host === document.body
+        ? `${Math.round(canvasRect.top)}px`
+        : `${Math.round(canvasRect.top - hostRect.top + host.scrollTop)}px`;
+
+    window[TYRANO_SUSPEND_TIMEOUT_KEY] = window.setTimeout(() => {
+        const activeCanvas = document.getElementById(TYRANO_CANVAS_ID);
+        if (activeCanvas) {
+            activeCanvas.style.display = 'none';
+        }
+        window[TYRANO_SUSPEND_TIMEOUT_KEY] = null;
+    }, TYRANO_SUSPEND_DELAY_MS);
 };
 
 export const clearTyranoModels = (manager) => {
@@ -258,22 +427,42 @@ export const clearTyranoModels = (manager) => {
     }
 
     const live2dManager = manager.lappdelegate?.lapplive2dmanager;
-    if (live2dManager && Array.isArray(live2dManager._models)) {
-        live2dManager._models.forEach(model => {
-            if (model && typeof model.release === 'function') {
-                try {
-                    model.release();
-                } catch (e) {
-                    console.warn("Failed to release Live2D model", e);
-                }
-            } else if (model && typeof model.releaseModel === 'function') {
-                try {
-                    model.releaseModel();
-                } catch {
-                    // Ignore teardown errors from partially loaded models.
-                }
+    const models = live2dManager?._models;
+    if (!models) return;
+
+    const isCsmVector = typeof models.getSize === 'function' && typeof models.at === 'function';
+    const count = isCsmVector ? models.getSize() : (Array.isArray(models) ? models.length : 0);
+
+    for (let index = 0; index < count; index += 1) {
+        const model = isCsmVector ? models.at(index) : models[index];
+        if (model && typeof model.release === 'function') {
+            try {
+                model.release();
+            } catch (error) {
+                console.warn('Failed to release Live2D model', error);
             }
-        });
+            continue;
+        }
+
+        if (model && typeof model.releaseModel === 'function') {
+            try {
+                model.releaseModel();
+            } catch {
+                // Ignore teardown errors from partially loaded models.
+            }
+        }
+    }
+
+    if (typeof models.clear === 'function') {
+        try {
+            models.clear();
+            return;
+        } catch {
+            // Fall back to replacing the container below.
+        }
+    }
+
+    if (Array.isArray(models)) {
         live2dManager._models = [];
     }
 };

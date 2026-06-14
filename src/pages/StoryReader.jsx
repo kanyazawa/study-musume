@@ -5,6 +5,7 @@ import './StoryReader.css';
 import { getEpisodeById } from '../data/storyData';
 import { getCharacterLabel } from '../data/characterData';
 import CharacterStage from '../components/character/CharacterStage';
+import SceneStageLayout from '../components/layout/SceneStageLayout';
 import TappableVocabText from '../components/TappableVocabText';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { createStoryPose } from '../utils/characterPoseUtils';
@@ -90,14 +91,10 @@ const StoryReader = ({ stats, updateStats }) => {
     });
 
     return (
-        <div className="story-reader" onClick={handleNext}>
-            {/* 背景 */}
-            <div className="story-background">
-                {/* 背景画像をここに追加可能 */}
-            </div>
-
-            {/* キャラクター画像 */}
-            {shouldShowCharacter && (
+        <SceneStageLayout
+            rootClassName="story-reader"
+            backgroundClassName="story-background"
+            character={shouldShowCharacter ? (
                 <div className={`story-character ${renderer === 'live2d' ? 'is-live2d' : ''}`}>
                     <CharacterStage
                         characterId={characterId}
@@ -110,7 +107,9 @@ const StoryReader = ({ stats, updateStats }) => {
                         alt={displaySpeaker}
                     />
                 </div>
-            )}
+            ) : null}
+            onClick={handleNext}
+        >
 
             {/* テキストボックス */}
             <div className="story-textbox">
@@ -135,7 +134,7 @@ const StoryReader = ({ stats, updateStats }) => {
             {isLastScene && (
                 <div className="tap-hint">▼ タップして物語一覧に戻る</div>
             )}
-        </div>
+        </SceneStageLayout>
     );
 };
 

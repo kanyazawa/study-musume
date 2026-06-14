@@ -18,6 +18,11 @@ const LIVE2D_MODEL_REGISTRY = {
                 scale: 8.5,
             },
             stageOverrides: {
+                home: {
+                    x: 0,
+                    y: -0.8,
+                    scale: 7.7,
+                },
                 preview: {
                     y: -0.22,
                     scale: 6.4,
@@ -170,6 +175,25 @@ export const getLive2DModelStatusHints = (characterId = 'noah', skinId = 'defaul
         sdkScripts: config.sdkScripts || [],
         modelId: config.modelId || `${characterId}:${skinId}`,
     };
+};
+
+export const getAllLive2DModelConfigs = () => {
+    const uniqueConfigs = new Map();
+
+    Object.values(LIVE2D_MODEL_REGISTRY).forEach((characterModels) => {
+        Object.values(characterModels || {}).forEach((config) => {
+            if (!config?.modelJson) {
+                return;
+            }
+
+            const key = config.modelJson || config.modelId || config.modelName;
+            if (!uniqueConfigs.has(key)) {
+                uniqueConfigs.set(key, config);
+            }
+        });
+    });
+
+    return Array.from(uniqueConfigs.values());
 };
 
 export default LIVE2D_MODEL_REGISTRY;

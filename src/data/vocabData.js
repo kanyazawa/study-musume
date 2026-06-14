@@ -1,7 +1,10 @@
 import { CUSTOM_VOCAB_GRADE5 } from './customGrade5Vocab';
 import { CUSTOM_VOCAB_GRADE4 } from './customGrade4Vocab';
 import { CUSTOM_VOCAB_GRADE3 } from './customGrade3Vocab';
+import { CUSTOM_VOCAB_GRADE_PRE2 } from './customPre2Vocab';
+import { CUSTOM_VOCAB_GRADE2 } from './customGrade2Vocab';
 import { CUSTOM_VOCAB_GRADE_PRE1 } from './customPre1Vocab';
+import { CUSTOM_VOCAB_GRADE1 } from './customGrade1Vocab';
 
 /**
  * 英検レベル別 英単語マスターデータ
@@ -534,7 +537,7 @@ const LEGACY_GRADE3_VOCAB = [
 // ==============================
 // 英検準2級 (高校中級)
 // ==============================
-export const VOCAB_GRADE_PRE2 = [
+const LEGACY_GRADE_PRE2_VOCAB = [
     { word: 'a number of', meaning: 'いくつかの' },
     { word: 'a variety of', meaning: 'さまざまな' },
     { word: 'abandon', meaning: '捨てる、諦める' },
@@ -4457,6 +4460,15 @@ const LEGACY_GRADE_PRE1_VOCAB = [
     { word: 'barrier', meaning: '障害、防壁' }
 ];
 
+export const VOCAB_GRADE_PRE2 = Array.from(
+    new Map(
+        [...LEGACY_GRADE_PRE2_VOCAB, ...CUSTOM_VOCAB_GRADE_PRE2].map((entry) => [
+            normalizeVocabKey(entry.word),
+            entry
+        ])
+    ).values()
+);
+
 export const VOCAB_GRADE_PRE1 = Array.from(
     new Map(
         [
@@ -4472,7 +4484,7 @@ export const VOCAB_GRADE_PRE1 = Array.from(
 // ==============================
 // 英検1級 (大学上級程度)
 // ==============================
-export const VOCAB_GRADE1 = [
+const LEGACY_GRADE1_VOCAB = [
     { word: 'abate', meaning: '和らぐ、減らす' },
     { word: 'aberration', meaning: '異常、常軌を逸すること' },
     { word: 'abhor', meaning: 'ひどく嫌う、憎悪する' },
@@ -4567,6 +4579,10 @@ export const VOCAB_GRADE1 = [
 
 function normalizeVocabKey(value) {
     return String(value ?? '').trim().toLowerCase();
+}
+
+function normalizeText(value) {
+    return String(value ?? '').trim();
 }
 
 const GRADE2_ADDITIONAL_MEANINGS = new Map([
@@ -5472,6 +5488,15 @@ const GRADE2_ADDITIONAL_MEANINGS = new Map([
     ['yell', '叫ぶ']
 ]);
 
+export const VOCAB_GRADE1 = Array.from(
+    new Map(
+        [...LEGACY_GRADE1_VOCAB, ...CUSTOM_VOCAB_GRADE1].map((entry) => [
+            normalizeVocabKey(entry.word),
+            entry
+        ])
+    ).values()
+);
+
 const GRADE2_MEANING_LOOKUP = new Map(
     [
         ...GRADE2_ADDITIONAL_MEANINGS.entries(),
@@ -5481,6 +5506,7 @@ const GRADE2_MEANING_LOOKUP = new Map(
         ...VOCAB_GRADE_PRE2,
         ...VOCAB_GRADE_PRE1,
         ...VOCAB_GRADE1,
+        ...CUSTOM_VOCAB_GRADE2,
         ...LEGACY_GRADE2_VOCAB
     ].map((entry) => {
         if (Array.isArray(entry)) {
@@ -5493,8 +5519,16 @@ const GRADE2_MEANING_LOOKUP = new Map(
     })
 );
 
+const GRADE2_CUSTOM_WORDS = CUSTOM_VOCAB_GRADE2.map(({ word }) => word);
+const GRADE2_WORDS_WITH_CUSTOM = Array.from(
+    new Set([
+        ...GRADE2_WORD_LIST,
+        ...GRADE2_CUSTOM_WORDS
+    ].map((word) => normalizeText(word)).filter(Boolean))
+);
+
 // 既存データに意味がない語は、一覧を先に使えるよう暫定表示を入れる。
-export const VOCAB_GRADE2 = GRADE2_WORD_LIST.map((word) => ({
+export const VOCAB_GRADE2 = GRADE2_WORDS_WITH_CUSTOM.map((word) => ({
     word,
     meaning: GRADE2_MEANING_LOOKUP.get(normalizeVocabKey(word)) || `${word}（意味未設定）`
 }));

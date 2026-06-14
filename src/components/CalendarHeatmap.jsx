@@ -1,7 +1,7 @@
 import React from 'react';
 import './CalendarHeatmap.css';
 
-const CalendarHeatmap = ({ year, month, monthlyStats, onDayClick }) => {
+const CalendarHeatmap = ({ year, month, monthlyStats, selectedDate, onDayClick }) => {
     // 月の最初の日と最後の日を取得
     const firstDay = new Date(year, month - 1, 1);
     const lastDay = new Date(year, month, 0);
@@ -64,16 +64,18 @@ const CalendarHeatmap = ({ year, month, monthlyStats, onDayClick }) => {
                     const intensity = stats.intensity || 0;
                     const isToday = date === new Date().toISOString().split('T')[0];
                     const hasNote = Boolean(stats.note?.trim());
+                    const isSelected = date === selectedDate;
 
                     return (
                         <div
                             key={dayData.key}
-                            className={`calendar-day ${getIntensityClass(intensity)} ${isToday ? 'today' : ''} ${hasNote ? 'has-note' : ''}`}
+                            className={`calendar-day ${getIntensityClass(intensity)} ${isToday ? 'today' : ''} ${hasNote ? 'has-note' : ''} ${isSelected ? 'selected' : ''}`}
                             onClick={() => onDayClick(date, stats)}
                             data-date={date}
                             data-minutes={stats.totalMinutes || 0}
                         >
                             <div className="day-number">{day}</div>
+                            {stats.focus?.trim() && <div className="day-focus-glow" />}
                             {stats.totalMinutes > 0 && (
                                 <div className="day-indicator">
                                     <span className="dot"></span>

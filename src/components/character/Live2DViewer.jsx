@@ -4,6 +4,7 @@ import { getLive2DModelConfig } from '../../utils/live2dModelRegistry';
 import { generateLipSyncTimeline, getCurrentVowel } from '../../utils/lipSync';
 import {
     TYRANO_RUNTIME,
+    clearTyranoModels,
     destroyTyranoManager,
     ensureLive2DSdk,
     ensureTyranoManager,
@@ -12,6 +13,7 @@ import {
     resizeTyranoCanvas,
     resolveLive2DStatusMessage,
     hideOldTyranoModels,
+    suspendTyranoManager,
 } from '../../utils/live2dRuntime';
 import {
     getEmotionAnimationProfile,
@@ -51,6 +53,7 @@ const FALLBACK_JAW_OPEN_PARAM_NAMES = ['Param50'];
 const FALLBACK_STAR_EYE_PARAM_NAMES = ['Param59'];
 const FALLBACK_HEART_EYE_PARAM_NAMES = ['Param60'];
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+let live2dViewerInstanceSequence = 0;
 
 const resolveStageConfig = (modelConfig = null, pose = {}) => {
     const baseStage = modelConfig?.stage || {};
@@ -420,11 +423,19 @@ const clearActiveExpression = (model) => {
     }
 };
 
-const createTyranoModelParams = ({ characterId, skinId, modelConfig, pose, onFinishLoad }) => {
+const createTyranoModelParams = ({
+    characterId,
+    skinId,
+    modelConfig,
+    pose,
+    onFinishLoad,
+    instanceKey,
+}) => {
     const stageConfig = resolveStageConfig(modelConfig, pose);
 
     return {
-        name: `prototype_${characterId}_${skinId}`.replace(/[^a-zA-Z0-9_]/g, '_'),
+        name: `prototype_${characterId}_${skinId}_${instanceKey || 'instance'}`
+            .replace(/[^a-zA-Z0-9_]/g, '_'),
         model_id: modelConfig.modelName || modelConfig.modelId || characterId,
         idle: typeof modelConfig.idleMotion === 'string' ? modelConfig.idleMotion : 'Idle',
         visible: 'true',
@@ -451,6 +462,7 @@ const Live2DViewer = ({
     const modelNameRef = useRef('');
     const readyTimerRef = useRef(null);
     const initTimerRef = useRef(null);
+    const viewerInstanceKeyRef = useRef(0);
     const lipSyncRef = useRef({ timeline: [], startedAt: 0, totalDuration: 0 });
     const animationStateRef = useRef(createAnimationState());
     const impactAnimationRef = useRef(null);
@@ -473,6 +485,9 @@ const Live2DViewer = ({
     const live2dImpactDurationMs = pose?.live2dImpactDurationMs;
     const live2dImpactStartedAt = pose?.live2dImpactStartedAt;
     const live2dImpactVariant = pose?.live2dImpactVariant;
+    if (!viewerInstanceKeyRef.current) {
+        viewerInstanceKeyRef.current = ++live2dViewerInstanceSequence;
+    }
 
     useEffect(() => {
         if (!modelConfig) {
@@ -575,6 +590,7 @@ const Live2DViewer = ({
                         skinId,
                         modelConfig,
                         pose,
+                        instanceKey: viewerInstanceKeyRef.current,
                         onFinishLoad: () => {
                             if (cancelled) return;
                             // Apply scene-specific part overrides immediately on load to avoid
@@ -591,32 +607,13 @@ const Live2DViewer = ({
                     });
 
                     modelNameRef.current = modelParams.name;
-                    const existingModelMeta = manager.models?.[modelNameRef.current];
-                    const existingModel = typeof existingModelMeta?.index === 'number'
-                        ? manager.lappdelegate?.lapplive2dmanager?.getModel(existingModelMeta.index)
-                        : null;
-
-                    if (existingModel) {
-                        if (existingModel._state !== 22) {
-                            // Recover from stale Tyrano cache entries that never completed loading.
-                            // Re-adding the model is safer than waiting indefinitely in standby.
-                            hideOldTyranoModels(manager);
-                        } else {
-                            applyPosePartOpacityOverrides(
-                                managerRef.current || window.__tyranolive2d_manager_instance__,
-                                modelNameRef.current,
-                                modelConfigRef.current,
-                                poseRef.current,
-                            );
-                            setStatus('ready');
-                            setStatusDetail('');
-                            return;
-                        }
-                    }
-
+                    // StudySelect のように同一モデルを短時間で切り替える画面では、
+                    // ready 済みのキャッシュ済みモデルをそのまま再利用すると
+                    // Tyrano 側の描画先が古いまま残って消えたように見えることがある。
+                    // ここでは毎回モデルを追加し直し、古いものは画面外へ退避させる。
                     // 本番環境の CsmVector を壊さずに二重描画を回避するため、
                     // 古いモデルのスケールを 0 にして画面から透明化・除外する
-                    hideOldTyranoModels(manager);
+                    clearTyranoModels(manager);
 
                     manager.addModel(modelParams);
                     setStatus('loading-model');
@@ -665,7 +662,7 @@ const Live2DViewer = ({
             window.clearTimeout(readyTimerRef.current);
             impactAnimationRef.current?.cancel?.();
             impactAnimationRef.current = null;
-            destroyTyranoManager();
+            suspendTyranoManager();
         };
     // modelConfig は LIVE2D_MODEL_REGISTRY の固定参照なので characterId/skinId のみで十分
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1108,7 +1105,7 @@ const Live2DViewer = ({
                     bottom: 0,
                     zIndex: 1,
                     overflow: 'visible',
-                    transform: 'none',
+                    transform: 'var(--live2d-viewer-transform, none)',
                     opacity: status === 'ready' ? 1 : 0,
                 }}
             />

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   collectAllSaveData,
+  getLocalSaveDataTimestamp,
   getDefaultStats,
   loadStats,
   registerCloudSync,
@@ -70,7 +71,7 @@ describe('saveUtils', () => {
 
   it('collects and restores synchronized save data', () => {
     vi.spyOn(Date, 'now').mockReturnValue(1700000000000);
-    localStorage.setItem('gameStats', '{"tp":42}');
+    localStorage.setItem('gameStats', '{"tp":42,"affection":77,"favoriteCharacter":"noah","ownedItems":["pen"]}');
     localStorage.setItem('studyHistory', '["math"]');
 
     const snapshot = collectAllSaveData();
@@ -79,8 +80,27 @@ describe('saveUtils', () => {
     restoreAllSaveData(snapshot);
 
     expect(snapshot._savedAt).toBe(1700000000000);
-    expect(localStorage.getItem('gameStats')).toBe('{"tp":42}');
+    expect(getLocalSaveDataTimestamp()).toBe(1700000000000);
+    expect(localStorage.getItem('gameStats')).toBe('{"tp":42,"affection":77,"favoriteCharacter":"noah","ownedItems":["pen"]}');
     expect(localStorage.getItem('studyHistory')).toBe('["math"]');
+    expect(localStorage.getItem('affection')).toBe('77');
+    expect(localStorage.getItem('favoriteCharacter')).toBe('noah');
+    expect(localStorage.getItem('ownedItems')).toBe('["pen"]');
+  });
+
+  it('reuses the persisted save timestamp instead of refreshing it during sync reads', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1700000000000);
+
+    saveStats({ tp: 50 });
+
+    expect(getLocalSaveDataTimestamp()).toBe(1700000000000);
+
+    vi.spyOn(Date, 'now').mockReturnValue(1800000000000);
+
+    const snapshot = collectAllSaveData({ initializeTimestamp: false });
+
+    expect(snapshot._savedAt).toBe(1700000000000);
+    expect(getLocalSaveDataTimestamp()).toBe(1700000000000);
   });
 
   it('triggers cloud sync after the debounce window', async () => {

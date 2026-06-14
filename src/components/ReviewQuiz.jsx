@@ -1,15 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, Clock3, Flame, Target } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import {
     getReviewPriority,
-    formatRelativeDate,
-    formatReviewProgress,
-    formatNextCorrectReviewProgress,
-    formatWrongReviewProgress,
     updateReviewResult,
     getReviewChallengeProgressPreview,
 } from '../utils/reviewUtils';
 import CharacterStage from './character/CharacterStage';
+import SceneStageLayout from './layout/SceneStageLayout';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { useSound } from '../contexts/SoundContext';
 import BgClassroom from '../assets/images/bg_classroom.webp';
@@ -101,6 +98,7 @@ const formatReorderAnswer = (tokens = []) => normalizeAnswerText(
 const ReviewQuiz = ({
     questions,
     stats,
+    updateStats,
     dailyChallenge,
     onComplete,
     getRewardSummary,
@@ -131,7 +129,6 @@ const ReviewQuiz = ({
 
     const currentQuestion = sessionQuestions[currentIndex];
     const isMinimalUi = uiDensity === 'minimal';
-    const accuracy = results.length ? Math.round((results.filter((result) => result.isCorrect).length / results.length) * 100) : 100;
     const isChoiceQuestion = currentQuestion?.questionType === 'choice';
     const isReorderQuestion = currentQuestion?.questionType === 'reorder';
     const reorderTokenBank = currentQuestion?.reorderTokens || [];
@@ -147,11 +144,6 @@ const ReviewQuiz = ({
         && reorderTokenBank.length > 0
         && selectedReorderTokenIds.length === reorderTokenBank.length;
     const priority = getReviewPriority(currentQuestion?.nextReviewDate);
-    const priorityLabel = {
-        urgent: '今すぐ復習',
-        soon: '近日中',
-        later: '余裕あり'
-    }[priority];
     const sceneMood = feedback
         ? feedback === 'correct'
             ? 'success'
@@ -163,20 +155,16 @@ const ReviewQuiz = ({
                 : 'calm';
     const characterId = stats?.characterId || 'noah';
     const skinId = stats?.equippedSkin || 'default';
+    const preferredRenderer = stats?.characterRenderer;
     const hasReviewLive2D = hasLive2DModelConfig(characterId, skinId);
     const shouldForceReviewLive2D = characterId === 'noah' && hasReviewLive2D;
     const renderer = resolveCharacterRenderer({
-        preferredRenderer: shouldForceReviewLive2D ? 'live2d' : stats?.characterRenderer,
+        preferredRenderer: shouldForceReviewLive2D ? 'live2d' : preferredRenderer,
         characterId,
         skinId,
     });
     const showIncorrectFeedback = Boolean(isChoiceQuestion && feedback === 'incorrect');
     const isShowingFeedback = Boolean(feedback);
-    const questionHintText = isChoiceQuestion
-        ? '正しい答えを選ぼう'
-        : isReorderQuestion
-            ? '単語を順に押して正しい文にしよう'
-            : '答えを入力しよう';
     const shouldManualAdvanceCurrentQuestion = Boolean(
         manualAdvanceOnReorderIncorrect
         && isReorderQuestion
@@ -193,6 +181,14 @@ const ReviewQuiz = ({
         wrongCount: currentQuestion?.wrongCount || 0,
         priority,
     });
+
+    useEffect(() => {
+        if (!shouldForceReviewLive2D || !updateStats || preferredRenderer === 'live2d') {
+            return;
+        }
+
+        updateStats({ characterRenderer: 'live2d' });
+    }, [preferredRenderer, shouldForceReviewLive2D, updateStats]);
     const getChainAudioSrc = useCallback((streak) => {
         if (streak <= 1) return battleChain1Audio;
         if (streak === 2) return battleChain2Audio;
@@ -593,11 +589,38 @@ const ReviewQuiz = ({
     }
 
     return (
-        <div className={`mp-screen mp-playing-screen review-quiz-screen ${isMinimalUi ? 'review-quiz-screen-minimal' : ''} review-mood-${sceneMood} ${isFeverFxActive ? 'review-fx-fever' : ''}`}>
-            <div
-                className="mp-background"
-                style={{ backgroundImage: `url(${BgClassroom})`, opacity: 0.72 }}
-            />
+        <SceneStageLayout
+            rootClassName={`mp-screen mp-playing-screen review-quiz-screen review-quiz-scene ${isMinimalUi ? 'review-quiz-screen-minimal' : ''} review-mood-${sceneMood} ${isFeverFxActive ? 'review-fx-fever' : ''}`}
+            backgroundClassName="mp-background"
+            backgroundStyle={{ backgroundImage: `url(${BgClassroom})`, opacity: 0.72 }}
+            characterLayerClassName={`mp-character-area ${renderer === 'live2d' ? 'is-live2d' : ''}`}
+            character={(
+                <>
+                    <CharacterStage
+                        characterId={characterId}
+                        renderer={renderer}
+                        skinId={skinId}
+                        scene="review"
+                        pose={characterPose}
+                        className="character-match review-character-stage"
+                        imageClassName="mp-center-character"
+                        alt="Review Character"
+                    />
+                    {visibleReviewFaceAccent && (
+                        <div className={`mp-face-accent mp-face-accent-${visibleReviewFaceAccent} review-face-accent`} aria-hidden="true">
+                            {visibleReviewFaceAccent === 'heart' && (
+                                <>
+                                    <span className="mp-face-heart-orbit mp-face-heart-orbit-left">♥</span>
+                                    <span className="mp-face-heart-orbit mp-face-heart-orbit-right">♥</span>
+                                </>
+                            )}
+                            <span className="mp-face-eye mp-face-eye-left">{visibleReviewFaceAccent === 'heart' ? '♥' : '★'}</span>
+                            <span className="mp-face-eye mp-face-eye-right">{visibleReviewFaceAccent === 'heart' ? '♥' : '★'}</span>
+                        </div>
+                    )}
+                </>
+            )}
+        >
             {isFeverFxActive && (
                 <div className="review-fever-burst" key={`review-fever-${feverFxKey}`} aria-hidden="true">
                     <span className="review-fever-kicker">RARE VOICE</span>
@@ -656,107 +679,16 @@ const ReviewQuiz = ({
                 </div>
             )}
 
-            <div className={`mp-character-area ${renderer === 'live2d' ? 'is-live2d' : ''}`}>
-                <CharacterStage
-                    characterId={characterId}
-                    renderer={renderer}
-                    skinId={skinId}
-                    scene="review"
-                    pose={characterPose}
-                    className="character-match review-character-stage"
-                    imageClassName="mp-center-character"
-                    alt="Review Character"
-                />
-                {visibleReviewFaceAccent && (
-                    <div className={`mp-face-accent mp-face-accent-${visibleReviewFaceAccent} review-face-accent`} aria-hidden="true">
-                        {visibleReviewFaceAccent === 'heart' && (
-                            <>
-                                <span className="mp-face-heart-orbit mp-face-heart-orbit-left">♥</span>
-                                <span className="mp-face-heart-orbit mp-face-heart-orbit-right">♥</span>
-                            </>
-                        )}
-                        <span className="mp-face-eye mp-face-eye-left">{visibleReviewFaceAccent === 'heart' ? '♥' : '★'}</span>
-                        <span className="mp-face-eye mp-face-eye-right">{visibleReviewFaceAccent === 'heart' ? '♥' : '★'}</span>
-                    </div>
-                )}
-            </div>
-
             <div className={`mp-playing-content-wrapper review-playing-content ${isMinimalUi ? 'is-minimal' : ''}`}>
                 <div className={`mp-question-container review-question-container ${isMinimalUi ? 'is-minimal' : ''}`}>
-                    {isMinimalUi ? (
-                        <div className="mp-question-meta-row">
-                            <div className="mp-question-pill mp-question-pill-primary">
-                                {currentIndex + 1} / {sessionQuestions.length}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="mp-question-meta-row">
-                            <div className="mp-question-pill mp-question-pill-primary">
-                                第{currentIndex + 1}問
-                            </div>
-                            <div className="mp-question-pill">
-                                あと {Math.max(sessionQuestions.length - currentIndex - 1, 0)} 問
-                            </div>
-                            <div className="mp-question-pill mp-question-pill-neutral">
-                                <Target size={14} />
-                                正答率 {accuracy}%
-                            </div>
-                            <div className="mp-question-pill">
-                                <Clock3 size={14} />
-                                {priorityLabel}
-                            </div>
-                            <div className="mp-question-pill">
-                                {formatReviewProgress(currentQuestion.reviewLevel)}
-                            </div>
-                            <div className="mp-question-pill mp-question-pill-growth">
-                                {formatNextCorrectReviewProgress(currentQuestion.reviewLevel)}
-                            </div>
-                            <div className={`mp-question-pill review-chain-pill ${correctStreak >= 2 ? 'is-hot' : ''}`}>
-                                <Flame size={14} />
-                                {correctStreak > 0 ? `${correctStreak}チェイン` : 'チェイン待機'}
-                            </div>
-                            <div className="mp-question-pill">
-                                <Flame size={14} />
-                                ミス {currentQuestion.wrongCount}回
-                            </div>
-                        </div>
-                    )}
-
+                    <div className="review-question-progress" aria-label={`進捗 ${currentIndex + 1} / ${sessionQuestions.length}`}>
+                        {currentIndex + 1} / {sessionQuestions.length}
+                    </div>
                     <div className="mp-question-card review-question-card">
-                        {!isMinimalUi && (
-                            <div className="review-question-subject">{currentQuestion.subject}</div>
-                        )}
                         <div className={`mp-question-word review-question-word ${isMinimalUi ? 'is-minimal' : ''}`}>
                             {currentQuestion.questionText}
                         </div>
-                        {!isMinimalUi && (
-                            <>
-                                <p className="mp-question-hint review-question-hint">
-                                    {questionHintText}
-                                </p>
-                                <div className="review-question-subhint">
-                                    次回 {formatRelativeDate(currentQuestion.nextReviewDate)} · {formatWrongReviewProgress()}
-                                </div>
-                            </>
-                        )}
                     </div>
-                    {dailyChallenge && (
-                        <div className={`review-inline-challenge ${dailyChallenge.claimed ? 'is-complete' : ''}`}>
-                            <div className="review-inline-challenge-head">
-                                <span>DAILY CHALLENGE</span>
-                                <strong>{dailyChallenge.progress > 0 || sessionChallengeProgress > 0
-                                    ? `${sessionChallengeProgress} / ${dailyChallenge.target}${dailyChallenge.unit}`
-                                    : `0 / ${dailyChallenge.target}${dailyChallenge.unit}`}</strong>
-                            </div>
-                            <div className="review-inline-challenge-title">{dailyChallenge.title}</div>
-                            <div className="review-inline-challenge-bar" aria-hidden="true">
-                                <div
-                                    className="review-inline-challenge-fill"
-                                    style={{ width: `${Math.min((sessionChallengeProgress / dailyChallenge.target) * 100, 100)}%` }}
-                                />
-                            </div>
-                        </div>
-                    )}
                     {showIncorrectFeedback && (
                         <div className="review-answer-panel review-answer-panel-inline review-answer-panel-floating">
                             {renderFeedbackContent()}
@@ -884,7 +816,7 @@ const ReviewQuiz = ({
                     )}
                 </div>
             </div>
-        </div>
+        </SceneStageLayout>
     );
 };
 

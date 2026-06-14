@@ -1,4 +1,5 @@
 import { RARITY, ALL_GACHA_ITEMS, GACHA_POOL } from '../data/gachaItems';
+import { touchCloudSaveData } from './saveUtils';
 
 const GACHA_HISTORY_KEY = 'gachaHistory';
 const LEGACY_GACHA_HISTORY_KEY = 'gacha_history';
@@ -12,6 +13,7 @@ const readStorage = (primaryKey, legacyKey) =>
 const writeStorage = (primaryKey, legacyKey, value) => {
     localStorage.setItem(primaryKey, value);
     localStorage.setItem(legacyKey, value);
+    touchCloudSaveData();
 };
 
 // ガチャ履歴を取得

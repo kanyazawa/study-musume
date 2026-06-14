@@ -2,6 +2,8 @@
  * 学習履歴管理ユーティリティ
  */
 
+import { touchCloudSaveData } from './saveUtils';
+
 const STORAGE_KEY = 'studyHistory';
 
 /**
@@ -32,6 +34,7 @@ export const saveStudySession = (session) => {
 
     history.push(newSession);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+    touchCloudSaveData();
 
     console.log('Study session saved:', newSession);
 };
@@ -127,6 +130,7 @@ const formatDate = (dateString) => {
  */
 export const clearStudyHistory = () => {
     localStorage.removeItem(STORAGE_KEY);
+    touchCloudSaveData();
     console.log('Study history cleared');
 };
 

@@ -4,14 +4,16 @@ import {
     getDoc,
     collection,
     addDoc,
-    serverTimestamp
+    serverTimestamp,
+    onSnapshot
 } from "firebase/firestore";
 import { db } from "./config";
 import {
     loadStats,
     saveStats,
     collectAllSaveData,
-    restoreAllSaveData
+    restoreAllSaveData,
+    getLocalSaveDataTimestamp
 } from "../utils/saveUtils";
 
 const buildRankingStatsPayload = (stats = {}) => ({
@@ -78,14 +80,41 @@ export const downloadAllSaveData = async (uid) => {
 };
 
 /**
+ * Firestore のセーブデータ更新を監視
+ * @param {string} uid
+ * @param {(payload: { data: Object, savedAt: number }) => void} callback
+ * @returns {() => void}
+ */
+export const subscribeToCloudSave = (uid, callback) => {
+    if (!db || !uid) {
+        return () => { };
+    }
+
+    const ref = doc(db, "users", uid, "saveData", "current");
+    return onSnapshot(ref, (snap) => {
+        if (!snap.exists()) {
+            return;
+        }
+
+        const data = snap.data();
+        callback({
+            data,
+            savedAt: data?._savedAt || 0,
+        });
+    }, (error) => {
+        console.error('[CloudSync] Subscribe失敗:', error);
+    });
+};
+
+/**
  * ログイン時の同期処理（一括同期版）
  * - クラウドとローカルの _savedAt を比較して新しい方を採用
  * - 初回ログイン時はローカルデータをアップロード
  */
 export const syncOnLogin = async (uid) => {
     try {
-        const localData = collectAllSaveData();
-        const localSavedAt = localData._savedAt || 0;
+        const localData = collectAllSaveData({ initializeTimestamp: false });
+        const localSavedAt = getLocalSaveDataTimestamp();
 
         const cloudResult = await downloadAllSaveData(uid);
 

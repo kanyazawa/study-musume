@@ -1,3 +1,5 @@
+import { touchCloudSaveData } from './saveUtils';
+
 const STORAGE_KEY = 'customVocabEntries';
 const POSSESSIVE_PATTERN = /'s$/i;
 
@@ -58,6 +60,7 @@ export const getCustomVocabEntries = () => {
 export const saveCustomVocabEntries = (entries) => {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+        touchCloudSaveData();
     } catch (error) {
         console.error('Error saving custom vocab entries:', error);
     }

@@ -394,6 +394,7 @@ const Review = ({ stats, updateStats }) => {
                         key={quizQuestions.map((question) => question.id).join('-')}
                         questions={quizQuestions}
                         stats={stats}
+                        updateStats={updateStats}
                         dailyChallenge={dailyChallenge}
                         getRewardSummary={getSessionRewards}
                         onComplete={handleQuizComplete}

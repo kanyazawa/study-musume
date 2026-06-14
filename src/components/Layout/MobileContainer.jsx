@@ -6,6 +6,7 @@ const MobileContainer = ({ children }) => {
     <div className="mobile-window">
       <div className="mobile-content">
         {children}
+        <div id="live2d-global-host" className="live2d-global-host" aria-hidden="true" />
       </div>
     </div>
   );

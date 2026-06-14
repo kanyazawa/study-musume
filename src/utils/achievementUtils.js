@@ -4,6 +4,7 @@
 
 import { ACHIEVEMENTS, getInitialAchievementProgress } from '../data/achievements';
 import { getAffectionLevel } from './affectionUtils';
+import { touchCloudSaveData } from './saveUtils';
 
 const ACHIEVEMENTS_STORAGE_KEY = 'achievements';
 const STATS_TRACKING_KEY = 'achievementStats';
@@ -32,6 +33,7 @@ export const loadAchievements = () => {
 export const saveAchievements = (achievements) => {
     try {
         localStorage.setItem(ACHIEVEMENTS_STORAGE_KEY, JSON.stringify(achievements));
+        touchCloudSaveData();
     } catch (error) {
         console.error('Error saving achievements:', error);
     }
@@ -70,6 +72,7 @@ export const loadAchievementStats = () => {
 export const saveAchievementStats = (stats) => {
     try {
         localStorage.setItem(STATS_TRACKING_KEY, JSON.stringify(stats));
+        touchCloudSaveData();
     } catch (error) {
         console.error('Error saving achievement stats:', error);
     }

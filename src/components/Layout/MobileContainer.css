@@ -82,6 +82,14 @@
     height: 100%;
 }
 
+.live2d-global-host {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    overflow: hidden;
+}
+
 .content-container {
     position: relative;
     background:
