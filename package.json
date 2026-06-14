@@ -21,6 +21,7 @@
     "ios:open": "npx cap open ios",
     "android:release:prep": "npm run build && npm run android:sync",
     "android:bundle:release": "pwsh -File scripts/release-android.ps1",
+    "deploy:netlify:prod": "pwsh -File scripts/deploy-netlify-prod.ps1",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run"
