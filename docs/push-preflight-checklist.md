@@ -74,6 +74,24 @@ git commit -m "fix: ..."
 git push origin main
 ```
 
+このリポジトリでは、Netlify 本番反映までまとめて流したいなら次も使えます。
+
+```powershell
+.\publish-netlify-prod.bat
+```
+
+または:
+
+```powershell
+npm run deploy:netlify:prod
+```
+
+見るポイント:
+
+- `main` ブランチ以外では止まる
+- 未コミット差分があると止まる
+- `origin/main` への push と Netlify 本番 deploy をまとめて実行する
+
 ## Push 後チェック
 
 1. GitHub の commit が想定どおりか確認する
@@ -110,4 +128,10 @@ git push origin main
 git status --short
 npm run build
 git push origin main
+```
+
+本番反映まで一気にやるなら:
+
+```powershell
+.\publish-netlify-prod.bat
 ```

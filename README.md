@@ -204,6 +204,24 @@ Swift plugin のテンプレートは [docs/ios-native-plugin-template/NativeGoo
 Netlify 用の SPA リダイレクト設定が [netlify.toml](/C:/Users/Hide2/.gemini/study-musume/netlify.toml) にあります。`/* -> /index.html` へリダイレクトする構成です。
 GitHub に push する前の確認手順は [docs/push-preflight-checklist.md](/C:/Users/Hide2/.gemini/study-musume/docs/push-preflight-checklist.md) にまとめています。
 
+このリポジトリでは、Netlify 本番反映をまとめて流すなら次を使えます。
+
+```powershell
+.\publish-netlify-prod.bat
+```
+
+または:
+
+```powershell
+npm run deploy:netlify:prod
+```
+
+補足:
+
+- `main` ブランチでだけ実行する想定です
+- 未コミット差分があると止まるようにしてあります
+- 内部では `origin/main` への push と Netlify 本番 deploy を続けて実行します
+
 ## 現状の注意点
 
 - `src/components/game-ui-design/` は現行本体とは別の UI 試作コードが含まれています。
