@@ -5,6 +5,7 @@ import CharacterStage from '../components/character/CharacterStage';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { createStoryPose } from '../utils/characterPoseUtils';
 import { getOpeningIntroContent, OPENING_GUIDE_CARDS } from '../data/openingIntroData';
+import { getPlayerAddress, personalizePlayerText } from '../utils/playerName';
 
 const OpeningIntro = ({ stats, updateStats }) => {
     const navigate = useNavigate();
@@ -18,11 +19,13 @@ const OpeningIntro = ({ stats, updateStats }) => {
     const introContent = useMemo(() => getOpeningIntroContent(characterId), [characterId]);
     const scene = introContent.scenes[currentScene];
     const isLastScene = currentScene === introContent.scenes.length - 1;
+    const playerAddress = getPlayerAddress(stats, 'あなた');
     const displaySpeaker = scene?.speaker === 'partner'
         ? introContent.partnerName
         : scene?.speaker === 'you'
-            ? 'あなた'
+            ? playerAddress
             : '';
+    const displayText = personalizePlayerText(scene?.text, stats);
     const storyPose = useMemo(
         () => createStoryPose(scene, { speaking: scene?.speaker === 'partner' }),
         [scene],
@@ -88,7 +91,7 @@ const OpeningIntro = ({ stats, updateStats }) => {
             <div className="opening-intro-bottom">
                 <div className="opening-intro-textbox">
                     <div className="opening-intro-speaker">{displaySpeaker}</div>
-                    <p className="opening-intro-text">{scene?.text}</p>
+                    <p className="opening-intro-text">{displayText}</p>
                 </div>
 
                 {isLastScene ? (

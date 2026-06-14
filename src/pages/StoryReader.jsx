@@ -12,6 +12,7 @@ import { createStoryPose } from '../utils/characterPoseUtils';
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
 import { getAffectionLevel } from '../utils/affectionUtils';
 import { getEpisodeUnlockState, getStoryEpisodeState, unlockEpisodeWithKey } from '../utils/storyUtils';
+import { getPlayerAddress, personalizePlayerText } from '../utils/playerName';
 
 const StoryReader = ({ stats, updateStats }) => {
     const { episodeId } = useParams();
@@ -79,10 +80,16 @@ const StoryReader = ({ stats, updateStats }) => {
     const skinId = stats?.equippedSkin || 'default';
     const hasStoryLive2D = hasLive2DModelConfig(characterId, skinId);
     const shouldForceStoryLive2D = characterId === 'noah' && hasStoryLive2D;
+    const playerAddress = getPlayerAddress(stats, 'あなた');
 
-    const displaySpeaker = scene.speaker === 'ノア' ? characterLabel : scene.speaker;
+    const displaySpeaker = scene.speaker === 'ノア'
+        ? characterLabel
+        : scene.speaker === 'あなた'
+            ? playerAddress
+            : scene.speaker;
     const isCharacterLine = displaySpeaker === characterLabel;
-    const shouldShowCharacter = displaySpeaker === 'モノローグ' || isCharacterLine || displaySpeaker === 'あなた';
+    const shouldShowCharacter = scene.speaker === 'モノローグ' || isCharacterLine || scene.speaker === 'あなた';
+    const displayText = personalizePlayerText(scene.text, stats);
     const storyPose = createStoryPose(scene, { speaking: isCharacterLine });
     const renderer = resolveCharacterRenderer({
         preferredRenderer: shouldForceStoryLive2D ? 'live2d' : preferredRenderer,
@@ -114,7 +121,7 @@ const StoryReader = ({ stats, updateStats }) => {
             {/* テキストボックス */}
             <div className="story-textbox">
                 <div className="speaker-name">{displaySpeaker}</div>
-                <TappableVocabText text={scene.text} className="story-text" />
+                <TappableVocabText text={displayText} className="story-text" />
             </div>
 
             {/* コントロール */}

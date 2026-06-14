@@ -244,6 +244,8 @@
 
 .review-quiz-scene .character-figure.is-live2d {
     width: 100%;
+    --character-stage-inline-overscan: clamp(40px, 10vw, 88px);
+    --character-stage-inline-shift: 0px;
 }
 
 .character-aura {

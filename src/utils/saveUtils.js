@@ -3,10 +3,22 @@
  */
 
 import { mergeGameLoopStats } from './gameLoopUtils';
-import { loadStandaloneTutorialSnapshot, syncStandaloneTutorialSnapshot } from './tutorialStorage';
+import {
+    loadStandaloneTutorialSnapshot,
+    syncStandaloneTutorialSnapshot,
+    TUTORIAL_STORAGE_KEYS,
+} from './tutorialStorage';
 
 const STORAGE_KEY = 'gameStats';
 const SAVE_TIMESTAMP_KEY = '__saveDataUpdatedAt';
+const LOCAL_DEBUG_CLEARABLE_KEYS = [
+    ...new Set([
+        STORAGE_KEY,
+        SAVE_TIMESTAMP_KEY,
+        'notificationSettings',
+        ...Object.values(TUTORIAL_STORAGE_KEYS),
+    ]),
+];
 
 /**
  * デフォルトの統計情報を取得
@@ -81,6 +93,18 @@ export const getDefaultStats = () => mergeGameLoopStats({
         unlockedIds: [],
         readIds: [],
     },
+    seasonalEvents: {},
+    aiTutorSubscription: {
+        planId: 'free',
+        billingCycle: 'monthly',
+        startedAt: null,
+    },
+    aiTutorUsage: {
+        periodKey: '',
+        used: 0,
+    },
+    aiTutorTickets: 0,
+    aiTutorTrialUsed: 0,
     characterEvaluations: {},
     relationshipLastInteractionAt: null,
     reflectionEntries: [],
@@ -139,6 +163,12 @@ const writeSaveTimestamp = (timestamp = Date.now()) => {
     localStorage.setItem(SAVE_TIMESTAMP_KEY, String(normalized));
     return normalized;
 };
+
+for (const key of SYNC_KEYS) {
+    if (!LOCAL_DEBUG_CLEARABLE_KEYS.includes(key)) {
+        LOCAL_DEBUG_CLEARABLE_KEYS.push(key);
+    }
+}
 
 // デバウンスタイマー
 let _syncTimer = null;
@@ -338,6 +368,17 @@ export const clearSaveData = () => {
         console.log('Save data cleared');
     } catch (error) {
         console.error('Error clearing save data:', error);
+    }
+};
+
+export const clearAllLocalAppData = () => {
+    try {
+        for (const key of LOCAL_DEBUG_CLEARABLE_KEYS) {
+            localStorage.removeItem(key);
+        }
+        console.log('All local app data cleared');
+    } catch (error) {
+        console.error('Error clearing all local app data:', error);
     }
 };
 

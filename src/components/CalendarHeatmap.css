@@ -112,7 +112,7 @@
     box-shadow: inset 0 -8px 14px rgba(255, 255, 255, 0.14);
 }
 
-.day-number {
+.calendar-heatmap .calendar-day-number {
     position: relative;
     z-index: 1;
     color: #6c4b43;
@@ -120,8 +120,8 @@
     font-weight: 900;
 }
 
-.calendar-day.intensity-3 .day-number,
-.calendar-day.intensity-4 .day-number {
+.calendar-heatmap .calendar-day.intensity-3 .calendar-day-number,
+.calendar-heatmap .calendar-day.intensity-4 .calendar-day-number {
     color: white;
     text-shadow: 0 2px 6px rgba(148, 92, 68, 0.28);
 }
@@ -249,7 +249,7 @@
         display: none;
     }
 
-    .day-number {
+    .calendar-heatmap .calendar-day-number {
         font-size: 0.74rem;
     }
 

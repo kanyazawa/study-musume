@@ -74,7 +74,7 @@ const CalendarHeatmap = ({ year, month, monthlyStats, selectedDate, onDayClick }
                             data-date={date}
                             data-minutes={stats.totalMinutes || 0}
                         >
-                            <div className="day-number">{day}</div>
+                            <div className="calendar-day-number">{day}</div>
                             {stats.focus?.trim() && <div className="day-focus-glow" />}
                             {stats.totalMinutes > 0 && (
                                 <div className="day-indicator">

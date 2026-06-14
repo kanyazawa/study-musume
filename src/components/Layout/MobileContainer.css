@@ -2,6 +2,11 @@
 .mobile-window {
     width: 100%;
     height: 100vh;
+    height: 100svh;
+    height: 100dvh;
+    min-height: 100vh;
+    min-height: 100svh;
+    min-height: 100dvh;
     padding: 0;
     background:
         radial-gradient(circle at 12% 12%, rgba(120, 170, 218, 0.22), transparent 24%),
@@ -32,6 +37,7 @@
 @media (min-width: 481px) {
     .mobile-window {
         height: 90vh;
+        height: 90dvh;
         padding: 24px;
         margin: auto;
     }

@@ -1,7 +1,7 @@
 .dialogue-screen {
     height: 100%;
     position: relative;
-    overflow: visible;
+    overflow: hidden;
     --dialogue-character-top-gap: 0px;
     --dialogue-character-bottom-gap: -88px;
     --dialogue-character-bottom-gap-with-board: -36px;
@@ -139,11 +139,13 @@
 
 /* Character viewer container */
 .character-dialogue {
+    --dialogue-character-offset-x: 0px;
     width: 116%;
     height: 100%;
     position: absolute;
     bottom: 0;
     left: -8%;
+    transform: translate3d(var(--dialogue-character-offset-x), 0, 0);
 }
 
 .character-dialogue canvas {
@@ -151,18 +153,34 @@
 }
 
 .character-dialogue.with-board {
-    transform: translateY(2%);
+    transform: translate3d(var(--dialogue-character-offset-x), 2%, 0);
 }
 
 .dialogue-screen .character-figure.is-live2d .character-dialogue,
 .dialogue-screen .character-figure.is-live2d .char-image-dialogue,
 .dialogue-screen .character-figure.is-live2d .character-dialogue > * {
-    width: 116%;
+    width: 100%;
     height: 100%;
 }
 
 .dialogue-screen .character-figure.is-live2d {
     top: -10vh;
+    left: 0;
+    width: 100%;
+    --character-stage-inline-overscan: clamp(40px, 10vw, 88px);
+    --character-stage-inline-shift: 0px;
+    --dialogue-live2d-shift-x: 24px;
+    --dialogue-live2d-shift-y: 0px;
+}
+
+.dialogue-screen .character-figure.is-live2d.has-board {
+    --dialogue-live2d-shift-y: 2%;
+}
+
+.dialogue-screen .character-figure.is-live2d .character-dialogue {
+    width: 100%;
+    left: 0;
+    --live2d-viewer-transform: translate3d(var(--dialogue-live2d-shift-x), var(--dialogue-live2d-shift-y), 0);
 }
 
 .expression-normal {

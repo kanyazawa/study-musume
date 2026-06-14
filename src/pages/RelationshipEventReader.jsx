@@ -9,6 +9,7 @@ import { getRelationshipEventById } from '../data/relationshipEvents';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { createStoryPose } from '../utils/characterPoseUtils';
 import { applyRelationshipProgress, isRelationshipEventRead, isRelationshipEventUnlocked, markRelationshipEventRead } from '../utils/relationshipEventUtils';
+import { getPlayerAddress, personalizePlayerText } from '../utils/playerName';
 
 const RelationshipEventReader = ({ stats, updateStats }) => {
     const { eventId } = useParams();
@@ -51,8 +52,14 @@ const RelationshipEventReader = ({ stats, updateStats }) => {
 
     const scene = event.scenes[currentScene];
     const isLastScene = currentScene === event.scenes.length - 1;
-    const displaySpeaker = scene.speaker === 'ノア' ? characterLabel : scene.speaker;
-    const isCharacterSpeaking = displaySpeaker === characterLabel || displaySpeaker === 'あなた';
+    const playerAddress = getPlayerAddress(stats, 'あなた');
+    const displaySpeaker = scene.speaker === 'ノア'
+        ? characterLabel
+        : scene.speaker === 'あなた'
+            ? playerAddress
+            : scene.speaker;
+    const isCharacterSpeaking = displaySpeaker === characterLabel || scene.speaker === 'あなた';
+    const displayText = personalizePlayerText(scene.text, stats);
     const storyPose = createStoryPose(scene, { speaking: displaySpeaker === characterLabel });
 
     const finishEvent = () => {
@@ -116,7 +123,7 @@ const RelationshipEventReader = ({ stats, updateStats }) => {
 
             <div className="relationship-event-textbox">
                 <div className="speaker-name">{displaySpeaker}</div>
-                <div className="story-text">{scene.text}</div>
+                <div className="story-text">{displayText}</div>
             </div>
 
             <div className="story-controls">

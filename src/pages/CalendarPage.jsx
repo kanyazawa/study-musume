@@ -8,7 +8,7 @@ import { getVocabByLevel } from '../data/vocabData';
 import { getCharacterLabel } from '../data/characterData';
 import { loadGoalTodos, saveGoalTodos } from '../utils/goalUtils';
 import { updateMissionsOnWriteDailyNote } from '../utils/missionUtils';
-import { getMonthlyStats, getMonthSummary, getStudyStreak } from '../utils/studyHistoryUtils';
+import { getMonthlyStats, getStudyStreak } from '../utils/studyHistoryUtils';
 import { createHomePose } from '../utils/characterPoseUtils';
 import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { hasLive2DModelConfig } from '../utils/live2dModelRegistry';
@@ -54,8 +54,8 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
         skinId: equippedSkin,
     });
 
-    const calendarNotes = stats?.calendarNotes || {};
-    const calendarFocuses = stats?.calendarFocuses || {};
+    const calendarNotes = useMemo(() => stats?.calendarNotes || {}, [stats?.calendarNotes]);
+    const calendarFocuses = useMemo(() => stats?.calendarFocuses || {}, [stats?.calendarFocuses]);
     const monthlyStats = useMemo(() => {
         const baseMonthlyStats = getMonthlyStats(currentYear, currentMonth);
 
@@ -70,10 +70,6 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
             ]),
         );
     }, [calendarFocuses, calendarNotes, currentMonth, currentYear]);
-    const monthSummary = useMemo(
-        () => getMonthSummary(currentYear, currentMonth),
-        [currentMonth, currentYear],
-    );
     const streak = getStudyStreak();
     const vocabLevelStats = useMemo(() => LEVEL_THRESHOLDS.map((levelMeta) => {
         const progress = getVocabLevelProgress(levelMeta.level, getVocabByLevel(levelMeta.level));
@@ -292,6 +288,16 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
             <div className="calendar-scene-background-overlay" aria-hidden="true" />
             <div className="calendar-scene-shell">
                 <section className="calendar-hero">
+                    <div className="calendar-scene-nav">
+                        <button
+                            type="button"
+                            className="back-btn"
+                            aria-label="ホームへ戻る"
+                            onClick={() => navigate('/home')}
+                        >
+                            <Home size={18} />
+                        </button>
+                    </div>
                     <div className="calendar-face-safe-zone" aria-hidden="true" />
                     <div className="calendar-hero-character-zone">
                         <div className="calendar-coach-portrait">
@@ -461,7 +467,7 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
                                 <div className="calendar-sheet calendar-todo-panel">
                             <div className="calendar-todo-header">
                                 <div>
-                                    <div className="calendar-note-eyebrow">TODO</div>
+                                    <div className="calendar-note-eyebrow">TASK LIST</div>
                                     <h3>やることリスト</h3>
                                 </div>
                                 <div className="calendar-todo-progress">
@@ -604,13 +610,6 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
                             </div>
                         )}
                     </div>
-
-                    <div className="bottom-area">
-                        <button type="button" className="big-home-btn" onClick={() => navigate('/home')}>
-                            <Home size={20} />
-                            ホーム
-                        </button>
-                    </div>
                 </section>
             </div>
         </div>
@@ -623,11 +622,6 @@ const formatDate = (dateString) => {
     const day = date.getDate();
     const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
     return `${month}月${day}日（${weekDays[date.getDay()]}）`;
-};
-
-const formatShortDate = (dateString) => {
-    const date = new Date(`${dateString}T00:00:00`);
-    return `${date.getMonth() + 1}/${date.getDate()}`;
 };
 
 export default CalendarPage;

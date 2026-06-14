@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { getDownloadURL, ref as storageRef } from 'firebase/storage';
 import { isFirebaseConfigured, storage } from '../firebase/config';
 import { loadSoundSettings, saveSoundSettings } from '../utils/soundSettings';
@@ -23,6 +23,10 @@ export const useSound = () => useContext(SoundContext);
 const audioPathCache = new Map();
 
 const isAbsoluteUrl = (value) => /^https?:\/\//i.test(value);
+const isAutoplayBlockedError = (error) => (
+    error?.name === 'NotAllowedError'
+    || /didn['’]t interact with the document first/i.test(String(error?.message || ''))
+);
 
 const resolveAudioSource = async (filename, { defaultExtension = '.mp3' } = {}) => {
     const normalized = String(filename || '').trim();
@@ -62,11 +66,11 @@ const resolveAudioSource = async (filename, { defaultExtension = '.mp3' } = {}) 
 };
 
 export const SoundProvider = ({ children }) => {
-    const initialSettingsRef = useRef(loadSoundSettings());
-    const [isMuted, setIsMuted] = useState(initialSettingsRef.current.isMuted);
-    const [bgmVolume, setBgmVolume] = useState(initialSettingsRef.current.bgmVolume);
-    const [seVolume, setSeVolume] = useState(initialSettingsRef.current.seVolume);
-    const [voiceVolume, setVoiceVolume] = useState(initialSettingsRef.current.voiceVolume);
+    const [initialSettings] = useState(() => loadSoundSettings());
+    const [isMuted, setIsMuted] = useState(initialSettings.isMuted);
+    const [bgmVolume, setBgmVolume] = useState(initialSettings.bgmVolume);
+    const [seVolume, setSeVolume] = useState(initialSettings.seVolume);
+    const [voiceVolume, setVoiceVolume] = useState(initialSettings.voiceVolume);
     const [isPlaying, setIsPlaying] = useState(false);
 
     const bgmRef = useRef(null);
@@ -75,14 +79,15 @@ export const SoundProvider = ({ children }) => {
     const voiceFocusCountRef = useRef(0);
     const bgmFadeFrameRef = useRef(null);
     const bgmPauseTimeoutRef = useRef(null);
+    const hasUserInteractedRef = useRef(false);
 
-    const getTargetBgmVolume = () => {
+    const getTargetBgmVolume = useCallback(() => {
         if (isMuted) return 0;
         const duckMultiplier = voiceFocusCountRef.current > 0 ? BGM_DUCK_MULTIPLIER : 1;
         return clampMediaVolume(bgmVolume * duckMultiplier);
-    };
+    }, [bgmVolume, isMuted]);
 
-    const cancelBgmFade = () => {
+    const cancelBgmFade = useCallback(() => {
         if (bgmFadeFrameRef.current) {
             cancelAnimationFrame(bgmFadeFrameRef.current);
             bgmFadeFrameRef.current = null;
@@ -92,9 +97,9 @@ export const SoundProvider = ({ children }) => {
             clearTimeout(bgmPauseTimeoutRef.current);
             bgmPauseTimeoutRef.current = null;
         }
-    };
+    }, []);
 
-    const animateBgmVolume = (nextVolume, durationMs = BGM_FADE_MS) => {
+    const animateBgmVolume = useCallback((nextVolume, durationMs = BGM_FADE_MS) => {
         const bgm = bgmRef.current;
         if (!bgm) return;
 
@@ -122,13 +127,13 @@ export const SoundProvider = ({ children }) => {
         };
 
         bgmFadeFrameRef.current = requestAnimationFrame(step);
-    };
+    }, [cancelBgmFade]);
 
-    const syncBgmVolume = (durationMs = BGM_FADE_MS) => {
+    const syncBgmVolume = useCallback((durationMs = BGM_FADE_MS) => {
         animateBgmVolume(getTargetBgmVolume(), durationMs);
-    };
+    }, [animateBgmVolume, getTargetBgmVolume]);
 
-    const acquireVoiceFocus = () => {
+    const acquireVoiceFocus = useCallback(() => {
         voiceFocusCountRef.current += 1;
         syncBgmVolume();
 
@@ -139,9 +144,9 @@ export const SoundProvider = ({ children }) => {
             voiceFocusCountRef.current = Math.max(0, voiceFocusCountRef.current - 1);
             syncBgmVolume();
         };
-    };
+    }, [syncBgmVolume]);
 
-    const ensureBgm = () => {
+    const ensureBgm = useCallback(() => {
         if (!bgmRef.current) {
             bgmRef.current = new Audio(bgmTrack);
             bgmRef.current.loop = true;
@@ -150,7 +155,7 @@ export const SoundProvider = ({ children }) => {
         }
 
         return bgmRef.current;
-    };
+    }, [getTargetBgmVolume]);
 
     useEffect(() => {
         saveSoundSettings({
@@ -174,6 +179,22 @@ export const SoundProvider = ({ children }) => {
             audio.src = '';
         });
         activeVoicesRef.current.clear();
+    }, [cancelBgmFade]);
+
+    useEffect(() => {
+        const markUserInteraction = () => {
+            hasUserInteractedRef.current = true;
+        };
+
+        window.addEventListener('pointerdown', markUserInteraction, { passive: true });
+        window.addEventListener('keydown', markUserInteraction);
+        window.addEventListener('touchstart', markUserInteraction, { passive: true });
+
+        return () => {
+            window.removeEventListener('pointerdown', markUserInteraction);
+            window.removeEventListener('keydown', markUserInteraction);
+            window.removeEventListener('touchstart', markUserInteraction);
+        };
     }, []);
 
     useEffect(() => {
@@ -195,14 +216,14 @@ export const SoundProvider = ({ children }) => {
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [isPlaying]);
+    }, [isPlaying, syncBgmVolume]);
 
     useEffect(() => {
         syncBgmVolume();
         activeVoicesRef.current.forEach((audio) => {
             audio.volume = clampMediaVolume(isMuted ? 0 : voiceVolume);
         });
-    }, [bgmVolume, isMuted, voiceVolume]);
+    }, [bgmVolume, isMuted, syncBgmVolume, voiceVolume]);
 
     const playBGM = () => {
         const bgm = ensureBgm();
@@ -263,8 +284,15 @@ export const SoundProvider = ({ children }) => {
     };
 
     const playVoice = async (filename, options = {}) => {
-        const { onStart, onEnd, channel = 'default' } = options;
+        const {
+            onStart,
+            onEnd,
+            channel = 'default',
+            requiresUserInteraction = false,
+            suppressBlockedError = false,
+        } = options;
         if (!filename || isMuted) return Promise.resolve(false);
+        if (requiresUserInteraction && !hasUserInteractedRef.current) return Promise.resolve(false);
         const voiceCandidates = getVoiceFallbackCandidates(filename);
         if (voiceCandidates.length === 0) {
             return Promise.resolve(false);

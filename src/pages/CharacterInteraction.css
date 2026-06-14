@@ -290,6 +290,8 @@
     width: 100%;
     left: 0;
     transform: none;
+    --character-stage-inline-overscan: clamp(40px, 10vw, 88px);
+    --character-stage-inline-shift: 0px;
 }
 
 .character-interaction-screen .character-figure.is-live2d > * {

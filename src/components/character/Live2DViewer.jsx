@@ -1097,11 +1097,10 @@ const Live2DViewer = ({
                 data-live2d-ready={status === 'ready' ? 'true' : 'false'}
                 style={{
                     position: 'absolute',
-                    inset: 0,
-                    width: '100%',
+                    top: 0,
+                    left: 'calc(var(--character-stage-inline-shift, 0px) - (var(--character-stage-inline-overscan, 0px) / 2))',
+                    width: 'calc(100% + var(--character-stage-inline-overscan, 0px))',
                     height: '100%',
-                    left: 0,
-                    right: 0,
                     bottom: 0,
                     zIndex: 1,
                     overflow: 'visible',

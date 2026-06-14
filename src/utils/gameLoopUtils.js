@@ -6,6 +6,8 @@ import { DEFAULT_RATING, getLevelFromRating, getNextLevelInfo, getRankFromRating
 import { getHomeReviewSummary } from './reviewUtils';
 import { normalizeStoryProgressionStats } from './storyProgressionUtils';
 
+export { getStoredGoalData };
+
 const clampNumber = (value, min, max) => Math.min(Math.max(value, min), max);
 
 const WEEKDAY_LABELS = {

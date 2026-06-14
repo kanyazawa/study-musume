@@ -3,7 +3,10 @@
     display: inline-flex;
     align-items: flex-end;
     justify-content: center;
-    max-width: 100%;
+    width: var(--character-stage-inline-width, auto);
+    max-width: var(--character-stage-inline-max-width, 100%);
+    margin-left: var(--character-stage-inline-offset, 0px);
+    flex-shrink: 0;
     overflow: var(--character-stage-overflow, visible);
 }
 

@@ -12,10 +12,10 @@ const VoiceCollection = lazy(() => import('../pages/VoiceCollection'));
 const Story = lazy(() => import('../pages/Story'));
 const StoryReader = lazy(() => import('../pages/StoryReader'));
 const RelationshipEventReader = lazy(() => import('../pages/RelationshipEventReader'));
+const AiTutorPlansPage = lazy(() => import('../pages/AiTutorPlansPage'));
+const SeasonalEventPage = lazy(() => import('../pages/SeasonalEventPage'));
 const Stats = lazy(() => import('../pages/Stats'));
-const StatsPageV0 = lazy(() => import('../pages/StatsPageV0'));
 const Missions = lazy(() => import('../pages/Missions'));
-const MissionsPageV0 = lazy(() => import('../pages/MissionsPageV0'));
 const CalendarPage = lazy(() => import('../pages/CalendarPage'));
 const Shop = lazy(() => import('../pages/Shop'));
 const Gacha = lazy(() => import('../pages/Gacha'));
@@ -79,11 +79,19 @@ const AppRoutes = ({ stats, updateStats, onLoginSuccess, currentUser }) => (
         path="/relationship-events/:eventId"
         element={<RelationshipEventReader stats={stats} updateStats={updateStats} />}
       />
+      <Route
+        path="/seasonal-events/:eventId"
+        element={<SeasonalEventPage stats={stats} updateStats={updateStats} />}
+      />
+      <Route
+        path="/ai-tutor-plans"
+        element={<AiTutorPlansPage stats={stats} updateStats={updateStats} />}
+      />
       <Route path="/goal" element={<Goal stats={stats} updateStats={updateStats} />} />
       <Route path="/stats" element={<Stats stats={stats} />} />
-      <Route path="/stats-v0" element={<StatsPageV0 />} />
+      <Route path="/stats-v0" element={<Navigate to="/stats" replace />} />
       <Route path="/missions" element={<Missions stats={stats} updateStats={updateStats} />} />
-      <Route path="/missions-v0" element={<MissionsPageV0 />} />
+      <Route path="/missions-v0" element={<Navigate to="/missions" replace />} />
       <Route path="/calendar" element={<CalendarPage stats={stats} updateStats={updateStats} />} />
       <Route path="/shop" element={<Shop stats={stats} updateStats={updateStats} />} />
       <Route path="/gacha" element={<Gacha stats={stats} updateStats={updateStats} />} />

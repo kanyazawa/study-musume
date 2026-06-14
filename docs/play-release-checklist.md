@@ -1,6 +1,6 @@
 # Study Musume Play 公開前チェックリスト
 
-最終更新: 2026-03-16
+最終更新: 2026-06-08
 
 このメモは、現在の `study-musume` リポジトリ構成を前提にした Google Play 公開準備用のチェックリストです。
 
@@ -33,6 +33,8 @@
   これはスマホブラウザでは有効だが、Play 配布後の Android WebView ではそのまま安定しない可能性がある。
 - [ ] Play 用の署名鍵を作る
   リリース署名用 keystore の作成がまだ必要
+- [ ] 署名ファイルをローカル専用で管理する
+  `android/keystore.properties`, `android/release-keystore.jks`, `android/*.7z` は Git に追加しない
 - [ ] Play Console を開設する
   ストア掲載情報、審査情報、Data safety の入力先が必要
 - [ ] プライバシーポリシー URL を用意する
@@ -41,7 +43,7 @@
 ### 高優先
 
 - [ ] `versionCode` を公開運用ルールに合わせる
-  初回リリースは `1` でよいが、次回以降は必ず増やす
+  初回リリースは `1` でよいが、次回以降は必ず増やす。内部テストの再提出でも増やす
 - [ ] `google-services.json` が必要か方針を決める
   現在の Android ビルドにはファイルがなく、Google Services plugin も未適用
   Push 通知を使わないなら即ブロッカーではないが、今後追加するなら必要
@@ -97,6 +99,8 @@
 - [ ] `android/app/build.gradle` のバージョンを上げる
 - [ ] リリース署名設定をローカル環境で整える
 - [ ] `android/keystore.properties` を実値で作成する
+- [ ] 署名鍵のバックアップを安全な場所へ移す
+  リポジトリ配下ではなく、アクセス制限された保管先を使う
 - [ ] アプリ名を最終表記に合わせる
   現在は `Study Musume`
 - [ ] アイコンとスプラッシュを公開版に差し替える

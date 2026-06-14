@@ -7,6 +7,21 @@ import { applyRewardToStats } from '../utils/referralUtils';
 import { loadStats, registerCloudSync, restoreAllSaveData, saveStats } from '../utils/saveUtils';
 import { isNativeIOSApp } from '../native/nativeGoogleAuth';
 
+const DEV_SKIP_CLOUD_RESTORE_SESSION_KEY = 'studyMusume:skipCloudRestoreOnce';
+
+const consumeDevSkipCloudRestoreOnce = () => {
+  if (!import.meta.env.DEV || typeof window === 'undefined' || !window.sessionStorage) {
+    return false;
+  }
+
+  if (window.sessionStorage.getItem(DEV_SKIP_CLOUD_RESTORE_SESSION_KEY) !== '1') {
+    return false;
+  }
+
+  window.sessionStorage.removeItem(DEV_SKIP_CLOUD_RESTORE_SESSION_KEY);
+  return true;
+};
+
 export const useAuthSync = (setStats) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -46,10 +61,16 @@ export const useAuthSync = (setStats) => {
       if (user) {
         console.log('User signed in, syncing data...');
         await ensureUserDocument(user);
-        const syncResult = await syncOnLogin(user.uid);
-        if (syncResult.success && syncResult.source === 'cloud') {
-          setStats(loadStats());
-          console.log('Restored data from cloud');
+        const shouldSkipCloudRestore = consumeDevSkipCloudRestoreOnce();
+
+        if (shouldSkipCloudRestore) {
+          console.log('Skipped initial cloud restore for this dev reset session');
+        } else {
+          const syncResult = await syncOnLogin(user.uid);
+          if (syncResult.success && syncResult.source === 'cloud') {
+            setStats(loadStats());
+            console.log('Restored data from cloud');
+          }
         }
 
         const pendingReferralResult = await claimPendingReferralRewards(user.uid);

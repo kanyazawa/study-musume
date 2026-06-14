@@ -161,6 +161,17 @@ Android Studio で開く:
 npx cap open android
 ```
 
+Android の公開前確認は [docs/play-release-checklist.md](/C:/Users/Hide2/.gemini/study-musume/docs/play-release-checklist.md) にまとめています。
+今週中の `β公開` に絞った最短手順は [docs/beta-release-checklist.md](/C:/Users/Hide2/.gemini/study-musume/docs/beta-release-checklist.md) を使ってください。
+
+補足:
+
+- `android/keystore.properties`
+- `android/release-keystore.jks`
+- `android/*.7z`
+
+これらはローカル専用の署名関連ファイルとして扱い、Git に追加したり共有したりしないでください。
+
 ## iOS アプリとして使う場合
 
 iOS は `Mac` と `Xcode` が必要です。借りた Mac で最短セットアップしたい場合は、次を実行してください。
@@ -191,6 +202,7 @@ Swift plugin のテンプレートは [docs/ios-native-plugin-template/NativeGoo
 ## デプロイ
 
 Netlify 用の SPA リダイレクト設定が [netlify.toml](/C:/Users/Hide2/.gemini/study-musume/netlify.toml) にあります。`/* -> /index.html` へリダイレクトする構成です。
+GitHub に push する前の確認手順は [docs/push-preflight-checklist.md](/C:/Users/Hide2/.gemini/study-musume/docs/push-preflight-checklist.md) にまとめています。
 
 ## 現状の注意点
 

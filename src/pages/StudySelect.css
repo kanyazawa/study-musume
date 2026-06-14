@@ -178,6 +178,8 @@
 
 .study-character-figure.is-live2d {
     justify-content: center;
+    --character-stage-inline-overscan: clamp(40px, 10vw, 88px);
+    --character-stage-inline-shift: 0px;
 }
 
 .study-character-figure.is-live2d > :not(.speech-bubble) {

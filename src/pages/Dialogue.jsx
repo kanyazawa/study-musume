@@ -28,6 +28,7 @@ import { getTtsSettings, TTS_ENGINES } from '../utils/ttsSettings';
 import { applyRelationshipActivity } from '../utils/relationshipEventUtils';
 import { getRelationshipActivityAffectionDelta } from '../utils/relationshipEventUtils';
 import { getLocalGrammarLesson } from '../data/grammarLessons';
+import { getPlayerAddress, personalizePlayerText } from '../utils/playerName';
 
 import BgClassroom from '../assets/images/bg_classroom.webp';
 
@@ -975,8 +976,11 @@ const Dialogue = ({ stats, updateStats }) => {
     // Helper to get display name
     const getDisplayName = (speaker) => {
         if (speaker === 'ノア') return characterName;
+        if (speaker === 'あなた') return getPlayerAddress(stats, 'あなた');
         return speaker;
     };
+
+    const displayLineText = personalizePlayerText(line?.text, stats);
 
     // Auto-speak: 利用可能なTTSを優先し、最後はブラウザTTSにフォールバック
     useEffect(() => {
@@ -1488,7 +1492,7 @@ const Dialogue = ({ stats, updateStats }) => {
 
             <div className="dialogue-box">
                 <div className="name-tag">{isQuiz ? 'Question' : getDisplayName(line.speaker)}</div>
-                <TappableVocabText text={line.text} className="dialogue-text" />
+                <TappableVocabText text={displayLineText} className="dialogue-text" />
 
                 {/* TTS Button */}
                 <button
