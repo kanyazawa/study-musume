@@ -27,6 +27,7 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $deployWorkspace = Join-Path $projectRoot ".deploy-head"
 $archivePath = Join-Path $projectRoot ".deploy-head.zip"
 $deployWranglerPath = Join-Path $deployWorkspace "wrangler.toml"
+$deployPagesConfigPath = Join-Path $deployWorkspace "wrangler.jsonc"
 $ttsGeneratedDir = Join-Path $deployWorkspace "public/audio/tts-generated"
 $redirectsPath = Join-Path $deployWorkspace "public/_redirects"
 $distRedirectsPath = Join-Path $deployWorkspace "dist/_redirects"
@@ -64,10 +65,19 @@ try {
             Write-Host "Build completed. Skipping Cloudflare Pages deploy because -SkipDeploy was set."
         }
         else {
-            @"
-name = "$ProjectName"
-pages_build_output_dir = "./dist"
-"@ | Set-Content -Path $deployWranglerPath -Encoding ascii
+            Remove-PathIfExists $deployWranglerPath
+
+            $pagesConfig = [ordered]@{
+                '$schema' = "./node_modules/wrangler/config-schema.json"
+                name = $ProjectName
+                pages_build_output_dir = "./dist"
+                compatibility_date = "2026-03-18"
+                env = @{
+                    production = @{}
+                }
+            }
+
+            $pagesConfig | ConvertTo-Json -Depth 4 | Set-Content -Path $deployPagesConfigPath -Encoding ascii
 
             Write-Host "Deploying dist/ to Cloudflare Pages project '$ProjectName' on branch '$Branch'..."
             npx wrangler pages deploy dist --project-name $ProjectName --branch $Branch --commit-dirty=true
