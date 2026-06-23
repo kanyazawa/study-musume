@@ -21,12 +21,15 @@ import {
     getReviewChallengeSyncPatch,
     applyReviewChallengeProgress,
     getHomeReviewSummary,
+    getManualReviewScheduleChoices,
+    updateReviewResult,
 } from '../utils/reviewUtils';
 import { STUDY_TOPICS } from '../data/studyTopics';
 import { applyCharacterEvaluationResult } from '../utils/characterEvaluationUtils';
 import { buildDailyLoopPhasePatch } from '../utils/dailyLoopUtils';
 import { getGameLoopSnapshot } from '../utils/gameLoopUtils';
 import { applyRelationshipActivity, getRelationshipActivityAffectionDelta } from '../utils/relationshipEventUtils';
+import StudyFlashcardSession from '../components/StudyFlashcardSession';
 import './Review.css';
 
 const ReviewQuiz = lazy(() => import('../components/ReviewQuiz'));
@@ -84,6 +87,8 @@ const Review = ({ stats, updateStats }) => {
     const [reviewStats, setReviewStats] = useState(null);
     const [isQuizMode, setIsQuizMode] = useState(false);
     const [quizQuestions, setQuizQuestions] = useState([]);
+    const [selectedStudyMode, setSelectedStudyMode] = useState('quiz');
+    const [activeStudyMode, setActiveStudyMode] = useState('quiz');
     const [selectedSessionSize, setSelectedSessionSize] = useState(REVIEW_SESSION_SIZE);
     const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_QUESTIONS);
     const [lastSessionSummary, setLastSessionSummary] = useState(null);
@@ -221,7 +226,7 @@ const Review = ({ stats, updateStats }) => {
         return badges[priority] || badges.later;
     };
 
-    const startReview = useCallback((startQuestionId = null, sessionSize = selectedSessionSize) => {
+    const startReview = useCallback((startQuestionId = null, sessionSize = selectedSessionSize, studyMode = selectedStudyMode) => {
         if (filteredQuestions.length === 0) {
             alert('復習する問題がありません');
             return;
@@ -247,6 +252,7 @@ const Review = ({ stats, updateStats }) => {
         const sessionOption = REVIEW_SESSION_OPTIONS.find((option) => option.size === sessionSize) || REVIEW_SESSION_OPTIONS[0];
 
         setSelectedSessionSize(sessionSize);
+        setActiveStudyMode(studyMode);
 
         setSessionSnapshot({
             dueBefore: reviewStats?.due || 0,
@@ -257,7 +263,7 @@ const Review = ({ stats, updateStats }) => {
         });
         setQuizQuestions(sessionPool.slice(0, actualSessionSize));
         setIsQuizMode(true);
-    }, [filteredQuestions, loadReviewData, questions.length, reviewStats?.due, reviewStats?.total, selectedSessionSize]);
+    }, [filteredQuestions, loadReviewData, questions.length, reviewStats?.due, reviewStats?.total, selectedSessionSize, selectedStudyMode]);
 
     useEffect(() => {
         const autoStartConfig = location.state;
@@ -270,9 +276,9 @@ const Review = ({ stats, updateStats }) => {
         }
 
         hasConsumedAutoStartRef.current = true;
-        startReview(autoStartConfig.startQuestionId || null, autoStartConfig.sessionSize || REVIEW_SESSION_SIZE);
+        startReview(autoStartConfig.startQuestionId || null, autoStartConfig.sessionSize || REVIEW_SESSION_SIZE, autoStartConfig.studyMode || selectedStudyMode);
         navigate(location.pathname, { replace: true, state: null });
-    }, [filteredQuestions, isQuizMode, location.pathname, location.state, navigate, startReview]);
+    }, [filteredQuestions, isQuizMode, location.pathname, location.state, navigate, selectedStudyMode, startReview]);
 
     const handleQuizComplete = ({ results = [], completed = false, maxCorrectStreak = 0 } = {}) => {
         if (completed && results.length > 0) {
@@ -387,6 +393,48 @@ const Review = ({ stats, updateStats }) => {
 
     // If in quiz mode, show ReviewQuiz component
     if (isQuizMode) {
+        if (activeStudyMode === 'flashcard') {
+            return (
+                <div className="review-page">
+                    <StudyFlashcardSession
+                        cards={quizQuestions.map((question) => ({
+                            id: question.id,
+                            questionId: question.id,
+                            prompt: question.questionText,
+                            answer: question.correctAnswer,
+                            frontHint: '思い出せたらタップして答えを確認',
+                            backHint: question.subject,
+                            reviewLevel: question.reviewLevel,
+                        }))}
+                        title="弱点ノート"
+                        subtitle="答えを見たあとで、次にいつ出すかを自分で選べます。"
+                        exitLabel="復習リストに戻る"
+                        completionTitle="めくり復習 完了"
+                        completionMessage="弱点ノートの次回タイミングを更新しました。"
+                        characterId={stats?.characterId || 'noah'}
+                        skinId={stats?.equippedSkin || 'default'}
+                        preferredRenderer={stats?.characterRenderer || 'auto'}
+                        characterScene="review"
+                        getChoices={(card) => getManualReviewScheduleChoices(quizQuestions.find((question) => question.id === card.id))}
+                        onApplyChoice={(card, choice) => {
+                            const question = quizQuestions.find((entry) => entry.id === card.id);
+                            const currentLevel = Math.max(0, Number(question?.reviewLevel) || 0);
+                            const isCorrect = Boolean(choice.complete || (Number(choice.reviewLevel) || 0) > currentLevel);
+
+                            updateReviewResult(card.id, isCorrect, {
+                                nextReviewDate: choice.nextReviewDate,
+                                reviewLevel: choice.reviewLevel,
+                                complete: choice.complete,
+                            });
+
+                            return { isCorrect };
+                        }}
+                        onComplete={handleQuizComplete}
+                    />
+                </div>
+            );
+        }
+
         return (
             <div className="review-page review-page-quiz">
                 <Suspense fallback={<div className="review-page">復習モードを準備中...</div>}>
@@ -405,17 +453,19 @@ const Review = ({ stats, updateStats }) => {
     }
 
     return (
-        <div className="review-page">
-            {/* ヘッダー */}
-            <div className="review-header">
-                <button className="back-btn-review" onClick={() => navigate('/study')}>
-                    <ChevronLeft size={24} />
-                </button>
-                <h2 className="review-title">📚 弱点ノート</h2>
-                <div className="stats-badge">
-                    {reviewStats?.due || 0}件
+            <div className="review-page">
+                {/* ヘッダー */}
+                <div className="review-header">
+                    <div className="review-header-inner">
+                        <button className="back-btn-review" onClick={() => navigate('/study')}>
+                            <ChevronLeft size={24} />
+                        </button>
+                        <h2 className="review-title">📚 弱点ノート</h2>
+                        <div className="stats-badge">
+                            {reviewStats?.due || 0}件
+                        </div>
+                    </div>
                 </div>
-            </div>
 
             <section className="review-loop-banner">
                 <div className="review-loop-copy">
@@ -450,8 +500,26 @@ const Review = ({ stats, updateStats }) => {
                             ? `今日やるべき問題が ${reviewStats.due} 件あります。今回は ${Math.max(activeSessionCount, 1)} 問・${selectedSessionOption.eta} でひと区切りまで持っていけます。`
                             : filteredQuestions.length
                                 ? `今すぐの期限はありません。余裕があるうちに ${Math.max(activeSessionCount, 1)} 問だけ触っておくと次の授業がかなり楽です。`
-                                : '弱点ノートはまだ空です。授業でつまずいた問題がここに集まります。'}
+                        : '弱点ノートはまだ空です。授業でつまずいた問題がここに集まります。'}
                     </p>
+                </div>
+                <div className="review-study-mode-toggle" aria-label="復習モード">
+                    <button
+                        type="button"
+                        className={`review-study-mode-btn ${selectedStudyMode === 'quiz' ? 'active' : ''}`}
+                        onClick={() => setSelectedStudyMode('quiz')}
+                    >
+                        <strong>四択クイズ</strong>
+                        <span>いままで通り答える</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={`review-study-mode-btn ${selectedStudyMode === 'flashcard' ? 'active' : ''}`}
+                        onClick={() => setSelectedStudyMode('flashcard')}
+                    >
+                        <strong>めくり復習</strong>
+                        <span>答えを見て次回を決める</span>
+                    </button>
                 </div>
                 <div className="review-session-options" aria-label="復習セット選択">
                     {REVIEW_SESSION_OPTIONS.map((option) => {
@@ -466,13 +534,13 @@ const Review = ({ stats, updateStats }) => {
                                 key={option.size}
                                 type="button"
                                 className={`review-session-option ${selectedSessionSize === option.size ? 'active' : ''}`}
-                                onClick={() => startReview(null, option.size)}
+                                onClick={() => startReview(null, option.size, selectedStudyMode)}
                             >
                                 <span className="review-session-option-kicker">{option.label}</span>
                                 <strong>{option.size}問</strong>
                                 <span>{option.eta}</span>
                                 <span>💎 {previewRewards.diamonds} / 🧠 {previewRewards.intellect}</span>
-                                <span className="review-session-option-action">選んだらそのまま補習開始</span>
+                                <span className="review-session-option-action">選んだらそのまま {selectedStudyMode === 'flashcard' ? 'めくり復習' : '補習'} 開始</span>
                             </button>
                         );
                     })}
@@ -503,7 +571,7 @@ const Review = ({ stats, updateStats }) => {
                 </div>
                 <div className="review-bonus-strip">
                     <div className="review-bonus-pill is-highlight">
-                        タップしたセットでそのまま補習スタート
+                        {selectedStudyMode === 'flashcard' ? 'タップしたセットでそのまま めくり復習 スタート' : 'タップしたセットでそのまま補習スタート'}
                     </div>
                     <div className={`review-bonus-pill ${reviewTicketsRemaining > 0 ? 'is-highlight' : 'is-muted'}`}>
                         {reviewTicketsRemaining > 0
@@ -716,7 +784,7 @@ const Review = ({ stats, updateStats }) => {
                                     key={question.id}
                                     type="button"
                                     className="question-card"
-                                    onClick={() => startReview(question.id)}
+                                    onClick={() => startReview(question.id, selectedSessionSize, selectedStudyMode)}
                                 >
                                     <div className="card-header">
                                         <span className="subject-tag">{question.subject}</span>
@@ -745,7 +813,7 @@ const Review = ({ stats, updateStats }) => {
                                         </div>
                                     </div>
                                     <div className="card-action">
-                                        この問題から補習する
+                                        {selectedStudyMode === 'flashcard' ? 'この問題からめくり復習する' : 'この問題から補習する'}
                                         <ArrowRight size={16} />
                                     </div>
                                 </button>

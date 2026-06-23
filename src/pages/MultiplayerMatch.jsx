@@ -16,8 +16,6 @@ import {
 import { getBackgroundStyle } from '../utils/cosmeticUtils';
 import {
     getLevelFromRating,
-    getRankFromRating,
-    getNextLevelInfo,
     calculateRatingChange,
     calculateDrawRatingChange,
     LEVEL_THRESHOLDS,
@@ -51,7 +49,14 @@ import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { resolveMatchCharacterPose } from '../utils/matchExpressionState';
 import { getGameLoopSnapshot } from '../utils/gameLoopUtils';
 import { getMatchFeedbackCopy, getReactionEmotion, resolveMatchReactionTone, resolveReactionVoiceSelection, shouldTriggerReactionFeverFx } from '../utils/studyReactionUtils';
-import { getNextVocabBatchForLevel, recordVocabAttempt } from '../utils/vocabStudyUtils';
+import StudyFlashcardSession from '../components/StudyFlashcardSession';
+import {
+    getFlashcardScheduleChoices,
+    getNextFlashcardVocabBatchForLevel,
+    getNextVocabBatchForLevel,
+    recordVocabAttempt,
+    recordVocabFlashcardSchedule,
+} from '../utils/vocabStudyUtils';
 import './MultiplayerMatch.css';
 
 // Background & Character Images
@@ -394,6 +399,52 @@ const getSoloAccuracyReaction = ({ accuracy = 0, answeredCount = 0, clearedSoloR
         : '全問正解ね。ちゃんと身についてるじゃない。';
 };
 
+const getSoloManualExitNotice = ({
+    answeredCount = 0,
+    totalQuestions = 0,
+    accuracy = 0,
+    retryCount = 0,
+} = {}) => {
+    if (answeredCount <= 0) {
+        return '今日はここで切り上げでいいわ。まだ始めたばかりだし、次は最初の数問から落ち着いて取りにいきなさい。';
+    }
+
+    if (answeredCount === 1) {
+        return retryCount > 0
+            ? '今日はここで一区切りね。1問だけでも触れたのは前進よ。間違えたところは残してあるから、次に開いたらすぐ取り返しなさい。'
+            : '今日はここで一区切りね。1問だけでも触れたのは前進よ。続きはまた落ち着いたときに、きれいにつないでいきましょ。';
+    }
+
+    if (answeredCount < totalQuestions) {
+        return retryCount > 0
+            ? `今日は${answeredCount}問まで進めたわ。${accuracy >= 70 ? 'ペースは悪くないし、' : ''}間違えた${retryCount}問は残してあるから、次はそこから整えていきなさい。`
+            : `今日は${answeredCount}問まで進めたわ。${accuracy >= 70 ? 'この調子なら、続きも気持ちよく拾えるはずよ。' : 'ここで無理に詰め込むより、次に落ち着いて続けた方がいいわ。'}`;
+    }
+
+    return `今回は${totalQuestions}問ぶん、ちゃんと見られたわね。ここで締めても十分よ。`;
+};
+
+const getSoloCompactResultCardCopy = ({ isManualExit = false, clearedSoloRetry = false } = {}) => {
+    if (isManualExit) {
+        return {
+            badge: 'Break Time',
+            line: '今日はここで止めて大丈夫。続きは次にそのまま拾えるわ。',
+        };
+    }
+
+    if (clearedSoloRetry) {
+        return {
+            badge: 'Retry Clear',
+            line: '取りこぼしはきれいに回収できたわ。このまま気持ちよく締めていいわよ。',
+        };
+    }
+
+    return {
+        badge: 'Good Work',
+        line: '今回はここまで確認できたわ。この感触、ちゃんと覚えておきなさい。',
+    };
+};
+
 const getSoloResultNotice = ({
     accuracy = 0,
     answeredCount = 0,
@@ -414,11 +465,16 @@ const getSoloResultNotice = ({
     const retryCount = Array.isArray(soloRetryQuestions) ? soloRetryQuestions.length : 0;
 
     if (isManualExit) {
-        return `${reaction} ${answeredCount} / ${totalQuestions}問で今回は終了。${retryCount > 0 ? `間違えた${retryCount}問だけ続けて見直せます。` : 'ここで終えても今回の進み具合は見えています。'}`;
+        return getSoloManualExitNotice({
+            answeredCount,
+            totalQuestions,
+            accuracy,
+            retryCount,
+        });
     }
 
     if (clearedSoloRetry) {
-        return `${reaction} 苦手克服チャレンジ成功。今回は取りこぼしを全部回収できました。`;
+        return `${reaction} 今回の取りこぼしは、これで全部回収完了よ。`;
     }
 
     return `${reaction} ${isRetrySession ? '苦手克服チャレンジ完了。' : `${sessionLabel || `${totalQuestions}問セット`}完了。`}${sourceQuestionCount > totalQuestions ? ` このレベル全${sourceQuestionCount}問のうち、今回は${totalQuestions}問で区切りました。` : ` 全${totalQuestions}問を確認しました。`}${retryCount > 0 ? ` 間違えた${retryCount}問だけ苦手克服チャレンジに進めます。` : ' 全問正解です。'}`;
@@ -532,7 +588,10 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const [isFeverFxActive, setIsFeverFxActive] = useState(false);
     const [feverFxKey, setFeverFxKey] = useState(0);
     const [selectedSoloSessionId, setSelectedSoloSessionId] = useState('standard');
+    const [selectedSoloStudyMode, setSelectedSoloStudyMode] = useState('quiz');
     const [isSoloQuestionBatchLoading, setIsSoloQuestionBatchLoading] = useState(false);
+    const [flashcardSessionCards, setFlashcardSessionCards] = useState([]);
+    const [flashcardSessionMeta, setFlashcardSessionMeta] = useState(null);
 
     // 連鎖ボイスを事前読み込みしておく（ラグ解消のため）
     const chainAudioCacheRef = useRef({});
@@ -588,8 +647,6 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     // レート関連の情報
     const myRating = stats?.multiplayerRating || DEFAULT_RATING;
     const myLevelInfo = getLevelFromRating(myRating);
-    const myRankInfo = getRankFromRating(myRating);
-    const nextLevelInfo = getNextLevelInfo(myRating);
     const gameLoopSnapshot = useMemo(() => getGameLoopSnapshot(stats), [stats]);
     const soloLevel = queryLevel || myLevelInfo.level;
     const soloLevelMeta = useMemo(() => getSoloLevelMeta(soloLevel), [soloLevel]);
@@ -1052,6 +1109,8 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         setHighestCorrectStreak(0);
         setIsFeverFxActive(false);
         setIsSoloQuestionBatchLoading(false);
+        setFlashcardSessionCards([]);
+        setFlashcardSessionMeta(null);
         lastMomentumEventKeyRef.current = null;
         resultFxPlayedRef.current = null;
     }, [cancelQuestionPronunciation]);
@@ -1459,7 +1518,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         return true;
     }, [isSolo, questionOptionMeanings, soloBackgroundBatchSize]);
 
-    const startSoloSession = useCallback((questions, level, { retry = false, totalCount, sourceCount, queuedVocabItems = [] } = {}) => {
+    const startSoloSession = useCallback((questions, level, { retry = false, totalCount, sourceCount, queuedVocabItems = [], sessionLabel } = {}) => {
         const safeQuestions = sanitizeMatchQuestions(questions, questionOptionMeanings);
 
         if (safeQuestions.length === 0) {
@@ -1483,7 +1542,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             skinId: myEquippedSkin,
             level,
             retry,
-            sessionLabel: retry ? '苦手克服' : (selectedSoloSessionOption?.label || `${safeQuestions.length}問`),
+            sessionLabel: retry ? '苦手克服' : (sessionLabel || selectedSoloSessionOption?.label || `${safeQuestions.length}問`),
             totalQuestionCount: totalCount || safeQuestions.length,
             sourceQuestionCount: sourceCount || safeQuestions.length,
         }));
@@ -1500,7 +1559,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     ]);
 
     // マッチング開始
-    const startMatching = useCallback(async () => {
+    const startMatching = useCallback(async (soloSessionOptionOverride = null) => {
         if (!myUid) return;
         if (isSolo && !canStartSoloSession) return;
         if (unsubscribeRef.current) {
@@ -1550,8 +1609,32 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
 
         if (isSolo) {
             const targetLevel = soloLevel;
-            const questionCount = Math.min(selectedSoloSessionOption?.actualCount || soloVocabPool.length || 999, soloVocabPool.length);
-            const selectedVocabItems = getNextVocabBatchForLevel(targetLevel, soloVocabPool, questionCount);
+            const selectedSessionOption = soloSessionOptionOverride || selectedSoloSessionOption;
+            const questionCount = Math.min(selectedSessionOption?.actualCount || soloVocabPool.length || 999, soloVocabPool.length);
+            const selectedVocabItems = selectedSoloStudyMode === 'flashcard'
+                ? getNextFlashcardVocabBatchForLevel(targetLevel, soloVocabPool, questionCount)
+                : getNextVocabBatchForLevel(targetLevel, soloVocabPool, questionCount);
+
+            if (selectedSoloStudyMode === 'flashcard') {
+                setFlashcardSessionCards(selectedVocabItems.map((item) => ({
+                    id: item.entryKey || item.itemId || item.word,
+                    questionId: item.entryKey || item.itemId || item.word,
+                    itemId: item.itemId || '',
+                    level: targetLevel,
+                    prompt: item.word,
+                    answer: item.meaning,
+                    frontHint: '意味を思い出せたらタップ',
+                    backHint: soloLevelMeta.label,
+                })));
+                setFlashcardSessionMeta({
+                    level: targetLevel,
+                    sessionLabel: selectedSessionOption?.label || `${selectedVocabItems.length}問`,
+                    totalCount: selectedVocabItems.length,
+                });
+                setPhase('flashcard');
+                return;
+            }
+
             const initialVocabItems = selectedVocabItems.slice(0, soloInitialBatchSize);
             const remainingVocabItems = selectedVocabItems.slice(initialVocabItems.length);
             const initialQuestions = buildQuestionsFromVocabItems(initialVocabItems, questionOptionMeanings);
@@ -1560,6 +1643,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                 totalCount: selectedVocabItems.length,
                 sourceCount: soloVocabPool.length,
                 queuedVocabItems: remainingVocabItems,
+                sessionLabel: selectedSessionOption?.label,
             });
             return;
         }
@@ -1605,12 +1689,24 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         myUid,
         questionOptionMeanings,
         resetMatchState,
+        selectedSoloStudyMode,
         selectedSoloSessionOption?.actualCount,
         soloLevel,
         soloInitialBatchSize,
+        soloLevelMeta.label,
         soloVocabPool,
         startSoloSession,
     ]);
+
+    const handleSoloSessionOptionSelect = useCallback((option) => {
+        setSelectedSoloSessionId(option.id);
+
+        if (!canStartSoloSession) {
+            return;
+        }
+
+        void startMatching(option);
+    }, [canStartSoloSession, startMatching]);
 
     useEffect(() => {
         if (!isFriendMatch || !myUid || phase !== 'init' || autoStartAttemptedRef.current) return;
@@ -2118,6 +2214,38 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     // レンダリング
     // ================================================================
 
+    if (phase === 'flashcard') {
+        return (
+            <StudyFlashcardSession
+                cards={flashcardSessionCards}
+                title={`${soloLevelMeta.label} 単語めくり`}
+                subtitle="四択とは別に、答えを見たあとで次回タイミングを自分で決められます。"
+                emptyTitle="めくり用の単語がありません"
+                emptyMessage="このレベルで表示できる単語が見つかりませんでした。"
+                exitLabel="単語バトルに戻る"
+                completionTitle="単語めくり 完了"
+                completionMessage="選んだタイミングで、次に出す目安を保存しました。"
+                characterId={myCharacterId}
+                skinId={myEquippedSkin}
+                preferredRenderer={preferredRenderer}
+                characterScene="review"
+                getChoices={() => getFlashcardScheduleChoices()}
+                onApplyChoice={(card, choice) => recordVocabFlashcardSchedule({
+                    level: card.level || flashcardSessionMeta?.level || soloLevel,
+                    word: card.prompt,
+                    meaning: card.answer,
+                    itemId: card.itemId || card.questionId || '',
+                    scheduleChoice: choice,
+                })}
+                onComplete={() => {
+                    setPhase('init');
+                    setFlashcardSessionCards([]);
+                    setFlashcardSessionMeta(null);
+                }}
+            />
+        );
+    }
+
     // 初期画面
     if (phase === 'init') {
         const initCoachCopy = getSoloInitCoachCopy({
@@ -2131,7 +2259,11 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             ? initCoachCopy.subline
             : `正解でゲージを押し込みつつ、先に${matchTargetCorrect}問取るか押し切れば勝ち。`;
         const initCoachLabel = getCharacterLabel(myCharacterId);
-        const initStartLabel = isSolo ? `${selectedSoloSessionOption?.actualCount || 0}問で始める` : '対戦相手を探す';
+        const initStartLabel = isSolo
+            ? selectedSoloStudyMode === 'flashcard'
+                ? '単語めくりを始める'
+                : '四択レッスンを始める'
+            : '対戦相手を探す';
         const reviewDueCount = gameLoopSnapshot.reviewLoad.due;
 
         return (
@@ -2185,13 +2317,32 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                                                 {selectedSoloSessionOption.actualCount}問
                                             </div>
                                         </div>
+                                        <div className="mp-study-mode-toggle" aria-label="学習モード">
+                                            <button
+                                                type="button"
+                                                className={`mp-study-mode-option ${selectedSoloStudyMode === 'quiz' ? 'active' : ''}`}
+                                                onClick={() => setSelectedSoloStudyMode('quiz')}
+                                            >
+                                                <strong>四択クイズ</strong>
+                                                <span>テンポよく答える</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`mp-study-mode-option ${selectedSoloStudyMode === 'flashcard' ? 'active' : ''}`}
+                                                onClick={() => setSelectedSoloStudyMode('flashcard')}
+                                            >
+                                                <strong>単語めくり</strong>
+                                                <span>答えを見て次回を決める</span>
+                                            </button>
+                                        </div>
                                         <div className="mp-solo-plan-grid">
                                             {soloSessionOptions.map((option) => (
                                                 <button
                                                     key={option.id}
                                                     type="button"
                                                     className={`mp-solo-plan-option ${selectedSoloSessionOption.id === option.id ? 'active' : ''}`}
-                                                    onClick={() => setSelectedSoloSessionId(option.id)}
+                                                    onClick={() => handleSoloSessionOptionSelect(option)}
+                                                    disabled={!canStartSoloSession}
                                                 >
                                                     <span className="mp-solo-plan-option-kicker">{option.label}</span>
                                                     <strong>{option.actualCount}問</strong>
@@ -2202,19 +2353,17 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                                         </div>
                                         <div className="mp-solo-plan-summary">
                                             <span>{selectedSoloSessionOption.actualCount}問でひと区切り</span>
+                                            <span>{selectedSoloStudyMode === 'flashcard' ? '答え確認後に次回タイミングを選ぶ' : '四択でテンポよく確認'}</span>
                                             {reviewDueCount > 0 && <span>終わったら復習 {reviewDueCount}件</span>}
                                         </div>
                                     </div>
                                 )}
                                 <div className="mp-init-actions mp-init-actions-solo">
-                                    <button
-                                        className="mp-start-btn mp-start-btn-init"
-                                        onClick={startMatching}
-                                        disabled={!canStartSoloSession}
-                                    >
-                                        <Swords size={24} />
-                                        <span>{initStartLabel}</span>
-                                    </button>
+                                    {canStartSoloSession && selectedSoloSessionOption && (
+                                        <div className="mp-init-inline-hint">
+                                            {selectedSoloSessionOption.actualCount}問を押すとそのまま{selectedSoloStudyMode === 'flashcard' ? '単語めくり' : '四択レッスン'}が始まります
+                                        </div>
+                                    )}
                                     {isSolo && !canStartSoloSession && (
                                         <div className="mp-error">
                                             {soloLevel === CUSTOM_SOLO_LEVEL
@@ -2827,6 +2976,11 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             })
             : '';
         const finishReasonLabel = getFinishReasonLabel(roomData.finishReason, isSolo);
+        const shouldUseSoloCompactResultLayout = Boolean(isSolo && !resultNotice && (isManualExit || clearedSoloRetry));
+        const soloCompactResultCardCopy = getSoloCompactResultCardCopy({
+            isManualExit,
+            clearedSoloRetry,
+        });
         const resultLevelInfo = getLevelMeta(roomData.level || friendLevelParam);
         const hasRematchRoom = Boolean(roomData.rematchRoomId);
         const rematchRequestedByMe = hasRematchRoom && roomData.rematchRequestedBy === myUid;
@@ -2939,76 +3093,87 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                     </div>
 
                     {!resultNotice && isSolo && (
-                        <div className="mp-result-noa-stage">
-                            <div className="mp-result-noa-line">
+                        <div className={`mp-result-noa-stage ${shouldUseSoloCompactResultLayout ? 'is-manual-exit' : ''}`}>
+                            <div className={`mp-result-noa-line ${shouldUseSoloCompactResultLayout ? 'is-manual-exit' : ''}`}>
                                 <div className="mp-result-noa-kicker">NOA</div>
                                 <p className="mp-result-noa-text">{soloResultNotice}</p>
                             </div>
                         </div>
                     )}
                     
-                    <div className={`mp-result-panel ${isSolo ? 'is-solo-showcase' : ''}`}>
-                        <div className="mp-result-emoji">{resultEmoji}</div>
-                        <h2 className="mp-result-text">{resultText}</h2>
-                        <div className="mp-result-detail">{finishReasonLabel}</div>
-                        {isFriendMatch && (
-                            <div className="mp-result-detail">{battleModeLabel} / {resultLevelInfo.label} / {matchTargetCorrect}問設定</div>
+                    <div className={`mp-result-panel ${isSolo ? 'is-solo-showcase' : ''} ${shouldUseSoloCompactResultLayout ? 'is-manual-exit' : ''}`}>
+                        {!shouldUseSoloCompactResultLayout && (
+                            <>
+                                <div className="mp-result-emoji">{resultEmoji}</div>
+                                <h2 className="mp-result-text">{resultText}</h2>
+                                <div className="mp-result-detail">{finishReasonLabel}</div>
+                                {isFriendMatch && (
+                                    <div className="mp-result-detail">{battleModeLabel} / {resultLevelInfo.label} / {matchTargetCorrect}問設定</div>
+                                )}
+
+                                <div className={`mp-result-scores ${isSolo ? 'is-solo-showcase' : ''}`}>
+                                    <div className="mp-result-player mp-result-me">
+                                        <div className="mp-result-player-name">{myDisplayName}</div>
+                                        <div className="mp-result-player-score">
+                                            {isSolo ? `${finalMyScore} / ${totalQuestions}` : finalMyScore}
+                                        </div>
+                                    </div>
+                                    {!isSolo && (
+                                        <>
+                                            <div className="mp-result-vs">-</div>
+                                            <div className="mp-result-player mp-result-op">
+                                                <div className="mp-result-player-name">{opponent?.displayName || '???'}</div>
+                                                <div className="mp-result-player-score">{opScore}</div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+
+                                <div className={`mp-result-summary-grid ${isSolo ? 'is-solo is-solo-showcase' : ''}`}>
+                                    <div className={`mp-result-summary-card ${isSolo ? 'is-solo-showcase' : ''}`}>
+                                        <div className="mp-result-summary-label">自分の正答率</div>
+                                        <div className="mp-result-summary-value">{mySummary.accuracy}%</div>
+                                        <div className="mp-result-summary-sub">{mySummary.correctCount} / {Math.max(mySummary.answeredCount, finalMyScore)} 正解</div>
+                                    </div>
+                                    {isSolo && (
+                                        <div className="mp-result-summary-card is-solo-showcase">
+                                            <div className="mp-result-summary-label">最高チェーン</div>
+                                            <div className="mp-result-summary-value">{highestCorrectStreak}</div>
+                                            <div className="mp-result-summary-sub">
+                                                {highestCorrectStreak >= 8 ? 'Perfect ペース' : highestCorrectStreak >= 5 ? 'Great ペース' : highestCorrectStreak >= 3 ? 'Good ペース' : 'ここから伸ばせる'}
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className={`mp-result-summary-card ${isSolo ? 'is-solo-showcase' : ''}`}>
+                                        <div className="mp-result-summary-label">{isSolo ? '回答数' : '相手の正答率'}</div>
+                                        <div className="mp-result-summary-value">{isSolo ? `${mySummary.answeredCount}問` : `${opponentSummary.accuracy}%`}</div>
+                                        <div className="mp-result-summary-sub">
+                                            {isSolo ? `全${totalQuestions}問中` : `${opponentSummary.correctCount} / ${Math.max(opponentSummary.answeredCount, opScore)} 正解`}
+                                        </div>
+                                    </div>
+                                    {!isSolo && (
+                                        <div className="mp-result-summary-card">
+                                            <div className="mp-result-summary-label">勝敗の差</div>
+                                            <div className="mp-result-summary-value">{Math.abs(finalMyScore - opScore)}問差</div>
+                                            <div className="mp-result-summary-sub">
+                                                {finalMyScore === opScore
+                                                    ? '最後まで接戦でした'
+                                                    : finalMyScore > opScore
+                                                        ? '先行を守り切りました'
+                                                        : '次は追い上げましょう'}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
                         )}
 
-                        <div className={`mp-result-scores ${isSolo ? 'is-solo-showcase' : ''}`}>
-                            <div className="mp-result-player mp-result-me">
-                                <div className="mp-result-player-name">{myDisplayName}</div>
-                                <div className="mp-result-player-score">
-                                    {isSolo ? `${finalMyScore} / ${totalQuestions}` : finalMyScore}
-                                </div>
+                        {shouldUseSoloCompactResultLayout && (
+                            <div className="mp-result-manual-exit-copy">
+                                <div className="mp-result-manual-exit-badge">{soloCompactResultCardCopy.badge}</div>
+                                <p>{soloCompactResultCardCopy.line}</p>
                             </div>
-                            {!isSolo && (
-                                <>
-                                    <div className="mp-result-vs">-</div>
-                                    <div className="mp-result-player mp-result-op">
-                                        <div className="mp-result-player-name">{opponent?.displayName || '???'}</div>
-                                        <div className="mp-result-player-score">{opScore}</div>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-
-                        <div className={`mp-result-summary-grid ${isSolo ? 'is-solo is-solo-showcase' : ''}`}>
-                            <div className={`mp-result-summary-card ${isSolo ? 'is-solo-showcase' : ''}`}>
-                                <div className="mp-result-summary-label">自分の正答率</div>
-                                <div className="mp-result-summary-value">{mySummary.accuracy}%</div>
-                                <div className="mp-result-summary-sub">{mySummary.correctCount} / {Math.max(mySummary.answeredCount, finalMyScore)} 正解</div>
-                            </div>
-                            {isSolo && (
-                                <div className="mp-result-summary-card is-solo-showcase">
-                                    <div className="mp-result-summary-label">最高チェーン</div>
-                                    <div className="mp-result-summary-value">{highestCorrectStreak}</div>
-                                    <div className="mp-result-summary-sub">
-                                        {highestCorrectStreak >= 8 ? 'Perfect ペース' : highestCorrectStreak >= 5 ? 'Great ペース' : highestCorrectStreak >= 3 ? 'Good ペース' : 'ここから伸ばせる'}
-                                    </div>
-                                </div>
-                            )}
-                            <div className={`mp-result-summary-card ${isSolo ? 'is-solo-showcase' : ''}`}>
-                                <div className="mp-result-summary-label">{isSolo ? '回答数' : '相手の正答率'}</div>
-                                <div className="mp-result-summary-value">{isSolo ? `${mySummary.answeredCount}問` : `${opponentSummary.accuracy}%`}</div>
-                                <div className="mp-result-summary-sub">
-                                    {isSolo ? `全${totalQuestions}問中` : `${opponentSummary.correctCount} / ${Math.max(opponentSummary.answeredCount, opScore)} 正解`}
-                                </div>
-                            </div>
-                            {!isSolo && (
-                                <div className="mp-result-summary-card">
-                                    <div className="mp-result-summary-label">勝敗の差</div>
-                                    <div className="mp-result-summary-value">{Math.abs(finalMyScore - opScore)}問差</div>
-                                    <div className="mp-result-summary-sub">
-                                        {finalMyScore === opScore
-                                            ? '最後まで接戦でした'
-                                            : finalMyScore > opScore
-                                                ? '先行を守り切りました'
-                                                : '次は追い上げましょう'}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                        )}
 
                         {/* レート変動表示 */}
                         {resultNotice && (
@@ -3041,7 +3206,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                             </div>
                         )}
 
-                        <div className="mp-result-actions">
+                        <div className={`mp-result-actions ${shouldUseSoloCompactResultLayout ? 'is-manual-exit' : ''}`}>
                             {isSolo && soloRetryQuestions.length > 0 && (
                                 <button
                                     className="mp-rematch-btn"

@@ -11,6 +11,7 @@ import {
   getRecommendedReviewQuestion,
   getReviewChallengeProgressPreview,
   getReviewChallengeSyncPatch,
+  getManualReviewScheduleChoices,
   getReviewQuestions,
   getReviewScheduleChoices,
   applyReviewChallengeProgress,
@@ -221,6 +222,18 @@ describe('reviewUtils', () => {
     const choices = getReviewScheduleChoices(question, true);
 
     expect(choices.some((choice) => choice.complete && choice.label === '卒業')).toBe(true);
+  });
+
+  it('offers manual self-scheduling choices for flashcard review mode', () => {
+    const choices = getManualReviewScheduleChoices({
+      reviewLevel: 2,
+      nextReviewDate: Date.now(),
+    });
+
+    expect(choices.some((choice) => choice.label === '10分後')).toBe(true);
+    expect(choices.some((choice) => choice.label === '3日後' && choice.recommended)).toBe(true);
+    expect(choices.some((choice) => choice.complete && choice.label === 'もうやらない')).toBe(true);
+    expect(choices).toHaveLength(4);
   });
 
   it('generates and syncs a deterministic daily review challenge', () => {
