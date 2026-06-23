@@ -33,6 +33,11 @@ const WRONG_REVIEW_SCHEDULE_CHOICES = [
     { key: 'retry-tonight', label: '今日中', hours: 6 },
     { key: 'retry-tomorrow', label: '明日', days: 1 },
 ];
+const MANUAL_REVIEW_SCHEDULE_CHOICES = [
+    { key: 'manual-10m', label: '10分後', minutes: 10, description: 'すぐもう一度' },
+    { key: 'manual-1d', label: '明日', days: 1, reviewLevel: 0, description: '軽く確認' },
+    { key: 'manual-3d', label: '3日後', days: 3, reviewLevel: 1, description: '少し余裕あり' },
+];
 
 const toReviewTimestamp = ({ minutes = 0, hours = 0, days = 0 }) => (
     Date.now() + (minutes * MINUTE_MS) + (hours * HOUR_MS) + (days * DAY_MS)
@@ -42,6 +47,33 @@ const getReviewIntervalDays = (reviewLevel) => {
     const normalizedLevel = Math.max(0, Math.min(REVIEW_INTERVALS.length - 1, Number(reviewLevel) || 0));
     return REVIEW_INTERVALS[normalizedLevel] || REVIEW_INTERVALS[0];
 };
+
+const inferReviewLevelFromScheduleChoice = (choice = {}) => {
+    if (choice?.complete) return MAX_REVIEW_LEVEL;
+    if (Number.isFinite(Number(choice?.reviewLevel))) {
+        return Math.max(0, Math.min(MAX_REVIEW_LEVEL, Number(choice.reviewLevel)));
+    }
+
+    const days = Number(choice?.days);
+    if (!Number.isFinite(days) || days <= 1) return 0;
+
+    const closestIntervalIndex = REVIEW_INTERVALS.findIndex((intervalDays) => intervalDays >= days);
+    if (closestIntervalIndex < 0) {
+        return MAX_ACTIVE_REVIEW_LEVEL;
+    }
+
+    return Math.max(0, Math.min(MAX_ACTIVE_REVIEW_LEVEL, closestIntervalIndex));
+};
+
+const normalizeScheduleChoice = (choice = {}) => ({
+    ...choice,
+    reviewLevel: inferReviewLevelFromScheduleChoice(choice),
+    nextReviewDate: choice.complete
+        ? null
+        : Number.isFinite(Number(choice.nextReviewDate))
+            ? Number(choice.nextReviewDate)
+            : toReviewTimestamp(choice),
+});
 
 const getCorrectReviewScheduleChoices = (question) => {
     const nextLevel = Math.min((Number(question?.reviewLevel) || 0) + 1, MAX_ACTIVE_REVIEW_LEVEL);
@@ -469,13 +501,44 @@ export const getReviewScheduleChoices = (question, isCorrect) => {
         ? getCorrectReviewScheduleChoices(question)
         : WRONG_REVIEW_SCHEDULE_CHOICES;
 
-    return baseChoices.map((choice) => ({
+    return baseChoices.map((choice) => normalizeScheduleChoice(choice));
+};
+
+/**
+ * 自分で次回タイミングを選ぶフラッシュカード向け候補を返す
+ * @param {Object} question - 復習問題
+ * @returns {Array}
+ */
+export const getManualReviewScheduleChoices = (question) => {
+    const currentLevel = Math.max(0, Math.min(MAX_REVIEW_LEVEL, Number(question?.reviewLevel) || 0));
+    const recommendedChoice = getCorrectReviewScheduleChoices(question).find((choice) => choice.recommended);
+    const recommendedDays = recommendedChoice?.days ?? null;
+    const choices = [
+        ...MANUAL_REVIEW_SCHEDULE_CHOICES,
+        {
+            key: 'manual-complete',
+            label: 'もうやらない',
+            description: 'ノートから外す',
+            complete: true,
+            reviewLevel: MAX_REVIEW_LEVEL,
+        },
+    ];
+    const availableDayChoices = choices.filter((choice) => Number.isFinite(Number(choice.days)));
+    const closestRecommendedDay = recommendedDays === null
+        ? null
+        : availableDayChoices.reduce((closestChoice, choice) => {
+            if (!closestChoice) return choice;
+
+            const currentDiff = Math.abs(Number(choice.days) - Number(recommendedDays));
+            const closestDiff = Math.abs(Number(closestChoice.days) - Number(recommendedDays));
+            return currentDiff < closestDiff ? choice : closestChoice;
+        }, null)?.days ?? null;
+
+    return choices.map((choice) => normalizeScheduleChoice({
         ...choice,
-        nextReviewDate: choice.complete
-            ? null
-            : Number.isFinite(Number(choice.nextReviewDate))
-                ? Number(choice.nextReviewDate)
-                : toReviewTimestamp(choice),
+        recommended: choice.complete
+            ? currentLevel >= MAX_ACTIVE_REVIEW_LEVEL
+            : closestRecommendedDay !== null && Number(choice.days) === Number(closestRecommendedDay),
     }));
 };
 

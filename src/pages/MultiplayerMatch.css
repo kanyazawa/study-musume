@@ -110,7 +110,8 @@
 
 .mp-screen-init {
     background: linear-gradient(180deg, #dff2ff 0%, #fff4df 58%, #fff8ef 100%);
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 .mp-screen-init::before {
@@ -274,6 +275,51 @@
     border: 1px solid rgba(243, 197, 132, 0.72);
     box-shadow: 0 -10px 28px rgba(82, 64, 45, 0.14);
     color: #5c381d;
+}
+
+@media (max-width: 520px), (max-height: 760px) {
+    .mp-init-content {
+        width: 100%;
+        min-height: 100dvh;
+        padding: 72px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+        gap: 10px;
+    }
+
+    .mp-init-stage {
+        flex: 0 0 auto;
+        min-height: clamp(224px, 31dvh, 292px);
+        padding-top: 10px;
+    }
+
+    .mp-init-bubble {
+        width: min(58vw, 224px);
+        min-width: 184px;
+        margin-top: 0;
+        padding: 16px 14px 14px;
+    }
+
+    .mp-init-bubble h2 {
+        font-size: 1.02rem;
+    }
+
+    .mp-init-bubble p {
+        margin-bottom: 10px;
+        font-size: 0.76rem;
+    }
+
+    .mp-init-character-wrap {
+        width: min(60vw, 232px);
+        min-width: 156px;
+        right: -8px;
+    }
+
+    .mp-init-bottom-sheet {
+        max-height: min(56dvh, 480px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        padding: 14px 12px calc(14px + env(safe-area-inset-bottom, 0px));
+    }
 }
 
 .mp-init-sheet-top {
@@ -495,6 +541,48 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
     gap: 10px;
+}
+
+.mp-study-mode-toggle {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.mp-study-mode-option {
+    border: 1px solid rgba(229, 187, 125, 0.78);
+    background: rgba(255, 255, 255, 0.78);
+    color: #4f2f19;
+    border-radius: 18px;
+    padding: 12px 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mp-study-mode-option:hover {
+    transform: translateY(-1px);
+    border-color: rgba(219, 136, 61, 0.54);
+}
+
+.mp-study-mode-option.active {
+    background: linear-gradient(145deg, rgba(255, 192, 108, 0.28), rgba(255, 228, 181, 0.9));
+    border-color: rgba(214, 120, 46, 0.62);
+    box-shadow: 0 10px 20px rgba(208, 138, 59, 0.16);
+}
+
+.mp-study-mode-option strong {
+    display: block;
+    font-size: 0.96rem;
+    font-weight: 900;
+}
+
+.mp-study-mode-option span {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.76rem;
+    color: #85542d;
 }
 
 .mp-solo-plan-option {
@@ -2813,6 +2901,11 @@
     .mp-solo-plan-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 6px;
+    }
+
+    .mp-study-mode-toggle {
+        grid-template-columns: 1fr;
+        gap: 8px;
     }
 
     .mp-solo-plan-option {

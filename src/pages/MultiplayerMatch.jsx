@@ -16,8 +16,6 @@ import {
 import { getBackgroundStyle } from '../utils/cosmeticUtils';
 import {
     getLevelFromRating,
-    getRankFromRating,
-    getNextLevelInfo,
     calculateRatingChange,
     calculateDrawRatingChange,
     LEVEL_THRESHOLDS,
@@ -51,7 +49,14 @@ import { resolveCharacterRenderer } from '../utils/characterRenderer';
 import { resolveMatchCharacterPose } from '../utils/matchExpressionState';
 import { getGameLoopSnapshot } from '../utils/gameLoopUtils';
 import { getMatchFeedbackCopy, getReactionEmotion, resolveMatchReactionTone, resolveReactionVoiceSelection, shouldTriggerReactionFeverFx } from '../utils/studyReactionUtils';
-import { getNextVocabBatchForLevel, recordVocabAttempt } from '../utils/vocabStudyUtils';
+import StudyFlashcardSession from '../components/StudyFlashcardSession';
+import {
+    getFlashcardScheduleChoices,
+    getNextFlashcardVocabBatchForLevel,
+    getNextVocabBatchForLevel,
+    recordVocabAttempt,
+    recordVocabFlashcardSchedule,
+} from '../utils/vocabStudyUtils';
 import './MultiplayerMatch.css';
 
 // Background & Character Images
@@ -583,7 +588,10 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     const [isFeverFxActive, setIsFeverFxActive] = useState(false);
     const [feverFxKey, setFeverFxKey] = useState(0);
     const [selectedSoloSessionId, setSelectedSoloSessionId] = useState('standard');
+    const [selectedSoloStudyMode, setSelectedSoloStudyMode] = useState('quiz');
     const [isSoloQuestionBatchLoading, setIsSoloQuestionBatchLoading] = useState(false);
+    const [flashcardSessionCards, setFlashcardSessionCards] = useState([]);
+    const [flashcardSessionMeta, setFlashcardSessionMeta] = useState(null);
 
     // 連鎖ボイスを事前読み込みしておく（ラグ解消のため）
     const chainAudioCacheRef = useRef({});
@@ -639,8 +647,6 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     // レート関連の情報
     const myRating = stats?.multiplayerRating || DEFAULT_RATING;
     const myLevelInfo = getLevelFromRating(myRating);
-    const myRankInfo = getRankFromRating(myRating);
-    const nextLevelInfo = getNextLevelInfo(myRating);
     const gameLoopSnapshot = useMemo(() => getGameLoopSnapshot(stats), [stats]);
     const soloLevel = queryLevel || myLevelInfo.level;
     const soloLevelMeta = useMemo(() => getSoloLevelMeta(soloLevel), [soloLevel]);
@@ -1103,6 +1109,8 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         setHighestCorrectStreak(0);
         setIsFeverFxActive(false);
         setIsSoloQuestionBatchLoading(false);
+        setFlashcardSessionCards([]);
+        setFlashcardSessionMeta(null);
         lastMomentumEventKeyRef.current = null;
         resultFxPlayedRef.current = null;
     }, [cancelQuestionPronunciation]);
@@ -1603,7 +1611,29 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             const targetLevel = soloLevel;
             const selectedSessionOption = soloSessionOptionOverride || selectedSoloSessionOption;
             const questionCount = Math.min(selectedSessionOption?.actualCount || soloVocabPool.length || 999, soloVocabPool.length);
-            const selectedVocabItems = getNextVocabBatchForLevel(targetLevel, soloVocabPool, questionCount);
+            const selectedVocabItems = selectedSoloStudyMode === 'flashcard'
+                ? getNextFlashcardVocabBatchForLevel(targetLevel, soloVocabPool, questionCount)
+                : getNextVocabBatchForLevel(targetLevel, soloVocabPool, questionCount);
+
+            if (selectedSoloStudyMode === 'flashcard') {
+                setFlashcardSessionCards(selectedVocabItems.map((item) => ({
+                    id: item.entryKey || item.itemId || item.word,
+                    questionId: item.entryKey || item.itemId || item.word,
+                    itemId: item.itemId || '',
+                    level: targetLevel,
+                    prompt: item.word,
+                    answer: item.meaning,
+                    frontHint: '意味を思い出せたらタップ',
+                    backHint: soloLevelMeta.label,
+                })));
+                setFlashcardSessionMeta({
+                    level: targetLevel,
+                    sessionLabel: selectedSessionOption?.label || `${selectedVocabItems.length}問`,
+                    totalCount: selectedVocabItems.length,
+                });
+                setPhase('flashcard');
+                return;
+            }
             const initialVocabItems = selectedVocabItems.slice(0, soloInitialBatchSize);
             const remainingVocabItems = selectedVocabItems.slice(initialVocabItems.length);
             const initialQuestions = buildQuestionsFromVocabItems(initialVocabItems, questionOptionMeanings);
@@ -1658,9 +1688,11 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
         myUid,
         questionOptionMeanings,
         resetMatchState,
+        selectedSoloStudyMode,
         selectedSoloSessionOption?.actualCount,
         soloLevel,
         soloInitialBatchSize,
+        soloLevelMeta.label,
         soloVocabPool,
         startSoloSession,
     ]);
@@ -2181,6 +2213,38 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
     // レンダリング
     // ================================================================
 
+    if (phase === 'flashcard') {
+        return (
+            <StudyFlashcardSession
+                cards={flashcardSessionCards}
+                title={`${soloLevelMeta.label} 単語めくり`}
+                subtitle="四択とは別に、答えを見たあとで次回タイミングを自分で決められます。"
+                emptyTitle="めくり用の単語がありません"
+                emptyMessage="このレベルで表示できる単語が見つかりませんでした。"
+                exitLabel="単語バトルに戻る"
+                completionTitle="単語めくり 完了"
+                completionMessage="選んだタイミングで、次に出す目安を保存しました。"
+                characterId={myCharacterId}
+                skinId={myEquippedSkin}
+                preferredRenderer={preferredRenderer}
+                characterScene="review"
+                getChoices={() => getFlashcardScheduleChoices()}
+                onApplyChoice={(card, choice) => recordVocabFlashcardSchedule({
+                    level: card.level || flashcardSessionMeta?.level || soloLevel,
+                    word: card.prompt,
+                    meaning: card.answer,
+                    itemId: card.itemId || card.questionId || '',
+                    scheduleChoice: choice,
+                })}
+                onComplete={() => {
+                    setPhase('init');
+                    setFlashcardSessionCards([]);
+                    setFlashcardSessionMeta(null);
+                }}
+            />
+        );
+    }
+
     // 初期画面
     if (phase === 'init') {
         const initCoachCopy = getSoloInitCoachCopy({
@@ -2194,7 +2258,11 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
             ? initCoachCopy.subline
             : `正解でゲージを押し込みつつ、先に${matchTargetCorrect}問取るか押し切れば勝ち。`;
         const initCoachLabel = getCharacterLabel(myCharacterId);
-        const initStartLabel = '対戦相手を探す';
+        const initStartLabel = isSolo
+            ? selectedSoloStudyMode === 'flashcard'
+                ? '単語めくりを始める'
+                : '四択レッスンを始める'
+            : '対戦相手を探す';
         const reviewDueCount = gameLoopSnapshot.reviewLoad.due;
 
         return (
@@ -2248,6 +2316,24 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                                                 {selectedSoloSessionOption.actualCount}問
                                             </div>
                                         </div>
+                                        <div className="mp-study-mode-toggle" aria-label="学習モード">
+                                            <button
+                                                type="button"
+                                                className={`mp-study-mode-option ${selectedSoloStudyMode === 'quiz' ? 'active' : ''}`}
+                                                onClick={() => setSelectedSoloStudyMode('quiz')}
+                                            >
+                                                <strong>四択クイズ</strong>
+                                                <span>テンポよく答える</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`mp-study-mode-option ${selectedSoloStudyMode === 'flashcard' ? 'active' : ''}`}
+                                                onClick={() => setSelectedSoloStudyMode('flashcard')}
+                                            >
+                                                <strong>単語めくり</strong>
+                                                <span>答えを見て次回を決める</span>
+                                            </button>
+                                        </div>
                                         <div className="mp-solo-plan-grid">
                                             {soloSessionOptions.map((option) => (
                                                 <button
@@ -2266,6 +2352,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                                         </div>
                                         <div className="mp-solo-plan-summary">
                                             <span>{selectedSoloSessionOption.actualCount}問でひと区切り</span>
+                                            <span>{selectedSoloStudyMode === 'flashcard' ? '答え確認後に次回タイミングを選ぶ' : '四択でテンポよく確認'}</span>
                                             {reviewDueCount > 0 && <span>終わったら復習 {reviewDueCount}件</span>}
                                         </div>
                                     </div>
@@ -2273,7 +2360,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                                 <div className="mp-init-actions mp-init-actions-solo">
                                     {canStartSoloSession && selectedSoloSessionOption && (
                                         <div className="mp-init-inline-hint">
-                                            {selectedSoloSessionOption.actualCount}問を押すとそのまま始まります
+                                            {selectedSoloSessionOption.actualCount}問を押すとそのまま{selectedSoloStudyMode === 'flashcard' ? '単語めくり' : '四択レッスン'}が始まります
                                         </div>
                                     )}
                                     {isSolo && !canStartSoloSession && (

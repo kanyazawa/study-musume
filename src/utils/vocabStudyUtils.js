@@ -1,3 +1,4 @@
+import { getManualReviewScheduleChoices } from './reviewUtils';
 import { touchCloudSaveData } from './saveUtils';
 
 export const VOCAB_STUDY_STATE_STORAGE_KEY = 'vocabStudyState';
@@ -97,6 +98,9 @@ const normalizeProgressEntry = (entryKey, entry = {}) => {
         lastAnsweredAt: Math.max(0, safeNumber(entry.lastAnsweredAt)),
         lastCorrectAt: Math.max(0, safeNumber(entry.lastCorrectAt)),
         lastWrongAt: Math.max(0, safeNumber(entry.lastWrongAt)),
+        flashcardLevel: Math.max(0, safeNumber(entry.flashcardLevel)),
+        nextStudyAt: Math.max(0, safeNumber(entry.nextStudyAt)),
+        flashcardRetired: Boolean(entry.flashcardRetired),
     };
 };
 
@@ -220,6 +224,70 @@ export const getNextVocabBatchForLevel = (level, vocabItems, count) => {
     return selectedItems;
 };
 
+export const getFlashcardScheduleChoices = () => getManualReviewScheduleChoices({ reviewLevel: 0 })
+    .map((choice) => (
+        choice.complete
+            ? {
+                ...choice,
+                label: 'もうやらない',
+                description: '単語めくりから外す',
+            }
+            : choice
+    ));
+
+export const getNextFlashcardVocabBatchForLevel = (level, vocabItems, count) => {
+    const normalizedLevel = normalizeText(level);
+    const itemRecords = getUniqueItemRecords(normalizedLevel, vocabItems);
+    const requestedCount = Math.max(0, Math.min(Math.floor(safeNumber(count, 0)), itemRecords.length));
+
+    if (!normalizedLevel || requestedCount <= 0 || itemRecords.length === 0) {
+        return [];
+    }
+
+    const state = loadState();
+    const levelProgress = state.progressByLevel?.[normalizedLevel] || {};
+    const now = Date.now();
+
+    return itemRecords
+        .map((item) => {
+            const progress = normalizeProgressEntry(item.entryKey, levelProgress[item.entryKey]);
+            const hasSchedule = progress.nextStudyAt > 0;
+            const isDue = hasSchedule ? progress.nextStudyAt <= now : progress.attempts === 0;
+
+            return {
+                ...item,
+                progress,
+                nextStudyAt: progress.nextStudyAt,
+                flashcardLevel: progress.flashcardLevel,
+                flashcardRetired: progress.flashcardRetired,
+                isDue,
+                sortBucket: isDue ? 0 : hasSchedule ? 2 : 1,
+            };
+        })
+        .filter((item) => !item.flashcardRetired)
+        .sort((left, right) => {
+            if (left.sortBucket !== right.sortBucket) {
+                return left.sortBucket - right.sortBucket;
+            }
+
+            if (left.sortBucket === 0) {
+                const dateDiff = (left.nextStudyAt || 0) - (right.nextStudyAt || 0);
+                if (dateDiff !== 0) return dateDiff;
+            }
+
+            if (left.sortBucket === 2) {
+                const dateDiff = (left.nextStudyAt || 0) - (right.nextStudyAt || 0);
+                if (dateDiff !== 0) return dateDiff;
+            }
+
+            const attemptDiff = left.progress.attempts - right.progress.attempts;
+            if (attemptDiff !== 0) return attemptDiff;
+
+            return left.word.localeCompare(right.word);
+        })
+        .slice(0, requestedCount);
+};
+
 export const recordVocabAttempt = ({ level, word, meaning, itemId = '', isCorrect = false }) => {
     const normalizedLevel = normalizeText(level);
     const normalizedWord = normalizeText(word);
@@ -265,6 +333,68 @@ export const recordVocabAttempt = ({ level, word, meaning, itemId = '', isCorrec
         ...nextEntry,
         accuracy: getAccuracy(nextEntry),
         status: classifyProgress(nextEntry),
+    };
+};
+
+export const recordVocabFlashcardSchedule = ({
+    level,
+    word,
+    meaning,
+    itemId = '',
+    scheduleChoice,
+}) => {
+    const normalizedLevel = normalizeText(level);
+    const normalizedWord = normalizeText(word);
+    const normalizedMeaning = normalizeText(meaning);
+    const normalizedItemId = normalizeText(itemId);
+    const entryKey = buildEntryKey({
+        level: normalizedLevel,
+        itemId: normalizedItemId,
+        word: normalizedWord,
+    });
+
+    if (!normalizedLevel || !normalizedWord || !normalizedMeaning || !entryKey || !scheduleChoice) {
+        return null;
+    }
+
+    const state = loadState();
+    const levelProgress = state.progressByLevel?.[normalizedLevel] || {};
+    const currentEntry = normalizeProgressEntry(entryKey, levelProgress[entryKey]);
+    const now = Date.now();
+    const nextStudyAt = Math.max(0, safeNumber(scheduleChoice.nextReviewDate));
+    const flashcardLevel = Math.max(0, safeNumber(scheduleChoice.reviewLevel));
+    const isCorrect = flashcardLevel > 0;
+    const flashcardRetired = Boolean(scheduleChoice.complete);
+    const nextEntry = {
+        ...currentEntry,
+        itemId: normalizedItemId,
+        word: normalizedWord,
+        meaning: normalizedMeaning,
+        attempts: currentEntry.attempts + 1,
+        correctCount: currentEntry.correctCount + (isCorrect ? 1 : 0),
+        wrongCount: currentEntry.wrongCount + (isCorrect ? 0 : 1),
+        lastAnsweredAt: now,
+        lastCorrectAt: isCorrect ? now : currentEntry.lastCorrectAt,
+        lastWrongAt: isCorrect ? currentEntry.lastWrongAt : now,
+        flashcardLevel,
+        nextStudyAt,
+        flashcardRetired,
+    };
+
+    state.progressByLevel = {
+        ...state.progressByLevel,
+        [normalizedLevel]: {
+            ...levelProgress,
+            [entryKey]: nextEntry,
+        },
+    };
+    saveState(state);
+
+    return {
+        ...nextEntry,
+        accuracy: getAccuracy(nextEntry),
+        status: classifyProgress(nextEntry),
+        isCorrect,
     };
 };
 
@@ -317,6 +447,70 @@ export const getVocabLevelProgress = (level, vocabItems = []) => {
         level: normalizedLevel,
         totalWords: words.length,
         studiedWords: studiedWords.length,
+        counts,
+        accuracy: totalAttempts > 0 ? Math.round((totalCorrect / totalAttempts) * 100) : 0,
+        words,
+        weakWords: words
+            .filter((word) => word.status === 'weak')
+            .sort((left, right) => right.weakScore - left.weakScore || right.wrongCount - left.wrongCount || left.word.localeCompare(right.word))
+            .slice(0, 5),
+        strongWords: words
+            .filter((word) => word.status === 'strong')
+            .sort((left, right) => right.strongScore - left.strongScore || right.correctCount - left.correctCount || left.word.localeCompare(right.word))
+            .slice(0, 5),
+    };
+};
+
+export const getStoredVocabLevelProgress = (level, { totalWords = 0 } = {}) => {
+    const normalizedLevel = normalizeText(level);
+    const state = loadState();
+    const levelProgress = state.progressByLevel?.[normalizedLevel] || {};
+    const words = Object.entries(levelProgress)
+        .map(([entryKey, entry]) => {
+            const progress = normalizeProgressEntry(entryKey, entry);
+            const attempts = progress.attempts;
+            const correctCount = progress.correctCount;
+            const wrongCount = progress.wrongCount;
+            const accuracy = getAccuracy(progress);
+            const status = classifyProgress(progress);
+            const weakScore = (wrongCount * 3) - (correctCount * 2) + Math.max(0, 60 - accuracy);
+            const strongScore = (correctCount * 3) - wrongCount + accuracy;
+
+            return {
+                entryKey: progress.entryKey,
+                itemId: progress.itemId,
+                word: progress.word,
+                meaning: progress.meaning,
+                attempts,
+                correctCount,
+                wrongCount,
+                accuracy,
+                status,
+                lastAnsweredAt: progress.lastAnsweredAt,
+                weakScore,
+                strongScore,
+            };
+        })
+        .filter((word) => word.attempts > 0);
+
+    const counts = words.reduce((summary, word) => {
+        summary[word.status] += 1;
+        return summary;
+    }, {
+        unseen: 0,
+        learning: 0,
+        strong: 0,
+        weak: 0,
+    });
+
+    const totalAttempts = words.reduce((sum, word) => sum + word.attempts, 0);
+    const totalCorrect = words.reduce((sum, word) => sum + word.correctCount, 0);
+    counts.unseen = Math.max(0, Math.max(0, safeNumber(totalWords)) - words.length);
+
+    return {
+        level: normalizedLevel,
+        totalWords: Math.max(0, safeNumber(totalWords)),
+        studiedWords: words.length,
         counts,
         accuracy: totalAttempts > 0 ? Math.round((totalCorrect / totalAttempts) * 100) : 0,
         words,

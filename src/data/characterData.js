@@ -1,8 +1,6 @@
 import NoahSelectImage from '../assets/images/noah_normal.webp';
 import EmmaSelectImage from '../assets/images/emma_home_preview_generated.png';
 import RenSelectImage from '../assets/images/character_ren.webp';
-import FireflySelectImage from '../assets/images/firefly/firefly_select.webp';
-import SparkleSelectImage from '../assets/images/sparkle/sparkle_select.png';
 
 export const CHARACTER_LABELS = {
     emma: '高瀬エマ',
@@ -30,18 +28,6 @@ export const CHARACTER_SELECT_OPTIONS = [
         name: CHARACTER_LABELS.ren,
         image: RenSelectImage,
         description: 'クールで知的な男の子。\n冷静に学習のアドバイスをくれます。',
-    },
-    {
-        id: 'firefly',
-        name: CHARACTER_LABELS.firefly,
-        image: FireflySelectImage,
-        description: '新しい相棒の試作キャラ。\nまずは静止画の表情差分つきで使えます。',
-    },
-    {
-        id: 'sparkle',
-        name: CHARACTER_LABELS.sparkle,
-        image: SparkleSelectImage,
-        description: 'いたずらっぽくて底知れない新キャラ。\nまずは Live2D 試作モデルつきで使えます。',
     },
 ];
 
