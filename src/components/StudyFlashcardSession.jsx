@@ -15,6 +15,7 @@ const StudyFlashcardSession = ({
     exitLabel = '戻る',
     completionTitle = 'フラッシュカード完了',
     completionMessage = 'このセットはここで一区切りです。',
+    scheduleHelpText = '',
     getChoices,
     onApplyChoice,
     onComplete,
@@ -108,7 +109,7 @@ const StudyFlashcardSession = ({
         return renderSceneShell(
             <div className="study-flashcard-overlay">
                 <div className="study-flashcard-topbar">
-                    <button type="button" className="study-flashcard-back" onClick={() => finishSession(false)}>
+                    <button type="button" className="study-flashcard-exit" onClick={() => finishSession(false)}>
                         <ChevronLeft size={18} />
                         {exitLabel}
                     </button>
@@ -131,7 +132,7 @@ const StudyFlashcardSession = ({
         return renderSceneShell(
             <div className="study-flashcard-overlay">
                 <div className="study-flashcard-topbar">
-                    <button type="button" className="study-flashcard-back" onClick={() => finishSession(true)}>
+                    <button type="button" className="study-flashcard-exit" onClick={() => finishSession(true)}>
                         <ChevronLeft size={18} />
                         {exitLabel}
                     </button>
@@ -164,7 +165,7 @@ const StudyFlashcardSession = ({
     return renderSceneShell(
         <div className="study-flashcard-overlay">
             <div className="study-flashcard-topbar">
-                <button type="button" className="study-flashcard-back" onClick={() => finishSession(false)}>
+                <button type="button" className="study-flashcard-exit" onClick={() => finishSession(false)}>
                     <ChevronLeft size={18} />
                     {exitLabel}
                 </button>
@@ -184,12 +185,12 @@ const StudyFlashcardSession = ({
                         className={`study-flashcard-card ${isAnswerVisible ? 'is-revealed' : ''}`}
                         onClick={() => setIsAnswerVisible((prev) => !prev)}
                     >
-                        <span className="study-flashcard-face study-flashcard-front">
+                        <span className="study-flashcard-face study-flashcard-card-front">
                             <small>表</small>
                             <strong>{currentCard.prompt}</strong>
                             <p>{currentCard.frontHint || '思い出せたらタップで答えを見ます'}</p>
                         </span>
-                        <span className="study-flashcard-face study-flashcard-back">
+                        <span className="study-flashcard-face study-flashcard-card-back">
                             <small>裏</small>
                             <strong>{currentCard.answer}</strong>
                             <p>{currentCard.backHint || currentCard.prompt}</p>
@@ -210,6 +211,9 @@ const StudyFlashcardSession = ({
                         <div className="study-flashcard-schedule-copy">
                             <strong>次はいつ出す？</strong>
                             <span>{isAnswerVisible ? '答えを見たあとで選んでも、そのまま先に選んでも大丈夫です。' : 'めくる前でも先に選べます。必要なら答えを見てから決めてください。'}</span>
+                            {scheduleHelpText && (
+                                <p className="study-flashcard-schedule-help">{scheduleHelpText}</p>
+                            )}
                         </div>
                         <div className="study-flashcard-schedule-grid">
                             {scheduleChoices.map((choice) => (

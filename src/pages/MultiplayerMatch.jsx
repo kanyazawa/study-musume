@@ -2224,6 +2224,7 @@ const MultiplayerMatch = ({ stats, updateStats }) => {
                 exitLabel="単語バトルに戻る"
                 completionTitle="単語めくり 完了"
                 completionMessage="選んだタイミングで、次に出す目安を保存しました。"
+                scheduleHelpText="ここで選んだ単語は、同じレベルの単語めくりを次に開いたときに優先して出ます。いまの選択肢は 10分後・明日・3日後・もうやらない です。"
                 characterId={myCharacterId}
                 skinId={myEquippedSkin}
                 preferredRenderer={preferredRenderer}

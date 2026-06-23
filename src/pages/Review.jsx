@@ -411,6 +411,7 @@ const Review = ({ stats, updateStats }) => {
                         exitLabel="復習リストに戻る"
                         completionTitle="めくり復習 完了"
                         completionMessage="弱点ノートの次回タイミングを更新しました。"
+                        scheduleHelpText="ここで選んだタイミングは弱点ノートの次回日になります。予定を過ぎたカードは、復習リストにまた出てきます。"
                         characterId={stats?.characterId || 'noah'}
                         skinId={stats?.equippedSkin || 'default'}
                         preferredRenderer={stats?.characterRenderer || 'auto'}
