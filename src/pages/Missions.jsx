@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Copy, Gem, Gift, Sparkles, Ticket } from 'lucide-react';
+import { Copy, Gift, Sparkles, Ticket } from 'lucide-react';
+import classroomBg from '../assets/images/bg_classroom.webp';
 import CharacterStage from '../components/character/CharacterStage';
 import { useSound } from '../contexts/SoundContext';
 import { getLastStudyTopic } from '../data/studyData';
@@ -73,7 +74,10 @@ const styles = {
         height: '100vh',
         position: 'relative',
         overflow: 'hidden',
-        background: 'linear-gradient(180deg, #f4ded7 0%, #f9f2ec 44%, #fbf7f2 100%)',
+        backgroundImage: `linear-gradient(180deg, rgba(249, 236, 226, 0.52) 0%, rgba(250, 241, 233, 0.34) 42%, rgba(251, 247, 242, 0.66) 100%), url(${classroomBg})`,
+        backgroundPosition: 'center top',
+        backgroundRepeat: 'no-repeat',
+        backgroundSize: 'cover',
     },
     glowA: {
         position: 'absolute',
@@ -181,71 +185,91 @@ const styles = {
     missionList: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '10px',
+        gap: '8px',
         overflowY: 'auto',
         padding: '0 4px 0 2px',
     },
     missionCard: {
-        borderRadius: '18px',
+        borderRadius: '16px',
         background: 'linear-gradient(180deg, #fffefd 0%, #fffaf7 100%)',
         border: '1px solid #f5e6df',
         boxShadow: '0 10px 22px rgba(226, 203, 195, 0.14)',
-        padding: '11px',
+        padding: '10px 12px',
     },
     claimedMissionCard: {
         opacity: 0.72,
     },
     cardHeader: {
         display: 'grid',
-        gridTemplateColumns: '46px 1fr auto',
+        gridTemplateColumns: '74px minmax(0, 1fr) 76px',
         gap: '10px',
-        alignItems: 'start',
+        alignItems: 'center',
     },
-    titleBlock: {
-        minWidth: 0,
-    },
-    iconWrap: {
-        width: '46px',
-        height: '46px',
+    rewardPanel: {
+        minHeight: '58px',
         borderRadius: '14px',
-        background: 'linear-gradient(180deg, #f6f0ff 0%, #eef7ff 100%)',
+        padding: '8px 6px',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        color: '#94a6bf',
+        gap: '3px',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9)',
-        fontSize: '18px',
     },
-    missionTitle: {
-        fontSize: '15px',
+    rewardPanelDiamond: {
+        background: 'linear-gradient(180deg, #fff5d9 0%, #ffefc8 100%)',
+        color: '#ac8740',
+    },
+    rewardPanelAffection: {
+        background: 'linear-gradient(180deg, #ffe8f0 0%, #ffdce8 100%)',
+        color: '#bb6c8d',
+    },
+    rewardPanelIntellect: {
+        background: 'linear-gradient(180deg, #e6f5ee 0%, #d9f0e6 100%)',
+        color: '#5f9b82',
+    },
+    rewardIcon: {
+        fontSize: '18px',
+        lineHeight: 1,
+    },
+    rewardValue: {
+        fontSize: '16px',
+        lineHeight: 1,
+        fontWeight: 900,
+    },
+    rewardLabel: {
+        fontSize: '10px',
+        lineHeight: 1.1,
+        fontWeight: 800,
+        letterSpacing: '0.03em',
+    },
+    missionBody: {
+        minWidth: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '7px',
+    },
+    missionDesc: {
+        fontSize: '13px',
         lineHeight: 1.3,
         fontWeight: 900,
         color: '#615661',
-    },
-    missionDesc: {
-        marginTop: '2px',
-        fontSize: '12px',
-        color: '#9b919c',
-        fontWeight: 700,
+        wordBreak: 'break-word',
     },
     progressBox: {
-        marginTop: '8px',
-        borderRadius: '14px',
-        border: '1px solid #f4e4dd',
-        background: '#fffaf8',
-        padding: '10px',
+        display: 'grid',
+        gridTemplateColumns: '1fr auto',
+        alignItems: 'center',
+        gap: '8px',
     },
     progressHead: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
         color: '#90858f',
-        fontSize: '12px',
+        fontSize: '11px',
         fontWeight: 800,
+        whiteSpace: 'nowrap',
     },
     progressTrack: {
-        marginTop: '7px',
-        height: '8px',
+        height: '7px',
         borderRadius: '999px',
         overflow: 'hidden',
         background: '#f6e9e7',
@@ -279,15 +303,24 @@ const styles = {
         color: '#5aa98a',
     },
     actionButton: {
-        marginTop: '8px',
         width: '100%',
         border: 'none',
-        borderRadius: '12px',
-        padding: '10px 12px',
+        minHeight: '58px',
+        borderRadius: '14px',
+        padding: '10px 8px',
         background: 'linear-gradient(180deg, #e7f1fd 0%, #dcebfb 100%)',
         color: '#688bb5',
-        fontSize: '14px',
+        fontSize: '13px',
         fontWeight: 900,
+        lineHeight: 1.15,
+    },
+    actionButtonClaimable: {
+        background: 'linear-gradient(180deg, #ffe3ec 0%, #ffd9e6 100%)',
+        color: '#af5f7b',
+    },
+    actionButtonPending: {
+        background: 'linear-gradient(180deg, #eef5fd 0%, #e1edf9 100%)',
+        color: '#6f8cb2',
     },
     actionButtonDisabled: {
         background: '#eef3f8',
@@ -607,6 +640,34 @@ function getBulkRewardReactionLine(missionCount) {
     return `${missionCount}件まとめて受け取れたよ。この調子でいこう。`;
 }
 
+function getPrimaryRewardPresentation(rewards = {}) {
+    const rewardCandidates = [
+        {
+            key: 'diamonds',
+            value: Number(rewards?.diamonds || 0),
+            icon: '💎',
+            label: 'ダイヤ',
+            tone: styles.rewardPanelDiamond,
+        },
+        {
+            key: 'affection',
+            value: Number(rewards?.affection || 0),
+            icon: '💗',
+            label: '親密度',
+            tone: styles.rewardPanelAffection,
+        },
+        {
+            key: 'intellect',
+            value: Number(rewards?.intellect || 0),
+            icon: '🧠',
+            label: '知力',
+            tone: styles.rewardPanelIntellect,
+        },
+    ];
+
+    return rewardCandidates.find((reward) => reward.value > 0) || rewardCandidates[0];
+}
+
 function buildSupplementalMissions({ stats, profile, claims, coreMissions }) {
     const achievementStats = loadAchievementStats();
     const referralSummary = getReferralSummary(profile || {});
@@ -790,7 +851,8 @@ function resolveMissionNavigationTarget(mission, context) {
 function MissionCard({ mission, onAction }) {
     const isClaimable = isMissionClaimable(mission);
     const isDisabled = Boolean(mission.claimed);
-    const buttonLabel = mission.claimed ? '受取済み' : isClaimable ? '受け取る' : 'つづける';
+    const buttonLabel = mission.claimed ? '受取済み' : isClaimable ? '受け取る' : '進む';
+    const primaryReward = getPrimaryRewardPresentation(mission.rewards);
 
     return (
         <article
@@ -800,48 +862,40 @@ function MissionCard({ mission, onAction }) {
             }}
         >
             <div style={styles.cardHeader}>
-                <div style={styles.iconWrap}>{mission.icon || '📘'}</div>
-                <div style={styles.titleBlock}>
-                    <div style={styles.missionTitle}>{mission.title}</div>
+                <div style={{ ...styles.rewardPanel, ...primaryReward.tone }}>
+                    <div style={styles.rewardIcon}>{primaryReward.icon}</div>
+                    <div style={styles.rewardValue}>+{primaryReward.value}</div>
+                    <div style={styles.rewardLabel}>{primaryReward.label}</div>
+                </div>
+                <div style={styles.missionBody}>
                     <div style={styles.missionDesc}>{mission.description}</div>
-                </div>
-                <div style={styles.rewardWrap}>
-                    <div style={styles.rewardChip}>
-                        <Gem size={13} />
-                        {mission.rewards?.diamonds || 0}
+                    <div style={styles.progressBox}>
+                        <div style={styles.progressTrack}>
+                            <div
+                                style={{
+                                    ...styles.progressFill,
+                                    width: `${mission.progressPercent || 0}%`,
+                                }}
+                            />
+                        </div>
+                        <div style={styles.progressHead}>
+                            {mission.current} / {mission.target}
+                        </div>
                     </div>
-                    <div style={{ ...styles.rewardChip, ...styles.rewardChipMint }}>
-                        🧠 {mission.rewards?.intellect || 0}
-                    </div>
                 </div>
+                <button
+                    type="button"
+                    onClick={() => onAction(mission)}
+                    disabled={isDisabled}
+                    style={{
+                        ...styles.actionButton,
+                        ...(isClaimable ? styles.actionButtonClaimable : styles.actionButtonPending),
+                        ...(isDisabled ? styles.actionButtonDisabled : {}),
+                    }}
+                >
+                    {buttonLabel}
+                </button>
             </div>
-
-            <div style={styles.progressBox}>
-                <div style={styles.progressHead}>
-                    <span>進行状況</span>
-                    <span>{mission.current} / {mission.target}</span>
-                </div>
-                <div style={styles.progressTrack}>
-                    <div
-                        style={{
-                            ...styles.progressFill,
-                            width: `${mission.progressPercent || 0}%`,
-                        }}
-                    />
-                </div>
-            </div>
-
-            <button
-                type="button"
-                onClick={() => onAction(mission)}
-                disabled={isDisabled}
-                style={{
-                    ...styles.actionButton,
-                    ...(isDisabled ? styles.actionButtonDisabled : {}),
-                }}
-            >
-                {buttonLabel}
-            </button>
         </article>
     );
 }
