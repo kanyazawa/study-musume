@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, ChevronLeft, ChevronRight, Home, NotebookPen, Plus, Save, Trash2 } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Heart, Home, NotebookPen, Plus, Trash2 } from 'lucide-react';
 import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
 import CalendarHeatmap from '../components/CalendarHeatmap';
 import CharacterStage from '../components/character/CharacterStage';
@@ -18,8 +18,9 @@ import './CalendarPage.css';
 
 const PANEL_OPTIONS = [
     { id: 'calendar', label: '手帳' },
-    { id: 'todo', label: 'ToDo' },
     { id: 'vocab', label: '英単語' },
+    { id: 'happiness', label: '幸福度' },
+    { id: 'todo', label: 'ToDo' },
 ];
 
 const VOCAB_STATUS_META = {
@@ -27,6 +28,96 @@ const VOCAB_STATUS_META = {
     learning: { label: '学習中', color: '#4ecfff' },
     weak: { label: '不得意', color: '#ff6ba6' },
     unseen: { label: '未着手', color: '#e8d8ca' },
+};
+
+const AUTO_SAVE_DELAY_MS = 500;
+
+const clampHappinessValue = (value) => {
+    const normalized = Number(value);
+
+    if (!Number.isFinite(normalized)) {
+        return null;
+    }
+
+    const rounded = Math.round(normalized);
+    return rounded >= 1 && rounded <= 10 ? rounded : null;
+};
+
+const buildMonthlyHappinessSeries = (year, month, happinessByDate = {}) => {
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    return Array.from({ length: daysInMonth }, (_, index) => {
+        const day = index + 1;
+        const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+        return {
+            day,
+            date,
+            value: clampHappinessValue(happinessByDate[date]),
+        };
+    });
+};
+
+const buildHappinessChart = (series) => {
+    const width = 320;
+    const height = 196;
+    const padding = { top: 18, right: 14, bottom: 30, left: 28 };
+    const innerWidth = width - padding.left - padding.right;
+    const innerHeight = height - padding.top - padding.bottom;
+    const dayCount = Math.max(series.length - 1, 1);
+    const plottedPoints = series
+        .filter((point) => point.value !== null)
+        .map((point) => {
+            const x = padding.left + ((point.day - 1) / dayCount) * innerWidth;
+            const y = padding.top + ((10 - point.value) / 9) * innerHeight;
+
+            return {
+                ...point,
+                x,
+                y,
+            };
+        });
+
+    const linePath = plottedPoints
+        .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+        .join(' ');
+
+    const areaPath = plottedPoints.length > 0
+        ? [
+            `M ${plottedPoints[0].x.toFixed(2)} ${(height - padding.bottom).toFixed(2)}`,
+            ...plottedPoints.map((point) => `L ${point.x.toFixed(2)} ${point.y.toFixed(2)}`),
+            `L ${plottedPoints[plottedPoints.length - 1].x.toFixed(2)} ${(height - padding.bottom).toFixed(2)}`,
+            'Z',
+        ].join(' ')
+        : '';
+
+    const yTicks = Array.from({ length: 10 }, (_, index) => {
+        const value = 10 - index;
+        return {
+            value,
+            y: padding.top + ((10 - value) / 9) * innerHeight,
+        };
+    });
+    const xTickDays = Array.from(new Set([
+        1,
+        Math.max(1, Math.round(series.length / 2)),
+        series.length,
+    ])).sort((left, right) => left - right);
+    const xTicks = xTickDays.map((day) => ({
+        day,
+        x: padding.left + ((day - 1) / dayCount) * innerWidth,
+    }));
+
+    return {
+        width,
+        height,
+        padding,
+        plottedPoints,
+        linePath,
+        areaPath,
+        yTicks,
+        xTicks,
+    };
 };
 
 const CalendarPage = ({ stats = {}, updateStats }) => {
@@ -40,9 +131,11 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
     const [selectedStats, setSelectedStats] = useState(null);
     const [noteDraft, setNoteDraft] = useState('');
     const [focusDraft, setFocusDraft] = useState('');
+    const [happinessDraft, setHappinessDraft] = useState(null);
     const [goalTodos, setGoalTodos] = useState(() => loadGoalTodos());
     const [todoInput, setTodoInput] = useState('');
     const [activePanel, setActivePanel] = useState('calendar');
+    const noteMissionTrackedRef = useRef(new Set());
 
     const characterId = stats?.characterId || 'noah';
     const equippedSkin = stats?.equippedSkin || 'default';
@@ -56,6 +149,7 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
 
     const calendarNotes = useMemo(() => stats?.calendarNotes || {}, [stats?.calendarNotes]);
     const calendarFocuses = useMemo(() => stats?.calendarFocuses || {}, [stats?.calendarFocuses]);
+    const calendarHappiness = useMemo(() => stats?.calendarHappiness || {}, [stats?.calendarHappiness]);
     const monthlyStats = useMemo(() => {
         const baseMonthlyStats = getMonthlyStats(currentYear, currentMonth);
 
@@ -66,10 +160,11 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
                     ...dayStats,
                     note: calendarNotes[date] || '',
                     focus: calendarFocuses[date] || '',
+                    happiness: clampHappinessValue(calendarHappiness[date]),
                 },
             ]),
         );
-    }, [calendarFocuses, calendarNotes, currentMonth, currentYear]);
+    }, [calendarFocuses, calendarHappiness, calendarNotes, currentMonth, currentYear]);
     const streak = getStudyStreak();
     const vocabLevelStats = useMemo(() => LEVEL_THRESHOLDS.map((levelMeta) => {
         const progress = getVocabLevelProgress(levelMeta.level, getVocabByLevel(levelMeta.level));
@@ -86,13 +181,38 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
             pieData,
         };
     }), []);
+    const monthlyHappinessSeries = useMemo(
+        () => buildMonthlyHappinessSeries(currentYear, currentMonth, calendarHappiness),
+        [calendarHappiness, currentMonth, currentYear],
+    );
+    const savedHappinessForSelectedDate = clampHappinessValue(calendarHappiness[selectedDate]);
+    const happinessChart = useMemo(
+        () => buildHappinessChart(monthlyHappinessSeries),
+        [monthlyHappinessSeries],
+    );
+    const recordedHappinessSeries = useMemo(
+        () => monthlyHappinessSeries.filter((point) => point.value !== null),
+        [monthlyHappinessSeries],
+    );
+    const averageHappiness = recordedHappinessSeries.length > 0
+        ? (recordedHappinessSeries.reduce((sum, point) => sum + point.value, 0) / recordedHappinessSeries.length).toFixed(1)
+        : null;
+    const highestHappiness = recordedHappinessSeries.length > 0
+        ? Math.max(...recordedHappinessSeries.map((point) => point.value))
+        : null;
+    const latestHappiness = recordedHappinessSeries.length > 0
+        ? recordedHappinessSeries[recordedHappinessSeries.length - 1]
+        : null;
+    const selectedHappinessNote = noteDraft.trim();
+    const selectedHappinessFocus = focusDraft.trim();
 
     useEffect(() => {
         const statsForDate = monthlyStats[selectedDate] || null;
         setSelectedStats(statsForDate);
         setNoteDraft(calendarNotes[selectedDate] || '');
         setFocusDraft(calendarFocuses[selectedDate] || '');
-    }, [calendarFocuses, calendarNotes, monthlyStats, selectedDate]);
+        setHappinessDraft(clampHappinessValue(calendarHappiness[selectedDate]));
+    }, [calendarFocuses, calendarHappiness, calendarNotes, monthlyStats, selectedDate]);
 
     const changeMonth = (delta) => {
         let newMonth = currentMonth + delta;
@@ -122,20 +242,29 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
         setSelectedStats(dayStats);
         setNoteDraft(calendarNotes[date] || '');
         setFocusDraft(calendarFocuses[date] || '');
+        setHappinessDraft(clampHappinessValue(calendarHappiness[date]));
     };
 
-    const handleSaveNote = () => {
+    const persistNoteDraft = () => {
         if (!updateStats || !selectedDate) {
             return;
         }
 
         const trimmedNote = noteDraft.trim();
         const trimmedFocus = focusDraft.trim();
-        const hadSavedNote = String(calendarNotes[selectedDate] || '').trim().length > 0;
+        const savedNote = String(calendarNotes[selectedDate] || '').trim();
+        const savedFocus = String(calendarFocuses[selectedDate] || '').trim();
+
+        if (trimmedNote === savedNote && trimmedFocus === savedFocus) {
+            return;
+        }
+
+        const hadSavedNote = savedNote.length > 0;
         const shouldTrackDailyNoteMission = (
             selectedDate === todayString
             && trimmedNote.length > 0
             && !hadSavedNote
+            && !noteMissionTrackedRef.current.has(selectedDate)
         );
 
         updateStats((currentStats) => {
@@ -161,8 +290,79 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
         });
 
         if (shouldTrackDailyNoteMission) {
+            noteMissionTrackedRef.current.add(selectedDate);
             updateMissionsOnWriteDailyNote();
         }
+    };
+
+    const persistHappinessDraft = () => {
+        if (!updateStats || !selectedDate) {
+            return;
+        }
+
+        const normalizedHappiness = clampHappinessValue(happinessDraft);
+        const savedHappiness = clampHappinessValue(calendarHappiness[selectedDate]);
+
+        if (normalizedHappiness === savedHappiness) {
+            return;
+        }
+
+        updateStats((currentStats) => {
+            const nextHappiness = { ...(currentStats?.calendarHappiness || {}) };
+
+            if (normalizedHappiness !== null) {
+                nextHappiness[selectedDate] = normalizedHappiness;
+            } else {
+                delete nextHappiness[selectedDate];
+            }
+
+            return {
+                calendarHappiness: nextHappiness,
+            };
+        });
+    };
+
+    useEffect(() => {
+        if (!selectedDate) {
+            return undefined;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            persistNoteDraft();
+        }, AUTO_SAVE_DELAY_MS);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [calendarFocuses, calendarNotes, focusDraft, noteDraft, selectedDate, todayString, updateStats]);
+
+    useEffect(() => {
+        if (!selectedDate) {
+            return undefined;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            persistHappinessDraft();
+        }, AUTO_SAVE_DELAY_MS);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [calendarHappiness, happinessDraft, selectedDate, updateStats]);
+
+    const handleHappinessDateChange = (nextDate) => {
+        if (!nextDate) {
+            return;
+        }
+
+        const parsed = new Date(`${nextDate}T00:00:00`);
+        setCurrentYear(parsed.getFullYear());
+        setCurrentMonth(parsed.getMonth() + 1);
+        setSelectedDate(nextDate);
+    };
+
+    const handleHappinessPointSelect = (date) => {
+        if (!date) {
+            return;
+        }
+
+        setSelectedDate(date);
     };
 
     const selectedNoteLength = noteDraft.length;
@@ -192,6 +392,18 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
             return `英単語の定着はかなり安定してきてるよ。このまま次の級も埋めていこう。`;
         }
 
+        if (activePanel === 'happiness') {
+            if (recordedHappinessSeries.length === 0) {
+                return `${characterLabel}と一緒に、その日の幸福度を10段階で残していこう。少しずつ並ぶと、調子の波が見えやすくなるよ。`;
+            }
+
+            if (savedHappinessForSelectedDate !== null) {
+                return `${formatDate(selectedDate)}の幸福度は${savedHappinessForSelectedDate}/10で記録中だよ。気分が動いた日ほど、あとで見返すヒントになるね。`;
+            }
+
+            return `今月の幸福度は平均${averageHappiness}/10くらい。折れ線の山と谷を見ながら、勉強しやすい日を探してみよう。`;
+        }
+
         if (!selectedDate) {
             return `${characterLabel}が今月の予定を預かるよ。日付を選んで、ひとことメモも残していこう。`;
         }
@@ -218,7 +430,7 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
         }
 
         return `${dateLabel}の予定はまだ空いてるよ。${characterLabel}と一緒に今日の勉強プランを埋めていこう。`;
-    }, [activePanel, characterLabel, completedGoalTodoCount, focusDraft, goalTodos.length, hasSelectedStudy, noteDraft, selectedDate, selectedStats, studiedWordTotal, todayString, weakWordTotal]);
+    }, [activePanel, averageHappiness, characterLabel, completedGoalTodoCount, focusDraft, goalTodos.length, hasSelectedStudy, noteDraft, recordedHappinessSeries.length, savedHappinessForSelectedDate, selectedDate, selectedStats, studiedWordTotal, todayString, weakWordTotal]);
 
     const coachPose = useMemo(() => {
         const emotion = hasSelectedStudy
@@ -400,15 +612,7 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
                                                     {selectedDate ? `${formatDate(selectedDate)}のメモ` : '日付を選んでメモ'}
                                                 </h3>
                                             </div>
-                                            <button
-                                                type="button"
-                                                className="note-save-btn"
-                                                onClick={handleSaveNote}
-                                                disabled={!selectedDate}
-                                            >
-                                                <Save size={16} />
-                                                保存
-                                            </button>
+                                            <div className="calendar-auto-save-badge">自動保存</div>
                                         </div>
 
                                         {selectedDate && (
@@ -425,6 +629,9 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
                                                 <div className="selected-chip">
                                                     {noteDraft.trim() ? 'メモあり' : 'メモなし'}
                                                 </div>
+                                                <div className="selected-chip">
+                                                    {savedHappinessForSelectedDate !== null ? `幸福度 ${savedHappinessForSelectedDate}/10` : '幸福度 未入力'}
+                                                </div>
                                             </div>
                                         )}
 
@@ -432,7 +639,7 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
                                             className="calendar-note-input"
                                             value={noteDraft}
                                             onChange={(event) => setNoteDraft(event.target.value.slice(0, 300))}
-                                            placeholder="その日の勉強メモ、やること、振り返りを書けます"
+                                            placeholder="その日の勉強メモ、やること、振り返り、今日の感謝を3つ書きましょう"
                                             disabled={!selectedDate}
                                         />
 
@@ -454,8 +661,229 @@ const CalendarPage = ({ stats = {}, updateStats }) => {
                                         </div>
 
                                         <div className="calendar-note-footer">
-                                            <span>選択した日付ごとに保存されます</span>
+                                            <span>選択した日付ごとに自動保存されます</span>
                                             <span>{selectedNoteLength}/300</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activePanel === 'happiness' && (
+                            <div className="calendar-single-panel">
+                                <div className="calendar-sheet calendar-happiness-panel">
+                                    <div className="calendar-happiness-header">
+                                        <div>
+                                            <div className="calendar-note-eyebrow">HAPPINESS TRACKER</div>
+                                            <h3>
+                                                <Heart size={18} />
+                                                幸福度の記録
+                                            </h3>
+                                            <p className="calendar-vocab-lead">日ごとの幸福度を10段階で残して、月の流れを折れ線で見返せます。</p>
+                                        </div>
+                                        <div className="calendar-auto-save-badge">自動保存</div>
+                                    </div>
+
+                                    <div className="month-selector">
+                                        <button type="button" className="month-nav-btn" onClick={() => changeMonth(-1)}>
+                                            <ChevronLeft size={20} />
+                                        </button>
+                                        <div className="month-display">
+                                            <span className="year">{currentYear}年</span>
+                                            <span className="month">{currentMonth}月</span>
+                                        </div>
+                                        <button type="button" className="month-nav-btn" onClick={() => changeMonth(1)}>
+                                            <ChevronRight size={20} />
+                                        </button>
+                                        <button type="button" className="today-btn" onClick={goToCurrentMonth}>
+                                            今月に戻る
+                                        </button>
+                                    </div>
+
+                                    <div className="calendar-happiness-input-card">
+                                        <label className="calendar-happiness-date-field">
+                                            <span>記録する日付</span>
+                                            <input
+                                                className="calendar-happiness-date-input"
+                                                type="date"
+                                                value={selectedDate}
+                                                onChange={(event) => handleHappinessDateChange(event.target.value)}
+                                            />
+                                        </label>
+
+                                        <div className="calendar-happiness-score-row">
+                                            <div className="calendar-happiness-score-copy">
+                                                <span className="calendar-happiness-score-label">選択中の幸福度</span>
+                                                <strong>{happinessDraft !== null ? happinessDraft : '--'}</strong>
+                                                <small>/ 10</small>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                className="calendar-happiness-clear-btn"
+                                                onClick={() => setHappinessDraft(null)}
+                                            >
+                                                未入力にする
+                                            </button>
+                                        </div>
+
+                                        <div className="calendar-happiness-scale" role="group" aria-label="幸福度を10段階で選ぶ">
+                                            {Array.from({ length: 10 }, (_, index) => {
+                                                const score = index + 1;
+                                                const isActive = happinessDraft === score;
+
+                                                return (
+                                                    <button
+                                                        key={score}
+                                                        type="button"
+                                                        className={`calendar-happiness-score-btn ${isActive ? 'is-active' : ''}`}
+                                                        aria-pressed={isActive}
+                                                        onClick={() => setHappinessDraft(score)}
+                                                    >
+                                                        <span>{score}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <div className="calendar-happiness-summary">
+                                        <div className="calendar-overview-pill warm">
+                                            <span className="overview-label">平均</span>
+                                            <strong>{averageHappiness ? `${averageHappiness} / 10` : '--'}</strong>
+                                            <small>今月の入力日の平均</small>
+                                        </div>
+                                        <div className="calendar-overview-pill mint">
+                                            <span className="overview-label">最高</span>
+                                            <strong>{highestHappiness !== null ? `${highestHappiness} / 10` : '--'}</strong>
+                                            <small>いちばん高かった日</small>
+                                        </div>
+                                        <div className="calendar-overview-pill sky">
+                                            <span className="overview-label">最新</span>
+                                            <strong>{latestHappiness ? `${latestHappiness.value} / 10` : '--'}</strong>
+                                            <small>{latestHappiness ? formatDate(latestHappiness.date) : 'まだ未記録'}</small>
+                                        </div>
+                                    </div>
+
+                                    <div className="calendar-happiness-graph-card">
+                                        <div className="calendar-happiness-graph-head">
+                                            <div>
+                                                <h4>{currentMonth}月の折れ線グラフ</h4>
+                                                <p>入力した日のみ点が付きます</p>
+                                            </div>
+                                            <div className="calendar-happiness-record-count">
+                                                {recordedHappinessSeries.length}日分
+                                            </div>
+                                        </div>
+
+                                        <div className="calendar-happiness-chart-wrap">
+                                            <svg
+                                                className="calendar-happiness-chart"
+                                                viewBox={`0 0 ${happinessChart.width} ${happinessChart.height}`}
+                                                role="img"
+                                                aria-label={`${currentMonth}月の幸福度折れ線グラフ`}
+                                            >
+                                                {happinessChart.yTicks.map((tick) => (
+                                                    <g key={tick.value}>
+                                                        <line
+                                                            x1={happinessChart.padding.left}
+                                                            y1={tick.y}
+                                                            x2={happinessChart.width - happinessChart.padding.right}
+                                                            y2={tick.y}
+                                                            className="calendar-happiness-grid-line"
+                                                        />
+                                                        <text
+                                                            x={happinessChart.padding.left - 8}
+                                                            y={tick.y + 4}
+                                                            textAnchor="end"
+                                                            className="calendar-happiness-axis-label"
+                                                        >
+                                                            {tick.value}
+                                                        </text>
+                                                    </g>
+                                                ))}
+
+                                                {happinessChart.xTicks.map((tick) => (
+                                                    <text
+                                                        key={tick.day}
+                                                        x={tick.x}
+                                                        y={happinessChart.height - 8}
+                                                        textAnchor="middle"
+                                                        className="calendar-happiness-axis-label"
+                                                    >
+                                                        {tick.day}日
+                                                    </text>
+                                                ))}
+
+                                                {happinessChart.areaPath && (
+                                                    <path d={happinessChart.areaPath} className="calendar-happiness-area" />
+                                                )}
+                                                {happinessChart.linePath && (
+                                                    <path d={happinessChart.linePath} className="calendar-happiness-line" />
+                                                )}
+
+                                                {happinessChart.plottedPoints.map((point) => (
+                                                    <g
+                                                        key={point.date}
+                                                        role="button"
+                                                        tabIndex={0}
+                                                        className="calendar-happiness-point-trigger"
+                                                        aria-label={`${formatDate(point.date)}の幸福度 ${point.value}/10 のメモを表示`}
+                                                        onClick={() => handleHappinessPointSelect(point.date)}
+                                                        onKeyDown={(event) => {
+                                                            if (event.key === 'Enter' || event.key === ' ') {
+                                                                event.preventDefault();
+                                                                handleHappinessPointSelect(point.date);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <circle
+                                                            cx={point.x}
+                                                            cy={point.y}
+                                                            r="14"
+                                                            className="calendar-happiness-point-hit"
+                                                        />
+                                                        <circle
+                                                            cx={point.x}
+                                                            cy={point.y}
+                                                            r="4.5"
+                                                            className={`calendar-happiness-point ${point.date === selectedDate ? 'is-selected' : ''}`}
+                                                        />
+                                                        {point.date === selectedDate && (
+                                                            <text
+                                                                x={point.x}
+                                                                y={point.y - 12}
+                                                                textAnchor="middle"
+                                                                className="calendar-happiness-point-label"
+                                                            >
+                                                                {point.value}
+                                                            </text>
+                                                        )}
+                                                    </g>
+                                                ))}
+                                            </svg>
+
+                                            {recordedHappinessSeries.length === 0 && (
+                                                <div className="calendar-happiness-empty">
+                                                    まだ幸福度の記録がありません。今日の気分から1つ入れてみましょう。
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="calendar-happiness-note-card">
+                                            <div className="calendar-happiness-note-head">
+                                                <strong>{selectedDate ? formatDate(selectedDate) : '日付未選択'}</strong>
+                                                <span>{savedHappinessForSelectedDate !== null ? `幸福度 ${savedHappinessForSelectedDate}/10` : '幸福度 未入力'}</span>
+                                            </div>
+                                            {selectedHappinessNote ? (
+                                                <p className="calendar-happiness-note-text">{selectedHappinessNote}</p>
+                                            ) : (
+                                                <p className="calendar-happiness-note-empty">この日のメモはまだありません。</p>
+                                            )}
+                                            {selectedHappinessFocus && (
+                                                <div className="calendar-happiness-note-focus">
+                                                    ひとこと目標: {selectedHappinessFocus}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

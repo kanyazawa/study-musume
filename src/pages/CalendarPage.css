@@ -95,6 +95,8 @@
 .today-btn,
 .note-save-btn,
 .calendar-todo-add-btn,
+.calendar-happiness-clear-btn,
+.calendar-happiness-score-btn,
 .big-home-btn,
 .calendar-panel-tab,
 .calendar-todo-toggle,
@@ -110,6 +112,8 @@
 .today-btn:hover,
 .note-save-btn:hover:not(:disabled),
 .calendar-todo-add-btn:hover,
+.calendar-happiness-clear-btn:hover,
+.calendar-happiness-score-btn:hover,
 .big-home-btn:hover,
 .calendar-panel-tab:hover,
 .calendar-todo-toggle:hover,
@@ -359,7 +363,7 @@
 
 .calendar-panel-switcher {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.42rem;
     margin-bottom: 0.45rem;
     flex: 0 0 auto;
@@ -393,6 +397,7 @@
 .calendar-book-page,
 .calendar-note-panel,
 .calendar-todo-panel,
+.calendar-happiness-panel,
 .calendar-vocab-panel,
 .month-summary {
     overflow: hidden;
@@ -404,6 +409,7 @@
 .calendar-book-page,
 .calendar-note-panel,
 .calendar-todo-panel,
+.calendar-happiness-panel,
 .calendar-vocab-panel,
 .month-summary {
     padding: 0.78rem;
@@ -471,6 +477,7 @@
 .calendar-book-header,
 .calendar-note-header,
 .calendar-todo-header,
+.calendar-happiness-header,
 .month-summary-header {
     display: flex;
     align-items: flex-start;
@@ -482,6 +489,7 @@
 .calendar-book-header h2,
 .calendar-note-header h3,
 .calendar-todo-header h3,
+.calendar-happiness-header h3,
 .month-summary h3 {
     margin: 0;
     color: var(--calendar-ink);
@@ -665,6 +673,7 @@
 
 .calendar-note-header h3,
 .calendar-todo-header h3,
+.calendar-happiness-header h3,
 .month-summary h3 {
     font-size: 1.14rem;
 }
@@ -676,6 +685,16 @@
     align-items: center;
     gap: 0.42rem;
     background: linear-gradient(180deg, #ef9fb0 0%, #da6f86 100%);
+}
+
+.calendar-auto-save-badge {
+    padding: 0.72rem 0.88rem;
+    border-radius: 999px;
+    color: #b85f72;
+    font-size: 0.76rem;
+    font-weight: 900;
+    background: rgba(255, 245, 247, 0.92);
+    box-shadow: inset 0 0 0 1px rgba(239, 143, 160, 0.18);
 }
 
 .note-save-btn:disabled {
@@ -890,6 +909,280 @@
     gap: 0.7rem;
 }
 
+.calendar-happiness-input-card,
+.calendar-happiness-graph-card {
+    margin-top: 0.72rem;
+    padding: 0.9rem;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.74);
+    box-shadow: inset 0 0 0 1px rgba(160, 120, 108, 0.1);
+}
+
+.calendar-happiness-date-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.42rem;
+    color: var(--calendar-ink);
+    font-size: 0.84rem;
+    font-weight: 900;
+}
+
+.calendar-happiness-date-input {
+    width: 100%;
+    padding: 0.86rem 0.95rem;
+    border: 1px solid rgba(160, 120, 108, 0.16);
+    border-radius: 16px;
+    color: var(--calendar-ink);
+    background: rgba(255, 253, 250, 0.92);
+    font: inherit;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.calendar-happiness-date-input:focus {
+    border-color: rgba(218, 111, 134, 0.35);
+    box-shadow: 0 0 0 4px rgba(239, 159, 176, 0.14);
+}
+
+.calendar-happiness-score-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.8rem;
+    margin-top: 0.85rem;
+}
+
+.calendar-happiness-score-copy {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.calendar-happiness-score-label {
+    display: block;
+    width: 100%;
+    color: #af7976;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+}
+
+.calendar-happiness-score-copy strong {
+    color: var(--calendar-ink);
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.calendar-happiness-score-copy small {
+    color: var(--calendar-soft-ink);
+    font-size: 0.88rem;
+    font-weight: 800;
+}
+
+.calendar-happiness-clear-btn {
+    padding: 0.72rem 0.88rem;
+    border-radius: 14px;
+    color: #8f6870;
+    font-size: 0.78rem;
+    font-weight: 900;
+    background: rgba(246, 233, 225, 0.98);
+    box-shadow: 0 10px 20px rgba(80, 55, 49, 0.08);
+}
+
+.calendar-happiness-scale {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin-top: 0.9rem;
+}
+
+.calendar-happiness-score-btn {
+    min-height: 52px;
+    border-radius: 16px;
+    color: #9b7175;
+    font-size: 1rem;
+    font-weight: 900;
+    background: rgba(250, 241, 235, 0.96);
+    box-shadow: inset 0 0 0 1px rgba(160, 120, 108, 0.12);
+}
+
+.calendar-happiness-score-btn.is-active {
+    color: #fff;
+    background: linear-gradient(180deg, #ef9fb0 0%, #da6f86 100%);
+    box-shadow: 0 12px 22px rgba(148, 83, 92, 0.18);
+}
+
+.calendar-happiness-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin-top: 0.72rem;
+}
+
+.calendar-happiness-graph-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.8rem;
+    margin-bottom: 0.8rem;
+}
+
+.calendar-happiness-graph-head h4 {
+    margin: 0;
+    color: var(--calendar-ink);
+    font-size: 1rem;
+}
+
+.calendar-happiness-graph-head p {
+    margin: 0.28rem 0 0;
+    color: var(--calendar-soft-ink);
+    font-size: 0.76rem;
+}
+
+.calendar-happiness-record-count {
+    padding: 0.55rem 0.72rem;
+    border-radius: 999px;
+    color: var(--calendar-ink);
+    font-size: 0.76rem;
+    font-weight: 900;
+    background: rgba(255, 245, 247, 0.92);
+    box-shadow: inset 0 0 0 1px rgba(239, 143, 160, 0.18);
+}
+
+.calendar-happiness-chart-wrap {
+    position: relative;
+    min-height: 196px;
+}
+
+.calendar-happiness-chart {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.calendar-happiness-grid-line {
+    stroke: rgba(160, 120, 108, 0.16);
+    stroke-width: 1;
+}
+
+.calendar-happiness-axis-label {
+    fill: #9a7a7a;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.calendar-happiness-area {
+    fill: rgba(239, 143, 160, 0.16);
+}
+
+.calendar-happiness-line {
+    fill: none;
+    stroke: #da6f86;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.calendar-happiness-point {
+    fill: #fff;
+    stroke: #da6f86;
+    stroke-width: 2.5;
+}
+
+.calendar-happiness-point-trigger {
+    cursor: pointer;
+    outline: none;
+}
+
+.calendar-happiness-point-hit {
+    fill: transparent;
+}
+
+.calendar-happiness-point.is-selected {
+    fill: #da6f86;
+}
+
+.calendar-happiness-point-label {
+    fill: #b85f72;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.calendar-happiness-point-trigger:focus-visible .calendar-happiness-point {
+    stroke: #8b4960;
+    stroke-width: 4;
+}
+
+.calendar-happiness-empty {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 1rem 1.2rem;
+    border-radius: 18px;
+    color: var(--calendar-soft-ink);
+    font-size: 0.82rem;
+    line-height: 1.7;
+    text-align: center;
+    background: rgba(255, 251, 248, 0.82);
+}
+
+.calendar-happiness-note-card {
+    margin-top: 0.85rem;
+    padding: 0.9rem;
+    border-radius: 18px;
+    background: rgba(255, 248, 247, 0.82);
+    box-shadow: inset 0 0 0 1px rgba(239, 143, 160, 0.12);
+}
+
+.calendar-happiness-note-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-bottom: 0.55rem;
+}
+
+.calendar-happiness-note-head strong {
+    color: var(--calendar-ink);
+    font-size: 0.92rem;
+}
+
+.calendar-happiness-note-head span {
+    color: #b85f72;
+    font-size: 0.76rem;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.calendar-happiness-note-text,
+.calendar-happiness-note-empty {
+    margin: 0;
+    line-height: 1.7;
+    font-size: 0.82rem;
+}
+
+.calendar-happiness-note-text {
+    color: var(--calendar-ink);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.calendar-happiness-note-empty {
+    color: var(--calendar-soft-ink);
+}
+
+.calendar-happiness-note-focus {
+    margin-top: 0.65rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid rgba(160, 120, 108, 0.12);
+    color: #8a6b74;
+    font-size: 0.76rem;
+    line-height: 1.6;
+    font-weight: 800;
+}
+
 .calendar-vocab-card {
     padding: 1rem;
     border-radius: 20px;
@@ -1025,5 +1318,18 @@
 
     .calendar-coach-panel {
         width: min(198px, 100%);
+    }
+
+    .calendar-panel-switcher {
+        gap: 0.35rem;
+    }
+
+    .calendar-panel-tab {
+        padding-inline: 0.2rem;
+        font-size: 0.71rem;
+    }
+
+    .calendar-happiness-summary {
+        grid-template-columns: 1fr;
     }
 }

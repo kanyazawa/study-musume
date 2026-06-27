@@ -121,6 +121,7 @@ export const getDefaultStats = () => mergeGameLoopStats({
     recommendedNextAction: null,
     calendarNotes: {},
     calendarFocuses: {},
+    calendarHappiness: {},
 });
 
 // ============================================
