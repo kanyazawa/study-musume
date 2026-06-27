@@ -216,6 +216,19 @@ GitHub に push する前の確認手順は [docs/push-preflight-checklist.md](/
 npm run deploy:netlify:prod
 ```
 
+別 branch で作業していて、最新 task の commit だけを `main` に載せてそのまま本番 deploy したいときは次を使えます。
+
+```powershell
+npm run deploy:netlify:task
+```
+
+補足:
+
+- 既定では現在の branch の `HEAD` commit だけを `.deploy-main` に cherry-pick して publish します
+- source 側に未コミット差分があっても、それらは publish 対象に入りません
+- 複数 commit を出したいときは `pwsh -File scripts/publish-branch-netlify-prod.ps1 -Commits <sha1>,<sha2>` の形で指定できます
+- まず手順だけ確認したいときは `pwsh -File scripts/publish-branch-netlify-prod.ps1 -DryRun` が使えます
+
 補足:
 
 - `main` ブランチでだけ実行する想定です
