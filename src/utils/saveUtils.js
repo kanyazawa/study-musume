@@ -80,6 +80,18 @@ export const getDefaultStats = () => mergeGameLoopStats({
         unlockedIds: [],
         readIds: [],
     },
+    seasonalEvents: {},
+    aiTutorSubscription: {
+        planId: 'free',
+        billingCycle: 'monthly',
+        startedAt: null,
+    },
+    aiTutorUsage: {
+        periodKey: '',
+        used: 0,
+    },
+    aiTutorTickets: 0,
+    aiTutorTrialUsed: 0,
     characterEvaluations: {},
     relationshipLastInteractionAt: null,
     reflectionEntries: [],
@@ -96,6 +108,7 @@ export const getDefaultStats = () => mergeGameLoopStats({
     recommendedNextAction: null,
     calendarNotes: {},
     calendarFocuses: {},
+    calendarHappiness: {},
 });
 
 // ============================================
